@@ -170,6 +170,7 @@
           </div>
         </div>
 
+
         <!-- Organization Information -->
         <div class="row">
           <div class="col-12">
@@ -182,51 +183,54 @@
                 <td>{{ user_detail.department|default:"Not Assigned" }}</td>
               </tr>
               <tr>
-                <th class="bg-light">Plant:</th>
+                <th class="bg-light">Assigned Plants:</th>
                 <td>
-                  {% if user_detail.plant %}
-                    {{ user_detail.plant.name }} ({{ user_detail.plant.code }})
-                  {% else %}
+                  {% for plant in user_detail.assigned_plants.all %}
+                    <span class="badge badge-secondary mr-1">{{ plant.name }} ({{ plant.code }})</span>
+                  {% empty %}
                     Not Assigned
-                  {% endif %}
+                  {% endfor %}
                 </td>
               </tr>
               <tr>
-                <th class="bg-light">Zone:</th>
+                <th class="bg-light">Assigned Zones:</th>
                 <td>
-                  {% if user_detail.zone %}
-                    {{ user_detail.zone.name }} ({{ user_detail.zone.code }})
-                  {% else %}
+                  {% for zone in user_detail.assigned_zones.all %}
+                    <span class="badge badge-secondary mr-1">{{ zone.name }} ({{ zone.code }})</span>
+                  {% empty %}
                     Not Assigned
-                  {% endif %}
+                  {% endfor %}
                 </td>
               </tr>
               <tr>
-                <th class="bg-light">Location:</th>
+                <th class="bg-light">Assigned Locations:</th>
                 <td>
-                  {% if user_detail.location %}
-                    {{ user_detail.location.name }} ({{ user_detail.location.code }})
-                  {% else %}
+                  {% for location in user_detail.assigned_locations.all %}
+                    <span class="badge badge-secondary mr-1">{{ location.name }} ({{ location.code }})</span>
+                  {% empty %}
                     Not Assigned
-                  {% endif %}
+                  {% endfor %}
                 </td>
               </tr>
               <tr>
-                <th class="bg-light">Sub-Location:</th>
+                <th class="bg-light">Assigned Sub-Locations:</th>
                 <td>
-                  {% if user_detail.sublocation %}
-                    {{ user_detail.sublocation.name }}
-                    {% if user_detail.sublocation.code %}
-                      ({{ user_detail.sublocation.code }})
-                    {% endif %}
-                  {% else %}
+                  {% for sublocation in user_detail.assigned_sublocations.all %}
+                    <span class="badge badge-secondary mr-1">
+                      {{ sublocation.name }}
+                      {% if sublocation.code %}
+                        ({{ sublocation.code }})
+                      {% endif %}
+                    </span>
+                  {% empty %}
                     Not Assigned
-                  {% endif %}
+                  {% endfor %}
                 </td>
               </tr>
             </table>
           </div>
         </div>
+        
 
         <!-- Module Access Permissions (Optional - if you want to show) -->
         <div class="row mt-4">
