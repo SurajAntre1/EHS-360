@@ -1,0 +1,244 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Inspection Schedules{% endblock %}
+{% block page_title %}My Inspection Schedules{% endblock %}
+
+{% block extra_css %}
+<style>
+.schedule-card {
+    border-left: 4px solid;
+    transition: all 0.2s;
+    margin-bottom: 15px;
+}
+
+.schedule-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.schedule-card.scheduled {
+    border-left-color: #6c757d;
+}
+
+.schedule-card.in-progress {
+    border-left-color: #ffc107;
+}
+
+.schedule-card.completed {
+    border-left-color: #28a745;
+}
+
+.schedule-card.overdue {
+    border-left-color: #dc3545;
+}
+
+.schedule-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #e9ecef;
+}
+
+.schedule-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.due-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.due-badge.overdue {
+    background-color: #dc3545;
+    color: white;
+}
+
+.due-badge.due-soon {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.due-badge.on-track {
+    background-color: #28a745;
+    color: white;
+}
+
+.filter-tabs {
+    margin-bottom: 20px;
+}
+
+.filter-tabs .btn {
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:dashboard' %}">Inspection Management</a></li>
+<li class="breadcrumb-item active">My Schedules</li>
+{% endblock %}
+
+{% block content %}
+
+<!-- Filter Tabs -->
+<div class="filter-tabs">
+    <a href="{% url 'inspections:schedule_list' %}" 
+       class="btn {% if not status_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        <i class="fas fa-list mr-1"></i>All
+    </a>
+    <a href="{% url 'inspections:schedule_list' %}?status=SCHEDULED" 
+       class="btn {% if status_filter == 'SCHEDULED' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+        <i class="fas fa-calendar mr-1"></i>Scheduled
+    </a>
+    <a href="{% url 'inspections:schedule_list' %}?status=IN_PROGRESS" 
+       class="btn {% if status_filter == 'IN_PROGRESS' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+        <i class="fas fa-clock mr-1"></i>In Progress
+    </a>
+    <a href="{% url 'inspections:schedule_list' %}?status=COMPLETED" 
+       class="btn {% if status_filter == 'COMPLETED' %}btn-success{% else %}btn-outline-success{% endif %}">
+        <i class="fas fa-check-circle mr-1"></i>Completed
+    </a>
+    <a href="{% url 'inspections:schedule_list' %}?status=OVERDUE" 
+       class="btn {% if status_filter == 'OVERDUE' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+        <i class="fas fa-exclamation-triangle mr-1"></i>Overdue
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        {% if schedules %}
+            {% for schedule in schedules %}
+            <div class="card ehs-card schedule-card {{ schedule.status|lower }}">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5 class="card-title mb-2">
+                                <i class="fas fa-clipboard-check mr-2 text-info"></i>
+                                {{ schedule.template.template_name }}
+                            </h5>
+                            
+                            <div class="mb-2">
+                                <span class="badge badge-pill 
+                                    {% if schedule.status == 'SCHEDULED' %}badge-secondary
+                                    {% elif schedule.status == 'IN_PROGRESS' %}badge-warning
+                                    {% elif schedule.status == 'COMPLETED' %}badge-success
+                                    {% elif schedule.status == 'OVERDUE' %}badge-danger
+                                    {% endif %}">
+                                    {{ schedule.get_status_display }}
+                                </span>
+                            </div>
+                            
+                            <div class="schedule-meta">
+                                <div class="schedule-meta-item">
+                                    <i class="fas fa-building"></i>
+                                    <span>{{ schedule.plant.name }}</span>
+                                </div>
+                                {% if schedule.location %}
+                                <div class="schedule-meta-item">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>{{ schedule.location.name }}</span>
+                                </div>
+                                {% endif %}
+                                <div class="schedule-meta-item">
+                                    <i class="fas fa-user"></i>
+                                    <span>{{ schedule.assigned_to.get_full_name }}</span>
+                                </div>
+                            </div>
+                            
+                            {% if schedule.notes %}
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-sticky-note mr-1"></i>
+                                    {{ schedule.notes }}
+                                </small>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 text-right">
+                            <div class="mb-3">
+                                <small class="text-muted d-block">Scheduled Date</small>
+                                <strong>{{ schedule.scheduled_date|date:"d M Y" }}</strong>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <small class="text-muted d-block">Due Date</small>
+                                <strong>{{ schedule.due_date|date:"d M Y" }}</strong>
+                            </div>
+                            
+                            <div class="mb-3">
+                                {% if schedule.days_until_due < 0 %}
+                                <span class="due-badge overdue">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                                    Overdue by {{ schedule.days_until_due|abs }} days
+                                </span>
+                                {% elif schedule.days_until_due == 0 %}
+                                <span class="due-badge due-soon">
+                                    <i class="fas fa-bell mr-1"></i>
+                                    Due Today
+                                </span>
+                                {% elif schedule.days_until_due <= 2 %}
+                                <span class="due-badge due-soon">
+                                    <i class="fas fa-bell mr-1"></i>
+                                    Due in {{ schedule.days_until_due }} days
+                                </span>
+                                {% else %}
+                                <span class="due-badge on-track">
+                                    <i class="fas fa-calendar-check mr-1"></i>
+                                    {{ schedule.days_until_due }} days left
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                {% if schedule.status == 'COMPLETED' %}
+                                    <a href="{% url 'inspections:inspection_detail' schedule.inspection.id %}" 
+                                       class="btn btn-info btn-sm">
+                                        <i class="fas fa-eye mr-1"></i>View Inspection
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'inspections:conduct_inspection' schedule.id %}" 
+                                       class="btn btn-success btn-sm">
+                                        <i class="fas fa-play-circle mr-1"></i>
+                                        {% if schedule.status == 'IN_PROGRESS' %}Continue{% else %}Start{% endif %} Inspection
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="card ehs-card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Inspection Schedules Found</h4>
+                    <p class="text-muted">
+                        {% if status_filter %}
+                            No inspections with status "{{ status_filter }}"
+                        {% else %}
+                            You don't have any scheduled inspections at the moment.
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'inspections:dashboard' %}" class="btn btn-primary mt-3">
+                        <i class="fas fa-arrow-left mr-1"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

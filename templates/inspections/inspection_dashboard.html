@@ -1,0 +1,446 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load inspection_filters %}
+
+{% block title %}Inspection Dashboard{% endblock %}
+{% block page_title %}Inspection Management Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+.stat-card {
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+.stat-icon {
+    font-size: 3rem;
+    opacity: 0.3;
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+.recent-inspections-table {
+    font-size: 0.9rem;
+}
+
+.recent-inspections-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.inspection-status-badge {
+    padding: 0.4em 0.8em;
+    font-size: 0.85em;
+    font-weight: 600;
+    border-radius: 4px;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item active">Inspection Dashboard</li>
+{% endblock %}
+
+{% block content %}
+
+<!-- Statistics Cards -->
+<div class="row">
+    <!-- Scheduled Inspections -->
+    <div class="col-lg-3 col-6">
+        <div class="small-box stat-card bg-info ehs-card">
+            <div class="inner">
+                <h3>{{ stats.scheduled_count }}</h3>
+                <p>Scheduled Inspections</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-calendar-alt stat-icon"></i>
+            </div>
+            <a href="{% url 'inspections:schedule_list' %}?status=SCHEDULED" class="small-box-footer">
+                View Details <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Pending Inspections -->
+    <div class="col-lg-3 col-6">
+        <div class="small-box stat-card bg-warning ehs-card">
+            <div class="inner">
+                <h3>{{ stats.pending_count }}</h3>
+                <p>Pending Inspections</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-clock stat-icon"></i>
+            </div>
+            <a href="{% url 'inspections:schedule_list' %}?status=IN_PROGRESS" class="small-box-footer">
+                View Details <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Completed Inspections -->
+    <div class="col-lg-3 col-6">
+        <div class="small-box stat-card bg-success ehs-card">
+            <div class="inner">
+                <h3>{{ stats.completed_count }}</h3>
+                <p>Completed (This Month)</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-check-circle stat-icon"></i>
+            </div>
+            <a href="{% url 'inspections:inspection_list' %}?status=COMPLETED" class="small-box-footer">
+                View Details <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Overdue Inspections -->
+    <div class="col-lg-3 col-6">
+        <div class="small-box stat-card bg-danger ehs-card">
+            <div class="inner">
+                <h3>{{ stats.overdue_count }}</h3>
+                <p>Overdue Inspections</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-exclamation-triangle stat-icon"></i>
+            </div>
+            <a href="{% url 'inspections:schedule_list' %}?status=OVERDUE" class="small-box-footer">
+                View Details <i class="fas fa-arrow-circle-right"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Findings Statistics -->
+<div class="row">
+    <div class="col-lg-3 col-6">
+        <div class="info-box ehs-card">
+            <span class="info-box-icon bg-danger"><i class="fas fa-flag"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Open Findings</span>
+                <span class="info-box-number">{{ findings_stats.open_count }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-6">
+        <div class="info-box ehs-card">
+            <span class="info-box-icon bg-warning"><i class="fas fa-tasks"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">In Progress</span>
+                <span class="info-box-number">{{ findings_stats.in_progress_count }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-6">
+        <div class="info-box ehs-card">
+            <span class="info-box-icon bg-success"><i class="fas fa-check"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Closed Findings</span>
+                <span class="info-box-number">{{ findings_stats.closed_count }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-6">
+        <div class="info-box ehs-card">
+            <span class="info-box-icon bg-info"><i class="fas fa-percent"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">Avg. Compliance</span>
+                <span class="info-box-number">{{ stats.avg_compliance_score|floatformat:1 }}%</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row">
+    <!-- Monthly Inspections Trend -->
+    <div class="col-lg-6">
+        <div class="card ehs-card">
+            <div class="card-header bg-info text-white">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-line mr-2"></i>Monthly Inspections Trend
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="monthlyTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inspection Status Distribution -->
+    <div class="col-lg-6">
+        <div class="card ehs-card">
+            <div class="card-header bg-success text-white">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-pie mr-2"></i>Inspection Status Distribution
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="statusDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Inspections Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card ehs-card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="card-title">
+                    <i class="fas fa-list mr-2"></i>Recent Inspections
+                </h3>
+                <div class="card-tools">
+                    <a href="{% url 'inspections:inspection_list' %}" class="btn btn-sm btn-light">
+                        <i class="fas fa-eye mr-1"></i>View All
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped recent-inspections-table">
+                    <thead>
+                        <tr>
+                            <th>Inspection No.</th>
+                            <th>Template</th>
+                            <th>Location</th>
+                            <th>Conducted By</th>
+                            <th>Date</th>
+                            <th>Compliance Score</th>
+                            <th>Findings</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inspection in recent_inspections %}
+                        <tr>
+                            <td><strong>{{ inspection.inspection_number }}</strong></td>
+                            <td>{{ inspection.template.template_name }}</td>
+                            <td>{{ inspection.location.name }}</td>
+                            <td>{{ inspection.conducted_by.get_full_name }}</td>
+                            <td>{{ inspection.inspection_date|date:"d M Y" }}</td>
+                            <td>
+                                <span class="badge {% if inspection.overall_score >= 90 %}badge-success{% elif inspection.overall_score >= 70 %}badge-warning{% else %}badge-danger{% endif %}">
+                                    {{ inspection.overall_score|floatformat:1 }}%
+                                </span>
+                            </td>
+                            <td>
+                                {% if inspection.total_findings > 0 %}
+                                <span class="badge badge-danger">{{ inspection.total_findings }}</span>
+                                {% else %}
+                                <span class="badge badge-success">0</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if inspection.status == 'COMPLETED' %}
+                                <span class="badge badge-success">Completed</span>
+                                {% elif inspection.status == 'SUBMITTED' %}
+                                <span class="badge badge-info">Submitted</span>
+                                {% elif inspection.status == 'DRAFT' %}
+                                <span class="badge badge-secondary">Draft</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'inspections:inspection_detail' inspection.id %}" class="btn btn-sm btn-info" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if inspection.pdf_report %}
+                                <a href="{{ inspection.pdf_report.url }}" class="btn btn-sm btn-danger" title="Download PDF" target="_blank">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-3x mb-3"></i>
+                                <p>No inspections found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- My Assigned Inspections -->
+{% if user.role == 'HOD' or user.role == 'SAFETY_MANAGER' %}
+<div class="row">
+    <div class="col-12">
+        <div class="card ehs-card">
+            <div class="card-header bg-warning">
+                <h3 class="card-title">
+                    <i class="fas fa-user-check mr-2"></i>My Assigned Inspections
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Template</th>
+                            <th>Scheduled Date</th>
+                            <th>Due Date</th>
+                            <th>Days Until Due</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for schedule in my_assigned_inspections %}
+                        <tr {% if schedule.is_overdue %}class="table-danger"{% endif %}>
+                            <td><strong>{{ schedule.template.template_name }}</strong></td>
+                            <td>{{ schedule.scheduled_date|date:"d M Y" }}</td>
+                            <td>{{ schedule.due_date|date:"d M Y" }}</td>
+                            <td>
+                                {% if schedule.days_until_due < 0 %}
+                                <span class="badge badge-danger">Overdue by {{ schedule.days_until_due|abs_value }} days</span>
+                                {% elif schedule.days_until_due == 0 %}
+                                <span class="badge badge-warning">Due Today</span>
+                                {% else %}
+                                <span class="badge badge-info">{{ schedule.days_until_due }} days</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if schedule.status == 'SCHEDULED' %}
+                                <span class="badge badge-secondary">Scheduled</span>
+                                {% elif schedule.status == 'IN_PROGRESS' %}
+                                <span class="badge badge-warning">In Progress</span>
+                                {% elif schedule.status == 'COMPLETED' %}
+                                <span class="badge badge-success">Completed</span>
+                                {% elif schedule.status == 'OVERDUE' %}
+                                <span class="badge badge-danger">Overdue</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if schedule.status != 'COMPLETED' %}
+                                <a href="{% url 'inspections:conduct_inspection' schedule.id %}" class="btn btn-sm btn-success">
+                                    <i class="fas fa-play-circle mr-1"></i>Start/Continue
+                                </a>
+                                {% else %}
+                                <a href="{% url 'inspections:inspection_detail' schedule.inspection.id %}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye mr-1"></i>View
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                No inspections assigned to you
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<script>
+// Monthly Trend Chart
+const monthlyCtx = document.getElementById('monthlyTrendChart').getContext('2d');
+const monthlyTrendChart = new Chart(monthlyCtx, {
+    type: 'line',
+    data: {
+        labels: {{ monthly_labels|safe }},
+        datasets: [{
+            label: 'Inspections Completed',
+            data: {{ monthly_data|safe }},
+            backgroundColor: 'rgba(23, 162, 184, 0.2)',
+            borderColor: 'rgba(23, 162, 184, 1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// Status Distribution Pie Chart
+const statusCtx = document.getElementById('statusDistributionChart').getContext('2d');
+const statusDistributionChart = new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Scheduled', 'In Progress', 'Completed', 'Overdue'],
+        datasets: [{
+            data: [
+                {{ stats.scheduled_count }},
+                {{ stats.pending_count }},
+                {{ stats.completed_count }},
+                {{ stats.overdue_count }}
+            ],
+            backgroundColor: [
+                'rgba(23, 162, 184, 0.8)',
+                'rgba(255, 193, 7, 0.8)',
+                'rgba(40, 167, 69, 0.8)',
+                'rgba(220, 53, 69, 0.8)'
+            ],
+            borderColor: [
+                'rgba(23, 162, 184, 1)',
+                'rgba(255, 193, 7, 1)',
+                'rgba(40, 167, 69, 1)',
+                'rgba(220, 53, 69, 1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'bottom'
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

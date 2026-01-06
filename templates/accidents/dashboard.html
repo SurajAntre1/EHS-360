@@ -1,0 +1,286 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Incident Management Dashboard{% endblock %}
+{% block page_title %}Incident Management Dashboard{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item active">Incident Management</li>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row mb-4">
+  <div class="col-lg-3 col-md-6">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #dc3545, #c82333);">
+        <i class="fas fa-file-medical"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Total Incidents</div>
+        <div class="ehs-stat-value">{{ total_incidents }}</div>
+        <div class="ehs-stat-trend">
+          <span>All Time</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-lg-3 col-md-6">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #ffc107, #ff9800);">
+        <i class="fas fa-folder-open"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Open Incidents</div>
+        <div class="ehs-stat-value">{{ open_incidents }}</div>
+        <div class="ehs-stat-trend">
+          <span>Pending Action</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-lg-3 col-md-6">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #17a2b8, #117a8b);">
+        <i class="fas fa-calendar-alt"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">This Month</div>
+        <div class="ehs-stat-value">{{ this_month_incidents }}</div>
+        <div class="ehs-stat-trend">
+          <span>Current Month</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-lg-3 col-md-6">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #6f42c1, #5a32a3);">
+        <i class="fas fa-search"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Investigation Pending</div>
+        <div class="ehs-stat-value">{{ investigation_pending }}</div>
+        <div class="ehs-stat-trend">
+          <span>Requires Action</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Incident Types -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="ehs-card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-chart-pie mr-2"></i>Incidents by Type
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col-md-3">
+            <div class="card bg-danger text-white mb-3">
+              <div class="card-body">
+                <h3>{{ lti_count }}</h3>
+                <p class="mb-0">Lost Time Injury (LTI)</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card bg-warning text-white mb-3">
+              <div class="card-body">
+                <h3>{{ mtc_count }}</h3>
+                <p class="mb-0">Medical Treatment (MTC)</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card bg-info text-white mb-3">
+              <div class="card-body">
+                <h3>{{ fa_count }}</h3>
+                <p class="mb-0">First Aid (FA)</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card bg-dark text-white mb-3">
+              <div class="card-body">
+                <h3>{{ hlfi_count }}</h3>
+                <p class="mb-0">HLFI</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <!-- Left Card -->
+  <div class="col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm text-center">
+      <div class="card-body d-flex flex-column justify-content-center">
+        <div class="mb-3">
+          <a href="{% url 'accidents:incident_create' %}" class="btn btn-primary btn-lg rounded-circle">
+            <i class="fas fa-plus"></i>
+          </a>
+        </div>
+        <h5 class="card-title">Report New Incident</h5>
+        <p class="card-text text-muted">
+          Report LTI, MTC, FA, or HLFI incidents
+        </p>
+        <!-- Center smaller button -->
+        <div class="d-flex justify-content-center">
+          <a href="{% url 'accidents:incident_create' %}" class="btn btn-primary btn-md">
+            <i class="fas fa-file-medical mr-2"></i> Report Incident
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Card -->
+  <div class="col-md-6 mb-3">
+    <div class="card h-100 border-0 shadow-sm text-center">
+      <div class="card-body d-flex flex-column justify-content-center">
+        <div class="mb-3">
+          <a href="{% url 'accidents:incident_list' %}" class="btn btn-success btn-lg rounded-circle">
+            <i class="fas fa-list"></i>
+        </a>
+        </div>
+        <h5 class="card-title">View All Incidents</h5>
+        <p class="card-text text-muted">
+          Browse and filter incident reports
+        </p>
+        <!-- Center smaller button -->
+        <div class="d-flex justify-content-center">
+          <a href="{% url 'accidents:incident_list' %}" class="btn btn-success btn-md">
+            <i class="fas fa-folder-open mr-2"></i> View All
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overdue Investigations Alert -->
+{% if overdue_investigations %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="alert alert-danger">
+      <h5 class="alert-heading">
+        <i class="fas fa-exclamation-triangle mr-2"></i>
+        Overdue Investigations ({{ overdue_investigations.count }})
+      </h5>
+      <p>The following incidents have overdue investigations (7-day deadline exceeded):</p>
+      <ul class="mb-0">
+        {% for incident in overdue_investigations %}
+        <li>
+          <a href="{% url 'accidents:incident_detail' incident.pk %}" class="text-white">
+            <strong>{{ incident.report_number }}</strong> - {{ incident.incident_title }}
+            (Due: {{ incident.investigation_deadline }})
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Recent Incidents -->
+<div class="row">
+  <div class="col-12">
+    <div class="ehs-card">
+      <div class="card-header">
+        <div class="row align-items-center">
+          <div class="col">
+            <h3 class="card-title mb-0">
+              <i class="fas fa-clock mr-2"></i>Recent Incidents
+            </h3>
+          </div>
+          <div class="col-auto">
+            <a href="{% url 'accidents:incident_list' %}" class="btn btn-primary btn-sm">
+              View All <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Report No.</th>
+                <th>Type</th>
+                <!-- <th>Title</th> -->
+                <th>Date</th>
+                <th>Plant</th>
+                <!-- <th>Severity</th> -->
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for incident in recent_incidents %}
+              <tr>
+                <td><strong>{{ incident.report_number }}</strong></td>
+                <td>
+                  <span class="badge 
+                    {% if incident.incident_type == 'LTI' %}badge-danger
+                    {% elif incident.incident_type == 'MTC' %}badge-warning
+                    {% elif incident.incident_type == 'FA' %}badge-info
+                    {% else %}badge-dark{% endif %}">
+                    {{ incident.get_incident_type_display }}
+                  </span>
+                </td>
+                <!-- <td>{{ incident.incident_title|truncatewords:8 }}</td> -->
+                <td>{{ incident.incident_date|date:"d/m/Y" }}</td>
+                <td>{{ incident.plant.name }}</td>
+                <!-- <td>
+                  <span class="badge 
+                    {% if incident.severity_level == 'Critical' or incident.severity_level == 'Fatal' %}badge-danger
+                    {% elif incident.severity_level == 'Serious' %}badge-warning
+                    {% else %}badge-info{% endif %}">
+                    {{ incident.severity_level }}
+                  </span>
+                </td> -->
+                <td>
+                  <span class="badge 
+                    {% if incident.status == 'CLOSED' %}badge-success
+                    {% elif incident.status == 'REPORTED' %}badge-secondary
+                    {% else %}badge-primary{% endif %}">
+                    {{ incident.get_status_display }}
+                  </span>
+                </td>
+                <td>
+                  <a href="{% url 'accidents:incident_detail' incident.pk %}" 
+                     class="btn btn-sm btn-info" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center">
+                  <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle mr-2"></i>No incidents reported yet.
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

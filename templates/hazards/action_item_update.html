@@ -1,0 +1,189 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Update Action Item - {{ hazard.report_number }}{% endblock %}
+{% block page_title %}Update Action Item{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hazards:dashboard' %}">Hazard Management</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hazards:hazard_list' %}">All Hazards</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hazards:hazard_detail' object.hazard.pk %}">{{ object.hazard.report_number }}</a></li>
+<li class="breadcrumb-item active">Update Action Item</li>
+{% endblock %}
+
+{% block content %}
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1><i class="fas fa-edit"></i> Update Action Item</h1>
+            </div>
+            <div class="col-sm-6">
+                <div class="float-sm-right">
+                    <a href="{% url 'hazards:hazard_detail' object.hazard.pk %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Hazard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <!-- Hazard Info Card -->
+            <div class="card bg-light mb-3">
+                <div class="card-body">
+                    <h5 class="mb-2">
+                        <i class="fas fa-exclamation-triangle text-warning"></i> 
+                        {{ object.hazard.report_number }}
+                    </h5>
+                    <p class="mb-1"><strong>Title:</strong> {{ object.hazard.hazard_title }}</p>
+                    <p class="mb-0">
+                        <span class="badge badge-info">Current Status: {{ object.get_status_display }}</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Update Form Card -->
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h3 class="card-title text-white">
+                        <i class="fas fa-edit"></i> Update Action Item
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="">
+                        {% csrf_token %}
+
+                        <!-- Action Description -->
+                        <div class="form-group">
+                            <label for="id_action_description">Action Description *</label>
+                            <textarea name="action_description" id="id_action_description" 
+                                      class="form-control" 
+                                      rows="4" 
+                                      required>{{ object.action_description }}</textarea>
+                        </div>
+
+                        <!-- Responsible Person -->
+                        <div class="form-group">
+                            <label for="id_responsible_person">Responsible Person *</label>
+                            <select name="responsible_person" id="id_responsible_person" 
+                                    class="form-control" required>
+                                <option value="">Select Responsible Person</option>
+                                {% for user in users %}
+                                <option value="{{ user.id }}" 
+                                        {% if user.id == object.responsible_person.id %}selected{% endif %}>
+                                    {{ user.get_full_name|default:user.username }} - {{ user.email }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Target Date -->
+                        <div class="form-group">
+                            <label for="id_target_date">Target Date *</label>
+                            <input type="date" name="target_date" id="id_target_date" 
+                                   class="form-control" 
+                                   value="{{ object.target_date|date:'Y-m-d' }}" 
+                                   required>
+                        </div>
+
+                        <!-- Status - NOW EDITABLE -->
+                        <div class="form-group">
+                            <label for="id_status">Status *</label>
+                            <select name="status" id="id_status" class="form-control" required>
+                                <option value="PENDING" {% if object.status == 'PENDING' %}selected{% endif %}>
+                                    Pending
+                                </option>
+                                <option value="IN_PROGRESS" {% if object.status == 'IN_PROGRESS' %}selected{% endif %}>
+                                    In Progress
+                                </option>
+                                <option value="COMPLETED" {% if object.status == 'COMPLETED' %}selected{% endif %}>
+                                    Completed
+                                </option>
+                            </select>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i> Update the status as work progresses
+                            </small>
+                        </div>
+
+                        <!-- Completion Date (shown only if COMPLETED) -->
+                        <div class="form-group" id="completion_date_group" style="display: none;">
+                            <label for="id_completion_date">Completion Date</label>
+                            <input type="date" name="completion_date" id="id_completion_date" 
+                                   class="form-control" 
+                                   value="{{ object.completion_date|date:'Y-m-d'|default:'' }}">
+                        </div>
+
+                        <!-- Completion Remarks (shown only if COMPLETED) -->
+                        <div class="form-group" id="completion_remarks_group" style="display: none;">
+                            <label for="id_completion_remarks">Completion Remarks</label>
+                            <textarea name="completion_remarks" id="id_completion_remarks" 
+                                      class="form-control" rows="3">{{ object.completion_remarks|default:'' }}</textarea>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <hr class="my-4">
+                        <div class="form-group text-center">
+                            <button type="submit" class="btn btn-warning btn-lg px-5">
+                                <i class="fas fa-save"></i> Update Action Item
+                            </button>
+                            <a href="{% url 'hazards:hazard_detail' object.hazard.pk %}" 
+                               class="btn btn-secondary btn-lg px-5 ml-2">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusSelect = document.getElementById('id_status');
+    const completionDateGroup = document.getElementById('completion_date_group');
+    const completionRemarksGroup = document.getElementById('completion_remarks_group');
+    const completionDateInput = document.getElementById('id_completion_date');
+    
+    // Function to toggle completion fields
+    function toggleCompletionFields() {
+        if (statusSelect.value === 'COMPLETED') {
+            completionDateGroup.style.display = 'block';
+            completionRemarksGroup.style.display = 'block';
+            
+            // Set today's date if not already set
+            if (!completionDateInput.value) {
+                completionDateInput.value = new Date().toISOString().split('T')[0];
+            }
+        } else {
+            completionDateGroup.style.display = 'none';
+            completionRemarksGroup.style.display = 'none';
+        }
+    }
+    
+    // Check on page load
+    toggleCompletionFields();
+    
+    // Check when status changes
+    statusSelect.addEventListener('change', toggleCompletionFields);
+});
+</script>
+{% endblock %}

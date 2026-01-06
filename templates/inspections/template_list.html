@@ -1,0 +1,149 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Inspection Templates{% endblock %}
+{% block page_title %}Inspection Templates{% endblock %}
+
+{% block extra_css %}
+<style>
+.template-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    transition: all 0.3s;
+}
+
+.template-card:hover {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.template-header {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px 8px 0 0;
+}
+
+.template-body {
+    padding: 20px;
+}
+
+.stat-badge {
+    display: inline-block;
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-weight: 600;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.stat-badge i {
+    margin-right: 5px;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:dashboard' %}">Inspection Management</a></li>
+<li class="breadcrumb-item active">Templates</li>
+{% endblock %}
+
+{% block content %}
+
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle mr-2"></i>
+            <strong>Inspection Templates</strong> define the checklist structure for different types of inspections. 
+            Each template contains categories and inspection points that HODs will use during inspections.
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% for template in templates %}
+    <div class="col-md-6">
+        <div class="card template-card">
+            <div class="template-header">
+                <h4 class="mb-1">
+                    <i class="fas fa-clipboard-list mr-2"></i>
+                    {{ template.template_name }}
+                </h4>
+                <p class="mb-0">
+                    <small>Code: {{ template.template_code }} | Document: {{ template.document_number|default:"N/A" }}</small>
+                </p>
+            </div>
+            
+            <div class="template-body">
+                <div class="mb-3">
+                    {% if template.description %}
+                    <p class="text-muted">{{ template.description }}</p>
+                    {% else %}
+                    <p class="text-muted">No description available</p>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <span class="stat-badge" style="background-color: #e3f2fd; color: #1976d2;">
+                        <i class="fas fa-folder"></i>
+                        {{ template.category_count }} Categories
+                    </span>
+                    <span class="stat-badge" style="background-color: #e8f5e9; color: #388e3c;">
+                        <i class="fas fa-list-check"></i>
+                        {{ template.total_points }} Points
+                    </span>
+                    <span class="stat-badge" style="background-color: #fff3e0; color: #f57c00;">
+                        <i class="fas fa-calendar-alt"></i>
+                        {{ template.get_frequency_display }}
+                    </span>
+                </div>
+                
+                <div class="mb-3">
+                    {% if template.is_active %}
+                    <span class="badge badge-success badge-lg">
+                        <i class="fas fa-check-circle mr-1"></i>Active
+                    </span>
+                    {% else %}
+                    <span class="badge badge-secondary badge-lg">
+                        <i class="fas fa-ban mr-1"></i>Inactive
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'inspections:template_detail' template.id %}" class="btn btn-info">
+                        <i class="fas fa-eye mr-1"></i>View Details
+                    </a>
+                    
+                    {% if user.is_superuser %}
+                    <a href="/admin/inspections/inspectiontemplate/{{ template.id }}/change/" 
+                       class="btn btn-warning" 
+                       target="_blank">
+                        <i class="fas fa-edit mr-1"></i>Edit in Admin
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card ehs-card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No Templates Found</h4>
+                <p class="text-muted">No inspection templates have been created yet.</p>
+                {% if user.is_superuser %}
+                <a href="/admin/inspections/inspectiontemplate/add/" class="btn btn-primary mt-3">
+                    <i class="fas fa-plus mr-1"></i>Create Template in Admin
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

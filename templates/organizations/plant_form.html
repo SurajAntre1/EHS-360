@@ -1,0 +1,144 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Edit Plant{% else %}Create Plant{% endif %}{% endblock %}
+{% block page_title %}{% if object %}Edit Plant{% else %}Create New Plant{% endif %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'organizations:dashboard' %}">Organization</a></li>
+<li class="breadcrumb-item"><a href="{% url 'organizations:plant_list' %}">Plants</a></li>
+<li class="breadcrumb-item active">{% if object %}Edit{% else %}Create{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-10 offset-md-1">
+    <div class="ehs-card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-industry mr-2"></i>{% if object %}Edit Plant: {{ object.name }}{% else %}Create New Plant{% endif %}
+        </h3>
+      </div>
+      
+      <div class="card-body">
+        <form method="POST">
+          {% csrf_token %}
+          
+          <!-- Basic Information -->
+          <h5 class="mb-3">Basic Information</h5>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.name.id_for_label }}">Plant Name *</label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="text-danger">{{ form.name.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.code.id_for_label }}">Plant Code *</label>
+              {{ form.code }}
+              <small class="form-text text-muted">e.g., EP001, EP002</small>
+              {% if form.code.errors %}
+                <div class="text-danger">{{ form.code.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Address Information -->
+          <h5 class="mb-3">Address Information</h5>
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.address.id_for_label }}">Address *</label>
+              {{ form.address }}
+              {% if form.address.errors %}
+                <div class="text-danger">{{ form.address.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.city.id_for_label }}">City *</label>
+              {{ form.city }}
+              {% if form.city.errors %}
+                <div class="text-danger">{{ form.city.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.state.id_for_label }}">State *</label>
+              {{ form.state }}
+              {% if form.state.errors %}
+                <div class="text-danger">{{ form.state.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.pincode.id_for_label }}">Pincode *</label>
+              {{ form.pincode }}
+              {% if form.pincode.errors %}
+                <div class="text-danger">{{ form.pincode.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Contact Information -->
+          <h5 class="mb-3">Contact Information</h5>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.contact_person.id_for_label }}">Contact Person</label>
+              {{ form.contact_person }}
+              {% if form.contact_person.errors %}
+                <div class="text-danger">{{ form.contact_person.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.contact_email.id_for_label }}">Contact Email</label>
+              {{ form.contact_email }}
+              {% if form.contact_email.errors %}
+                <div class="text-danger">{{ form.contact_email.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.contact_phone.id_for_label }}">Contact Phone</label>
+              {{ form.contact_phone }}
+              {% if form.contact_phone.errors %}
+                <div class="text-danger">{{ form.contact_phone.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Status -->
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <div class="form-check">
+                {{ form.is_active }}
+                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                  Active
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-1"></i> {% if object %}Update Plant{% else %}Create Plant{% endif %}
+              </button>
+              <a href="{% url 'organizations:plant_list' %}" class="btn btn-secondary">
+                <i class="fas fa-times mr-1"></i> Cancel
+              </a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

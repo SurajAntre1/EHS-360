@@ -1,0 +1,264 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load inspection_filters %}
+
+{% block title %}Inspection Findings{% endblock %}
+{% block page_title %}Inspection Findings{% endblock %}
+
+{% block extra_css %}
+<style>
+.filter-card {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.finding-row {
+    transition: background-color 0.2s;
+}
+
+.finding-row:hover {
+    background-color: #f8f9fa;
+}
+
+.finding-row.overdue {
+    background-color: #fff5f5;
+}
+
+.severity-badge {
+    padding: 0.4em 0.8em;
+    border-radius: 5px;
+    font-weight: 600;
+    font-size: 0.85em;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:dashboard' %}">Inspection Management</a></li>
+<li class="breadcrumb-item active">Findings</li>
+{% endblock %}
+
+{% block content %}
+
+<!-- Filter Card -->
+<div class="card ehs-card filter-card">
+    <form method="GET" id="filterForm">
+        <div class="row">
+            <div class="col-md-2">
+                <label>Plant</label>
+                {{ filter_form.plant }}
+            </div>
+            
+            <div class="col-md-2">
+                <label>Status</label>
+                {{ filter_form.status }}
+            </div>
+            
+            <div class="col-md-2">
+                <label>Severity</label>
+                {{ filter_form.severity }}
+            </div>
+            
+            <div class="col-md-2">
+                <div class="form-check mt-4">
+                    {{ filter_form.assigned_to_me }}
+                    <label class="form-check-label" for="id_assigned_to_me">
+                        Assigned to Me
+                    </label>
+                </div>
+            </div>
+            
+            <div class="col-md-2">
+                <div class="form-check mt-4">
+                    {{ filter_form.overdue_only }}
+                    <label class="form-check-label" for="id_overdue_only">
+                        Overdue Only
+                    </label>
+                </div>
+            </div>
+            
+            <div class="col-md-2">
+                <label>Search</label>
+                <div class="input-group">
+                    {{ filter_form.search }}
+                    <div class="input-group-append">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="col-md-12 text-right">
+                <a href="{% url 'inspections:findings_list' %}" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-redo mr-1"></i>Clear Filters
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Findings Table -->
+<div class="card ehs-card">
+    <div class="card-header bg-danger text-white">
+        <h3 class="card-title mb-0">
+            <i class="fas fa-flag mr-2"></i>Inspection Findings
+        </h3>
+        <div class="card-tools">
+            <span class="badge badge-light">Total: {{ findings.count }}</span>
+        </div>
+    </div>
+    
+    <div class="card-body p-0">
+        {% if findings %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead style="background-color: #f8f9fa;">
+                    <tr>
+                        <th>Finding No.</th>
+                        <th>Inspection</th>
+                        <th>Category</th>
+                        <th>Issue</th>
+                        <th>Severity</th>
+                        <th>Assigned To</th>
+                        <th>Target Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for finding in findings %}
+                    <tr class="finding-row {% if finding.is_overdue %}overdue{% endif %}">
+                        <td>
+                            <strong class="text-danger">{{ finding.finding_number }}</strong>
+                            {% if finding.is_overdue %}
+                            <i class="fas fa-exclamation-triangle text-danger ml-1" title="Overdue"></i>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ finding.inspection.inspection_number }}</small>
+                        </td>
+                        <td>{{ finding.category_name }}</td>
+                        <td>
+                            <div style="max-width: 300px;">
+                                {{ finding.inspection_point_text|truncatewords:10 }}
+                            </div>
+                        </td>
+                        <td>
+                            {% if finding.severity == 'CRITICAL' %}
+                            <span class="severity-badge" style="background-color: #dc3545; color: white;">
+                                Critical
+                            </span>
+                            {% elif finding.severity == 'HIGH' %}
+                            <span class="severity-badge" style="background-color: #fd7e14; color: white;">
+                                High
+                            </span>
+                            {% elif finding.severity == 'MEDIUM' %}
+                            <span class="severity-badge" style="background-color: #ffc107; color: black;">
+                                Medium
+                            </span>
+                            {% else %}
+                            <span class="severity-badge" style="background-color: #17a2b8; color: white;">
+                                Low
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if finding.assigned_to %}
+                            {{ finding.assigned_to.get_full_name }}
+                            {% else %}
+                            <span class="text-muted">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ finding.target_date|date:"d M Y" }}
+                            {% if finding.is_overdue %}
+                            <br><small class="text-danger">
+                                <strong>{{ finding.days_until_due|abs_value }} days overdue</strong>
+                            </small>
+                            {% elif finding.days_until_due <= 2 and finding.status != 'CLOSED' %}
+                            <br><small class="text-warning">
+                                <strong>Due in {{ finding.days_until_due }} days</strong>
+                            </small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if finding.status == 'OPEN' %}
+                            <span class="badge badge-danger">Open</span>
+                            {% elif finding.status == 'IN_PROGRESS' %}
+                            <span class="badge badge-warning">In Progress</span>
+                            {% elif finding.status == 'UNDER_REVIEW' %}
+                            <span class="badge badge-info">Under Review</span>
+                            {% elif finding.status == 'CLOSED' %}
+                            <span class="badge badge-success">Closed</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'inspections:finding_detail' finding.id %}" 
+                                   class="btn btn-sm btn-info" 
+                                   title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                
+                                {% if user.role == 'SAFETY_MANAGER' or user.is_superuser %}
+                                    {% if finding.status == 'OPEN' %}
+                                    <a href="{% url 'inspections:finding_assign' finding.id %}" 
+                                       class="btn btn-sm btn-warning" 
+                                       title="Assign">
+                                        <i class="fas fa-user-plus"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% if finding.status == 'UNDER_REVIEW' %}
+                                    <a href="{% url 'inspections:finding_close' finding.id %}" 
+                                       class="btn btn-sm btn-success" 
+                                       title="Close Finding">
+                                        <i class="fas fa-check"></i>
+                                    </a>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No Findings Found</h4>
+            <p class="text-muted">No findings match your current filters.</p>
+            <a href="{% url 'inspections:findings_list' %}" class="btn btn-primary mt-3">
+                <i class="fas fa-redo mr-1"></i>Clear Filters
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap4',
+        width: '100%',
+        placeholder: 'Select...',
+        allowClear: true
+    });
+    
+    // Auto-submit form on filter change
+    $('#id_assigned_to_me, #id_overdue_only').on('change', function() {
+        $('#filterForm').submit();
+    });
+});
+</script>
+{% endblock %}

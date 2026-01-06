@@ -1,0 +1,651 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Create User{% endblock %}
+{% block page_title %}Create New User{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounts:user_list' %}">User Management</a></li>
+<li class="breadcrumb-item active">Create User</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-helper-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+  }
+  
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    padding: 15px;
+    border-radius: 5px;
+    background: #f8f9fa;
+  }
+  
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+  }
+  
+  .checkbox-item:hover {
+    background: #e7f3ff;
+  }
+  
+  .checkbox-item input[type="checkbox"] {
+    margin-right: 10px;
+  }
+  
+  .select-all-section {
+    margin-bottom: 10px;
+    padding: 10px;
+    background: #e9ecef;
+    border-radius: 5px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-10 offset-md-1">
+    <div class="ehs-card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-user-plus mr-2"></i>Create New User
+        </h3>
+      </div>
+      
+      <div class="card-body">
+        <form method="POST" id="userForm">
+          {% csrf_token %}
+          
+          <!-- Personal Information -->
+          <h5 class="mb-3"><i class="fas fa-id-card mr-2"></i>Personal Information</h5>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.first_name.id_for_label }}">First Name *</label>
+              {{ form.first_name }}
+              {% if form.first_name.errors %}
+                <div class="text-danger">{{ form.first_name.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.last_name.id_for_label }}">Last Name *</label>
+              {{ form.last_name }}
+              {% if form.last_name.errors %}
+                <div class="text-danger">{{ form.last_name.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.email.id_for_label }}">Email *</label>
+              {{ form.email }}
+              {% if form.email.errors %}
+                <div class="text-danger">{{ form.email.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.phone.id_for_label }}">Phone</label>
+              {{ form.phone }}
+              {% if form.phone.errors %}
+                <div class="text-danger">{{ form.phone.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Account Information -->
+          <h5 class="mb-3"><i class="fas fa-user-lock mr-2"></i>Account Information</h5>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.username.id_for_label }}">Username *</label>
+              {{ form.username }}
+              {% if form.username.errors %}
+                <div class="text-danger">{{ form.username.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.employee_id.id_for_label }}">Employee ID</label>
+              {{ form.employee_id }}
+              {% if form.employee_id.errors %}
+                <div class="text-danger">{{ form.employee_id.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.password1.id_for_label }}">Password *</label>
+              {{ form.password1 }}
+              {% if form.password1.errors %}
+                <div class="text-danger">{{ form.password1.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.password2.id_for_label }}">Confirm Password *</label>
+              {{ form.password2 }}
+              {% if form.password2.errors %}
+                <div class="text-danger">{{ form.password2.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Personal & Employment Details -->
+          <h5 class="mb-3"><i class="fas fa-user-circle mr-2"></i>Personal & Employment Details</h5>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.date_of_birth.id_for_label }}">Date of Birth</label>
+              {{ form.date_of_birth }}
+              <small class="form-helper-text">Age will be calculated automatically</small>
+              {% if form.date_of_birth.errors %}
+                <div class="text-danger">{{ form.date_of_birth.errors }}</div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.gender.id_for_label }}">Gender</label>
+              {{ form.gender }}
+              {% if form.gender.errors %}
+                <div class="text-danger">{{ form.gender.errors }}</div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-4 mb-3">
+              <label for="id_age_display">Age</label>
+              <input type="text" id="id_age_display" class="form-control" readonly placeholder="Will be calculated">
+              <small class="form-helper-text">Calculated from date of birth</small>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.employment_type.id_for_label }}">Employment Type *</label>
+              {{ form.employment_type }}
+              {% if form.employment_type.errors %}
+                <div class="text-danger">{{ form.employment_type.errors }}</div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.job_title.id_for_label }}">Job Title *</label>
+              {{ form.job_title }}
+              {% if form.job_title.errors %}
+                <div class="text-danger">{{ form.job_title.errors }}</div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.date_joined_company.id_for_label }}">Date of Joining *</label>
+              {{ form.date_joined_company }}
+              <small class="form-helper-text">Employee's joining date</small>
+              {% if form.date_joined_company.errors %}
+                <div class="text-danger">{{ form.date_joined_company.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Organization Information -->
+          <h5 class="mb-3"><i class="fas fa-building mr-2"></i>Organization Information</h5>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.role.id_for_label }}">Role *</label>
+              {{ form.role }}
+              {% if form.role.errors %}
+                <div class="text-danger">{{ form.role.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.department.id_for_label }}">Department</label>
+              {{ form.department }}
+              {% if form.department.errors %}
+                <div class="text-danger">{{ form.department.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Location Assignment Section - ALL CHECKBOXES -->
+          <h5 class="mb-3"><i class="fas fa-map-marked-alt mr-2"></i>Location Assignment</h5>
+
+          <!-- Plants (Multiple Checkboxes) -->
+          <div class="mb-4">
+            <label><strong>Assigned Plants *</strong></label>
+            <small class="form-helper-text d-block mb-2">Select multiple plants</small>
+            
+            <div class="select-all-section" id="plantSelectAllSection">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllPlants()">
+                <i class="fas fa-check-square mr-1"></i>Select All
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary ml-2" onclick="deselectAllPlants()">
+                <i class="fas fa-square mr-1"></i>Deselect All
+              </button>
+            </div>
+            
+            <div class="checkbox-grid" id="plantsCheckboxGrid">
+              <div class="text-muted">Loading plants...</div>
+            </div>
+          </div>
+
+          <!-- Zones (Multiple Checkboxes) -->
+          <div class="mb-4">
+            <label><strong>Assigned Zones *</strong></label>
+            <small class="form-helper-text d-block mb-2">Select plants first, then select zones</small>
+            
+            <div class="select-all-section" id="zoneSelectAllSection" style="display: none;">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllZones()">
+                <i class="fas fa-check-square mr-1"></i>Select All
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary ml-2" onclick="deselectAllZones()">
+                <i class="fas fa-square mr-1"></i>Deselect All
+              </button>
+            </div>
+            
+            <div class="checkbox-grid" id="zonesCheckboxGrid">
+              <div class="text-muted">Please select plants first</div>
+            </div>
+          </div>
+
+          <!-- Locations (Multiple Checkboxes) -->
+          <div class="mb-4">
+            <label><strong>Assigned Locations</strong></label>
+            <small class="form-helper-text d-block mb-2">Select zones first, then select locations</small>
+            
+            <div class="select-all-section" id="locationSelectAllSection" style="display: none;">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllLocations()">
+                <i class="fas fa-check-square mr-1"></i>Select All
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary ml-2" onclick="deselectAllLocations()">
+                <i class="fas fa-square mr-1"></i>Deselect All
+              </button>
+            </div>
+            
+            <div class="checkbox-grid" id="locationsCheckboxGrid">
+              <div class="text-muted">Please select zones first</div>
+            </div>
+          </div>
+
+          <!-- Sub-Locations (Multiple Checkboxes) -->
+          <div class="mb-4">
+            <label><strong>Assigned Sub-Locations</strong></label>
+            <small class="form-helper-text d-block mb-2">Select locations first, then select sub-locations</small>
+
+            <div class="select-all-section" id="sublocationSelectAllSection" style="display: none;">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllSublocations()">
+                <i class="fas fa-check-square mr-1"></i>Select All
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary ml-2" onclick="deselectAllSublocations()">
+                <i class="fas fa-square mr-1"></i>Deselect All
+              </button>
+            </div>
+
+            <div class="checkbox-grid" id="sublocationsCheckboxGrid">
+              <div class="text-muted">Please select locations first</div>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-1"></i> Create User
+              </button>
+              <a href="{% url 'accounts:user_list' %}" class="btn btn-secondary">
+                <i class="fas fa-times mr-1"></i> Cancel
+              </a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// SIMPLE JAVASCRIPT - ALL CHECKBOXES
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Load plants on page load
+    loadPlants();
+    
+    // Age Calculation
+    var dobInput = document.getElementById('id_date_of_birth');
+    var ageDisplay = document.getElementById('id_age_display');
+
+    if (dobInput) {
+        dobInput.addEventListener('change', function() {
+            var dob = new Date(this.value);
+            var today = new Date();
+            
+            if (dob && dob < today) {
+                var age = today.getFullYear() - dob.getFullYear();
+                var monthDiff = today.getMonth() - dob.getMonth();
+                
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+                    age--;
+                }
+                
+                ageDisplay.value = age + ' years';
+            } else {
+                ageDisplay.value = '';
+            }
+        });
+
+        var eighteenYearsAgo = new Date();
+        eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
+        dobInput.max = eighteenYearsAgo.toISOString().split('T')[0];
+    }
+
+    var joiningDateInput = document.getElementById('id_date_joined_company');
+    if (joiningDateInput) {
+        var today = new Date();
+        joiningDateInput.max = today.toISOString().split('T')[0];
+    }
+});
+
+// Load all plants as checkboxes
+function loadPlants() {
+    var grid = document.getElementById('plantsCheckboxGrid');
+    grid.innerHTML = '<div class="text-muted">Loading plants...</div>';
+    
+    fetch('/organizations/ajax/get-all-plants/')
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            grid.innerHTML = '';
+            
+            if (data.length === 0) {
+                grid.innerHTML = '<div class="text-muted">No plants available</div>';
+                return;
+            }
+            
+            for (var i = 0; i < data.length; i++) {
+                var plant = data[i];
+                var div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.innerHTML = '<input type="checkbox" name="assigned_plants" value="' + plant.id + '" id="plant_' + plant.id + '" class="plant-checkbox" onchange="loadZonesForSelectedPlants()"><label for="plant_' + plant.id + '" class="mb-0"><strong>' + plant.name + '</strong> (' + plant.code + ')</label>';
+                grid.appendChild(div);
+            }
+        });
+}
+
+// Load zones when plants are selected
+function loadZonesForSelectedPlants() {
+    var checkboxes = document.querySelectorAll('.plant-checkbox:checked');
+    var selectedPlants = [];
+    for (var i = 0; i < checkboxes.length; i++) {
+        selectedPlants.push(checkboxes[i].value);
+    }
+    
+    var grid = document.getElementById('zonesCheckboxGrid');
+    
+    // Reset downstream
+    document.getElementById('locationsCheckboxGrid').innerHTML = '<div class="text-muted">Please select zones first</div>';
+    document.getElementById('sublocationsCheckboxGrid').innerHTML = '<div class="text-muted">Please select locations first</div>';
+    document.getElementById('locationSelectAllSection').style.display = 'none';
+    document.getElementById('sublocationSelectAllSection').style.display = 'none';
+    
+    if (selectedPlants.length === 0) {
+        grid.innerHTML = '<div class="text-muted">Please select plants first</div>';
+        document.getElementById('zoneSelectAllSection').style.display = 'none';
+        return;
+    }
+    
+    grid.innerHTML = '<div class="text-muted">Loading zones...</div>';
+    
+    var plantIds = selectedPlants.join(',');
+    fetch('/organizations/ajax/get-zones-by-plants/?plant_ids=' + plantIds)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            grid.innerHTML = '';
+            
+            if (data.length === 0) {
+                grid.innerHTML = '<div class="text-muted">No zones available in selected plants</div>';
+                document.getElementById('zoneSelectAllSection').style.display = 'none';
+                return;
+            }
+            
+            // Group by plant
+            var grouped = {};
+            for (var i = 0; i < data.length; i++) {
+                var plantName = data[i].plant_name;
+                if (!grouped[plantName]) {
+                    grouped[plantName] = [];
+                }
+                grouped[plantName].push(data[i]);
+            }
+            
+            // Display grouped
+            for (var plantName in grouped) {
+                // Plant header
+                var header = document.createElement('div');
+                header.style.cssText = 'grid-column: 1 / -1; background: #d1ecf1; padding: 8px 12px; font-weight: 600; border-radius: 4px; font-size: 0.9rem; color: #0c5460; border-left: 3px solid #17a2b8;';
+                header.innerHTML = '<i class="fas fa-industry mr-2"></i>' + plantName;
+                grid.appendChild(header);
+                
+                // Zones
+                for (var j = 0; j < grouped[plantName].length; j++) {
+                    var zone = grouped[plantName][j];
+                    var div = document.createElement('div');
+                    div.className = 'checkbox-item';
+                    div.innerHTML = '<input type="checkbox" name="assigned_zones" value="' + zone.id + '" id="zone_' + zone.id + '" class="zone-checkbox" onchange="loadLocationsForSelectedZones()"><label for="zone_' + zone.id + '" class="mb-0"><strong>' + zone.name + '</strong> (' + zone.code + ')</label>';
+                    grid.appendChild(div);
+                }
+            }
+            
+            document.getElementById('zoneSelectAllSection').style.display = 'block';
+        });
+}
+
+// Load locations when zones are selected
+function loadLocationsForSelectedZones() {
+    var checkboxes = document.querySelectorAll('.zone-checkbox:checked');
+    var selectedZones = [];
+    for (var i = 0; i < checkboxes.length; i++) {
+        selectedZones.push(checkboxes[i].value);
+    }
+    
+    var grid = document.getElementById('locationsCheckboxGrid');
+    
+    // Reset downstream
+    document.getElementById('sublocationsCheckboxGrid').innerHTML = '<div class="text-muted">Please select locations first</div>';
+    document.getElementById('sublocationSelectAllSection').style.display = 'none';
+    
+    if (selectedZones.length === 0) {
+        grid.innerHTML = '<div class="text-muted">Please select zones first</div>';
+        document.getElementById('locationSelectAllSection').style.display = 'none';
+        return;
+    }
+    
+    grid.innerHTML = '<div class="text-muted">Loading locations...</div>';
+    
+    var zoneIds = selectedZones.join(',');
+    fetch('/organizations/ajax/get-locations-by-zones/?zone_ids=' + zoneIds)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            grid.innerHTML = '';
+            
+            if (data.length === 0) {
+                grid.innerHTML = '<div class="text-muted">No locations available in selected zones</div>';
+                document.getElementById('locationSelectAllSection').style.display = 'none';
+                return;
+            }
+            
+            // Group by zone
+            var grouped = {};
+            for (var i = 0; i < data.length; i++) {
+                var zoneName = data[i].zone_name;
+                if (!grouped[zoneName]) {
+                    grouped[zoneName] = [];
+                }
+                grouped[zoneName].push(data[i]);
+            }
+            
+            // Display grouped
+            for (var zoneName in grouped) {
+                // Zone header
+                var header = document.createElement('div');
+                header.style.cssText = 'grid-column: 1 / -1; background: #d1ecf1; padding: 8px 12px; font-weight: 600; border-radius: 4px; font-size: 0.9rem; color: #0c5460; border-left: 3px solid #17a2b8;';
+                header.innerHTML = '<i class="fas fa-map-pin mr-2"></i>' + zoneName;
+                grid.appendChild(header);
+                
+                // Locations
+                for (var j = 0; j < grouped[zoneName].length; j++) {
+                    var location = grouped[zoneName][j];
+                    var div = document.createElement('div');
+                    div.className = 'checkbox-item';
+                    div.innerHTML = '<input type="checkbox" name="assigned_locations" value="' + location.id + '" id="location_' + location.id + '" class="location-checkbox" onchange="loadSublocationsForSelectedLocations()"><label for="location_' + location.id + '" class="mb-0"><strong>' + location.name + '</strong> (' + location.code + ')</label>';
+                    grid.appendChild(div);
+                }
+            }
+            
+            document.getElementById('locationSelectAllSection').style.display = 'block';
+        });
+}
+
+// Load sublocations when locations are selected
+function loadSublocationsForSelectedLocations() {
+    var checkboxes = document.querySelectorAll('.location-checkbox:checked');
+    var selectedLocations = [];
+    for (var i = 0; i < checkboxes.length; i++) {
+        selectedLocations.push(checkboxes[i].value);
+    }
+    
+    var grid = document.getElementById('sublocationsCheckboxGrid');
+    
+    if (selectedLocations.length === 0) {
+        grid.innerHTML = '<div class="text-muted">Please select locations first</div>';
+        document.getElementById('sublocationSelectAllSection').style.display = 'none';
+        return;
+    }
+    
+    grid.innerHTML = '<div class="text-muted">Loading sub-locations...</div>';
+    
+    var locationIds = selectedLocations.join(',');
+    fetch('/organizations/ajax/get-sublocations-by-locations/?location_ids=' + locationIds)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            grid.innerHTML = '';
+            
+            if (data.length === 0) {
+                grid.innerHTML = '<div class="text-muted">No sub-locations available in selected locations</div>';
+                document.getElementById('sublocationSelectAllSection').style.display = 'none';
+                return;
+            }
+            
+            // Group by location
+            var grouped = {};
+            for (var i = 0; i < data.length; i++) {
+                var locationName = data[i].location_name;
+                if (!grouped[locationName]) {
+                    grouped[locationName] = [];
+                }
+                grouped[locationName].push(data[i]);
+            }
+            
+            // Display grouped
+            for (var locationName in grouped) {
+                // Location header
+                var header = document.createElement('div');
+                header.style.cssText = 'grid-column: 1 / -1; background: #d1ecf1; padding: 8px 12px; font-weight: 600; border-radius: 4px; font-size: 0.9rem; color: #0c5460; border-left: 3px solid #17a2b8;';
+                header.innerHTML = '<i class="fas fa-map-marker-alt mr-2"></i>' + locationName;
+                grid.appendChild(header);
+                
+                // Sublocations
+                for (var j = 0; j < grouped[locationName].length; j++) {
+                    var sublocation = grouped[locationName][j];
+                    var div = document.createElement('div');
+                    div.className = 'checkbox-item';
+                    var codeText = sublocation.code ? ' (' + sublocation.code + ')' : '';
+                    div.innerHTML = '<input type="checkbox" name="assigned_sublocations" value="' + sublocation.id + '" id="sublocation_' + sublocation.id + '" class="sublocation-checkbox"><label for="sublocation_' + sublocation.id + '" class="mb-0">' + sublocation.name + codeText + '</label>';
+                    grid.appendChild(div);
+                }
+            }
+            
+            document.getElementById('sublocationSelectAllSection').style.display = 'block';
+        });
+}
+
+// Select/Deselect All Functions
+function selectAllPlants() {
+    var checkboxes = document.querySelectorAll('.plant-checkbox');
+    for (var i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = true;
+    }
+    loadZonesForSelectedPlants();
+}
+
+function deselectAllPlants() {
+    var checkboxes = document.querySelectorAll('.plant-checkbox');
+    for (var i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = false;
+    }
+    loadZonesForSelectedPlants();
+}
+
+function selectAllZones() {
+    var checkboxes = document.querySelectorAll('.zone-checkbox');
+    for (var i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = true;
+    }
+    loadLocationsForSelectedZones();
+}
+
+function deselectAllZones() {
+    var checkboxes = document.querySelectorAll('.zone-checkbox');
+    for (var i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = false;
+    }
+    loadLocationsForSelectedZones();
+}
+
+function selectAllLocations() {
+    var checkboxes = document.querySelectorAll('.location-checkbox');
+    for (var i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = true;
+    }
+    loadSublocationsForSelectedLocations();
+}
+
+function deselectAllLocations() {
+    var checkboxes = document.querySelectorAll('.location-checkbox');
+    for (var i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = false;
+    }
+    loadSublocationsForSelectedLocations();
+}
+
+function selectAllSublocations() {
+    var checkboxes = document.querySelectorAll('.sublocation-checkbox');
+    for (var i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = true;
+    }
+}
+
+function deselectAllSublocations() {
+    var checkboxes = document.querySelectorAll('.sublocation-checkbox');
+    for (var i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = false;
+    }
+}
+</script>
+{% endblock %}

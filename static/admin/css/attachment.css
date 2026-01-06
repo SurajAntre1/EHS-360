@@ -1,0 +1,233 @@
+/* File Attachment Styles */
+.file-attachment {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.file-attachment input[type="file"] {
+    display: none;
+}
+
+.file-label {
+    padding: 8px 16px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #495057;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.file-label:hover {
+    background: #e9ecef;
+    border-color: #007bff;
+    color: #007bff;
+}
+
+.file-name {
+    font-size: 0.85rem;
+    color: #6c757d;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Note section styling */
+.note {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 6px;
+    padding: 12px 15px;
+    margin: 15px 0;
+    font-size: 0.9rem;
+    color: #856404;
+}
+
+.note strong {
+    color: #856404;
+}
+
+/* Enhanced question actions with attachment */
+.question-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #dee2e6;
+    align-items: center;
+    flex-wrap: wrap;
+}
+/* Simplified Remarks Section */
+.remarks-section {
+    margin: 20px 0;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+}
+
+.remarks-header {
+    background: #e9ecef;
+    padding: 12px 15px;
+    border-bottom: 1px solid #dee2e6;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.remarks-header:hover {
+    background: #dee2e6;
+}
+
+.remarks-title {
+    font-weight: 600;
+    color: #495057;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+}
+
+.remarks-content {
+    padding: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.remarks-content.expanded {
+    padding: 15px;
+    max-height: 400px;
+}
+
+.remark-input-container {
+    margin-bottom: 15px;
+}
+
+.remark-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 0.9rem;
+    background: white;
+}
+
+.remark-textarea:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.remark-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.remark-btn {
+    padding: 6px 12px;
+    border: 1px solid #6c757d;
+    border-radius: 4px;
+    background: white;
+    color: #495057;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.remark-btn:hover {
+    background: #f8f9fa;
+}
+
+.remark-btn.primary {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.remark-btn.primary:hover {
+    background: #0056b3;
+}
+
+/* Simple Comments Display */
+.comments-list {
+    margin-top: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.comment-item {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 0.8rem;
+}
+
+.comment-author {
+    font-weight: 600;
+    color: #495057;
+}
+
+.comment-date {
+    color: #6c757d;
+}
+
+.comment-text {
+    color: #495057;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.no-comments {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 20px;
+    font-size: 0.9rem;
+}
+
+.remarks-count {
+    background: #007bff;
+    color: white;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Simple toggle button */
+.remarks-toggle-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.remarks-toggle-btn:hover {
+    background: #5a6268;
+}

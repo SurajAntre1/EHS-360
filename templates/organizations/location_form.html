@@ -1,0 +1,385 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Edit Location{% else %}Create Location{% endif %}{% endblock %}
+{% block page_title %}{% if object %}Edit Location{% else %}Create New Location{% endif %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'organizations:dashboard' %}">Organization</a></li>
+<li class="breadcrumb-item"><a href="{% url 'organizations:location_list' %}">Locations</a></li>
+<li class="breadcrumb-item active">{% if object %}Edit{% else %}Create{% endif %}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .sublocation-row {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    border-left: 3px solid #007bff;
+    position: relative;
+  }
+  
+  .sublocation-row:hover {
+    background: #e9ecef;
+  }
+  
+  .remove-sublocation-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+  }
+  
+  .sublocation-header {
+    background: #007bff;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px 5px 0 0;
+    margin: -15px -15px 15px -15px;
+    font-weight: 600;
+  }
+  
+  .add-sublocation-btn {
+    border: 2px dashed #007bff;
+    background: #f0f8ff;
+    color: #007bff;
+    transition: all 0.3s;
+  }
+  
+  .add-sublocation-btn:hover {
+    background: #007bff;
+    color: white;
+    border-style: solid;
+  }
+  
+  .sublocations-container {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    background: white;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-10 offset-md-1">
+    <div class="ehs-card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-map-marker-alt mr-2"></i>{% if object %}Edit Location: {{ object.name }}{% else %}Create New Location{% endif %}
+        </h3>
+      </div>
+      
+      <div class="card-body">
+        <form method="POST" id="locationForm">
+          {% csrf_token %}
+          
+          <!-- Basic Information -->
+          <h5 class="mb-3">
+            <i class="fas fa-info-circle mr-2"></i>Basic Information
+          </h5>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="id_plant">Plant *</label>
+              {{ form.plant }}
+              <small class="form-text text-muted">Select plant first to see available zones</small>
+              {% if form.plant.errors %}
+                <div class="text-danger">{{ form.plant.errors }}</div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="id_zone">Zone *</label>
+              {{ form.zone }}
+              <small class="form-text text-muted">Select zone where this location will be created</small>
+              {% if form.zone.errors %}
+                <div class="text-danger">{{ form.zone.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.name.id_for_label }}">Location Name *</label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="text-danger">{{ form.name.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.code.id_for_label }}">Location Code *</label>
+              {{ form.code }}
+              {% if form.code.errors %}
+                <div class="text-danger">{{ form.code.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.description.id_for_label }}">Description</label>
+              {{ form.description }}
+              {% if form.description.errors %}
+                <div class="text-danger">{{ form.description.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <div class="form-check">
+                {{ form.is_active }}
+                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                  Active
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Sub-Locations Section -->
+          <div class="sublocations-section">
+            <h5 class="mb-3">
+              <i class="fas fa-map-pin mr-2"></i>Sub-Locations (Optional)
+            </h5>
+            <p class="text-muted mb-3">Add multiple sub-locations under this location</p>
+            
+            <div class="sublocations-container">
+              <div id="sublocations-list">
+                <!-- Existing sublocations (for edit mode) -->
+                {% if object and object.sublocations.all %}
+                  {% for sublocation in object.sublocations.all %}
+                  <div class="sublocation-row" data-index="{{ forloop.counter0 }}">
+                    <div class="sublocation-header">
+                      <i class="fas fa-map-pin mr-2"></i>Sub-Location {{ forloop.counter }}
+                    </div>
+                    <button type="button" class="btn btn-danger btn-sm remove-sublocation-btn" onclick="removeSublocation(this)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                    
+                    <div class="row">
+                      <div class="col-md-5">
+                        <div class="form-group">
+                          <label>Sub-Location Name *</label>
+                          <input type="text" name="sublocation_name_{{ forloop.counter0 }}" 
+                                 class="form-control sublocation-name" 
+                                 value="{{ sublocation.name }}"
+                                 placeholder="e.g., Section A, Aisle 1" required>
+                          <input type="hidden" name="sublocation_id_{{ forloop.counter0 }}" value="{{ sublocation.id }}">
+                        </div>
+                      </div>
+                      
+                      <div class="col-md-5">
+                        <div class="form-group">
+                          <label>Sub-Location Code</label>
+                          <input type="text" name="sublocation_code_{{ forloop.counter0 }}" 
+                                 class="form-control sublocation-code" 
+                                 value="{{ sublocation.code }}"
+                                 placeholder="e.g., SL001">
+                        </div>
+                      </div>
+                      
+                      <div class="col-md-2">
+                        <div class="form-group">
+                          <label>Active</label>
+                          <div class="form-check mt-2">
+                            <input type="checkbox" name="sublocation_active_{{ forloop.counter0 }}" 
+                                   class="form-check-input" value="1" 
+                                   {% if sublocation.is_active %}checked{% endif %}>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="row">
+                      <div class="col-md-12">
+                        <div class="form-group mb-0">
+                          <label>Description</label>
+                          <textarea name="sublocation_description_{{ forloop.counter0 }}" 
+                                    class="form-control sublocation-description" 
+                                    rows="2" 
+                                    placeholder="Optional description">{{ sublocation.description }}</textarea>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                {% endif %}
+              </div>
+              
+              <button type="button" class="btn btn-block add-sublocation-btn" onclick="addSublocation()">
+                <i class="fas fa-plus-circle mr-2"></i>Add Sub-Location
+              </button>
+            </div>
+          </div>
+
+          <input type="hidden" id="sublocation_count" name="sublocation_count" value="{% if object %}{{ object.sublocations.count }}{% else %}0{% endif %}">
+
+          <!-- Form Actions -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-1"></i> {% if object %}Update Location{% else %}Create Location{% endif %}
+              </button>
+              <a href="{% url 'organizations:location_list' %}" class="btn btn-secondary">
+                <i class="fas fa-times mr-1"></i> Cancel
+              </a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const plantSelect = document.getElementById('id_plant');
+    const zoneSelect = document.getElementById('id_zone');
+    
+    // Function to load zones based on selected plant
+    function loadZones(plantId) {
+        if (!plantId) {
+            zoneSelect.innerHTML = '<option value="">Select plant first</option>';
+            zoneSelect.disabled = true;
+            return;
+        }
+        
+        // Show loading
+        zoneSelect.innerHTML = '<option value="">Loading zones...</option>';
+        zoneSelect.disabled = true;
+        
+        // Fetch zones via AJAX
+        fetch(`{% url 'organizations:ajax_get_zones' %}?plant_id=${plantId}`)
+            .then(response => response.json())
+            .then(data => {
+                zoneSelect.innerHTML = '<option value="">-- Select Zone --</option>';
+                
+                if (data.length === 0) {
+                    zoneSelect.innerHTML = '<option value="">No zones available for this plant</option>';
+                } else {
+                    data.forEach(zone => {
+                        const option = document.createElement('option');
+                        option.value = zone.id;
+                        option.textContent = `${zone.name} (${zone.code})`;
+                        zoneSelect.appendChild(option);
+                    });
+                    zoneSelect.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading zones:', error);
+                zoneSelect.innerHTML = '<option value="">Error loading zones</option>';
+            });
+    }
+    
+    // Listen for plant selection changes
+    plantSelect.addEventListener('change', function() {
+        loadZones(this.value);
+    });
+    
+    // Load zones on page load if plant is already selected (for edit mode)
+    if (plantSelect.value) {
+        loadZones(plantSelect.value);
+        
+        // If editing, set the zone value after zones are loaded
+        {% if object %}
+        setTimeout(function() {
+            zoneSelect.value = '{{ object.zone.id }}';
+        }, 500);
+        {% endif %}
+    }
+});
+
+// Sub-Location Management
+let sublocationCounter = parseInt(document.getElementById('sublocation_count').value);
+
+function addSublocation() {
+    const container = document.getElementById('sublocations-list');
+    const index = sublocationCounter;
+    
+    const sublocationHTML = `
+        <div class="sublocation-row" data-index="${index}">
+            <div class="sublocation-header">
+                <i class="fas fa-map-pin mr-2"></i>Sub-Location ${index + 1}
+            </div>
+            <button type="button" class="btn btn-danger btn-sm remove-sublocation-btn" onclick="removeSublocation(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+            
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="form-group">
+                        <label>Sub-Location Name *</label>
+                        <input type="text" name="sublocation_name_${index}" 
+                               class="form-control sublocation-name" 
+                               placeholder="e.g., Section A, Aisle 1" required>
+                    </div>
+                </div>
+                
+                <div class="col-md-5">
+                    <div class="form-group">
+                        <label>Sub-Location Code</label>
+                        <input type="text" name="sublocation_code_${index}" 
+                               class="form-control sublocation-code" 
+                               placeholder="e.g., SL001">
+                    </div>
+                </div>
+                
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label>Active</label>
+                        <div class="form-check mt-2">
+                            <input type="checkbox" name="sublocation_active_${index}" 
+                                   class="form-check-input" value="1" checked>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-group mb-0">
+                        <label>Description</label>
+                        <textarea name="sublocation_description_${index}" 
+                                  class="form-control sublocation-description" 
+                                  rows="2" 
+                                  placeholder="Optional description"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', sublocationHTML);
+    sublocationCounter++;
+    document.getElementById('sublocation_count').value = sublocationCounter;
+    
+    // Update numbering
+    updateSublocationNumbers();
+}
+
+function removeSublocation(button) {
+    if (confirm('Are you sure you want to remove this sub-location?')) {
+        const row = button.closest('.sublocation-row');
+        row.remove();
+        updateSublocationNumbers();
+    }
+}
+
+function updateSublocationNumbers() {
+    const rows = document.querySelectorAll('.sublocation-row');
+    rows.forEach((row, index) => {
+        const header = row.querySelector('.sublocation-header');
+        header.innerHTML = `<i class="fas fa-map-pin mr-2"></i>Sub-Location ${index + 1}`;
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,886 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Incident Details - {{ incident.report_number }}{% endblock %}
+{% block page_title %}Incident Details{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Unsafe Acts and Conditions Display Styling */
+.unsafe-display-section {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+.unsafe-display-section h6 {
+    color: #856404;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.unsafe-item {
+    padding: 5px 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.unsafe-item:last-child {
+    border-bottom: none;
+}
+
+.unsafe-item i {
+    width: 20px;
+}
+
+.unsafe-other-explanation {
+    background-color: #fff8e1;
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 10px;
+    border-left: 3px solid #ff9800;
+}
+
+.demographics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.demographic-item {
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+.demographic-item label {
+    display: block;
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.demographic-item p {
+    font-weight: 600;
+    color: #212529;
+    margin: 0;
+}
+
+/* Closure Section Styling */
+.closure-info-card {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border: 2px solid #28a745;
+    border-radius: 8px;
+}
+
+.closure-metric {
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.closure-metric h3 {
+    color: #28a745;
+    margin-bottom: 5px;
+}
+
+.closure-metric p {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.closure-section-divider {
+    border-left: 4px solid #28a745;
+    padding-left: 15px;
+    margin: 15px 0;
+}
+
+.badge-recurrence-low {
+    background-color: #28a745;
+    font-size: 1rem;
+    padding: 8px 15px;
+}
+
+.badge-recurrence-high {
+    background-color: #ffc107;
+    color: #000;
+    font-size: 1rem;
+    padding: 8px 15px;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Incident Management</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:incident_list' %}">All Incidents</a></li>
+<li class="breadcrumb-item active">{{ incident.report_number }}</li>
+{% endblock %}
+
+{% block content %}
+<!-- Header Card with Status -->
+<div class="row mb-3">
+  <div class="col-12">
+    <div class="card border-left-danger shadow">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col">
+            <h3 class="mb-1">{{ incident.report_number }}</h3>
+            <h5 class="text-muted mb-0">{{ incident.get_incident_type_display }} - {{ incident.incident_date|date:"d M Y" }}</h5>
+          </div>
+          <div class="col-auto">
+            <span class="badge badge-lg 
+              {% if incident.incident_type == 'LTI' %}badge-danger
+              {% elif incident.incident_type == 'MTC' %}badge-warning
+              {% elif incident.incident_type == 'FA' %}badge-info
+              {% elif incident.incident_type == 'HLFI' %}badge-dark
+              {% elif incident.incident_type == 'FATALITY' %}badge-danger
+              {% else %}badge-secondary{% endif %}">
+              {{ incident.get_incident_type_display }}
+            </span>
+            <span class="badge badge-lg 
+              {% if incident.status == 'CLOSED' %}badge-success
+              {% elif incident.status == 'REPORTED' %}badge-secondary
+              {% else %}badge-primary{% endif %}">
+              {{ incident.get_status_display }}
+            </span>
+          </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="row mt-3">
+          <div class="col-auto">
+            <a href="{% url 'accidents:incident_update' incident.pk %}" class="btn btn-primary">
+              <i class="fas fa-edit mr-1"></i> Edit Incident
+            </a>
+          </div>
+          <div class="col-auto">
+            <a href="{% url 'accidents:incident_pdf' incident.pk %}" class="btn btn-danger" target="_blank">
+              <i class="fas fa-file-pdf mr-1"></i> Download PDF
+            </a>
+          </div>
+          
+          <!-- Closure/Reopen Buttons -->
+          {% if incident.status == 'CLOSED' %}
+            {% if user.is_superuser or user.role == 'ADMIN' or user.role == 'SAFETY_MANAGER' %}
+            <div class="col-auto">
+              <form method="POST" action="{% url 'accidents:incident_reopen' incident.pk %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure you want to reopen this incident?')">
+                  <i class="fas fa-redo mr-1"></i> Reopen Incident
+                </button>
+              </form>
+            </div>
+            {% endif %}
+          {% else %}
+            {% if user.can_close_incidents or user.is_superuser or user.role == 'ADMIN' or user.role == 'SAFETY_MANAGER' or user.role == 'PLANT_HEAD' %}
+            <div class="col-auto">
+              <a href="{% url 'accidents:incident_closure_check' incident.pk %}" class="btn btn-success">
+                <i class="fas fa-check-circle mr-1"></i> Close Incident
+              </a>
+            </div>
+            {% endif %}
+          {% endif %}
+          
+          {% if not investigation_report and incident.investigation_required %}
+          <div class="col-auto">
+            <a href="{% url 'accidents:investigation_create' incident.pk %}" class="btn btn-warning">
+              <i class="fas fa-search mr-1"></i> Create Investigation Report
+            </a>
+          </div>
+          {% endif %}
+          <div class="col-auto">
+            <a href="{% url 'accidents:action_item_create' incident.pk %}" class="btn btn-success">
+              <i class="fas fa-tasks mr-1"></i> Add Action Item
+            </a>
+          </div>
+          <div class="col-auto">
+            <a href="{% url 'accidents:incident_list' %}" class="btn btn-secondary">
+              <i class="fas fa-arrow-left mr-1"></i> Back to List
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Investigation Deadline Alert -->
+{% if incident.is_investigation_overdue %}
+<div class="row mb-3">
+  <div class="col-12">
+    <div class="alert alert-danger">
+      <h5 class="alert-heading">
+        <i class="fas fa-exclamation-triangle mr-2"></i>
+        Investigation Overdue!
+      </h5>
+      <p class="mb-0">
+        Investigation deadline was {{ incident.investigation_deadline|date:"d/m/Y" }}. 
+        Please complete the investigation report immediately.
+      </p>
+    </div>
+  </div>
+</div>
+{% elif incident.investigation_required and not incident.investigation_completed_date %}
+<div class="row mb-3">
+  <div class="col-12">
+    <div class="alert alert-warning">
+      <h5 class="alert-heading">
+        <i class="fas fa-clock mr-2"></i>
+        Investigation Pending
+      </h5>
+      <p class="mb-0">
+        Investigation must be completed by {{ incident.investigation_deadline|date:"d/m/Y" }}.
+        Days remaining: {{ incident.investigation_deadline|timeuntil }}
+      </p>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row">
+  <!-- Left Column -->
+  <div class="col-md-8">
+    
+    <!-- Basic Information -->
+    <div class="ehs-card mb-3">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-info-circle mr-2"></i>Incident Information
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="text-muted">Report Number:</label>
+            <p class="font-weight-bold">{{ incident.report_number }}</p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="text-muted">Incident Type:</label>
+            <p>
+              <span class="badge 
+                {% if incident.incident_type == 'LTI' %}badge-danger
+                {% elif incident.incident_type == 'MTC' %}badge-warning
+                {% elif incident.incident_type == 'FA' %}badge-info
+                {% elif incident.incident_type == 'HLFI' %}badge-dark
+                {% elif incident.incident_type == 'FATALITY' %}badge-danger
+                {% else %}badge-secondary{% endif %}">
+                {{ incident.get_incident_type_display }}
+              </span>
+            </p>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="text-muted">Date of Incident:</label>
+            <p class="font-weight-bold">{{ incident.incident_date|date:"d/m/Y" }}</p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="text-muted">Time of Incident:</label>
+            <p class="font-weight-bold">{{ incident.incident_time|time:"H:i" }}</p>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label class="text-muted">Description:</label>
+            <p>{{ incident.description|linebreaks }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Location Information -->
+    <div class="ehs-card mb-3">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-map-marker-alt mr-2"></i>Location Information
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3 mb-3">
+            <label class="text-muted">Plant:</label>
+            <p class="font-weight-bold">{{ incident.plant.name }}{% if incident.plant.code %} ({{ incident.plant.code }}){% endif %}</p>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="text-muted">Zone:</label>
+            <p class="font-weight-bold">
+              {% if incident.zone %}
+                {{ incident.zone.name }}{% if incident.zone.code %} ({{ incident.zone.code }}){% endif %}
+              {% else %}
+                N/A
+              {% endif %}
+            </p>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="text-muted">Location:</label>
+            <p class="font-weight-bold">{{ incident.location.name }}{% if incident.location.code %} ({{ incident.location.code }}){% endif %}</p>
+          </div>
+          
+          <!-- Sub-Location -->
+          <div class="col-md-3 mb-3">
+            <label class="text-muted">Sub-Location:</label>
+            <p class="font-weight-bold">
+              {% if incident.sublocation %}
+                {{ incident.sublocation.name }}{% if incident.sublocation.code %} ({{ incident.sublocation.code }}){% endif %}
+              {% else %}
+                N/A
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unsafe Acts & Unsafe Conditions Section -->
+    {% if incident.unsafe_acts or incident.unsafe_conditions %}
+    <div class="ehs-card mb-3">
+      <div class="card-header bg-warning text-dark">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-exclamation-triangle mr-2"></i>Unsafe Acts & Unsafe Conditions
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <!-- Unsafe Acts Column -->
+          {% if incident.unsafe_acts %}
+          <div class="col-md-6">
+            <div class="unsafe-display-section">
+              <h6><i class="fas fa-user-times mr-2"></i>Unsafe Acts</h6>
+              <div class="unsafe-items">
+                {% for act in incident.unsafe_acts %}
+                <div class="unsafe-item">
+                  <i class="fas fa-check-circle text-danger"></i>
+                  <span>{{ act }}</span>
+                </div>
+                {% endfor %}
+              </div>
+              
+              <!-- Unsafe Acts Other Explanation -->
+              {% if incident.unsafe_acts_other %}
+              <div class="unsafe-other-explanation">
+                <strong><i class="fas fa-info-circle mr-1"></i>Additional Explanation:</strong>
+                <p class="mb-0 mt-1">{{ incident.unsafe_acts_other }}</p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+          
+          <!-- Unsafe Conditions Column -->
+          {% if incident.unsafe_conditions %}
+          <div class="col-md-6">
+            <div class="unsafe-display-section">
+              <h6><i class="fas fa-hard-hat mr-2"></i>Unsafe Conditions</h6>
+              <div class="unsafe-items">
+                {% for condition in incident.unsafe_conditions %}
+                <div class="unsafe-item">
+                  <i class="fas fa-check-circle text-warning"></i>
+                  <span>{{ condition }}</span>
+                </div>
+                {% endfor %}
+              </div>
+              
+              <!-- Unsafe Conditions Other Explanation -->
+              {% if incident.unsafe_conditions_other %}
+              <div class="unsafe-other-explanation">
+                <strong><i class="fas fa-info-circle mr-1"></i>Additional Explanation:</strong>
+                <p class="mb-0 mt-1">{{ incident.unsafe_conditions_other }}</p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Affected Person Information with Demographics -->
+    <div class="ehs-card mb-3">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-user-injured mr-2"></i>Affected Person Information
+        </h5>
+      </div>
+      <div class="card-body">
+        <!-- Basic Info -->
+        <div class="row">
+          <div class="col-md-3 mb-3">
+            <label class="text-muted">Name:</label>
+            <p class="font-weight-bold">{{ incident.affected_person_name }}</p>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="text-muted">Employee ID:</label>
+            <p class="font-weight-bold">{{ incident.affected_person_employee_id|default:"N/A" }}</p>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="text-muted">Role:</label>
+            <p class="font-weight-bold">
+              {% if incident.affected_person %}
+                {{ incident.affected_person.get_role_display|default:"N/A" }}
+              {% else %}
+                N/A
+              {% endif %}
+            </p>
+          </div>
+          <div class="col-md-3 mb-3">
+            <label class="text-muted">Department:</label>
+            <p class="font-weight-bold">{{ incident.affected_person_department.name|default:"N/A" }}</p>
+          </div>
+        </div>
+        
+        <!-- Personal & Employment Details -->
+        <div class="demographics-grid mt-3">
+          {% if incident.affected_person_dob %}
+          <div class="demographic-item">
+            <label>Date of Birth:</label>
+            <p>{{ incident.affected_person_dob|date:"d/m/Y" }}</p>
+          </div>
+          {% endif %}
+          
+          {% if incident.affected_person_age %}
+          <div class="demographic-item">
+            <label>Age:</label>
+            <p>{{ incident.affected_person_age }} years</p>
+          </div>
+          {% endif %}
+          
+          {% if incident.affected_person_gender %}
+          <div class="demographic-item">
+            <label>Gender:</label>
+            <p>{{ incident.get_affected_person_gender_display }}</p>
+          </div>
+          {% endif %}
+          
+          {% if incident.affected_person_job_title %}
+          <div class="demographic-item">
+            <label>Job Title:</label>
+            <p>{{ incident.affected_person_job_title }}</p>
+          </div>
+          {% endif %}
+          
+          {% if incident.affected_person_employment_type %}
+          <div class="demographic-item">
+            <label>Employment Type:</label>
+            <p>{{ incident.get_affected_person_employment_type_display }}</p>
+          </div>
+          {% endif %}
+        </div>
+        
+        <!-- Affected Body Parts -->
+        {% if incident.affected_body_parts %}
+        <div class="row mt-3">
+          <div class="col-md-12 mb-3">
+            <label class="text-muted">Affected Body Parts:</label>
+            <p>
+              {% for part in incident.affected_body_parts %}
+                <span class="badge badge-danger mr-1 mb-1">{{ part }}</span>
+              {% endfor %}
+            </p>
+          </div>
+        </div>
+        {% endif %}
+        
+        <!-- Nature of Injury -->
+        {% if incident.nature_of_injury %}
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label class="text-muted">Nature of Injury:</label>
+            <p>{{ incident.nature_of_injury|linebreaks }}</p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+
+    <!-- Photos -->
+    {% if photos %}
+    <div class="ehs-card mb-3">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-camera mr-2"></i>Photo Evidence
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          {% for photo in photos %}
+          <div class="col-md-4 mb-3">
+            <div class="card">
+              <img src="{{ photo.photo.url }}" class="card-img-top" alt="Incident Photo" style="cursor: pointer;" onclick="window.open('{{ photo.photo.url }}', '_blank')">
+              <div class="card-body">
+                <p class="card-text small">
+                  <strong>{{ photo.get_photo_type_display }}</strong><br>
+                  {{ photo.description|default:"No description" }}<br>
+                  <small class="text-muted">{{ photo.uploaded_at|date:"d/m/Y H:i" }}</small>
+                </p>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Investigation Report -->
+    {% if investigation_report %}
+    <div class="ehs-card mb-3">
+      <div class="card-header bg-warning">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-search mr-2"></i>Investigation Report
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="text-muted">Investigation Date:</label>
+            <p class="font-weight-bold">{{ investigation_report.investigation_date|date:"d/m/Y" }}</p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="text-muted">Investigator:</label>
+            <p class="font-weight-bold">{{ investigation_report.investigator.get_full_name }}</p>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label class="text-muted">Investigation Team:</label>
+            <p>{{ investigation_report.investigation_team }}</p>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label class="text-muted">Sequence of Events:</label>
+            <p>{{ investigation_report.sequence_of_events|linebreaks }}</p>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label class="text-muted">Root Cause Analysis:</label>
+            <p>{{ investigation_report.root_cause_analysis|linebreaks }}</p>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label class="text-muted">Contributing Factors:</label>
+            <p>{{ investigation_report.contributing_factors|linebreaks }}</p>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label class="text-muted">Immediate Corrective Actions:</label>
+            <p>{{ investigation_report.immediate_corrective_actions|linebreaks }}</p>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label class="text-muted">Preventive Measures:</label>
+            <p>{{ investigation_report.preventive_measures|linebreaks }}</p>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="text-muted">Completed Date:</label>
+            <p class="font-weight-bold">{{ investigation_report.completed_date|date:"d/m/Y" }}</p>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="text-muted">Completed By:</label>
+            <p class="font-weight-bold">{{ investigation_report.completed_by.get_full_name }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Action Items -->
+    {% if action_items %}
+    <div class="ehs-card mb-3">
+      <div class="card-header bg-success text-white">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-tasks mr-2"></i>Action Items
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Action Description</th>
+                <th>Responsible Person</th>
+                <th>Target Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for action in action_items %}
+              <tr>
+                <td>{{ action.action_description|truncatewords:15 }}</td>
+                <td>{{ action.responsible_person.get_full_name }}</td>
+                <td>
+                  {{ action.target_date|date:"d/m/Y" }}
+                  {% if action.is_overdue %}
+                    <span class="badge badge-danger badge-sm">Overdue</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge 
+                    {% if action.status == 'COMPLETED' %}badge-success
+                    {% elif action.status == 'IN_PROGRESS' %}badge-primary
+                    {% elif action.status == 'OVERDUE' %}badge-danger
+                    {% else %}badge-secondary{% endif %}">
+                    {{ action.get_status_display }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- CLOSURE INFORMATION SECTION -->
+    {% if incident.status == 'CLOSED' %}
+    <div class="ehs-card mb-3">
+      <div class="card-header bg-success text-white">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-check-circle mr-2"></i>Closure Information
+        </h5>
+      </div>
+      <div class="card-body">
+        <!-- Closure Summary -->
+        <div class="alert alert-success mb-3">
+          <div class="row">
+            <div class="col-md-4">
+              <strong><i class="fas fa-calendar-check mr-1"></i> Closed Date:</strong><br>
+              {{ incident.closure_date|date:"d/m/Y H:i" }}
+            </div>
+            <div class="col-md-4">
+              <strong><i class="fas fa-user-check mr-1"></i> Closed By:</strong><br>
+              {{ incident.closed_by.get_full_name }}
+            </div>
+            <div class="col-md-4">
+              <strong><i class="fas fa-clock mr-1"></i> Days to Close:</strong><br>
+              {{ incident.days_to_close }} days
+            </div>
+          </div>
+        </div>
+
+        <!-- Recurrence Risk -->
+        <div class="row mb-3">
+          <div class="col-md-12">
+            <label class="text-muted"><strong>Recurrence Risk Assessment:</strong></label>
+            <p>
+              {% if incident.is_recurrence_possible %}
+                <span class="badge badge-recurrence-high">
+                  <i class="fas fa-exclamation-triangle mr-1"></i>Recurrence Possible - Continuous Monitoring Required
+                </span>
+              {% else %}
+                <span class="badge badge-recurrence-low">
+                  <i class="fas fa-check-circle mr-1"></i>Low Recurrence Risk - Controls Effective
+                </span>
+              {% endif %}
+            </p>
+          </div>
+        </div>
+
+        <hr>
+
+        <!-- Closure Remarks -->
+        <div class="row mb-3">
+          <div class="col-md-12">
+            <label class="text-muted"><strong><i class="fas fa-clipboard-check mr-1"></i> Closure Remarks:</strong></label>
+            <div class="closure-section-divider">
+              <p>{{ incident.closure_remarks|linebreaks }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lessons Learned -->
+        <div class="row mb-3">
+          <div class="col-md-12">
+            <label class="text-muted"><strong><i class="fas fa-lightbulb mr-1"></i> Lessons Learned:</strong></label>
+            <div class="closure-section-divider">
+              <p>{{ incident.lessons_learned|linebreaks }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preventive Measures -->
+        <div class="row mb-3">
+          <div class="col-md-12">
+            <label class="text-muted"><strong><i class="fas fa-shield-alt mr-1"></i> Preventive Measures Implemented:</strong></label>
+            <div class="closure-section-divider">
+              <p>{{ incident.preventive_measures|linebreaks }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    <!-- END CLOSURE SECTION -->
+
+  </div> <!-- End Left Column -->
+
+  <!-- Right Column - Sidebar -->
+  <div class="col-md-4">
+    
+    <!-- Status Timeline -->
+    <div class="ehs-card mb-3">
+      <div class="card-header {% if incident.status == 'CLOSED' %}bg-success text-white{% endif %}">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-stream mr-2"></i>Status
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="text-muted">Current Status:</label>
+          <p>
+            <span class="badge badge-lg 
+              {% if incident.status == 'CLOSED' %}badge-success
+              {% elif incident.status == 'REPORTED' %}badge-secondary
+              {% else %}badge-primary{% endif %}">
+              {{ incident.get_status_display }}
+            </span>
+          </p>
+        </div>
+        
+        <!-- Closure Quick Info -->
+        {% if incident.status == 'CLOSED' %}
+        <div class="alert alert-success mb-3">
+          <h6 class="alert-heading mb-2">
+            <i class="fas fa-check-circle mr-1"></i>Incident Closed
+          </h6>
+          <small>
+            <strong>Date:</strong> {{ incident.closure_date|date:"d M Y" }}<br>
+            <strong>By:</strong> {{ incident.closed_by.get_full_name }}<br>
+            <strong>Duration:</strong> {{ incident.days_to_close }} days from incident to closure
+          </small>
+        </div>
+        {% endif %}
+        
+        {% if incident.assigned_to %}
+        <div class="mb-3">
+          <label class="text-muted">Assigned To:</label>
+          <p class="font-weight-bold">{{ incident.assigned_to.get_full_name }}</p>
+        </div>
+        {% endif %}
+        
+        {% if incident.investigator %}
+        <div class="mb-3">
+          <label class="text-muted">Investigator:</label>
+          <p class="font-weight-bold">{{ incident.investigator.get_full_name }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Reporting Information -->
+    <div class="ehs-card mb-3">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-user mr-2"></i>Reporting Information
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="text-muted">Reported By:</label>
+          <p class="font-weight-bold">{{ incident.reported_by.get_full_name }}</p>
+        </div>
+        
+        <div class="mb-3">
+          <label class="text-muted">Reported Date:</label>
+          <p class="font-weight-bold">{{ incident.reported_date|date:"d/m/Y H:i" }}</p>
+        </div>
+        
+        <div class="mb-3">
+          <label class="text-muted">Last Updated:</label>
+          <p class="font-weight-bold">{{ incident.updated_at|date:"d/m/Y H:i" }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Investigation Status -->
+    <div class="card mt-3">
+        <div class="card-header bg-primary">
+            <h5 class="card-title text-white mb-0">
+                <i class="fas fa-search mr-2"></i>Investigation Status
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if investigation_report %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Investigation Completed:</strong> 
+                            {% if incident.investigation_completed_date %}
+                                <span class="badge badge-success">Yes</span>
+                            {% else %}
+                                <span class="badge badge-danger">No</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Completed Date:</strong> {{ incident.investigation_completed_date|date:"d M Y"|default:"Pending" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Investigator:</strong> {{ investigation_report.investigator.get_full_name }}</p>
+                        <p><strong>Root Cause Identified:</strong> 
+                            {% if investigation_report.root_cause_analysis %}
+                                <span class="badge badge-success">Yes</span>
+                            {% else %}
+                                <span class="badge badge-warning">No</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <a href="#investigation" class="btn btn-sm btn-info">
+                    <i class="fas fa-eye mr-1"></i>View Investigation Report
+                </a>
+            {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    No investigation report found
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="ehs-card mb-3 mt-3">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-bell mr-2"></i>Notifications Sent
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-2">
+          <i class="fas {% if incident.safety_manager_notified %}fa-check-circle text-success{% else %}fa-times-circle text-muted{% endif %} mr-2"></i>
+          Safety Manager
+        </div>
+        <div class="mb-2">
+          <i class="fas {% if incident.location_head_notified %}fa-check-circle text-success{% else %}fa-times-circle text-muted{% endif %} mr-2"></i>
+          Location Head
+        </div>
+        <div class="mb-2">
+          <i class="fas {% if incident.plant_head_notified %}fa-check-circle text-success{% else %}fa-times-circle text-muted{% endif %} mr-2"></i>
+          Plant Head
+        </div>
+      </div>
+    </div>
+
+  </div> <!-- End Right Column -->
+</div>
+{% endblock %}

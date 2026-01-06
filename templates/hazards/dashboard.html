@@ -1,0 +1,296 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Hazard Management Dashboard{% endblock %}
+{% block page_title %}Hazard Management Dashboard{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item active">Hazard Management</li>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row mb-4">
+  <div class="col-lg-3 col-md-6">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #ffc107, #ff9800);">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Total Hazards</div>
+        <div class="ehs-stat-value">{{ total_hazards }}</div>
+        <div class="ehs-stat-trend">
+          <span>All Time</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-lg-3 col-md-6">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #f44336, #d32f2f);">
+        <i class="fas fa-folder-open"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Open Hazards</div>
+        <div class="ehs-stat-value">{{ open_hazards }}</div>
+        <div class="ehs-stat-trend">
+          <span>Pending Action</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-lg-3 col-md-6">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #17a2b8, #117a8b);">
+        <i class="fas fa-calendar-alt"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">This Month</div>
+        <div class="ehs-stat-value">{{ this_month_hazards }}</div>
+        <div class="ehs-stat-trend">
+          <span>Current Month</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-lg-3 col-md-6">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #e91e63, #c2185b);">
+        <i class="fas fa-radiation"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Critical Hazards</div>
+        <div class="ehs-stat-value">{{ critical_hazards }}</div>
+        <div class="ehs-stat-trend">
+          <span>High Priority</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- Risk Level Distribution -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="ehs-card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-chart-bar mr-2"></i>Risk Level Distribution
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col-md-3">
+            <div class="card border-left-success shadow mb-3">
+              <div class="card-body">
+                <h4>{{ low_risk|default:0 }}</h4>
+                <p class="mb-0 text-success"><strong>Low Risk</strong></p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-left-warning shadow mb-3">
+              <div class="card-body">
+                <h4>{{ medium_risk|default:0 }}</h4>
+                <p class="mb-0 text-warning"><strong>Medium Risk</strong></p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-left-danger shadow mb-3">
+              <div class="card-body">
+                <h4>{{ high_risk|default:0 }}</h4>
+                <p class="mb-0 text-danger"><strong>High Risk</strong></p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card border-left-dark shadow mb-3">
+              <div class="card-body">
+                <h4>{{ critical_hazards|default:0 }}</h4>
+                <p class="mb-0 text-dark"><strong>Critical</strong></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+  <!-- Report New Hazard -->
+  <div class="col-md-6 mb-3">
+    <div class="card h-100 shadow-sm border-0">
+      <div class="card-body d-flex flex-column text-center">
+        <div class="mb-3">
+          <a href="{% url 'hazards:hazard_create' %}" class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                style="width:70px;height:70px;background:#fff3cd;">
+            <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+          </a>
+        </div>
+
+        <h5 class="card-title font-weight-bold">Report New Hazard</h5>
+        <p class="card-text text-muted">
+          Identify and report unsafe conditions or hazards.
+        </p>
+
+        <div class="mt-auto">
+          <a href="{% url 'hazards:hazard_create' %}" class="btn btn-primary btn-sm mt-2 px-3 py-1">
+            <i class="fas fa-plus-circle mr-1"></i> Report Hazard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View All Hazards -->
+  <div class="col-md-6 mb-3">
+    <div class="card h-100 shadow-sm border-0">
+      <div class="card-body d-flex flex-column text-center">
+        <div class="mb-3">
+          <a href="{% url 'hazards:hazard_list' %}" class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                style="width:70px;height:70px;background:#d4edda;">
+            <i class="fas fa-list fa-2x text-success"></i>
+          </a>
+        </div>
+
+        <h5 class="card-title font-weight-bold">View All Hazards</h5>
+        <p class="card-text text-muted">
+          Browse, search, and filter all hazard reports.
+        </p>
+
+        <div class="mt-auto">
+          <a href="{% url 'hazards:hazard_list' %}" class="btn btn-success btn-sm mt-2 px-3 py-1">
+            <i class="fas fa-folder-open mr-1"></i> View All
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overdue Actions Alert -->
+{% if overdue_actions %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="alert alert-danger">
+      <h5 class="alert-heading">
+        <i class="fas fa-exclamation-triangle mr-2"></i>
+        Overdue Actions ({{ overdue_actions.count }})
+      </h5>
+      <p>The following hazards have overdue corrective actions:</p>
+      <ul class="mb-0">
+        {% for hazard in overdue_actions %}
+        <li>
+          <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="text-white">
+            <strong>{{ hazard.report_number }}</strong> - {{ hazard.hazard_title }}
+            (Due: {{ hazard.action_deadline }})
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Recent Hazards -->
+<div class="row">
+  <div class="col-12">
+    <div class="ehs-card">
+      <div class="card-header">
+        <div class="row align-items-center">
+          <div class="col">
+            <h3 class="card-title mb-0">
+              <i class="fas fa-clock mr-2"></i>Recent Hazards
+            </h3>
+          </div>
+          <div class="col-auto">
+            <a href="{% url 'hazards:hazard_list' %}" class="btn btn-primary btn-sm">
+              View All <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Report No.</th>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Date</th>
+                <th>Plant</th>
+                <th>Risk Level</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for hazard in recent_hazards %}
+              <tr>
+                <td><strong>{{ hazard.report_number }}</strong></td>
+                <td>
+                <span class="badge 
+                    {% if hazard.hazard_category == 'slip_trip_fall' %}badge-warning
+                    {% elif hazard.hazard_category == 'chemical' %}badge-danger
+                    {% else %}badge-info{% endif %}">
+                    {{ hazard.get_hazard_category_display }}
+                </span>
+                </td>
+                <td>{{ hazard.hazard_title|truncatewords:8 }}</td>
+                <td>
+                {{ hazard.incident_datetime|date:"d/m/Y" }}<br>
+                <small class="text-muted">{{ hazard.incident_datetime|time:"H:i" }}</small>
+                </td>
+                <td>{{ hazard.plant.name }}</td>
+                <td>
+                  <span class="badge 
+                    {% if hazard.risk_level == 'Critical' %}badge-dark
+                    {% elif hazard.risk_level == 'High' %}badge-danger
+                    {% elif hazard.risk_level == 'Medium' %}badge-warning
+                    {% else %}badge-success{% endif %}">
+                    {{ hazard.get_severity_display }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge 
+                    {% if hazard.status == 'CLOSED' %}badge-success
+                    {% elif hazard.status == 'REPORTED' %}badge-secondary
+                    {% else %}badge-primary{% endif %}">
+                    {{ hazard.get_status_display }}
+                  </span>
+                </td>
+                <td>
+                  <a href="{% url 'hazards:hazard_detail' hazard.pk %}" 
+                     class="btn btn-sm btn-info" title="View Details">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center">
+                  <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle mr-2"></i>No hazards reported yet.
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

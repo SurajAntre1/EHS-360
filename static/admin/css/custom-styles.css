@@ -1,0 +1,39 @@
+.btn-gradient {
+    background-image: linear-gradient(135deg, #2196F3, #0D47A1);
+    border: none;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+/* Hover and Focus States */
+.btn-gradient:hover,
+.btn-gradient:focus {
+    background-image: linear-gradient(135deg, #2196F3, #2196F3 60%, #0D47A1);
+    color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Active State */
+.btn-gradient:active {
+    background-image: linear-gradient(135deg, #0D47A1, #2196F3);
+}
+
+/* Disabled State */
+.btn-gradient.disabled,
+.btn-gradient:disabled {
+    background-image: linear-gradient(135deg, #64B5F6, #1976D2);
+    opacity: 0.65;
+}
+
+/* Maintain Bootstrap's Size Classes */
+.btn-gradient.btn-lg {
+    padding: 0.5rem 1rem;
+    font-size: 1.25rem;
+    border-radius: 0.3rem;
+}
+
+.btn-gradient.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 0.2rem;
+}

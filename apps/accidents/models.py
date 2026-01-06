@@ -1,0 +1,412 @@
+from django.db import models
+from django.contrib.auth import get_user_model
+from apps.organizations.models import *
+import datetime
+
+User = get_user_model()
+
+
+class Incident(models.Model):
+    """
+    Incident/Accident Reporting Model
+    Types: LTI (Lost Time Injury), MTC/RWC (Medical Treatment Case), 
+           FA (First Aid), HLFI (High Lost Frequency Injury), FATALITY
+    """
+    
+    INCIDENT_TYPES = [
+        ('LTI', 'Lost Time Injury (LTI)'),
+        ('MTC', 'Medical Treatment Case (MTC/RWC)'),
+        ('FA', 'First Aid (FA)'),
+        ('HLFI', 'High Lost Frequency Injury (HLFI)'),
+        ('FATALITY', 'Fatality'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('REPORTED', 'Reported'),
+        ('INVESTIGATION_PENDING', 'Investigation Pending'),
+        ('UNDER_INVESTIGATION', 'Under Investigation'),
+        ('ACTION_PLAN_PENDING', 'Action Plan Pending'),
+        ('ACTION_IN_PROGRESS', 'Action in Progress'),
+        ('COMPLETED', 'Completed'),
+        ('CLOSED', 'Closed'),
+    ]
+    
+    # Auto-generated Report Number: INC-PLANT-YYYYMMDD-XXX
+    report_number = models.CharField(max_length=50, unique=True, editable=False)
+    
+    # Basic Information
+    incident_type = models.CharField(max_length=10, choices=INCIDENT_TYPES)
+    incident_date = models.DateField()
+    incident_time = models.TimeField()
+    plant = models.ForeignKey(Plant, on_delete=models.CASCADE, related_name='incidents')
+    zone = models.ForeignKey(Zone, on_delete=models.CASCADE, related_name='incidents', null=True, blank=True)
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='incidents')
+    sublocation = models.ForeignKey(
+        SubLocation,
+        on_delete=models.SET_NULL,
+        related_name='incidents',
+        null=True,
+        blank=True,
+        help_text="Optional: Specific sub-location where incident occurred"
+    )
+    
+    # Incident Details
+    description = models.TextField(help_text="Detailed description of what happened")
+    
+    # Unsafe Acts and Unsafe Conditions
+    unsafe_acts = models.JSONField(
+        default=list, 
+        blank=True,
+        help_text="List of unsafe acts that contributed to the incident"
+    )
+    unsafe_acts_other = models.TextField(
+        blank=True,
+        help_text="Explanation for 'Other' unsafe acts"
+    )
+    
+    unsafe_conditions = models.JSONField(
+        default=list, 
+        blank=True,
+        help_text="List of unsafe conditions that contributed to the incident"
+    )
+    unsafe_conditions_other = models.TextField(
+        blank=True,
+        help_text="Explanation for 'Other' unsafe conditions"
+    )
+    
+    # Affected Person(s) - Using ForeignKey to User
+    affected_person = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='incidents_as_affected_person',
+        help_text="Employee who was affected by the incident"
+    )
+    affected_person_name = models.CharField(max_length=200)
+    affected_person_employee_id = models.CharField(max_length=50, blank=True)
+    affected_person_department = models.ForeignKey(
+        Department, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='incidents_affected'
+    )
+    
+    affected_body_parts = models.JSONField(default=list, blank=True)
+    nature_of_injury = models.TextField(
+        help_text="Required: Describe the type and extent of injury"
+    )
+    
+    # Reporting Information
+    reported_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='incidents_reported')
+    reported_date = models.DateTimeField(auto_now_add=True)
+    
+    # Investigation (Required within 7 days)
+    investigation_required = models.BooleanField(default=True)
+    investigation_deadline = models.DateField(null=True, blank=True)
+    investigation_completed_date = models.DateField(null=True, blank=True)
+    investigator = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='incidents_investigated'
+    )
+    
+    # Root Cause Analysis
+    root_cause = models.TextField(blank=True)
+    contributing_factors = models.TextField(blank=True)
+    
+    # Action Plan
+    action_plan = models.TextField(blank=True)
+    action_plan_deadline = models.DateField(null=True, blank=True)
+    action_plan_responsible_person = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='incidents_action_responsible'
+    )
+    action_plan_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('PENDING', 'Pending'),
+            ('IN_PROGRESS', 'In Progress'),
+            ('COMPLETED', 'Completed'),
+        ],
+        default='PENDING'
+    )
+
+    # Workflow Management
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='REPORTED')
+    assigned_to = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='incidents_assigned'
+    )
+    
+    # Notifications
+    safety_manager_notified = models.BooleanField(default=False)
+    location_head_notified = models.BooleanField(default=False)
+    plant_head_notified = models.BooleanField(default=False)
+    
+    # Closure
+    closure_date = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='incidents_closed'
+    )    
+    closure_remarks = models.TextField(blank=True)
+    lessons_learned = models.TextField(blank=True)
+    preventive_measures = models.TextField(blank=True)
+    is_recurrence_possible = models.BooleanField(default=False)
+
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-incident_date', '-incident_time']
+        verbose_name = 'Incident Report'
+        verbose_name_plural = 'Incident Reports'
+    
+    def __str__(self):
+        return f"{self.report_number} - {self.get_incident_type_display()}"
+    
+    def save(self, *args, **kwargs):
+        # Generate report number if not exists
+        if not self.report_number:
+            today = datetime.date.today()
+            date_str = today.strftime('%Y%m%d')
+            plant_code = self.plant.code if self.plant else 'XXX'
+            
+            count = Incident.objects.filter(
+                report_number__contains=f'INC-{plant_code}-{date_str}'
+            ).count()
+            
+            self.report_number = f'INC-{plant_code}-{date_str}-{count + 1:03d}'
+        
+        # Set investigation deadline (7 days)
+        if self.investigation_required and not self.investigation_deadline:
+            self.investigation_deadline = self.incident_date + datetime.timedelta(days=7)
+        
+        super().save(*args, **kwargs)
+    
+    @property
+    def is_investigation_overdue(self):
+        if self.investigation_deadline and not self.investigation_completed_date:
+            return datetime.date.today() > self.investigation_deadline
+        return False
+    
+    @property
+    def days_since_incident(self):
+        return (datetime.date.today() - self.incident_date).days
+    
+    @property
+    def can_be_closed(self):
+        if self.investigation_required and not self.investigation_completed_date:
+            return False, "Investigation not completed"
+        
+        pending_actions = self.action_items.exclude(status='COMPLETED').count()
+        if pending_actions > 0:
+            return False, f"{pending_actions} action item(s) still pending"
+        
+        if self.status == 'CLOSED':
+            return False, "Incident is already closed"
+        
+        return True, "Ready for closure"
+    
+    @property
+    def days_to_close(self):
+        if self.closure_date:
+            return (self.closure_date.date() - self.incident_date).days
+        return None
+    
+    @property
+    def investigation_completed(self):
+        return bool(self.investigation_completed_date)
+
+
+class IncidentPhoto(models.Model):
+    """Photos related to incident"""
+    
+    PHOTO_TYPES = [
+        ('INCIDENT_SCENE', 'Incident Scene'),
+        ('INJURY', 'Injury Photo'),
+        ('EVIDENCE', 'Evidence'),
+        ('CORRECTIVE_ACTION', 'Corrective Action'),
+    ]
+    
+    incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name='photos')
+    photo = models.ImageField(upload_to='incident_photos/%Y/%m/')
+    photo_type = models.CharField(max_length=20, choices=PHOTO_TYPES)
+    description = models.CharField(max_length=255, blank=True)
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['uploaded_at']
+    
+    def __str__(self):
+        return f"{self.incident.report_number} - {self.photo_type}"
+
+
+
+class IncidentInvestigationReport(models.Model):
+    """Investigation Report (Required within 7 days)"""
+    
+    incident = models.OneToOneField(Incident, on_delete=models.CASCADE, related_name='investigation_report')
+    
+    # Investigation Details
+    investigation_date = models.DateField()
+    investigator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='investigations_conducted')
+    investigation_team = models.TextField(help_text="Names of investigation team members")
+    
+    # Findings
+    sequence_of_events = models.TextField()
+    root_cause_analysis = models.TextField()
+    contributing_factors = models.TextField()
+    unsafe_conditions_identified = models.TextField(blank=True)
+    unsafe_acts_identified = models.TextField(blank=True)
+    personal_factors = models.JSONField(default=list, blank=True)
+    job_factors = models.JSONField(default=list, blank=True)
+    
+    # Evidence
+    evidence_collected = models.TextField(blank=True)
+    witness_statements = models.TextField(blank=True)
+    
+    # Recommendations
+    immediate_corrective_actions = models.TextField()
+    preventive_measures = models.TextField()
+    
+    # ===== MODIFIED SECTION START =====
+    # The following fields have been removed as action items are now managed dynamically.
+    # action_items = models.TextField(help_text="Specific action items with responsibilities")
+    # target_completion_date = models.DateField()
+    # ===== MODIFIED SECTION END =====
+    
+    # Sign-off
+    completed_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='investigation_reports_completed'
+    )
+    completed_date = models.DateField()
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='investigation_reports_reviewed'
+    )
+    reviewed_date = models.DateField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Investigation Report'
+        verbose_name_plural = 'Investigation Reports'
+    
+    def __str__(self):
+        return f"Investigation Report - {self.incident.report_number}"
+
+
+class IncidentActionItem(models.Model):
+    """Action items from investigation/action plan"""
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed'),
+        ('OVERDUE', 'Overdue'),
+    ]
+    
+    incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name='action_items')
+    action_description = models.TextField()
+    responsible_person = models.ForeignKey(User, on_delete=models.CASCADE, related_name='incident_actions_responsible')
+    target_date = models.DateField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    completion_date = models.DateField(null=True, blank=True)
+    completion_remarks = models.TextField(blank=True)
+    
+    verified_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='incident_actions_verified'
+    )
+    verification_date = models.DateField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['target_date']
+    
+    def __str__(self):
+        return f"{self.incident.report_number} - Action Item"
+    
+    @property
+    def is_overdue(self):
+        if self.status != 'COMPLETED' and self.target_date:
+            return datetime.date.today() > self.target_date
+        return False
+    
+
+###notification module 
+
+User = get_user_model()
+
+class IncidentNotification(models.Model):
+    
+    NOTIFICATION_TYPES = [
+        ('INCIDENT_REPORTED', 'Incident Reported'),
+        ('INVESTIGATION_DUE', 'Investigation Due Soon'),
+        ('INVESTIGATION_OVERDUE', 'Investigation Overdue'),
+        ('ACTION_ASSIGNED', 'Action Item Assigned'),
+        ('ACTION_DUE', 'Action Item Due Soon'),
+        ('INCIDENT_CLOSED', 'Incident Closed'),
+        ('INCIDENT_REOPENED', 'Incident Reopened'),
+    ]
+    
+    recipient = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='incident_notifications'
+    )
+    incident = models.ForeignKey(
+        Incident, 
+        on_delete=models.CASCADE, 
+        related_name='notifications'
+    )
+    notification_type = models.CharField(max_length=30, choices=NOTIFICATION_TYPES)
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient', 'is_read']),
+            models.Index(fields=['-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.recipient.get_full_name()} - {self.title}"
+    
+    def mark_as_read(self):
+        from django.utils import timezone
+        if not self.is_read:
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save(update_fields=['is_read', 'read_at'])

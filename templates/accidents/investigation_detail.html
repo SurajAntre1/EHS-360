@@ -1,0 +1,275 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Investigation Report - {{ investigation.incident.report_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            
+            <!-- Header -->
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h3 class="card-title">
+                        <i class="fas fa-search mr-2"></i>Investigation Report
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <h4>Incident: {{ investigation.incident.report_number }}</h4>
+                    <p class="text-muted">{{ investigation.incident.incident_title }}</p>
+                </div>
+            </div>
+
+            <!-- Investigation Details -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clipboard-list mr-2"></i>Investigation Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">Investigation Date:</label>
+                            <p class="font-weight-bold">{{ investigation.investigation_date|date:"d M Y" }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">Lead Investigator:</label>
+                            <p class="font-weight-bold">{{ investigation.investigator.get_full_name }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="text-muted">Investigation Team:</label>
+                            <p>{{ investigation.investigation_team }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Findings -->
+            <div class="card mt-3">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>Findings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted"><strong>Sequence of Events:</strong></label>
+                            <div class="border-left border-danger pl-3">
+                                <p>{{ investigation.sequence_of_events|linebreaks }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted"><strong>Root Cause Analysis:</strong></label>
+                            <div class="border-left border-danger pl-3">
+                                <p>{{ investigation.root_cause_analysis|linebreaks }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted"><strong>Contributing Factors:</strong></label>
+                            <div class="border-left border-warning pl-3">
+                                <p>{{ investigation.contributing_factors|linebreaks }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if investigation.personal_factors %}
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted"><strong>Personal Factors:</strong></label>
+                            <div class="pl-3">
+                                {% for factor in investigation.personal_factors %}
+                                <span class="badge badge-warning mr-1 mb-1">{{ factor }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if investigation.job_factors %}
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted"><strong>Job Factors:</strong></label>
+                            <div class="pl-3">
+                                {% for factor in investigation.job_factors %}
+                                <span class="badge badge-info mr-1 mb-1">{{ factor }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if investigation.unsafe_conditions_identified %}
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted"><strong>Unsafe Conditions Identified:</strong></label>
+                            <p>{{ investigation.unsafe_conditions_identified|linebreaks }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if investigation.unsafe_acts_identified %}
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted"><strong>Unsafe Acts Identified:</strong></label>
+                            <p>{{ investigation.unsafe_acts_identified|linebreaks }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Evidence -->
+            {% if investigation.evidence_collected or investigation.witness_statements %}
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-file-alt mr-2"></i>Evidence & Statements
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if investigation.evidence_collected %}
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted"><strong>Evidence Collected:</strong></label>
+                            <p>{{ investigation.evidence_collected|linebreaks }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if investigation.witness_statements %}
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted"><strong>Witness Statements:</strong></label>
+                            <p>{{ investigation.witness_statements|linebreaks }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Recommendations -->
+            <div class="card mt-3">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-lightbulb mr-2"></i>Recommendations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted"><strong>Immediate Corrective Actions:</strong></label>
+                            <div class="border-left border-success pl-3">
+                                <p>{{ investigation.immediate_corrective_actions|linebreaks }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted"><strong>Preventive Measures:</strong></label>
+                            <div class="border-left border-success pl-3">
+                                <p>{{ investigation.preventive_measures|linebreaks }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- {% if investigation.long_term_recommendations %}
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted"><strong>Long-term Recommendations:</strong></label>
+                            <div class="border-left border-primary pl-3">
+                                <p>{{ investigation.long_term_recommendations|linebreaks }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %} -->
+                </div>
+            </div>
+
+            <!-- Action Items -->
+            <div class="card mt-3">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-tasks mr-2"></i>Action Plan
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="text-muted"><strong>Action Items:</strong></label>
+                            <p>{{ investigation.action_items|linebreaks }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">Target Completion Date:</label>
+                            <p class="font-weight-bold">{{ investigation.target_completion_date|date:"d M Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sign-off -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-pen mr-2"></i>Sign-off
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">Completed By:</label>
+                            <p class="font-weight-bold">{{ investigation.completed_by.get_full_name }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">Completed Date:</label>
+                            <p class="font-weight-bold">{{ investigation.completed_date|date:"d M Y" }}</p>
+                        </div>
+                    </div>
+
+                    {% if investigation.reviewed_by %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">Reviewed By:</label>
+                            <p class="font-weight-bold">{{ investigation.reviewed_by.get_full_name }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="text-muted">Reviewed Date:</label>
+                            <p class="font-weight-bold">{{ investigation.reviewed_date|date:"d M Y" }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="card mt-3">
+                <div class="card-footer">
+                    <a href="{% url 'accidents:incident_detail' investigation.incident.pk %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left mr-1"></i>Back to Incident
+                    </a>
+                    <a href="{% url 'accidents:incident_closure_check' investigation.incident.pk %}" class="btn btn-success">
+                        <i class="fas fa-check-circle mr-1"></i>Closure Check
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

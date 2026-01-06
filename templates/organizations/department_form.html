@@ -1,0 +1,116 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Edit Department{% else %}Create Department{% endif %}{% endblock %}
+{% block page_title %}{% if object %}Edit Department{% else %}Create New Department{% endif %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'organizations:dashboard' %}">Organization</a></li>
+<li class="breadcrumb-item"><a href="{% url 'organizations:department_list' %}">Departments</a></li>
+<li class="breadcrumb-item active">{% if object %}Edit{% else %}Create{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-8 offset-md-2">
+    <div class="ehs-card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-building mr-2"></i>{% if object %}Edit Department: {{ object.name }}{% else %}Create New Department{% endif %}
+        </h3>
+      </div>
+      
+      <div class="card-body">
+        <form method="POST">
+          {% csrf_token %}
+          
+          <!-- Basic Information -->
+          <h5 class="mb-3">Basic Information</h5>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.name.id_for_label }}">Department Name *</label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="text-danger">{{ form.name.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.code.id_for_label }}">Department Code *</label>
+              {{ form.code }}
+              <small class="form-text text-muted">e.g., SAFETY, HR, PROD</small>
+              {% if form.code.errors %}
+                <div class="text-danger">{{ form.code.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.description.id_for_label }}">Description</label>
+              {{ form.description }}
+              {% if form.description.errors %}
+                <div class="text-danger">{{ form.description.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Department Head Information -->
+          <h5 class="mb-3">Department Head Information</h5>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.head_name.id_for_label }}">Head Name</label>
+              {{ form.head_name }}
+              {% if form.head_name.errors %}
+                <div class="text-danger">{{ form.head_name.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.head_email.id_for_label }}">Head Email</label>
+              {{ form.head_email }}
+              {% if form.head_email.errors %}
+                <div class="text-danger">{{ form.head_email.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="{{ form.head_phone.id_for_label }}">Head Phone</label>
+              {{ form.head_phone }}
+              {% if form.head_phone.errors %}
+                <div class="text-danger">{{ form.head_phone.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Status -->
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <div class="form-check">
+                {{ form.is_active }}
+                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                  Active
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save mr-1"></i> {% if object %}Update Department{% else %}Create Department{% endif %}
+              </button>
+              <a href="{% url 'organizations:department_list' %}" class="btn btn-secondary">
+                <i class="fas fa-times mr-1"></i> Cancel
+              </a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

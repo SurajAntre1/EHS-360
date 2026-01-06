@@ -1,0 +1,502 @@
+<!-- body_diagram_interactive.html -->
+<!-- Interactive Body Diagram Component -->
+
+<style>
+/* Interactive Body Diagram Styles */
+.body-diagram-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.view-selector {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.view-btn-body {
+    padding: 10px 20px;
+    border: 2px solid #ddd;
+    background: white;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.view-btn-body.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.view-btn-body:hover {
+    border-color: #007bff;
+}
+
+.diagram-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 350px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 2px solid #e0e0e0;
+}
+
+.body-part {
+    cursor: pointer;
+    transition: all 0.2s;
+    fill: #f5f5f5;
+    stroke: #bdbdbd;
+    stroke-width: 1.5;
+}
+
+.body-part:hover {
+    fill: #fff3cd;
+    stroke: #ffc107;
+    opacity: 0.9;
+    stroke-width: 2;
+}
+
+.body-part.selected {
+    fill: #d4edda !important;
+    stroke: #28a745;
+    stroke-width: 2.5;
+}
+
+.body-part.detailed {
+    stroke-width: 1;
+}
+
+.body-part.detailed:hover {
+    stroke-width: 1.5;
+}
+
+.part-label {
+    font-size: 9px;
+    fill: #666;
+    pointer-events: none;
+    user-select: none;
+    font-weight: 500;
+}
+
+.selected-parts-summary {
+    margin-top: 15px;
+    padding: 15px;
+    background: #e7f3ff;
+    border-radius: 5px;
+    border-left: 4px solid #007bff;
+}
+
+.selected-item-badge {
+    display: inline-block;
+    background: #28a745;
+    color: white;
+    padding: 5px 12px;
+    margin: 3px;
+    border-radius: 15px;
+    font-size: 13px;
+}
+
+.clear-selection-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-top: 10px;
+}
+
+.clear-selection-btn:hover {
+    background: #c82333;
+}
+</style>
+
+<div id="bodyPartSection" class="body-diagram-card">
+    <h5 class="text-primary"><i class="fas fa-user-injured"></i> Select Affected Body Parts <span class="text-danger">*</span></h5>
+    <p class="text-muted">Click on body parts to mark them as affected. Use detail views for fingers, palm, toes, ankle.</p>
+    
+    <div class="view-selector">
+        <button type="button" class="view-btn-body active" data-view="front">
+            <i class="fas fa-male"></i> Front
+        </button>
+        <button type="button" class="view-btn-body" data-view="back">
+            <i class="fas fa-male"></i> Back
+        </button>
+        <button type="button" class="view-btn-body" data-view="hands">
+            <i class="fas fa-hand-paper"></i> Hands
+        </button>
+        <button type="button" class="view-btn-body" data-view="feet">
+            <i class="fas fa-shoe-prints"></i> Feet
+        </button>
+    </div>
+    
+    <div class="diagram-wrapper">
+        <!-- Front View -->
+        <svg id="frontView" viewBox="0 0 300 600" style="display: block;">
+            <!-- Head & Face -->
+            <ellipse class="body-part" data-part="Head" cx="150" cy="50" rx="40" ry="50"/>
+            <circle class="body-part detailed" data-part="Left Eye" cx="135" cy="45" r="8"/>
+            <circle class="body-part detailed" data-part="Right Eye" cx="165" cy="45" r="8"/>
+            <ellipse class="body-part detailed" data-part="Nose" cx="150" cy="55" rx="6" ry="10"/>
+            <ellipse class="body-part detailed" data-part="Mouth" cx="150" cy="65" rx="12" ry="6"/>
+            
+            <!-- Neck -->
+            <rect class="body-part" data-part="Neck" x="135" y="90" width="30" height="30"/>
+            
+            <!-- Chest & Torso -->
+            <ellipse class="body-part" data-part="Chest" cx="150" cy="150" rx="60" ry="40"/>
+            <ellipse class="body-part" data-part="Abdomen" cx="150" cy="210" rx="55" ry="35"/>
+            
+            <!-- Shoulders -->
+            <circle class="body-part" data-part="Left Shoulder" cx="90" cy="130" r="25"/>
+            <circle class="body-part" data-part="Right Shoulder" cx="210" cy="130" r="25"/>
+            
+            <!-- Arms -->
+            <rect class="body-part" data-part="Left Upper Arm" x="65" y="155" width="30" height="60" rx="15"/>
+            <rect class="body-part" data-part="Right Upper Arm" x="205" y="155" width="30" height="60" rx="15"/>
+            <circle class="body-part detailed" data-part="Left Elbow" cx="80" cy="225" r="12"/>
+            <circle class="body-part detailed" data-part="Right Elbow" cx="220" cy="225" r="12"/>
+            <rect class="body-part" data-part="Left Forearm" x="60" y="235" width="30" height="55" rx="15"/>
+            <rect class="body-part" data-part="Right Forearm" x="210" y="235" width="30" height="55" rx="15"/>
+            
+            <!-- Wrists -->
+            <circle class="body-part detailed" data-part="Left Wrist" cx="75" cy="298" r="10"/>
+            <circle class="body-part detailed" data-part="Right Wrist" cx="225" cy="298" r="10"/>
+            
+            <!-- Hands (simplified) -->
+            <ellipse class="body-part" data-part="Left Hand" cx="75" cy="325" rx="18" ry="22"/>
+            <ellipse class="body-part" data-part="Right Hand" cx="225" cy="325" rx="18" ry="22"/>
+            
+            <!-- Pelvis & Hips -->
+            <rect class="body-part" data-part="Pelvis" x="120" y="240" width="60" height="50" rx="10"/>
+            <circle class="body-part detailed" data-part="Left Hip" cx="130" cy="265" r="12"/>
+            <circle class="body-part detailed" data-part="Right Hip" cx="170" cy="265" r="12"/>
+            
+            <!-- Thighs -->
+            <rect class="body-part" data-part="Left Thigh" x="120" y="290" width="30" height="100" rx="15"/>
+            <rect class="body-part" data-part="Right Thigh" x="150" y="290" width="30" height="100" rx="15"/>
+            
+            <!-- Knees -->
+            <circle class="body-part" data-part="Left Knee" cx="135" cy="400" r="18"/>
+            <circle class="body-part" data-part="Right Knee" cx="165" cy="400" r="18"/>
+            
+            <!-- Lower Legs -->
+            <rect class="body-part" data-part="Left Lower Leg" x="120" y="418" width="30" height="90" rx="15"/>
+            <rect class="body-part" data-part="Right Lower Leg" x="150" y="418" width="30" height="90" rx="15"/>
+            
+            <!-- Ankles -->
+            <circle class="body-part detailed" data-part="Left Ankle" cx="135" cy="515" r="12"/>
+            <circle class="body-part detailed" data-part="Right Ankle" cx="165" cy="515" r="12"/>
+            
+            <!-- Feet (simplified) -->
+            <ellipse class="body-part" data-part="Left Foot" cx="135" cy="545" rx="22" ry="18"/>
+            <ellipse class="body-part" data-part="Right Foot" cx="165" cy="545" rx="22" ry="18"/>
+        </svg>
+        
+        <!-- Back View -->
+        <svg id="backView" viewBox="0 0 300 600" style="display: none;">
+            <!-- Head (Back) -->
+            <ellipse class="body-part" data-part="Back of Head" cx="150" cy="50" rx="40" ry="50"/>
+            <ellipse class="body-part detailed" data-part="Left Ear" cx="115" cy="50" rx="8" ry="15"/>
+            <ellipse class="body-part detailed" data-part="Right Ear" cx="185" cy="50" rx="8" ry="15"/>
+            
+            <!-- Neck (Back) -->
+            <rect class="body-part" data-part="Nape" x="135" y="90" width="30" height="30"/>
+            
+            <!-- Back -->
+            <ellipse class="body-part" data-part="Upper Back" cx="150" cy="150" rx="60" ry="40"/>
+            <ellipse class="body-part" data-part="Lower Back" cx="150" cy="210" rx="55" ry="35"/>
+            
+            <!-- Shoulder Blades -->
+            <ellipse class="body-part detailed" data-part="Left Shoulder Blade" cx="105" cy="140" rx="22" ry="32"/>
+            <ellipse class="body-part detailed" data-part="Right Shoulder Blade" cx="195" cy="140" rx="22" ry="32"/>
+            
+            <!-- Spine -->
+            <rect class="body-part detailed" data-part="Spine" x="147" y="100" width="6" height="140" rx="3"/>
+            
+            <!-- Buttocks -->
+            <rect class="body-part" data-part="Buttocks" x="120" y="240" width="60" height="50" rx="10"/>
+            
+            <!-- Back Thighs -->
+            <rect class="body-part" data-part="Left Back Thigh" x="120" y="290" width="30" height="100" rx="15"/>
+            <rect class="body-part" data-part="Right Back Thigh" x="150" y="290" width="30" height="100" rx="15"/>
+            
+            <!-- Calves -->
+            <rect class="body-part" data-part="Left Calf" x="120" y="418" width="30" height="90" rx="15"/>
+            <rect class="body-part" data-part="Right Calf" x="150" y="418" width="30" height="90" rx="15"/>
+            
+            <!-- Back Ankles -->
+            <circle class="body-part detailed" data-part="Left Back Ankle" cx="135" cy="515" r="12"/>
+            <circle class="body-part detailed" data-part="Right Back Ankle" cx="165" cy="515" r="12"/>
+            
+            <!-- Heels -->
+            <ellipse class="body-part detailed" data-part="Left Heel" cx="135" cy="545" rx="15" ry="18"/>
+            <ellipse class="body-part detailed" data-part="Right Heel" cx="165" cy="545" rx="15" ry="18"/>
+        </svg>
+
+        <!-- Detailed Hands View -->
+        <svg id="handsView" viewBox="0 0 500 300" style="display: none;">
+            <!-- LEFT HAND -->
+            <g transform="translate(60, 60)">
+                <text x="50" y="-15" style="font-size: 14px; font-weight: bold; fill: #007bff;" text-anchor="middle">Left Hand</text>
+                
+                <!-- Palm -->
+                <ellipse class="body-part" data-part="Left Palm" cx="50" cy="70" rx="30" ry="40"/>
+                
+                <!-- Thumb -->
+                <ellipse class="body-part detailed" data-part="Left Thumb" cx="18" cy="55" rx="10" ry="22" transform="rotate(-30 18 55)"/>
+                
+                <!-- Index Finger -->
+                <rect class="body-part detailed" data-part="Left Index Finger" x="32" y="15" width="10" height="30" rx="5"/>
+                
+                <!-- Middle Finger -->
+                <rect class="body-part detailed" data-part="Left Middle Finger" x="45" y="10" width="10" height="35" rx="5"/>
+                
+                <!-- Ring Finger -->
+                <rect class="body-part detailed" data-part="Left Ring Finger" x="58" y="15" width="10" height="30" rx="5"/>
+                
+                <!-- Little Finger -->
+                <rect class="body-part detailed" data-part="Left Little Finger" x="70" y="22" width="8" height="25" rx="4"/>
+                
+                <!-- Wrist -->
+                <rect class="body-part detailed" data-part="Left Wrist Detail" x="37" y="105" width="26" height="15" rx="4"/>
+                
+                <!-- Labels -->
+                <text x="37" y="30" class="part-label">Index</text>
+                <text x="50" y="27" class="part-label">Mid</text>
+                <text x="63" y="30" class="part-label">Ring</text>
+                <text x="73" y="37" class="part-label">L</text>
+                <text x="18" y="58" class="part-label">Thumb</text>
+                <text x="50" y="75" class="part-label">Palm</text>
+            </g>
+            
+            <!-- RIGHT HAND -->
+            <g transform="translate(280, 60)">
+                <text x="50" y="-15" style="font-size: 14px; font-weight: bold; fill: #007bff;" text-anchor="middle">Right Hand</text>
+                
+                <!-- Palm -->
+                <ellipse class="body-part" data-part="Right Palm" cx="50" cy="70" rx="30" ry="40"/>
+                
+                <!-- Thumb -->
+                <ellipse class="body-part detailed" data-part="Right Thumb" cx="82" cy="55" rx="10" ry="22" transform="rotate(30 82 55)"/>
+                
+                <!-- Index Finger -->
+                <rect class="body-part detailed" data-part="Right Index Finger" x="58" y="15" width="10" height="30" rx="5"/>
+                
+                <!-- Middle Finger -->
+                <rect class="body-part detailed" data-part="Right Middle Finger" x="45" y="10" width="10" height="35" rx="5"/>
+                
+                <!-- Ring Finger -->
+                <rect class="body-part detailed" data-part="Right Ring Finger" x="32" y="15" width="10" height="30" rx="5"/>
+                
+                <!-- Little Finger -->
+                <rect class="body-part detailed" data-part="Right Little Finger" x="22" y="22" width="8" height="25" rx="4"/>
+                
+                <!-- Wrist -->
+                <rect class="body-part detailed" data-part="Right Wrist Detail" x="37" y="105" width="26" height="15" rx="4"/>
+                
+                <!-- Labels -->
+                <text x="63" y="30" class="part-label">Index</text>
+                <text x="50" y="27" class="part-label">Mid</text>
+                <text x="37" y="30" class="part-label">Ring</text>
+                <text x="25" y="37" class="part-label">L</text>
+                <text x="80" y="58" class="part-label">Thumb</text>
+                <text x="50" y="75" class="part-label">Palm</text>
+            </g>
+        </svg>
+
+        <!-- Detailed Feet View -->
+        <svg id="feetView" viewBox="0 0 500 300" style="display: none;">
+            <!-- LEFT FOOT -->
+            <g transform="translate(60, 50)">
+                <text x="50" y="-10" style="font-size: 14px; font-weight: bold; fill: #007bff;" text-anchor="middle">Left Foot</text>
+                
+                <!-- Foot base -->
+                <ellipse class="body-part" data-part="Left Foot Base" cx="50" cy="100" rx="30" ry="45"/>
+                
+                <!-- Ankle -->
+                <circle class="body-part detailed" data-part="Left Ankle Detail" cx="50" cy="40" r="15"/>
+                
+                <!-- Big Toe -->
+                <ellipse class="body-part detailed" data-part="Left Big Toe" cx="30" cy="140" rx="11" ry="17"/>
+                
+                <!-- Second Toe -->
+                <ellipse class="body-part detailed" data-part="Left Second Toe" cx="42" cy="146" rx="8" ry="14"/>
+                
+                <!-- Third Toe -->
+                <ellipse class="body-part detailed" data-part="Left Third Toe" cx="50" cy="147" rx="7" ry="13"/>
+                
+                <!-- Fourth Toe -->
+                <ellipse class="body-part detailed" data-part="Left Fourth Toe" cx="58" cy="145" rx="6" ry="12"/>
+                
+                <!-- Little Toe -->
+                <ellipse class="body-part detailed" data-part="Left Little Toe" cx="66" cy="142" rx="5" ry="10"/>
+                
+                <!-- Heel -->
+                <ellipse class="body-part detailed" data-part="Left Heel Detail" cx="50" cy="68" rx="20" ry="18"/>
+                
+                <!-- Labels -->
+                <text x="50" y="43" class="part-label">Ankle</text>
+                <text x="50" y="72" class="part-label">Heel</text>
+                <text x="50" y="105" class="part-label">Foot</text>
+            </g>
+            
+            <!-- RIGHT FOOT -->
+            <g transform="translate(280, 50)">
+                <text x="50" y="-10" style="font-size: 14px; font-weight: bold; fill: #007bff;" text-anchor="middle">Right Foot</text>
+                
+                <!-- Foot base -->
+                <ellipse class="body-part" data-part="Right Foot Base" cx="50" cy="100" rx="30" ry="45"/>
+                
+                <!-- Ankle -->
+                <circle class="body-part detailed" data-part="Right Ankle Detail" cx="50" cy="40" r="15"/>
+                
+                <!-- Big Toe -->
+                <ellipse class="body-part detailed" data-part="Right Big Toe" cx="70" cy="140" rx="11" ry="17"/>
+                
+                <!-- Second Toe -->
+                <ellipse class="body-part detailed" data-part="Right Second Toe" cx="58" cy="146" rx="8" ry="14"/>
+                
+                <!-- Third Toe -->
+                <ellipse class="body-part detailed" data-part="Right Third Toe" cx="50" cy="147" rx="7" ry="13"/>
+                
+                <!-- Fourth Toe -->
+                <ellipse class="body-part detailed" data-part="Right Fourth Toe" cx="42" cy="145" rx="6" ry="12"/>
+                
+                <!-- Little Toe -->
+                <ellipse class="body-part detailed" data-part="Right Little Toe" cx="34" cy="142" rx="5" ry="10"/>
+                
+                <!-- Heel -->
+                <ellipse class="body-part detailed" data-part="Right Heel Detail" cx="50" cy="68" rx="20" ry="18"/>
+                
+                <!-- Labels -->
+                <text x="50" y="43" class="part-label">Ankle</text>
+                <text x="50" y="72" class="part-label">Heel</text>
+                <text x="50" y="105" class="part-label">Foot</text>
+            </g>
+        </svg>
+    </div>
+    
+    <div class="selected-parts-summary">
+        <strong><i class="fas fa-check-circle"></i> Selected: <span id="selectedCount">0</span> body part(s)</strong>
+        <div id="selectedPartsList" style="margin-top: 10px;"></div>
+        <button type="button" class="clear-selection-btn" onclick="window.clearAllBodyParts()">
+            <i class="fas fa-times"></i> Clear All
+        </button>
+    </div>
+</div>
+
+<script>
+(function() {
+    // Initialize selectedBodyParts - check if it already exists (from edit page initialization)
+    if (!window.selectedBodyParts) {
+        window.selectedBodyParts = new Set();
+    }
+
+    // === INITIALIZE FROM EXISTING DATA (FOR EDIT MODE) ===
+    function initializeExistingBodyParts() {
+        // If selectedBodyParts already has data (set from edit page), mark those parts as selected
+        if (window.selectedBodyParts && window.selectedBodyParts.size > 0) {
+            console.log('Initializing body parts from existing data:', Array.from(window.selectedBodyParts));
+            
+            window.selectedBodyParts.forEach(partName => {
+                // Find all elements with this part name across all views and mark them as selected
+                const allSameParts = document.querySelectorAll(`[data-part="${partName}"]`);
+                allSameParts.forEach(p => {
+                    p.classList.add('selected');
+                    console.log('Marked as selected:', partName);
+                });
+            });
+            
+            updateBodyPartsList();
+        } else {
+            console.log('No existing body parts data to initialize');
+        }
+    }
+
+    // === BODY DIAGRAM INTERACTION ===
+    // View switching
+    document.querySelectorAll('.view-btn-body').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.view-btn-body').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            const view = this.dataset.view;
+            document.querySelectorAll('svg[id$="View"]').forEach(svg => svg.style.display = 'none');
+            
+            const viewMap = {
+                'front': 'frontView',
+                'back': 'backView',
+                'hands': 'handsView',
+                'feet': 'feetView'
+            };
+            document.getElementById(viewMap[view]).style.display = 'block';
+        });
+    });
+    
+    // Body part selection
+    document.querySelectorAll('.body-part').forEach(part => {
+        part.addEventListener('click', function() {
+            const partName = this.dataset.part;
+            
+            // Find all parts with the same name across all views
+            const allSameParts = document.querySelectorAll(`[data-part="${partName}"]`);
+            
+            if (window.selectedBodyParts.has(partName)) {
+                window.selectedBodyParts.delete(partName);
+                allSameParts.forEach(p => p.classList.remove('selected'));
+            } else {
+                window.selectedBodyParts.add(partName);
+                allSameParts.forEach(p => p.classList.add('selected'));
+            }
+            
+            updateBodyPartsList();
+        });
+    });
+    
+    // Make clearAllBodyParts globally accessible
+    window.clearAllBodyParts = function() {
+        window.selectedBodyParts.clear();
+        document.querySelectorAll('.body-part').forEach(part => {
+            part.classList.remove('selected');
+        });
+        updateBodyPartsList();
+    };
+    
+    function updateBodyPartsList() {
+        const listDiv = document.getElementById('selectedPartsList');
+        const countSpan = document.getElementById('selectedCount');
+        
+        countSpan.textContent = window.selectedBodyParts.size;
+        
+        if (window.selectedBodyParts.size === 0) {
+            listDiv.innerHTML = '<p style="color: #999; font-size: 13px; margin: 5px 0;">No body parts selected</p>';
+        } else {
+            listDiv.innerHTML = '';
+            window.selectedBodyParts.forEach(part => {
+                const span = document.createElement('span');
+                span.className = 'selected-item-badge';
+                span.textContent = part;
+                listDiv.appendChild(span);
+            });
+        }
+    }
+
+    // Initialize with existing data (if any) - wait a bit for DOM to be fully ready
+    setTimeout(function() {
+        initializeExistingBodyParts();
+        updateBodyPartsList();
+    }, 100);
+})();
+</script>

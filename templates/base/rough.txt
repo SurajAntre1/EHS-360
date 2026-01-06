@@ -1,0 +1,303 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>EHS-360 - {% block title %}Health, Safety & Environment{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="{% static 'img/ehs_logo.png' %}">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Google Font: Source Sans Pro -->
+  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,500,600,700" rel="stylesheet">
+  <!-- AdminLTE CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  
+  <style>
+    :root {
+      --primary-blue: #1E90FF;
+      --primary-green: #7CB342;
+      --dark-blue: #1565C0;
+      --dark-green: #558B2F;
+      --light-blue: #E3F2FD;
+      --light-green: #F1F8E9;
+      --text-primary: #1565C0;
+      --text-secondary: #37474F;
+      --danger-red: #dc3545;
+      --warning-orange: #ff9800;
+      --success-green: #28a745;
+    }
+
+    body {
+      font-family: 'Source Sans Pro', sans-serif;
+      background-color: #f5f7f8;
+    }
+    
+    /* EHS Cards */
+    .ehs-card {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      margin-bottom: 20px;
+      border: none;
+      border-top: 3px solid var(--primary-blue);
+    }
+    
+    .ehs-card .card-header {
+      background: linear-gradient(135deg, var(--light-blue), var(--light-green));
+      border-bottom: 1px solid #f0f0f0;
+      padding: 15px 20px;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    
+    .ehs-card .card-body {
+      padding: 20px;
+    }
+    
+    /* EHS Stats Cards */
+    .ehs-stat-card {
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      height: 100%;
+      border-left: 4px solid var(--primary-blue);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .ehs-stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(30, 144, 255, 0.15);
+    }
+    
+    .ehs-stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 15px;
+      font-size: 20px;
+      color: #fff;
+    }
+    
+    .ehs-icon-hazard {
+      background: linear-gradient(135deg, var(--warning-orange), #f57c00);
+    }
+    
+    .ehs-icon-incident {
+      background: linear-gradient(135deg, var(--danger-red), #c62828);
+    }
+    
+    .ehs-icon-environmental {
+      background: linear-gradient(135deg, var(--primary-green), var(--dark-green));
+    }
+    
+    .ehs-icon-inspection {
+      background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+    }
+    
+    .ehs-stat-content {
+      flex-grow: 1;
+    }
+    
+    .ehs-stat-title {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    
+    .ehs-stat-value {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+    
+    /* Content wrapper */
+    .content-wrapper {
+      background: linear-gradient(135deg, #f8fafe 0%, #f5f9f5 100%);
+    }
+    
+    /* Custom button styles */
+   .btn-primary:focus,
+  .btn-primary:not(:disabled):not(.disabled):active,
+  .btn-primary.active {
+      background: linear-gradient(135deg, var(--primary-blue), var(--primary-green));
+      border: none;
+      color: rgb(75, 87, 180);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+      background: linear-gradient(135deg, var(--dark-blue), var(--dark-green));
+      border: none;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(30, 144, 255, 0.3);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, var(--primary-green), var(--dark-green));
+      border: none;
+    }
+
+    .btn-success:hover {
+      background: linear-gradient(135deg, var(--dark-green), var(--primary-green));
+      transform: translateY(-1px);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--danger-red), #c62828);
+      border: none;
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, var(--warning-orange), #f57c00);
+      border: none;
+      color: white;
+    }
+    
+    /* Sidebar styling */
+    .main-sidebar {
+      background: linear-gradient(180deg, var(--dark-blue) 0%, var(--primary-blue) 100%);
+    }
+
+    .sidebar .nav-link {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .sidebar .nav-link:hover,
+    .sidebar .nav-link.active {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    /* Header styling */
+    .main-header .navbar {
+      background: linear-gradient(135deg, var(--primary-blue), var(--primary-green));
+      color: white;
+    }
+
+    .main-header .navbar .nav-link {
+      color: white;
+    }
+
+    /* Tables */
+    .table thead th {
+      background: linear-gradient(135deg, var(--light-blue), var(--light-green));
+      color: var(--text-primary);
+      border-bottom: 2px solid var(--primary-blue);
+    }
+
+    /* Brand logo area */
+    .brand-link {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .brand-text {
+      color: white !important;
+      font-weight: 600;
+    }
+
+    /* Badge colors for status */
+    .badge-high {
+      background: var(--danger-red);
+    }
+    
+    .badge-medium {
+      background: var(--warning-orange);
+    }
+    
+    .badge-low {
+      background: var(--success-green);
+    }
+  </style>
+  
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="hold-transition sidebar-mini">
+  <div class="wrapper">
+    <!-- Include header/navbar -->
+    {% include 'include/navbar.html' %}
+    
+    <!-- Include sidebar -->
+    {% include 'include/sidebar.html' %}
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+      <!-- Content Header (Page header) -->
+      <div class="content-header">
+        <div class="container-fluid">
+          <div class="row mb-2">
+            <div class="col-sm-6">
+              <h1 class="m-0">{% block page_title %}Dashboard{% endblock %}</h1>
+            </div>
+            <div class="col-sm-6">
+              <ol class="breadcrumb float-sm-right">
+                {% block breadcrumb %}
+                <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+                <li class="breadcrumb-item active">Dashboard</li>
+                {% endblock %}
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main content -->
+      <section class="content">
+        <div class="container-fluid">
+          {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            {% endfor %}
+          {% endif %}
+
+          {% block content %}
+          {% endblock %}
+        </div>
+      </section>
+    </div>
+    
+    <!-- Include footer -->
+    {% include 'include/footer.html' %}
+  </div>
+
+  <!-- jQuery -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <!-- Bootstrap 4 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.1/js/bootstrap.bundle.min.js"></script>
+  <!-- AdminLTE App -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+  
+  <script>
+    $(document).ready(function() {
+      // Add active class to current sidebar menu item
+      var url = window.location.href;
+      $('ul.nav-sidebar a').filter(function() {
+        return this.href == url;
+      }).addClass('active');
+      
+      $('ul.nav-sidebar a').filter(function() {
+        return this.href == url;
+      }).parentsUntil(".nav-sidebar > .nav-item").addClass('menu-open').children('a').addClass('active');
+    });
+  </script>
+  
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

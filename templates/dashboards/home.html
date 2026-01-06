@@ -1,0 +1,183 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block page_title %}EHS-360 Dashboard{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Dashboard</li>
+{% endblock %}
+
+{% block content %}
+<!-- Stats Cards Row -->
+<div class="row">
+  <!-- Hazard Reports Card -->
+  <div class="col-lg-3 col-md-6">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon ehs-icon-hazard">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Total Hazards</div>
+        <div class="ehs-stat-value">{{ total_hazards|default:0 }}</div>
+        <div class="ehs-stat-trend">
+          <i class="fas fa-arrow-up"></i>
+          <span>This Month</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Incident Reports Card -->
+  <div class="col-lg-3 col-md-6">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon ehs-icon-incident">
+        <i class="fas fa-file-medical"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Total Incidents</div>
+        <div class="ehs-stat-value">{{ total_incidents|default:0 }}</div>
+        <div class="ehs-stat-trend">
+          <i class="fas fa-arrow-down"></i>
+          <span>This Month</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Environmental Data Card -->
+  <div class="col-lg-3 col-md-6">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon ehs-icon-environmental">
+        <i class="fas fa-leaf"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Environmental Records</div>
+        <div class="ehs-stat-value">{{ total_environmental|default:0 }}</div>
+        <div class="ehs-stat-trend">
+          <i class="fas fa-check"></i>
+          <span>Up to date</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inspections Card -->
+  <div class="col-lg-3 col-md-6">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon ehs-icon-inspection">
+        <i class="fas fa-clipboard-check"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Inspections</div>
+        <div class="ehs-stat-value">{{ total_inspections|default:0 }}</div>
+        <div class="ehs-stat-trend">
+          <i class="fas fa-clock"></i>
+          <span>{{ pending_inspections|default:0 }} pending</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Welcome Card -->
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="ehs-card">
+      <div class="card-body">
+        <h4>Welcome to EHS-360, {{ user.get_full_name|default:user.username }}!</h4>
+        <p class="text-muted">Health, Safety & Environment Management System</p>
+        <hr>
+        <div class="row">
+          <div class="col-md-3">
+            <strong>Role:</strong> {{ user.get_role_display|default:"N/A" }}
+          </div>
+          <div class="col-md-3">
+            <strong>Username:</strong> {{ user.username }}
+          </div>
+          <div class="col-md-3">
+            <strong>Email:</strong> {{ user.email }}
+          </div>
+          <div class="col-md-3">
+            <strong>Last Login:</strong> {{ user.last_login|date:"M d, Y H:i" }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+  <div class="col-md-3">
+    <div class="card text-center" style="border-top: 3px solid #ff9800;">
+      <div class="card-body">
+        <i class="fas fa-exclamation-triangle fa-3x mb-3" style="color: #ff9800;"></i>
+        <h5>Report Hazard</h5>
+        <p class="text-muted">Report unsafe acts, conditions, or near misses</p>
+        <a href="/hazards/hazards/create/" class="btn btn-primary btn-sm">Report Now</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card text-center" style="border-top: 3px solid #dc3545;">
+      <div class="card-body">
+        <i class="fas fa-file-medical fa-3x mb-3" style="color: #dc3545;"></i>
+        <h5>Report Incident</h5>
+        <p class="text-muted">Report accidents and incidents</p>  
+        <a href="/accidents/incidents/create/" class="btn btn-primary btn-sm">Report Now</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card text-center" style="border-top: 3px solid #28a745;">
+      <div class="card-body">
+        <i class="fas fa-leaf fa-3x mb-3" style="color: #28a745;"></i>
+        <h5>Environmental Data</h5>
+        <p class="text-muted">Enter monthly environmental data</p>
+        <a href="#" class="btn btn-primary btn-sm">Enter Data</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="card text-center" style="border-top: 3px solid #1E90FF;">
+      <div class="card-body">
+        <i class="fas fa-clipboard-check fa-3x mb-3" style="color: #1E90FF;"></i>
+        <h5>Inspections</h5>
+        <p class="text-muted">Create and manage inspections</p>
+        <a href="/accidents/incidents/" class="btn btn-primary btn-sm">View All</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activities -->
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="ehs-card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-list mr-1"></i>
+          Recent Activities
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle mr-2"></i>
+          No recent activities to display. Start by reporting a hazard or incident.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  console.log('Dashboard loaded successfully!');
+</script>
+{% endblock %}

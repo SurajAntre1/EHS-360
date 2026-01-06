@@ -1,0 +1,566 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Hazard Details - {{ hazard.report_number }}{% endblock %}
+{% block page_title %}Hazard Details{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hazards:dashboard' %}">Hazard Management</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hazards:hazard_list' %}">All Hazards</a></li>
+<li class="breadcrumb-item active">{{ hazard.report_number }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-box {
+        border-left: 4px solid #007bff;
+        padding: 15px;
+        background-color: #f8f9fa;
+        margin-bottom: 20px;
+    }
+    .severity-badge {
+        font-size: 14px;
+        padding: 8px 15px;
+    }
+    .hazard-photo {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        margin: 5px;
+        border-radius: 5px;
+        border: 2px solid #ddd;
+        cursor: pointer;
+    }
+    .hazard-photo:hover {
+        border-color: #007bff;
+        transform: scale(1.05);
+        transition: all 0.3s;
+    }
+    .status-timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    .status-timeline::before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background-color: #dee2e6;
+    }
+    .timeline-item {
+        position: relative;
+        padding-bottom: 20px;
+    }
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -24px;
+        top: 5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #007bff;
+        border: 2px solid #fff;
+    }
+    .action-item-card {
+        border-left: 4px solid #ffc107;
+        margin-bottom: 10px;
+    }
+    .action-item-card.completed {
+        border-left-color: #28a745;
+    }
+    .action-item-card.overdue {
+        border-left-color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Content Header -->
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1><i class="fas fa-exclamation-triangle text-warning"></i> Hazard Details</h1>
+            </div>
+            <div class="col-sm-6">
+                <div class="float-sm-right">
+                    <a href="{% url 'hazards:hazard_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to List
+                    </a>
+                    {% if user.is_superuser or user.role == 'ADMIN' %}
+                    <a href="{% url 'hazards:hazard_update' hazard.pk %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> Edit Hazard
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main content -->
+<section class="content">
+    <!-- Messages -->
+    <!-- {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                {{ message|safe }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %} -->
+
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-md-8">
+            <!-- Hazard Information Card -->
+            <div class="card">
+                <div class="card-header bg-primary">
+                    <h3 class="card-title text-white">
+                        <i class="fas {{ hazard.category_icon }}"></i> Hazard Information
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h5 class="text-primary">{{ hazard.report_number }}</h5>
+                            <p class="text-muted mb-0">Report Number</p>
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <span class="badge {{ hazard.status_badge_class }} badge-lg">{{ hazard.get_status_display }}</span>
+                            <span class="badge {{ hazard.severity_badge_class }} badge-lg ml-2">{{ hazard.get_severity_display }}</span>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h5 class="text-primary mb-3">Hazard Details</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Hazard Type:</strong>
+                            <p>{{ hazard.get_hazard_type_display }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Category:</strong>
+                            <p><i class="fas {{ hazard.category_icon }}"></i> {{ hazard.get_hazard_category_display }}</p>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <strong>Title:</strong>
+                            <p>{{ hazard.hazard_title }}</p>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <strong>Description:</strong>
+                            <p>{{ hazard.hazard_description|linebreaks }}</p>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <strong>Identified Date & Time:</strong>
+                            <p>{{ hazard.incident_datetime|date:"d M Y, h:i A" }}</p>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <strong>Severity Level:</strong>
+                            <p><span class="badge {{ hazard.severity_badge_class }}">{{ hazard.get_severity_display }}</span></p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h5 class="text-primary mb-3">Location Information</h5>
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <strong>Plant:</strong>
+                            <p>{{ hazard.plant.name }} ({{ hazard.plant.code }})</p>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <strong>Zone:</strong>
+                            <p>{% if hazard.zone %}{{ hazard.zone.name }} ({{ hazard.zone.code }}){% else %}N/A{% endif %}</p>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <strong>Location:</strong>
+                            <p>{{ hazard.location.name }} ({{ hazard.location.code }})</p>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <strong>Sub-Location:</strong>
+                            <p>{% if hazard.sublocation %}{{ hazard.sublocation.name }}{% if hazard.sublocation.code %} ({{ hazard.sublocation.code }}){% endif %}{% else %}N/A{% endif %}</p>
+                        </div>
+                        {% if hazard.location_details %}
+                        <div class="col-md-12 mb-2">
+                            <strong>Additional Location Details:</strong>
+                            <p>{{ hazard.location_details }}</p>
+                        </div>
+                        {% endif %}
+                        {% if hazard.gps_latitude and hazard.gps_longitude %}
+                        <div class="col-md-12 mb-2">
+                            <strong>GPS Coordinates:</strong>
+                            <p>
+                                <i class="fas fa-map-marker-alt text-danger"></i> 
+                                {{ hazard.gps_latitude }}, {{ hazard.gps_longitude }}
+                                <a href="https://www.google.com/maps?q={{ hazard.gps_latitude }},{{ hazard.gps_longitude }}" target="_blank" class="btn btn-sm btn-outline-primary ml-2">
+                                    <i class="fas fa-external-link-alt"></i> View on Map
+                                </a>
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <hr>
+
+                    <h5 class="text-primary mb-3">Reporter Information</h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <strong>Name:</strong>
+                            <p>{{ hazard.reporter_name }}</p>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <strong>Email:</strong>
+                            <p>{{ hazard.reporter_email }}</p>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <strong>Phone:</strong>
+                            <p>{% if hazard.reporter_phone %}{{ hazard.reporter_phone }}{% else %}N/A{% endif %}</p>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <strong>Reported By:</strong>
+                            <p>
+                                {{ hazard.reported_by.get_full_name|default:hazard.reported_by.username }}
+                                {% if hazard.reported_by.role %}
+                                    <span class="badge badge-secondary">{{ hazard.reported_by.get_role_display }}</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <strong>Reported Date:</strong>
+                            <p>{{ hazard.reported_date|date:"d M Y, h:i A" }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Behalf Information Section -->
+                    {% if hazard.behalf_person %}
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <h6 class="alert-heading">
+                                    <i class="fas fa-user-friends"></i> Reported On Behalf Of
+                                </h6>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <strong>Employee Name:</strong><br>
+                                        <span class="text-dark">{{ hazard.behalf_person.get_full_name }}</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Department:</strong><br>
+                                        <span class="text-dark">
+                                            {% if hazard.behalf_person_dept %}
+                                                {{ hazard.behalf_person_dept.name }}
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Role:</strong><br>
+                                        <span class="text-dark">
+                                            {% if hazard.behalf_person.role %}
+                                                {{ hazard.behalf_person.get_role_display }}
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Employee ID:</strong><br>
+                                        <span class="text-dark">
+                                            {% if hazard.behalf_person.employee_id %}
+                                                {{ hazard.behalf_person.employee_id }}
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- {% if hazard.injury_status or hazard.immediate_action or hazard.witnesses %}
+                    <hr>
+                    <h5 class="text-primary mb-3">Additional Information</h5>
+                    <div class="row">
+                        {% if hazard.injury_status %}
+                        <div class="col-md-12 mb-2">
+                            <strong>Injury Status:</strong>
+                            <p>{{ hazard.injury_status|title }}</p>
+                        </div>
+                        {% endif %} -->
+                        <!-- {% if hazard.immediate_action %}
+                        <div class="col-md-12 mb-2">
+                            <strong>Immediate Actions Taken:</strong>
+                            <p>{{ hazard.immediate_action|linebreaks }}</p>
+                        </div>
+                        {% endif %} -->
+                        {% if hazard.witnesses %}
+                        <div class="col-md-12 mb-2">
+                            <strong>Witnesses:</strong>
+                            <p>{{ hazard.witnesses|linebreaks }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Photos Card -->
+            {% if photos %}
+            <div class="card">
+                <div class="card-header bg-info">
+                    <h3 class="card-title text-white">
+                        <i class="fas fa-camera"></i> Hazard Photos ({{ photos.count }})
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for photo in photos %}
+                        <div class="col-md-3 text-center mb-3">
+                            <a href="{{ photo.photo.url }}" target="_blank">
+                                <img src="{{ photo.photo.url }}" alt="Hazard Photo" class="hazard-photo">
+                            </a>
+                            {% if photo.description %}
+                            <p class="text-muted small mt-1">{{ photo.description }}</p>
+                            {% endif %}
+                            <p class="text-muted small">
+                                <i class="fas fa-calendar"></i> {{ photo.uploaded_at|date:"d M Y" }}
+                            </p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Action Items Card -->
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h3 class="card-title">
+                        <i class="fas fa-tasks"></i> Action Items ({{ action_items.count }})
+                    </h3>
+                    <div class="card-tools">
+                        {% if user.is_superuser or user.role == 'ADMIN' %}
+                        <a href="{% url 'hazards:action_item_create' hazard.pk %}" class="btn btn-sm btn-success">
+                            <i class="fas fa-plus"></i> Add Action Item
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if action_items %}
+                        {% for action in action_items %}
+                        <div class="card action-item-card {% if action.status == 'COMPLETED' %}completed{% elif action.is_overdue %}overdue{% endif %}">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h6>{{ action.action_description }}</h6>
+                                        <p class="text-muted mb-1">
+                                            <i class="fas fa-user"></i> <strong>Responsible:</strong> 
+                                            {{ action.responsible_person.get_full_name|default:action.responsible_person.username }}
+                                        </p>
+                                        <p class="text-muted mb-0">
+                                            <i class="fas fa-calendar"></i> <strong>Target Date:</strong> 
+                                            {{ action.target_date|date:"d M Y" }}
+                                            {% if action.is_overdue %}
+                                                <span class="badge badge-danger ml-2">OVERDUE</span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    <div class="col-md-4 text-right">
+                                        <span class="badge {{ action.status_badge_class }} badge-lg">{{ action.get_status_display }}</span>
+                                        {% if action.completion_date %}
+                                        <p class="text-muted small mt-2 mb-0">
+                                            Completed: {{ action.completion_date|date:"d M Y" }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if action.completion_remarks %}
+                                <hr class="my-2">
+                                <p class="mb-0"><strong>Remarks:</strong> {{ action.completion_remarks }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">No action items yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-md-4">
+            <!-- Status Card -->
+            <div class="card">
+                <div class="card-header bg-secondary">
+                    <h3 class="card-title text-white">
+                        <i class="fas fa-info-circle"></i> Status Information
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Current Status:</strong>
+                        <p><span class="badge {{ hazard.status_badge_class }} badge-lg">{{ hazard.get_status_display }}</span></p>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Approval Status:</strong>
+                        <p>
+                            <span class="badge 
+                                {% if hazard.approval_status == 'APPROVED' %}badge-success
+                                {% elif hazard.approval_status == 'REJECTED' %}badge-danger
+                                {% else %}badge-warning{% endif %} badge-lg">
+                                {{ hazard.get_approval_status_display }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Severity:</strong>
+                        <p><span class="badge {{ hazard.severity_badge_class }} badge-lg">{{ hazard.get_severity_display }}</span></p>
+                    </div>
+                    {% if hazard.assigned_to %}
+                    <div class="mb-3">
+                        <strong>Assigned To:</strong>
+                        <p>{{ hazard.assigned_to.get_full_name|default:hazard.assigned_to.username }}</p>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <strong>Days Since Reported:</strong>
+                        <p><span class="badge badge-info">{{ hazard.days_since_reported }} days</span></p>
+                    </div>
+                    {% if hazard.action_deadline %}
+                    <div class="mb-3">
+                        <strong>Action Deadline:</strong>
+                        <p>{{ hazard.action_deadline|date:"d M Y" }}</p>
+                        {% if hazard.is_action_overdue %}
+                        <span class="badge badge-danger">OVERDUE</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Corrective Action Card -->
+            {% if hazard.corrective_action_plan %}
+            <div class="card">
+                <div class="card-header bg-success">
+                    <h3 class="card-title text-white">
+                        <i class="fas fa-check-circle"></i> Corrective Action Plan
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <p>{{ hazard.corrective_action_plan|linebreaks }}</p>
+                    {% if hazard.action_completed_date %}
+                    <hr>
+                    <p class="mb-0">
+                        <strong>Completed Date:</strong> {{ hazard.action_completed_date|date:"d M Y" }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Closure Information -->
+            {% if hazard.closure_date %}
+            <div class="card">
+                <div class="card-header bg-dark">
+                    <h3 class="card-title text-white">
+                        <i class="fas fa-lock"></i> Closure Information
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Closure Date:</strong>
+                        <p>{{ hazard.closure_date|date:"d M Y" }}</p>
+                    </div>
+                    {% if hazard.closure_remarks %}
+                    <div class="mb-2">
+                        <strong>Remarks:</strong>
+                        <p>{{ hazard.closure_remarks|linebreaks }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Timeline Card -->
+            <div class="card">
+                <div class="card-header bg-info">
+                    <h3 class="card-title text-white">
+                        <i class="fas fa-clock"></i> Timeline
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="status-timeline">
+                        <div class="timeline-item">
+                            <strong>Reported</strong>
+                            <p class="text-muted small mb-0">{{ hazard.reported_date|date:"d M Y, h:i A" }}</p>
+                            <p class="text-muted small mb-0">By: {{ hazard.reported_by.get_full_name }}</p>
+                        </div>
+                        {% if hazard.behalf_person %}
+                        <div class="timeline-item">
+                            <strong>On Behalf Of</strong>
+                            <p class="text-muted small mb-0">{{ hazard.behalf_person.get_full_name }}</p>
+                        </div>
+                        {% endif %}
+                        {% if hazard.assigned_to %}
+                        <div class="timeline-item">
+                            <strong>Assigned</strong>
+                            <p class="text-muted small mb-0">To {{ hazard.assigned_to.get_full_name|default:hazard.assigned_to.username }}</p>
+                        </div>
+                        {% endif %}
+                        {% if hazard.approved_by %}
+                        <div class="timeline-item">
+                            <strong>Approved</strong>
+                            <p class="text-muted small mb-0">{{ hazard.approved_date|date:"d M Y, h:i A" }}</p>
+                            <p class="text-muted small mb-0">By: {{ hazard.approved_by.get_full_name }}</p>
+                        </div>
+                        {% endif %}
+                        {% if hazard.action_completed_date %}
+                        <div class="timeline-item">
+                            <strong>Action Completed</strong>
+                            <p class="text-muted small mb-0">{{ hazard.action_completed_date|date:"d M Y" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if hazard.closure_date %}
+                        <div class="timeline-item">
+                            <strong>Closed</strong>
+                            <p class="text-muted small mb-0">{{ hazard.closure_date|date:"d M Y" }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Hazard detail page loaded');
+    
+    // Add lightbox effect for photos
+    const photos = document.querySelectorAll('.hazard-photo');
+    photos.forEach(photo => {
+        photo.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.open(this.src, '_blank');
+        });
+    });
+});
+</script>
+{% endblock %}

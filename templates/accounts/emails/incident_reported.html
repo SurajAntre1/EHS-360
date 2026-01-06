@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #d32f2f; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
+        .content { background-color: #f5f5f5; padding: 20px; }
+        .detail-box { background-color: white; padding: 15px; margin: 10px 0; border-left: 4px solid #d32f2f; }
+        .button { display: inline-block; padding: 12px 24px; background-color: #d32f2f; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>⚠️ New Incident Reported</h2>
+        </div>
+        
+        <div class="content">
+            <p>Hello {{ recipient.get_full_name }},</p>
+            
+            <p>A new incident has been reported and requires your attention.</p>
+            
+            <div class="detail-box">
+                <h3>Incident Details:</h3>
+                <p><strong>Report Number:</strong> {{ incident.report_number }}</p>
+                <p><strong>Type:</strong> {{ incident.get_incident_type_display }}</p>
+                <p><strong>Date & Time:</strong> {{ incident.incident_date }} at {{ incident.incident_time }}</p>
+                <p><strong>Location:</strong> {{ incident.plant.name }} - {{ incident.location.name }}</p>
+                <p><strong>Reported By:</strong> {{ incident.reported_by.get_full_name }}</p>
+                <p><strong>Investigation Deadline:</strong> {{ incident.investigation_deadline }}</p>
+            </div>
+            
+            <div class="detail-box">
+                <h3>Description:</h3>
+                <p>{{ incident.description }}</p>
+            </div>
+            
+            <a href="{{ incident_url }}" class="button">View Incident Details</a>
+            
+            <p style="margin-top: 20px; font-size: 12px; color: #666;">
+                This is an automated notification from EHS-360 System.
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>Protegk IT Solutions | EHS-360 Platform</p>
+        </div>
+    </div>
+</body>
+</html>

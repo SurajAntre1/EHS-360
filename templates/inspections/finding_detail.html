@@ -1,0 +1,376 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Finding Detail{% endblock %}
+{% block page_title %}Finding Details{% endblock %}
+
+{% block extra_css %}
+<style>
+.finding-header {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 10px 10px 0 0;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.info-box {
+    text-align: center;
+}
+
+.info-label {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin-bottom: 5px;
+}
+
+.info-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.section-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background-color: #fff;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.photo-gallery {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.photo-gallery img {
+    max-width: 200px;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.photo-gallery img:hover {
+    transform: scale(1.05);
+}
+
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -35px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #17a2b8;
+    border: 2px solid #fff;
+}
+
+.alert-overdue {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:dashboard' %}">Inspection Management</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:findings_list' %}">Findings</a></li>
+<li class="breadcrumb-item active">{{ finding.finding_number }}</li>
+{% endblock %}
+
+{% block content %}
+
+<div class="card ehs-card">
+    <!-- Finding Header -->
+    <div class="finding-header">
+        <h3 class="mb-0">
+            <i class="fas fa-flag mr-2"></i>Finding #{{ finding.finding_number }}
+        </h3>
+        <p class="mb-0 mt-2">{{ finding.inspection_point_text }}</p>
+        
+        <div class="info-grid">
+            <div class="info-box">
+                <div class="info-label">Inspection</div>
+                <div class="info-value">{{ finding.inspection.inspection_number }}</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Category</div>
+                <div class="info-value">{{ finding.category_name }}</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Severity</div>
+                <div class="info-value">
+                    <span class="badge 
+                        {% if finding.severity == 'CRITICAL' %}badge-danger
+                        {% elif finding.severity == 'HIGH' %}badge-warning
+                        {% else %}badge-info{% endif %}" 
+                        style="font-size: 1rem;">
+                        {{ finding.get_severity_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Target Date</div>
+                <div class="info-value">{{ finding.target_date|date:"d M Y" }}</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Status</div>
+                <div class="info-value">
+                    <span class="badge 
+                        {% if finding.status == 'OPEN' %}badge-danger
+                        {% elif finding.status == 'IN_PROGRESS' %}badge-warning
+                        {% elif finding.status == 'UNDER_REVIEW' %}badge-info
+                        {% elif finding.status == 'CLOSED' %}badge-success
+                        {% endif %}" 
+                        style="font-size: 1rem;">
+                        {{ finding.get_status_display }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        <!-- Overdue Alert -->
+        {% if finding.is_overdue and finding.status != 'CLOSED' %}
+        <div class="alert alert-overdue">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            <strong>Warning:</strong> This finding is overdue by {{ finding.days_until_due|abs }} days!
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="mb-4">
+            {% if user.role == 'SAFETY_MANAGER' or user.is_superuser %}
+                {% if finding.status == 'OPEN' %}
+                <a href="{% url 'inspections:finding_assign' finding.id %}" class="btn btn-warning">
+                    <i class="fas fa-user-plus mr-1"></i>Assign Finding
+                </a>
+                {% endif %}
+                
+                {% if finding.status == 'UNDER_REVIEW' %}
+                <a href="{% url 'inspections:finding_close' finding.id %}" class="btn btn-success">
+                    <i class="fas fa-check mr-1"></i>Close Finding
+                </a>
+                {% endif %}
+            {% endif %}
+            
+            <a href="{% url 'inspections:findings_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left mr-1"></i>Back to List
+            </a>
+        </div>
+
+        <div class="row">
+            <!-- Left Column: Finding Details -->
+            <div class="col-md-6">
+                <!-- Finding Information -->
+                <div class="section-card">
+                    <div class="section-title">
+                        <i class="fas fa-info-circle mr-2"></i>Finding Information
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Issue Description:</strong>
+                        <p>{{ finding.inspection_point_text }}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Remarks:</strong>
+                        <p>{{ finding.remarks|default:"No remarks provided" }}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Inspection Date:</strong>
+                        <p>{{ finding.inspection.inspection_date|date:"d M Y" }}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Plant:</strong>
+                        <p>{{ finding.inspection.plant.name }}</p>
+                    </div>
+                    
+                    {% if finding.inspection.location %}
+                    <div class="mb-3">
+                        <strong>Location:</strong>
+                        <p>{{ finding.inspection.location.name }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Assignment Information -->
+                <div class="section-card">
+                    <div class="section-title">
+                        <i class="fas fa-user-check mr-2"></i>Assignment Information
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Assigned To:</strong>
+                        <p>{{ finding.assigned_to.get_full_name|default:"Not assigned" }}</p>
+                    </div>
+                    
+                    {% if finding.assigned_by %}
+                    <div class="mb-3">
+                        <strong>Assigned By:</strong>
+                        <p>{{ finding.assigned_by.get_full_name }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <strong>Target Date:</strong>
+                        <p>
+                            {{ finding.target_date|date:"d M Y" }}
+                            {% if finding.is_overdue and finding.status != 'CLOSED' %}
+                            <span class="badge badge-danger ml-2">Overdue</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Action Taken & Timeline -->
+            <div class="col-md-6">
+                <!-- Action Taken -->
+                {% if finding.assigned_to == user and finding.status in ['OPEN', 'IN_PROGRESS'] %}
+                <div class="section-card">
+                    <div class="section-title">
+                        <i class="fas fa-tools mr-2"></i>Update Action Taken
+                    </div>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ action_form.action_taken_description.id_for_label }}">
+                                Action Description <span class="text-danger">*</span>
+                            </label>
+                            {{ action_form.action_taken_description }}
+                            {% if action_form.action_taken_description.errors %}
+                                <div class="text-danger">{{ action_form.action_taken_description.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label>Photo Evidence</label>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label>Photo 1</label>
+                                    {{ action_form.action_taken_photo_1 }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label>Photo 2</label>
+                                    {{ action_form.action_taken_photo_2 }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label>Photo 3</label>
+                                    {{ action_form.action_taken_photo_3 }}
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">Upload before and after photos</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-1"></i>Submit Action
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+
+                <!-- Action Taken (View Only) -->
+                {% if finding.action_taken_description %}
+                <div class="section-card">
+                    <div class="section-title">
+                        <i class="fas fa-check-circle mr-2"></i>Action Taken
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Description:</strong>
+                        <p>{{ finding.action_taken_description }}</p>
+                    </div>
+                    
+                    {% if finding.action_taken_photo_1 or finding.action_taken_photo_2 or finding.action_taken_photo_3 %}
+                    <div class="mb-3">
+                        <strong>Photos:</strong>
+                        <div class="photo-gallery">
+                            {% if finding.action_taken_photo_1 %}
+                            <img src="{{ finding.action_taken_photo_1.url }}" alt="Action Photo 1">
+                            {% endif %}
+                            {% if finding.action_taken_photo_2 %}
+                            <img src="{{ finding.action_taken_photo_2.url }}" alt="Action Photo 2">
+                            {% endif %}
+                            {% if finding.action_taken_photo_3 %}
+                            <img src="{{ finding.action_taken_photo_3.url }}" alt="Action Photo 3">
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Closure Information -->
+                {% if finding.status == 'CLOSED' %}
+                <div class="section-card">
+                    <div class="section-title">
+                        <i class="fas fa-check-double mr-2"></i>Closure Information
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Closed By:</strong>
+                        <p>{{ finding.closed_by.get_full_name }}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Closure Date:</strong>
+                        <p>{{ finding.closure_date|date:"d M Y" }}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Closure Remarks:</strong>
+                        <p>{{ finding.closure_remarks|default:"No remarks" }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

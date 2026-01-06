@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-bell"></i> Notifications</h2>
+        {% if unread_count > 0 %}
+        <button class="btn btn-sm btn-outline-primary" onclick="markAllAsRead()">
+            Mark All as Read ({{ unread_count }})
+        </button>
+        {% endif %}
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            {% for notification in notifications %}
+            <div class="card mb-2 {% if not notification.is_read %}border-primary{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <h5 class="card-title">
+                            {% if not notification.is_read %}
+                            <span class="badge badge-primary">New</span>
+                            {% endif %}
+                            {{ notification.title }}
+                        </h5>
+                        <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                    </div>
+                    <p class="card-text">{{ notification.message|linebreaks }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'accidents:incident_detail' notification.incident.pk %}" class="btn btn-sm btn-primary">
+                            View Incident
+                        </a>
+                        {% if not notification.is_read %}
+                        <button class="btn btn-sm btn-link" onclick="markAsRead({{ notification.pk }})">
+                            Mark as Read
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No notifications yet.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function markAsRead(notificationId) {
+    fetch(`/accidents/notifications/${notificationId}/mark-read/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        }
+    }).then(() => location.reload());
+}
+
+function markAllAsRead() {
+    fetch('/accidents/notifications/mark-all-read/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        }
+    }).then(() => location.reload());
+}
+</script>
+{% endblock %}

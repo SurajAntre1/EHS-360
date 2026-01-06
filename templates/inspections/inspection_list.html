@@ -1,0 +1,247 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Inspection List{% endblock %}
+{% block page_title %}All Inspections{% endblock %}
+
+{% block extra_css %}
+<style>
+.filter-card {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.inspection-table {
+    font-size: 0.9rem;
+}
+
+.inspection-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.inspection-table tbody tr {
+    transition: background-color 0.2s;
+}
+
+.inspection-table tbody tr:hover {
+    background-color: #f1f3f5;
+}
+
+.score-badge {
+    padding: 0.4em 0.8em;
+    border-radius: 5px;
+    font-weight: 600;
+}
+
+.score-excellent {
+    background-color: #28a745;
+    color: white;
+}
+
+.score-good {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.score-fair {
+    background-color: #ffc107;
+    color: black;
+}
+
+.score-poor {
+    background-color: #dc3545;
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:dashboard' %}">Inspection Management</a></li>
+<li class="breadcrumb-item active">All Inspections</li>
+{% endblock %}
+
+{% block content %}
+
+<!-- Filter Card -->
+<div class="card ehs-card filter-card">
+    <form method="GET" id="filterForm">
+        <div class="row">
+            <div class="col-md-2">
+                <label>Plant</label>
+                {{ filter_form.plant }}
+            </div>
+            
+            <div class="col-md-3">
+                <label>Template</label>
+                {{ filter_form.template }}
+            </div>
+            
+            <div class="col-md-2">
+                <label>Status</label>
+                {{ filter_form.status }}
+            </div>
+            
+            <div class="col-md-1">
+                <label>Month</label>
+                {{ filter_form.month }}
+            </div>
+            
+            <div class="col-md-1">
+                <label>Year</label>
+                {{ filter_form.year }}
+            </div>
+            
+            <div class="col-md-3">
+                <label>Search</label>
+                <div class="input-group">
+                    {{ filter_form.search }}
+                    <div class="input-group-append">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <a href="{% url 'inspections:inspection_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Inspections Table -->
+<div class="card ehs-card">
+    <div class="card-header bg-primary text-white">
+        <h3 class="card-title mb-0">
+            <i class="fas fa-list mr-2"></i>Inspection Records
+        </h3>
+        <div class="card-tools">
+            <span class="badge badge-light">Total: {{ inspections.count }}</span>
+        </div>
+    </div>
+    
+    <div class="card-body p-0">
+        {% if inspections %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover inspection-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Inspection No.</th>
+                        <th>Template</th>
+                        <th>Plant</th>
+                        <th>Location</th>
+                        <th>Conducted By</th>
+                        <th>Date</th>
+                        <th>Compliance</th>
+                        <th>Findings</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inspection in inspections %}
+                    <tr>
+                        <td>
+                            <strong class="text-primary">{{ inspection.inspection_number }}</strong>
+                        </td>
+                        <td>{{ inspection.template.template_name }}</td>
+                        <td>{{ inspection.plant.name }}</td>
+                        <td>{{ inspection.location.name|default:"—" }}</td>
+                        <td>{{ inspection.conducted_by.get_full_name }}</td>
+                        <td>{{ inspection.inspection_date|date:"d M Y" }}</td>
+                        <td>
+                            {% if inspection.overall_score >= 90 %}
+                            <span class="score-badge score-excellent">
+                                {{ inspection.overall_score|floatformat:1 }}%
+                            </span>
+                            {% elif inspection.overall_score >= 75 %}
+                            <span class="score-badge score-good">
+                                {{ inspection.overall_score|floatformat:1 }}%
+                            </span>
+                            {% elif inspection.overall_score >= 60 %}
+                            <span class="score-badge score-fair">
+                                {{ inspection.overall_score|floatformat:1 }}%
+                            </span>
+                            {% else %}
+                            <span class="score-badge score-poor">
+                                {{ inspection.overall_score|floatformat:1 }}%
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if inspection.total_findings > 0 %}
+                            <span class="badge badge-danger badge-pill">
+                                {{ inspection.total_findings }}
+                            </span>
+                            {% else %}
+                            <span class="badge badge-success badge-pill">0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if inspection.status == 'DRAFT' %}
+                            <span class="badge badge-secondary">Draft</span>
+                            {% elif inspection.status == 'SUBMITTED' %}
+                            <span class="badge badge-info">Submitted</span>
+                            {% elif inspection.status == 'UNDER_REVIEW' %}
+                            <span class="badge badge-warning">Under Review</span>
+                            {% elif inspection.status == 'APPROVED' %}
+                            <span class="badge badge-success">Approved</span>
+                            {% elif inspection.status == 'REJECTED' %}
+                            <span class="badge badge-danger">Rejected</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'inspections:inspection_detail' inspection.id %}" 
+                                   class="btn btn-sm btn-info" 
+                                   title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if inspection.pdf_report %}
+                                <a href="{{ inspection.pdf_report.url }}" 
+                                   class="btn btn-sm btn-danger" 
+                                   title="Download PDF"
+                                   target="_blank">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No Inspections Found</h4>
+            <p class="text-muted">No inspection records match your current filters.</p>
+            <a href="{% url 'inspections:inspection_list' %}" class="btn btn-primary mt-3">
+                <i class="fas fa-redo mr-1"></i>Clear Filters
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap4',
+        width: '100%',
+        placeholder: 'Select...',
+        allowClear: true
+    });
+});
+</script>
+{% endblock %}

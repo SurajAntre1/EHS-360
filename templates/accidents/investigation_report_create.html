@@ -1,0 +1,690 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Create Investigation Report{% endblock %}
+{% block page_title %}Create Investigation Report{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Incident Management</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:incident_detail' incident.pk %}">{{ incident.report_number }}</a></li>
+<li class="breadcrumb-item active">Investigation Report</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Root Cause Analysis Checkbox Section Styling */
+.unsafe-section {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    margin-bottom: 20px;
+}
+
+.unsafe-section h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.unsafe-checkbox-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+.unsafe-checkbox-item {
+    padding: 5px 0;
+}
+
+.unsafe-checkbox-item .form-check {
+    margin-bottom: 0;
+}
+
+.unsafe-checkbox-item .form-check-label {
+    font-size: 0.95rem;
+    color: #495057;
+    cursor: pointer;
+    padding-left: 5px;
+}
+
+.unsafe-checkbox-item .form-check-input {
+    margin-top: 0.25rem;
+}
+
+.unsafe-checkbox-item .form-check-input:checked ~ .form-check-label {
+    color: #000;
+    font-weight: 500;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    
+    <!-- Incident Summary Card -->
+    <div class="card border-left-warning shadow mb-4">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-8">
+            <h4 class="mb-1">{{ incident.report_number }}</h4>
+            <p class="mb-1"><strong>Title:</strong> {{ incident.incident_title }}</p>
+            <p class="mb-1"><strong>Date:</strong> {{ incident.incident_date|date:"d/m/Y" }} at {{ incident.incident_time|time:"H:i" }}</p>
+            <p class="mb-0"><strong>Location:</strong> {{ incident.plant.name }} - {{ incident.location.name }}</p>
+          </div>
+          <div class="col-md-4 text-right">
+            <span class="badge badge-lg badge-warning">{{ incident.get_incident_type_display }}</span><br>
+            <span class="badge badge-lg badge-danger">{{ incident.severity_level }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Investigation Report Form -->
+    <div class="ehs-card">
+      <div class="card-header bg-warning">
+        <h3 class="card-title mb-0">
+          <i class="fas fa-search mr-2"></i>Investigation Report (Required within 7 days)
+        </h3>
+      </div>
+      
+      <form method="POST" id="investigationForm">
+        {% csrf_token %}
+        
+        <!-- Hidden inputs for root cause checkboxes -->
+        <input type="hidden" name="personal_factors_json" id="personalFactorsJson">
+        <input type="hidden" name="job_factors_json" id="jobFactorsJson">
+        
+        <div class="card-body">
+          
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle mr-2"></i>
+            <strong>Investigation Deadline:</strong> {{ incident.investigation_deadline|date:"d/m/Y" }}
+            {% if incident.is_investigation_overdue %}
+              <span class="badge badge-danger ml-2">OVERDUE</span>
+            {% endif %}
+            <br>
+            Complete this investigation report as per client requirements. All fields marked with <span class="text-danger">*</span> are mandatory.
+          </div>
+
+          <!-- Investigation Details -->
+          <h5 class="mb-3"><i class="fas fa-clipboard-list mr-2"></i>Investigation Details</h5>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.investigation_date.id_for_label }}">Investigation Date <span class="text-danger">*</span></label>
+              {{ form.investigation_date }}
+              {% if form.investigation_date.errors %}
+                <div class="text-danger">{{ form.investigation_date.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label>Investigator</label>
+              <input type="text" class="form-control" value="{{ user.get_full_name }}" readonly>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.investigation_team.id_for_label }}">Investigation Team Members <span class="text-danger">*</span></label>
+              {{ form.investigation_team }}
+              <small class="form-text text-muted">Names of all team members involved in investigation</small>
+              {% if form.investigation_team.errors %}
+                <div class="text-danger">{{ form.investigation_team.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Findings -->
+          <h5 class="mb-3"><i class="fas fa-search-plus mr-2"></i>Investigation Findings</h5>
+          
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.sequence_of_events.id_for_label }}">Sequence of Events <span class="text-danger">*</span></label>
+              {{ form.sequence_of_events }}
+              <small class="form-text text-muted">Chronological description of events leading to the incident</small>
+              {% if form.sequence_of_events.errors %}
+                <div class="text-danger">{{ form.sequence_of_events.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Root Cause Analysis with Checkboxes -->
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <h6 class="mb-3"><strong>Root Cause(s) of the incident / accident (Tick) (Reasons for immediate cause based on Root Cause Analysis):</strong></h6>
+              
+              <div class="row">
+                <!-- Personal Factors -->
+                <div class="col-md-6">
+                  <div class="unsafe-section">
+                    <h6><i class="fas fa-user mr-2"></i>Personal Factors</h6>
+                    <div class="unsafe-checkbox-grid">
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input personal-factor-checkbox" type="checkbox" name="personal_factor" value="Inadequate physical capability of the injured" id="pf1">
+                          <label class="form-check-label" for="pf1">Inadequate physical capability of the injured</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input personal-factor-checkbox" type="checkbox" name="personal_factor" value="Inadequate physiological capability of the injured" id="pf2">
+                          <label class="form-check-label" for="pf2">Inadequate physiological capability of the injured</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input personal-factor-checkbox" type="checkbox" name="personal_factor" value="Inadequate Mental capability of the injured" id="pf3">
+                          <label class="form-check-label" for="pf3">Inadequate Mental capability of the injured</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input personal-factor-checkbox" type="checkbox" name="personal_factor" value="Inadequate psychological capability of the injured" id="pf4">
+                          <label class="form-check-label" for="pf4">Inadequate psychological capability of the injured</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input personal-factor-checkbox" type="checkbox" name="personal_factor" value="Lack of Knowledge" id="pf5">
+                          <label class="form-check-label" for="pf5">Lack of Knowledge</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input personal-factor-checkbox" type="checkbox" name="personal_factor" value="Lack of skill" id="pf6">
+                          <label class="form-check-label" for="pf6">Lack of skill</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input personal-factor-checkbox" type="checkbox" name="personal_factor" value="Lack of motivation" id="pf7">
+                          <label class="form-check-label" for="pf7">Lack of motivation</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input personal-factor-checkbox" type="checkbox" name="personal_factor" value="Lack of experience in the job" id="pf8">
+                          <label class="form-check-label" for="pf8">Lack of experience in the job</label>
+                        </div>
+                      </div>
+                      <!-- MODIFIED SECTION -->
+                      <div class="unsafe-checkbox-item"> 
+                        <div class="form-check">
+                          <input class="form-check-input personal-factor-checkbox" type="checkbox" name="personal_factor_other_checkbox" value="Other (explain)" id="pf9">
+                          <label class="form-check-label" for="pf9">Other (explain)</label>
+                        </div>
+                        <div id="personalFactorOther" class="mt-2" style="display: none;">
+                          <input type="text" class="form-control form-control-sm" name="personal_factor_other_text" placeholder="Please specify">
+                        </div>
+                      </div>
+                      <!-- END MODIFIED SECTION -->
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Job Factors -->
+                <div class="col-md-6">
+                  <div class="unsafe-section">
+                    <h6><i class="fas fa-briefcase mr-2"></i>Job Factors</h6>
+                    <div class="unsafe-checkbox-grid">
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input job-factor-checkbox" type="checkbox" name="job_factor" value="Inadequate / No supervision of the job" id="jf1">
+                          <label class="form-check-label" for="jf1">Inadequate / No supervision of the job</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input job-factor-checkbox" type="checkbox" name="job_factor" value="Inadequate engineering (no safeguards, no railings etc.)" id="jf2">
+                          <label class="form-check-label" for="jf2">Inadequate engineering (no safeguards, no railings etc.)</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input job-factor-checkbox" type="checkbox" name="job_factor" value="Inadequate communication of safety requirements" id="jf3">
+                          <label class="form-check-label" for="jf3">Inadequate communication of safety requirements</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input job-factor-checkbox" type="checkbox" name="job_factor" value="Improper handling, transportation & storage of materials" id="jf4">
+                          <label class="form-check-label" for="jf4">Improper handling, transportation & storage of materials</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input job-factor-checkbox" type="checkbox" name="job_factor" value="Improper contractor selection" id="jf5">
+                          <label class="form-check-label" for="jf5">Improper contractor selection</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input job-factor-checkbox" type="checkbox" name="job_factor" value="Inadequate / Improper tools & Equipment" id="jf6">
+                          <label class="form-check-label" for="jf6">Inadequate / Improper tools & Equipment</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input job-factor-checkbox" type="checkbox" name="job_factor" value="Excessive wear & tear of tools / equipment" id="jf7">
+                          <label class="form-check-label" for="jf7">Excessive wear & tear of tools / equipment</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input job-factor-checkbox" type="checkbox" name="job_factor" value="Inadequate work procedures" id="jf8">
+                          <label class="form-check-label" for="jf8">Inadequate work procedures</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input job-factor-checkbox" type="checkbox" name="job_factor" value="Inadequate management system" id="jf9">
+                          <label class="form-check-label" for="jf9">Inadequate management system</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input job-factor-checkbox" type="checkbox" name="job_factor" value="Poor Maintenance" id="jf10">
+                          <label class="form-check-label" for="jf10">Poor Maintenance</label>
+                        </div>
+                      </div>
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input job-factor-checkbox" type="checkbox" name="job_factor" value="Abuse or misuse of equipment" id="jf11">
+                          <label class="form-check-label" for="jf11">Abuse or misuse of equipment</label>
+                        </div>
+                      </div>
+                      <!-- MODIFIED SECTION -->
+                      <div class="unsafe-checkbox-item">
+                        <div class="form-check">
+                          <input class="form-check-input job-factor-checkbox" type="checkbox" name="job_factor_other_checkbox" value="Other (explain)" id="jf12">
+                          <label class="form-check-label" for="jf12">Other (explain)</label>
+                        </div>
+                         <div id="jobFactorOther" class="mt-2" style="display: none;">
+                          <input type="text" class="form-control form-control-sm" name="job_factor_other_text" placeholder="Please specify">
+                        </div>
+                      </div>
+                      <!-- END MODIFIED SECTION -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Keep the existing textarea for additional root cause details -->
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.root_cause_analysis.id_for_label }}">Additional Root Cause Analysis Details</label>
+              {{ form.root_cause_analysis }}
+              <small class="form-text text-muted">Provide additional details or explanation for selected root causes</small>
+              {% if form.root_cause_analysis.errors %}
+                <div class="text-danger">{{ form.root_cause_analysis.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.contributing_factors.id_for_label }}">Contributing Factors <span class="text-danger">*</span></label>
+              {{ form.contributing_factors }}
+              <small class="form-text text-muted">List all factors that contributed to the incident</small>
+              {% if form.contributing_factors.errors %}
+                <div class="text-danger">{{ form.contributing_factors.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.unsafe_conditions_identified.id_for_label }}">Unsafe Conditions Identified</label>
+              {{ form.unsafe_conditions_identified }}
+              {% if form.unsafe_conditions_identified.errors %}
+                <div class="text-danger">{{ form.unsafe_conditions_identified.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.unsafe_acts_identified.id_for_label }}">Unsafe Acts Identified</label>
+              {{ form.unsafe_acts_identified }}
+              {% if form.unsafe_acts_identified.errors %}
+                <div class="text-danger">{{ form.unsafe_acts_identified.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Evidence -->
+          <h5 class="mb-3"><i class="fas fa-file-alt mr-2"></i>Evidence & Statements</h5>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.evidence_collected.id_for_label }}">Evidence Collected</label>
+              {{ form.evidence_collected }}
+              <small class="form-text text-muted">Physical evidence, photos, documents, etc.</small>
+              {% if form.evidence_collected.errors %}
+                <div class="text-danger">{{ form.evidence_collected.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.witness_statements.id_for_label }}">Witness Statements</label>
+              {{ form.witness_statements }}
+              <small class="form-text text-muted">Summary of witness testimonies</small>
+              {% if form.witness_statements.errors %}
+                <div class="text-danger">{{ form.witness_statements.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Recommendations -->
+          <h5 class="mb-3"><i class="fas fa-lightbulb mr-2"></i>Recommendations & Action Plan</h5>
+          
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.immediate_corrective_actions.id_for_label }}">Immediate Corrective Actions <span class="text-danger">*</span></label>
+              {{ form.immediate_corrective_actions }}
+              <small class="form-text text-muted">Actions already taken or to be taken immediately</small>
+              {% if form.immediate_corrective_actions.errors %}
+                <div class="text-danger">{{ form.immediate_corrective_actions.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.preventive_measures.id_for_label }}">Preventive Measures <span class="text-danger">*</span></label>
+              {{ form.preventive_measures }}
+              <small class="form-text text-muted">Measures to prevent recurrence of similar incidents</small>
+              {% if form.preventive_measures.errors %}
+                <div class="text-danger">{{ form.preventive_measures.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.long_term_recommendations.id_for_label }}">Long-term Recommendations</label>
+              {{ form.long_term_recommendations }}
+              <small class="form-text text-muted">Strategic recommendations for systemic improvements</small>
+              {% if form.long_term_recommendations.errors %}
+                <div class="text-danger">{{ form.long_term_recommendations.errors }}</div>
+              {% endif %}
+            </div>
+          </div> -->
+
+          <hr>
+
+          
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0"><i class="fas fa-tasks mr-2"></i>Action Items</h5>
+            <button type="button" id="add-action-item-btn" class="btn btn-sm btn-success">
+              <i class="fas fa-plus mr-1"></i>Add Action Item
+            </button>
+          </div>
+          
+          <div id="action-items-container">
+            {{ action_item_formset.management_form }}
+            {% for form in action_item_formset %}
+              <div class="action-item-form p-3 mb-3 rounded">
+                <div class="row">
+                  <div class="col-md-12 mb-3">
+                    <label for="{{ form.action_description.id_for_label }}">Action Description <span class="text-danger">*</span></label>
+                    {{ form.action_description }}
+                    <small class="form-text text-muted">Describe the specific action to be taken.</small>
+                    {% if form.action_description.errors %}<div class="text-danger">{{ form.action_description.errors }}</div>{% endif %}
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.responsible_person.id_for_label }}">Responsible Person <span class="text-danger">*</span></label>
+                    {{ form.responsible_person }}
+                    {% if form.responsible_person.errors %}<div class="text-danger">{{ form.responsible_person.errors }}</div>{% endif %}
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.target_date.id_for_label }}">Target Completion Date <span class="text-danger">*</span></label>
+                    {{ form.target_date }}
+                    {% if form.target_date.errors %}<div class="text-danger">{{ form.target_date.errors }}</div>{% endif %}
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.status.id_for_label }}">Status <span class="text-danger">*</span></label>
+                    {{ form.status }}
+                    {% if form.status.errors %}<div class="text-danger">{{ form.status.errors }}</div>{% endif %}
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ form.completion_date.id_for_label }}">Completion Date</label>
+                    {{ form.completion_date }}
+                    <small class="form-text text-muted">Fill this when action is completed.</small>
+                    {% if form.completion_date.errors %}<div class="text-danger">{{ form.completion_date.errors }}</div>{% endif %}
+                  </div>
+                </div>
+                <div class="row">
+                   <div class="col-md-12 mb-3 ">
+                    <label for="{{ form.completion_remarks.id_for_label }}">Completion Remarks</label>
+                    {{ form.completion_remarks }}
+                    {% if form.completion_remarks.errors %}<div class="text-danger">{{ form.completion_remarks.errors }}</div>{% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Hidden template for new action item forms -->
+          <div id="empty-action-item-form" class="d-none">
+            <div class="action-item-form p-3 mb-3 border rounded">
+                <div class="row">
+                  <div class="col-md-12 mb-3">
+                    <label for="{{ action_item_formset.empty_form.action_description.id_for_label }}">Action Description <span class="text-danger">*</span></label>
+                    {{ action_item_formset.empty_form.action_description }}
+                    <small class="form-text text-muted">Describe the specific action to be taken.</small>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ action_item_formset.empty_form.responsible_person.id_for_label }}">Responsible Person <span class="text-danger">*</span></label>
+                    {{ action_item_formset.empty_form.responsible_person }}
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ action_item_formset.empty_form.target_date.id_for_label }}">Target Completion Date <span class="text-danger">*</span></label>
+                    {{ action_item_formset.empty_form.target_date }}
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ action_item_formset.empty_form.status.id_for_label }}">Status <span class="text-danger">*</span></label>
+                    {{ action_item_formset.empty_form.status }}
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ action_item_formset.empty_form.completion_date.id_for_label }}">Completion Date</label>
+                    {{ action_item_formset.empty_form.completion_date }}
+                    <small class="form-text text-muted">Fill this when action is completed.</small>
+                  </div>
+                </div>
+                <div class="row">
+                   <div class="col-md-12 mb-3">
+                    <label for="{{ action_item_formset.empty_form.completion_remarks.id_for_label }}">Completion Remarks</label>
+                    {{ action_item_formset.empty_form.completion_remarks }}
+                  </div>
+                </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Sign-off -->
+          <h5 class="mb-3"><i class="fas fa-signature mr-2"></i>Report Completion</h5>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.completed_date.id_for_label }}">Report Completion Date <span class="text-danger">*</span></label>
+              {{ form.completed_date }}
+              {% if form.completed_date.errors %}
+                <div class="text-danger">{{ form.completed_date.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label>Completed By</label>
+              <input type="text" class="form-control" value="{{ user.get_full_name }}" readonly>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="card-footer">
+          <button type="submit" class="btn btn-warning btn-lg">
+            <i class="fas fa-check mr-2"></i>Submit Investigation Report
+          </button>
+          <a href="{% url 'accidents:incident_detail' incident.pk %}" class="btn btn-secondary btn-lg ml-2">
+            <i class="fas fa-times mr-2"></i>Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    /* ----------------------------------------------------
+       DATE INITIALIZATION (OLD + UPDATED)
+    ---------------------------------------------------- */
+    const today = new Date().toISOString().split('T')[0];
+
+    // Investigation & Completed dates (single form)
+    const investigationDateInput = document.getElementById('id_investigation_date');
+    const completedDateInput = document.getElementById('id_completed_date');
+
+    if (investigationDateInput && !investigationDateInput.value) {
+        investigationDateInput.value = today;
+    }
+    if (completedDateInput && !completedDateInput.value) {
+        completedDateInput.value = today;
+    }
+
+    // Target completion date (single form)
+    const targetDateInput = document.getElementById('id_target_completion_date');
+    if (targetDateInput) {
+        targetDateInput.min = today;
+    }
+
+    // Target dates inside formsets (new change)
+    document.querySelectorAll('input[name$="-target_date"]').forEach(function(input) {
+        input.min = today;
+    });
+
+
+    /* ----------------------------------------------------
+       "OTHER" CHECKBOX TOGGLE (OLD)
+    ---------------------------------------------------- */
+    const pfOtherCheckbox = document.getElementById('pf9');
+    const pfOtherInputDiv = document.getElementById('personalFactorOther');
+
+    const jfOtherCheckbox = document.getElementById('jf12');
+    const jfOtherInputDiv = document.getElementById('jobFactorOther');
+
+    if (pfOtherCheckbox && pfOtherInputDiv) {
+        pfOtherCheckbox.addEventListener('change', function() {
+            pfOtherInputDiv.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+
+    if (jfOtherCheckbox && jfOtherInputDiv) {
+        jfOtherCheckbox.addEventListener('change', function() {
+            jfOtherInputDiv.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+
+
+    /* ----------------------------------------------------
+       ROOT CAUSE FORM SUBMISSION HANDLING (OLD)
+    ---------------------------------------------------- */
+    const form = document.getElementById('investigationForm');
+    if (form) {
+        form.addEventListener('submit', function() {
+
+            // Personal Factors
+            const personalFactors = [];
+            document.querySelectorAll(
+                '.personal-factor-checkbox:checked, input[name="personal_factor_other_checkbox"]:checked'
+            ).forEach(checkbox => {
+                if (checkbox.id === 'pf9') {
+                    const otherText = document.querySelector(
+                        'input[name="personal_factor_other_text"]'
+                    )?.value.trim();
+                    if (otherText) {
+                        personalFactors.push(`Other: ${otherText}`);
+                    }
+                } else {
+                    personalFactors.push(checkbox.value);
+                }
+            });
+
+            // Job Factors
+            const jobFactors = [];
+            document.querySelectorAll(
+                '.job-factor-checkbox:checked, input[name="job_factor_other_checkbox"]:checked'
+            ).forEach(checkbox => {
+                if (checkbox.id === 'jf12') {
+                    const otherText = document.querySelector(
+                        'input[name="job_factor_other_text"]'
+                    )?.value.trim();
+                    if (otherText) {
+                        jobFactors.push(`Other: ${otherText}`);
+                    }
+                } else {
+                    jobFactors.push(checkbox.value);
+                }
+            });
+
+            // Store JSON in hidden fields
+            document.getElementById('personalFactorsJson').value = JSON.stringify(personalFactors);
+            document.getElementById('jobFactorsJson').value = JSON.stringify(jobFactors);
+
+            console.log('Personal Factors:', personalFactors);
+            console.log('Job Factors:', jobFactors);
+        });
+    }
+
+
+    /* ----------------------------------------------------
+       DYNAMIC ACTION ITEMS (NEW)
+    ---------------------------------------------------- */
+    const addActionItemBtn = document.getElementById('add-action-item-btn');
+    const container = document.getElementById('action-items-container');
+    const emptyFormTemplate = document.getElementById('empty-action-item-form');
+    const totalForms = document.getElementById('id_actionitems-TOTAL_FORMS');
+
+    if (addActionItemBtn && container && emptyFormTemplate && totalForms) {
+        addActionItemBtn.addEventListener('click', function() {
+
+            let formNum = parseInt(totalForms.value);
+            const newFormHtml = emptyFormTemplate.innerHTML.replace(/__prefix__/g, formNum);
+
+            const newFormDiv = document.createElement('div');
+            newFormDiv.innerHTML = newFormHtml;
+            container.appendChild(newFormDiv);
+
+            // Set min date on newly added date field
+            const newDateInput = newFormDiv.querySelector('input[type="date"]');
+            if (newDateInput) {
+                newDateInput.min = today;
+            }
+
+            totalForms.value = formNum + 1;
+        });
+    }
+
+});
+</script>
+{% endblock %}

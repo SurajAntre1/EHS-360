@@ -1,0 +1,42 @@
+from django.urls import path
+from . import views
+
+app_name = 'accidents'
+
+urlpatterns = [
+    # Dashboard
+    path('', views.IncidentDashboardView.as_view(), name='dashboard'),
+    path('dashboard/', views.IncidentAccidentDashboardView.as_view(), name='IncidentAccidentDashboardView'),
+
+    # Incident URLs
+    path('incidents/', views.IncidentListView.as_view(), name='incident_list'),
+    path('incidents/create/', views.IncidentCreateView.as_view(), name='incident_create'),
+    path('incidents/<int:pk>/', views.IncidentDetailView.as_view(), name='incident_detail'),
+    path('incidents/<int:pk>/edit/', views.IncidentUpdateView.as_view(), name='incident_update'),
+    path('incidents/<int:pk>/pdf/', views.IncidentPDFDownloadView.as_view(), name='incident_pdf'),
+
+    # Investigation Report
+    path('incidents/<int:incident_pk>/investigation/', views.InvestigationReportCreateView.as_view(), name='investigation_create'),
+    
+    # Action Items
+    path('incidents/<int:incident_pk>/action-items/create/', views.ActionItemCreateView.as_view(), name='action_item_create'),
+    path('export/excel/', views.ExportIncidentsExcelView.as_view(), name='export_incidents_excel'),
+    
+    # AJAX endpoints
+    path('ajax/get-zones/', views.GetZonesForPlantAjaxView.as_view(), name='ajax_get_zones'),
+    path('ajax/get-locations/', views.GetLocationsForZoneAjaxView.as_view(), name='ajax_get_locations'),
+    path('ajax/get-sublocations/', views.GetSublocationsForLocationAjaxView.as_view(), name='ajax_get_sublocations'),
+
+    path('incidents/<int:pk>/closure-check/', views.IncidentClosureCheckView.as_view(), name='incident_closure_check'),
+    path('incidents/<int:pk>/close/', views.IncidentClosureView.as_view(), name='incident_close'),
+    path('incidents/<int:pk>/reopen/', views.IncidentReopenView.as_view(), name='incident_reopen'),
+    # In apps/accidents/urls.py
+    path('investigations/<int:pk>/', views.InvestigationDetailView.as_view(), name='investigation_detail'),
+
+
+
+    # accidents/urls.py
+    path('notifications/',views.NotificationListView.as_view(), name='notifications'),
+    path('notifications/<int:pk>/mark-read/', views.MarkNotificationReadView.as_view(), name='mark_notification_read'),
+    path('notifications/mark-all-read/', views.MarkAllNotificationsReadView.as_view(), name='mark_all_notifications_read'),
+]

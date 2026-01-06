@@ -1,0 +1,421 @@
+{% load static %}
+<style>
+  :root {
+    /* EHS Theme Colors */
+    --primary-blue: #fffff;   /* Health (blue) */
+    --primary-green: #6DBF4B;  /* Environment (green) */
+    --dark-orange: #F77C2B;    /* Safety (orange) */
+    --dark-green: #4CAF50;
+
+    /* Sidebar Specific Colors */
+    --sidebar-bg: #F8FBFD;
+    --sidebar-text-color: #37474F;
+    --sidebar-icon-color: #869099;
+    --sidebar-hover-bg: #eaf5ff;
+    --sidebar-active-bg: #e0f0ff;
+    --sidebar-border-color: #e3e6f0;
+  }
+
+  /* Core Sidebar Structure */
+  .main-sidebar.sidebar-ehs {
+    height: 100vh !important;
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border-color);
+    box-shadow: 2px 0 15px rgba(30, 144, 255, 0.1);
+  }
+
+  /* Brand Logo Area */
+  .brand-link {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, var(--dark-orange), var(--dark-green));
+    padding: 6px;
+    text-decoration: none !important;
+    flex-shrink: 0;
+    transition: background 0.3s ease;
+    height: 100px;
+  }
+  
+  .brand-link:hover {
+    background: linear-gradient(135deg, #e66a1a, #43a047);
+  }
+  
+  .brand-image {
+    max-height: 54px !important;
+    width: 51px;
+    margin-right: 12px;
+    border-radius: 25px;
+    background: white;
+    padding: 2px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    margin-left: 0.2rem !important;
+    float: left;
+    line-height: .8;
+    margin-top: -3px;
+  }
+  
+  .brand-text-group {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+  
+  .brand-text {
+    font-weight: 600;
+    color: white;
+    font-size: 20px;
+    display: block;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+  
+  .brand-subtext {
+    display: block;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* Scrollable Navigation Menu Area */
+  .sidebar {
+    padding: 0;
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  
+  .sidebar nav {
+    padding-top: 8px;
+  }
+
+  /* Menu Links & Icons */
+  .nav-sidebar .nav-link {
+    color: var(--sidebar-text-color);
+    font-weight: 500;
+    margin: 4px 10px;
+    padding: 10px 15px;
+    border-radius: 6px;
+    transition: all 0.2s ease-in-out;
+    border-left: 3px solid transparent;
+    display: flex;
+    align-items: center;
+  }
+
+.menu-title-small {
+    font-size: 0.9rem;   
+    font-weight: 500;
+}
+  
+  .nav-sidebar .nav-icon {
+    margin-right: 0.8rem;
+    font-size: 1.05rem;
+    width: 20px;
+    text-align: center;
+    color: var(--sidebar-icon-color);
+    transition: all 0.2s ease-in-out;
+  }
+
+  /* Interactive States: Hover & Active */
+  .nav-sidebar .nav-item:not(.menu-open) > .nav-link:hover {
+    background-color: var(--sidebar-hover-bg);
+    color: var(--primary-blue);
+    transform: translateX(3px);
+  }
+  
+  .nav-sidebar .nav-item:not(.menu-open) > .nav-link:hover .nav-icon {
+    color: var(--primary-blue);
+  }
+  
+  .nav-sidebar > .nav-item > .nav-link.active {
+    background-color: var(--sidebar-active-bg);
+    color: var(--dark-orange);
+    font-weight: 600;
+    border-left-color: var(--primary-blue);
+    box-shadow: 0 2px 8px rgba(30, 144, 255, 0.15);
+  }
+  
+  .nav-sidebar > .nav-item > .nav-link.active .nav-icon {
+    color: var(--dark-orange);
+  }
+
+  /* Dropdown (Treeview) Menu Styling */
+  .nav-sidebar .nav-link .right {
+    transition: transform 0.3s ease;
+  }
+  
+  .nav-item.menu-open > .nav-link .right {
+    transform: rotate(-90deg);
+  }
+  
+  .nav-treeview {
+    margin: 4px 10px 8px 10px;
+    padding: 4px;
+    padding-left: 20px;
+    background-color: rgba(0, 0, 0, 0.025);
+    border-radius: 6px;
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  
+  .nav-treeview > .nav-item > .nav-link {
+    font-size: 0.92em;
+    padding: 8px 15px;
+    margin: 2px 0;
+    color: #495057;
+  }
+  
+  .nav-treeview .nav-link.active,
+  .nav-treeview .nav-link:hover {
+    background-color: transparent;
+    color: var(--dark-orange);
+    font-weight: 500;
+  }
+  
+  .nav-treeview .nav-link.active .nav-icon,
+  .nav-treeview .nav-link:hover .nav-icon {
+    color: var(--dark-orange);
+  }
+
+  /* Content Area Padding Fix */
+  .content-wrapper,
+  .main-header,
+  .main-footer {
+    margin-left: 250px;
+  }
+</style>
+
+<aside class="main-sidebar sidebar-ehs elevation-2">
+  <!-- Brand Logo -->
+  <a href="{% url 'dashboards:home' %}" class="brand-link">
+    <img src="{% static 'img/EHS.png' %}" alt="EHS Logo" class="brand-image">
+    <div class="brand-text-group">
+      <span class="brand-text">EHS-360</span>
+      <span class="brand-subtext">Health, Safety & Environment</span>
+    </div>
+  </a>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <nav class="mt-2">
+      <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+
+        <!-- Dashboard -->
+        <li class="nav-item">
+          <a href="{% url 'dashboards:home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+            <i class="nav-icon fas fa-tachometer-alt"></i>
+            <p>Dashboard</p>
+          </a>
+        </li>
+
+        {% if user.is_staff or user.role == 'ADMIN' or user.is_plant_head %}
+        <!-- Administration Section -->
+        <li class="nav-header">ADMINISTRATION</li>
+        <li class="nav-item">
+          <a href="{% url 'organizations:dashboard' %}" class="nav-link">
+            <i class="nav-icon fas fa-sitemap"></i>
+            <p>Organization Setup</p>
+          </a>
+        </li>
+        <!-- User Management -->
+        <!-- usre list Dropdown -->
+        <li class="nav-item {% if 'accounts' in request.path %}menu-open{% endif %}">
+          <a href="#" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
+            <i class="nav-icon fas fa-users-cog"></i>
+            <p>User Management</p>
+            <i class="right fas fa-angle-left"></i>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="{% url 'accounts:user_list' %}" class="nav-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
+              <i class="nav-icon far fa-circle"></i>
+              <p>All Users</p>
+              </a>
+            </li>
+          <!--create user dropdown-->
+          {% if user.is_superuser or user.role == 'ADMIN' %}
+          <li class="nav-item">
+            <a href="{% url 'accounts:user_create' %}" class="nav-link {% if request.resolver_match.url_name == 'user_create' %}active{% endif %}">
+              <i class="nav-icon far fa-circle"></i>
+              <p>Create User</p>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+        </li>
+
+        <!-- Add this in the admin section -->
+        {% if user.is_superuser or user.role == 'ADMIN' %}
+        <li class="nav-item">
+            <a href="{% url 'accounts:permissions_only' %}" class="nav-link">
+                <i class="nav-icon fas fa-user-shield text-primary"></i>
+                <p>
+                    Manage Permissions
+                    <span class="badge badge-info right">Matrix</span>
+                </p>
+            </a>
+        </li>
+        {% endif %}
+        <!-- Add this near the top of the sidebar for approvers -->
+        {% if user.can_approve %}
+        <li class="nav-item">
+            <a href="{% url 'dashboards:approvals' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals' %}active{% endif %}">
+                <i class="nav-icon fas fa-clipboard-check text-warning"></i>
+                <p>
+                    Approvals
+                    {% with pending_count=user.get_pending_approvals_count %}
+                    {% if pending_count > 0 %}
+                    <span class="badge badge-warning right">{{ pending_count }}</span>
+                    {% endif %}
+                    {% endwith %}
+                </p>
+            </a>
+        </li>
+        {% endif %}
+        <!--Incident -->
+        <li class="nav-item {% if 'incidents' in request.path %}menu-open{% endif %}">
+          <a href="#" class="nav-link {% if 'incidents' in request.path %}active{% endif %}">
+            <i class="nav-icon fas fa-exclamation-triangle"></i> <!-- icon for incidents -->
+            <p>Incident Management
+              <i class="right fas fa-angle-left"></i>
+            </p>
+            
+          </a>
+          <ul class="nav nav-treeview">
+            <!--Dashboard-->
+            <li class="nav-item">
+              <a href="{% url 'accidents:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' and 'accidents' in request.path %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Dashboard</p>
+              </a>
+            </li>
+          
+            <!--All Incidents-->
+            <li class="nav-item">
+              <a href="{% url 'accidents:incident_list' %}" class="nav-link {% if request.resolver_match.url_name == 'incident_list' %}active{% endif %}">
+              <i class="nav-icon far fa-circle"></i>
+              <p>All Incidents</p>
+              </a>
+            </li>
+
+            <!--Report Incidents-->
+            <li class="nav-item">
+              <a href="{% url 'accidents:incident_create' %}" class="nav-link {% if request.resolver_match.url_name == 'incident_create' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Report Incident</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Hazards Management -->
+        <!-- Hazard Items Drop down -->
+        <li class="nav-item {% if 'hazards' in request.path %}menu-open{% endif %}">
+          <a href="#" class="nav-link {% if 'hazards' in request.path %}active{% endif %}">
+            <i class="nav-icon fas fa-biohazard"></i>
+            <p>Hazards Management</p>
+            <i class="right fas fa-angle-left"></i>
+          </a>
+          <ul class="nav nav-treeview">
+            <!--dashboard-->
+            <li class="nav-item">
+              <a href="{% url 'hazards:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' and 'hazards' in request.path %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Dashboard</p>
+              </a>
+            </li>
+
+            <!-- All Hazards -->
+            <li class="nav-item">
+              <a href="{% url 'hazards:hazard_list' %}" class="nav-link {% if request.resolver_match.url_name == 'hazard_list' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>All Hazards</p>
+              </a>
+            </li>
+
+            <!-- Report Hazard -->
+             <li class="nav-item">
+              <a href="{% url 'hazards:hazard_create' %}" class="nav-link {% if request.resolver_match.url_name == 'hazard_create' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Report Hazard</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="nav-icon fas fa-chart-line"></i> <!-- icon for hazards -->
+            <p>Data Collection</p>
+          </a>
+        <!-- Inspection Module -->
+        <li class="nav-item {% if 'inspections' in request.path %}menu-open{% endif %}">
+          <a href="#" class="nav-link {% if 'inspections' in request.path %}active{% endif %}">
+            <i class="nav-icon fas fa-users-cog"></i>
+            <p class="menu-title-small">
+              Inspection Management
+              <i class="right fas fa-angle-left"></i>
+            </p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="{% url 'inspections:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' and 'inspections' in request.path %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Dashboard</p>
+              </a>
+            </li>
+            
+            {% if user.role == 'HOD' or user.role == 'SAFETY_MANAGER' or user.is_superuser or user.role == 'ADMIN'%}
+            <li class="nav-item">
+              <a href="{% url 'inspections:schedule_list' %}" class="nav-link {% if request.resolver_match.url_name == 'schedule_list' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>My Inspections</p>
+              </a>
+            </li>
+            {% endif %}
+            
+            {% if user.role == 'SAFETY_MANAGER' or user.is_superuser or user.role == 'ADMIN' %}
+            <li class="nav-item">
+              <a href="{% url 'inspections:schedule_create' %}" class="nav-link {% if request.resolver_match.url_name == 'schedule_create' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Schedule Inspection</p>
+              </a>
+            </li>
+            {% endif %}
+            
+            <li class="nav-item">
+              <a href="{% url 'inspections:inspection_list' %}" class="nav-link {% if request.resolver_match.url_name == 'inspection_list' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>All Inspections</p>
+              </a>
+            </li>
+            
+            <li class="nav-item">
+              <a href="{% url 'inspections:findings_list' %}" class="nav-link {% if request.resolver_match.url_name == 'findings_list' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>
+                  Findings
+                  {% if user.role == 'HOD' or user.role == 'SAFETY_MANAGER' or user.role == 'ADMIN'%}
+                  <span class="badge badge-danger right">New</span>
+                  {% endif %}
+                </p>
+              </a>
+            </li>
+            
+            {% if user.is_superuser or user.role == 'ADMIN' %}
+            <li class="nav-item">
+              <a href="{% url 'inspections:template_list' %}" class="nav-link {% if request.resolver_match.url_name == 'template_list' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Templates</p>
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+</aside>

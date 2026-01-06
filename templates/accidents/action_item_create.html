@@ -1,0 +1,141 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Add Action Item{% endblock %}
+{% block page_title %}Add Action Item{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Incident Management</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:incident_detail' incident.pk %}">{{ incident.report_number }}</a></li>
+<li class="breadcrumb-item active">Add Action Item</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-10 offset-md-1">
+    
+    <!-- Incident Summary Card -->
+    <div class="card border-left-success shadow mb-4">
+      <div class="card-body">
+        <h5 class="mb-1">{{ incident.report_number }} - {{ incident.incident_title }}</h5>
+        <p class="mb-0 text-muted">
+          <i class="fas fa-map-marker-alt mr-1"></i>{{ incident.plant.name }} - {{ incident.location.name }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Action Item Form -->
+    <div class="ehs-card">
+      <div class="card-header bg-success text-white">
+        <h3 class="card-title mb-0">
+          <i class="fas fa-tasks mr-2"></i>Add New Action Item
+        </h3>
+      </div>
+      
+      <form method="POST">
+        {% csrf_token %}
+        
+        <div class="card-body">
+          
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle mr-2"></i>
+            Action items are specific tasks assigned to responsible persons to address findings from the incident investigation.
+          </div>
+
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.action_description.id_for_label }}">Action Description <span class="text-danger">*</span></label>
+              {{ form.action_description }}
+              <small class="form-text text-muted">Describe the specific action to be taken in detail</small>
+              {% if form.action_description.errors %}
+                <div class="text-danger">{{ form.action_description.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.responsible_person.id_for_label }}">Responsible Person <span class="text-danger">*</span></label>
+              {{ form.responsible_person }}
+              <small class="form-text text-muted">Person assigned to complete this action</small>
+              {% if form.responsible_person.errors %}
+                <div class="text-danger">{{ form.responsible_person.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.target_date.id_for_label }}">Target Completion Date <span class="text-danger">*</span></label>
+              {{ form.target_date }}
+              {% if form.target_date.errors %}
+                <div class="text-danger">{{ form.target_date.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.status.id_for_label }}">Status <span class="text-danger">*</span></label>
+              {{ form.status }}
+              {% if form.status.errors %}
+                <div class="text-danger">{{ form.status.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.completion_date.id_for_label }}">Completion Date</label>
+              {{ form.completion_date }}
+              <small class="form-text text-muted">Fill this when action is completed</small>
+              {% if form.completion_date.errors %}
+                <div class="text-danger">{{ form.completion_date.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.completion_remarks.id_for_label }}">Completion Remarks</label>
+              {{ form.completion_remarks }}
+              <small class="form-text text-muted">Add remarks when action is completed</small>
+              {% if form.completion_remarks.errors %}
+                <div class="text-danger">{{ form.completion_remarks.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+        </div>
+
+        <div class="card-footer">
+          <button type="submit" class="btn btn-success">
+            <i class="fas fa-plus mr-2"></i>Add Action Item
+          </button>
+          <a href="{% url 'accidents:incident_detail' incident.pk %}" class="btn btn-secondary ml-2">
+            <i class="fas fa-times mr-2"></i>Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set minimum target date to today
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    const targetDateInput = document.getElementById('id_target_date');
+    targetDateInput.min = today;
+    
+    if (!targetDateInput.value) {
+        // Set default to 7 days from now
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        targetDateInput.value = nextWeek.toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}

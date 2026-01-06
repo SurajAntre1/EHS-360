@@ -1,0 +1,619 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Edit Hazard Report{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #007bff;
+    }
+    
+    .section-title {
+        color: #007bff;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .photo-preview {
+        position: relative;
+        width: 120px;
+        height: 120px;
+    }
+    
+    .photo-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 5px;
+        border: 2px solid #dee2e6;
+    }
+    
+    .photo-preview .remove-photo {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #dc3545;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+    
+    .existing-photo {
+        position: relative;
+        display: inline-block;
+        margin: 5px;
+    }
+    
+    .delete-photo-btn {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .required-field::after {
+        content: " *";
+        color: red;
+    }
+    
+    .info-box {
+        background: #e7f3ff;
+        border-left: 4px solid #2196F3;
+        padding: 12px 15px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+    }
+    
+    .deadline-badge {
+        display: inline-block;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-weight: 500;
+        margin-top: 5px;
+    }
+    
+    .deadline-high { background: #ffebee; color: #c62828; }
+    .deadline-medium { background: #fff3e0; color: #ef6c00; }
+    .deadline-low { background: #e8f5e9; color: #2e7d32; }
+    
+    .add-photo-btn {
+        border: 2px dashed #007bff;
+        background: #f8f9fa;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        border-radius: 5px;
+        transition: all 0.3s;
+    }
+    
+    .add-photo-btn:hover {
+        background: #e7f3ff;
+        border-color: #0056b3;
+    }
+    
+    .readonly-field {
+        background-color: #e9ecef;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 class="mb-1">
+                        <i class="fas fa-edit text-primary"></i> 
+                        Edit Hazard Report: {{ object.report_number }}
+                    </h3>
+                    <p class="text-muted mb-0">
+                        <span class="badge badge-{{ object.status_badge_class }}">{{ object.get_status_display }}</span>
+                        <span class="badge badge-{{ object.severity_badge_class }} ml-2">{{ object.get_severity_display }}</span>
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'hazards:hazard_detail' object.pk %}" class="btn btn-outline-info">
+                        <i class="fas fa-eye"></i> View Details
+                    </a>
+                    <a href="{% url 'hazards:hazard_list' %}" class="btn btn-outline-secondary ml-2">
+                        <i class="fas fa-arrow-left"></i> Back to List
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message|safe }}
+                        <button type="button" class="close" data-dismiss="alert">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Form Card -->
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data" id="hazardForm">
+                        {% csrf_token %}
+                        
+                        <!-- Report Information (Readonly) -->
+                        <div class="form-section">
+                            <div class="section-title">
+                                <i class="fas fa-info-circle"></i>
+                                Report Information
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Report Number</label>
+                                        <input type="text" class="form-control readonly-field" 
+                                               value="{{ object.report_number }}" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Reported Date</label>
+                                        <input type="text" class="form-control readonly-field" 
+                                               value="{{ object.reported_date|date:'d M Y, h:i A' }}" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Reported By</label>
+                                        <input type="text" class="form-control readonly-field" 
+                                               value="{{ object.reported_by.get_full_name }}" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reporter Information -->
+                        <div class="form-section">
+                            <div class="section-title">
+                                <i class="fas fa-user"></i>
+                                Reporter Information
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="required-field">Reporter Name</label>
+                                        <input type="text" name="reporter_name" class="form-control" 
+                                               value="{{ object.reporter_name }}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="required-field">Date & Time</label>
+                                        <input type="datetime-local" name="incident_datetime" 
+                                               class="form-control" 
+                                               value="{{ object.incident_datetime|date:'Y-m-d\TH:i' }}" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location Information -->
+                        <div class="form-section">
+                            <div class="section-title">
+                                <i class="fas fa-map-marker-alt"></i>
+                                Location Information
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label class="required-field">Plant</label>
+                                        <input type="text" class="form-control readonly-field" 
+                                               value="{{ object.plant.name }} ({{ object.plant.code }})" readonly>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label>Zone</label>
+                                        <input type="text" class="form-control readonly-field" 
+                                               value="{% if object.zone %}{{ object.zone.name }} ({{ object.zone.code }}){% else %}N/A{% endif %}" readonly>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label class="required-field">Location</label>
+                                        <input type="text" class="form-control readonly-field" 
+                                               value="{{ object.location.name }} ({{ object.location.code }})" readonly>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="id_sublocation">Sub-Location</label>
+                                        <input type="text" class="form-control readonly-field" 
+                                               value="{% if object.sublocation %}{{ object.sublocation.name }}{% if object.sublocation.code %} ({{ object.sublocation.code }}){% endif %}{% else %}N/A{% endif %}" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label>Additional Location Details</label>
+                                        <textarea name="location_details" class="form-control" rows="2" 
+                                                  placeholder="Specific area, equipment, or landmark near the hazard">{{ object.location_details }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reporting On Behalf Of (Checkbox Toggle) -->
+                        <div class="form-section">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <div class="custom-control custom-checkbox">
+                                            <input type="checkbox" class="custom-control-input" id="behalf_checkbox" 
+                                                   {% if object.behalf_person %}checked{% endif %}>
+                                            <label class="custom-control-label" for="behalf_checkbox">
+                                                <strong>Reporting on behalf of someone else</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Behalf Fields (Show if behalf_person exists) -->
+                            <div id="behalf_fields" style="display: {% if object.behalf_person %}block{% else %}none{% endif %};">
+                                <div class="section-title">
+                                    <i class="fas fa-user-friends"></i>
+                                    Person Details
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Employee Name</label>
+                                            <select name="behalf_person_id" id="behalf_person_id" class="form-control">
+                                                <option value="">-- Select Employee --</option>
+                                                {% for employee in employees %}
+                                                    <option value="{{ employee.id }}" 
+                                                            data-dept="{{ employee.department.id|default:'' }}" 
+                                                            data-dept-name="{{ employee.department.name|default:'' }}"
+                                                            {% if object.behalf_person and object.behalf_person.id == employee.id %}selected{% endif %}>
+                                                        {{ employee.get_full_name }} 
+                                                        {% if employee.role %}({{ employee.get_role_display }}){% endif %}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Department</label>
+                                            <select name="behalf_person_dept" id="behalf_person_dept" class="form-control" 
+                                                    {% if not object.behalf_person %}disabled{% endif %} 
+                                                    style="background-color: #e9ecef;">
+                                                <option value="">-- Select Employee First --</option>
+                                                {% for dept in departments %}
+                                                    <option value="{{ dept.id }}" 
+                                                            {% if object.behalf_person_dept and object.behalf_person_dept.id == dept.id %}selected{% endif %}>
+                                                        {{ dept.name }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                            <small class="form-text text-muted">Auto-filled based on selected employee</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Report Type & Details -->
+                        <div class="form-section">
+                            <div class="section-title">
+                                <i class="fas fa-clipboard-list"></i>
+                                Report Details
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="required-field">Report Type</label>
+                                        <select name="hazard_type" id="hazard_type" class="form-control" required>
+                                            <option value="">-- Select Type --</option>
+                                            <option value="UA" {% if object.hazard_type == 'UA' %}selected{% endif %}>Unsafe Act (UA)</option>
+                                            <option value="UC" {% if object.hazard_type == 'UC' %}selected{% endif %}>Unsafe Condition (UC)</option>
+                                            <option value="NM" {% if object.hazard_type == 'NM' %}selected{% endif %}>Near Miss (NM)</option>
+                                        </select>
+                                        <small class="form-text text-muted">
+                                            <strong>UA:</strong> Unsafe behavior | 
+                                            <strong>UC:</strong> Unsafe environment | 
+                                            <strong>NM:</strong> Close call
+                                        </small>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="required-field">Hazard Category</label>
+                                        <select name="hazard_category" class="form-control" required>
+                                            <option value="">-- Select Category --</option>
+                                            <option value="slip_trip_fall" {% if object.hazard_category == 'slip_trip_fall' %}selected{% endif %}>Slip/Trip/Fall</option>
+                                            <option value="chemical" {% if object.hazard_category == 'chemical' %}selected{% endif %}>Chemical</option>
+                                            <option value="electrical" {% if object.hazard_category == 'electrical' %}selected{% endif %}>Electrical</option>
+                                            <option value="fire" {% if object.hazard_category == 'fire' %}selected{% endif %}>Fire</option>
+                                            <option value="equipment" {% if object.hazard_category == 'equipment' %}selected{% endif %}>Equipment/Machinery</option>
+                                            <option value="ergonomic" {% if object.hazard_category == 'ergonomic' %}selected{% endif %}>Ergonomic</option>
+                                            <option value="biological" {% if object.hazard_category == 'biological' %}selected{% endif %}>Biological</option>
+                                            <option value="environmental" {% if object.hazard_category == 'environmental' %}selected{% endif %}>Environmental</option>
+                                            <option value="confined_space" {% if object.hazard_category == 'confined_space' %}selected{% endif %}>Confined Space</option>
+                                            <option value="working_at_height" {% if object.hazard_category == 'working_at_height' %}selected{% endif %}>Working at Height</option>
+                                            <option value="manual_handling" {% if object.hazard_category == 'manual_handling' %}selected{% endif %}>Manual Handling</option>
+                                            <option value="noise" {% if object.hazard_category == 'noise' %}selected{% endif %}>Noise/Vibration</option>
+                                            <option value="temperature" {% if object.hazard_category == 'temperature' %}selected{% endif %}>Temperature Extremes</option>
+                                            <option value="radiation" {% if object.hazard_category == 'radiation' %}selected{% endif %}>Radiation</option>
+                                            <option value="vehicular" {% if object.hazard_category == 'vehicular' %}selected{% endif %}>Vehicular/Traffic</option>
+                                            <option value="other" {% if object.hazard_category == 'other' %}selected{% endif %}>Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="required-field">Severity Level</label>
+                                        <select name="severity" id="severity" class="form-control" required>
+                                            <option value="">-- Select Severity --</option>
+                                            <option value="low" {% if object.severity == 'low' %}selected{% endif %}>Low (30 days)</option>
+                                            <option value="medium" {% if object.severity == 'medium' %}selected{% endif %}>Medium (15 days)</option>
+                                            <option value="high" {% if object.severity == 'high' %}selected{% endif %}>High (7 days)</option>
+                                            <option value="critical" {% if object.severity == 'critical' %}selected{% endif %}>Critical (1 day)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Current Deadline Info Display -->
+                            <div class="info-box">
+                                <i class="fas fa-calendar-check"></i> 
+                                <strong>Current Action Deadline:</strong> 
+                                <span class="deadline-badge deadline-{{ object.severity }}">
+                                    {{ object.action_deadline|date:"d F Y" }}
+                                </span>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label class="required-field">Detailed Description</label>
+                                        <textarea name="hazard_description" class="form-control" rows="4" 
+                                                  placeholder="Describe what you observed, when, where, and any contributing factors..." required>{{ object.hazard_description }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Existing Photos -->
+                        {% if object.photos.all %}
+                        <div class="form-section">
+                            <div class="section-title">
+                                <i class="fas fa-images"></i>
+                                Existing Photos
+                            </div>
+                            
+                            <div class="row">
+                                {% for photo in object.photos.all %}
+                                <div class="col-md-3 text-center mb-3">
+                                    <div class="existing-photo">
+                                        <img src="{{ photo.photo.url }}" class="photo-preview" alt="Hazard Photo">
+                                        <button type="button" class="delete-photo-btn" 
+                                                onclick="deletePhoto({{ photo.id }})" title="Delete Photo">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <input type="hidden" name="keep_photo_{{ photo.id }}" id="keep_photo_{{ photo.id }}" value="1">
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Upload New Photos -->
+                        <div class="form-section">
+                            <div class="section-title">
+                                <i class="fas fa-camera"></i>
+                                Upload New Photos (Optional)
+                            </div>
+                            
+                            <p class="text-muted mb-3">Add additional photos of the hazard</p>
+                            
+                            <div id="photo-container" class="row">
+                                <!-- Initial photo upload -->
+                                <div class="col-md-4 mb-3 photo-item">
+                                    <div class="add-photo-btn" onclick="document.getElementById('photo_0').click()">
+                                        <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
+                                        <p class="mb-0">Click to add photo</p>
+                                    </div>
+                                    <input type="file" name="photo_0" id="photo_0" 
+                                           class="d-none photo-input" accept="image/*" 
+                                           data-index="0">
+                                    <div id="preview_0" class="mt-2"></div>
+                                </div>
+                            </div>
+                            
+                            <button type="button" id="add-more-photos" class="btn btn-outline-primary btn-sm mt-2">
+                                <i class="fas fa-plus"></i> Add More Photos
+                            </button>
+                        </div>
+
+                        <!-- Additional Information -->
+                        <!-- <div class="form-section">
+                            <div class="section-title">
+                                <i class="fas fa-info-circle"></i>
+                                Additional Information
+                            </div> -->
+                            
+                            <!-- <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label>Immediate Actions Taken</label>
+                                        <textarea name="immediate_action" class="form-control" rows="3" 
+                                                  placeholder="Describe any immediate steps taken to address the hazard">{{ object.immediate_action }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> -->
+
+                        <!-- Submit Buttons -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary btn-lg px-5">
+                                    <i class="fas fa-save"></i> Update Hazard Report
+                                </button>
+                                <a href="{% url 'hazards:hazard_detail' object.pk %}" class="btn btn-outline-secondary btn-lg ml-2">
+                                    <i class="fas fa-times"></i> Cancel
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Toggle Behalf Fields
+    $('#behalf_checkbox').change(function() {
+        if ($(this).is(':checked')) {
+            $('#behalf_fields').slideDown();
+        } else {
+            $('#behalf_fields').slideUp();
+            // Clear fields when unchecked
+            $('#behalf_person_id').val('');
+            $('#behalf_person_dept').val('').prop('disabled', true).css('background-color', '#e9ecef');
+        }
+    });
+    
+    // Auto-fill department when employee is selected
+    $('#behalf_person_id').change(function() {
+        const selectedOption = $(this).find('option:selected');
+        const deptId = selectedOption.data('dept');
+        const deptName = selectedOption.data('dept-name');
+        
+        if (deptId) {
+            // Enable the department dropdown
+            $('#behalf_person_dept').prop('disabled', false).css('background-color', '#e9ecef');
+            // Auto-select the employee's department
+            $('#behalf_person_dept').val(deptId);
+        } else {
+            // No department assigned to employee
+            $('#behalf_person_dept').val('').prop('disabled', true).css('background-color', '#e9ecef');
+            alert('Selected employee does not have an assigned department.');
+        }
+    });
+    
+    // Photo handling
+    let photoCount = 1;
+    
+    // Handle photo input change
+    $(document).on('change', '.photo-input', function() {
+        const input = this;
+        const index = $(this).data('index');
+        const previewId = `preview_${index}`;
+        
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                $(`#${previewId}`).html(`
+                    <div class="photo-preview">
+                        <img src="${e.target.result}" alt="Preview">
+                        <button type="button" class="remove-photo" data-index="${index}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `);
+                
+                // Hide the add button for this slot
+                $(input).siblings('.add-photo-btn').hide();
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    });
+    
+    // Remove photo
+    $(document).on('click', '.remove-photo', function() {
+        const index = $(this).data('index');
+        $(`#photo_${index}`).val('');
+        $(`#preview_${index}`).html('');
+        $(`#photo_${index}`).siblings('.add-photo-btn').show();
+    });
+    
+    // Add more photos
+    $('#add-more-photos').click(function() {
+        const newIndex = photoCount;
+        const newPhotoHtml = `
+            <div class="col-md-4 mb-3 photo-item">
+                <div class="add-photo-btn" onclick="document.getElementById('photo_${newIndex}').click()">
+                    <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
+                    <p class="mb-0">Click to add photo</p>
+                </div>
+                <input type="file" name="photo_${newIndex}" id="photo_${newIndex}" 
+                       class="d-none photo-input" accept="image/*" 
+                       data-index="${newIndex}">
+                <div id="preview_${newIndex}" class="mt-2"></div>
+            </div>
+        `;
+        
+        $('#photo-container').append(newPhotoHtml);
+        photoCount++;
+    });
+});
+
+// Delete Photo Function
+function deletePhoto(photoId) {
+    if (confirm('Are you sure you want to delete this photo?')) {
+        // Mark photo for deletion
+        $(`#keep_photo_${photoId}`).val('0');
+        
+        // Hide the photo visually
+        $(`#keep_photo_${photoId}`).closest('.existing-photo').parent().fadeOut();
+    }
+}
+</script>
+{% endblock %}

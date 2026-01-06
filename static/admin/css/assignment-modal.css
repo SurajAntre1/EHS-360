@@ -1,0 +1,1175 @@
+/* Assignment Modal Styles */
+.assignment-section .section-header h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+/* Business Units Selection Stage */
+.units-selection-stage h6 {
+    color: #495057;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.business-units-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.business-unit-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.business-unit-card:hover .business-unit-icon {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.business-unit-card:active .business-unit-icon {
+    transform: scale(1.05);
+}
+
+.business-unit-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin-bottom: 8px;
+}
+
+.business-unit-info {
+    text-align: center;
+}
+
+.business-unit-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #2c3e50;
+    margin-bottom: 2px;
+    max-width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.business-unit-location {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+.business-unit-stats .badge {
+    font-size: 0.65rem;
+    padding: 2px 5px;
+    margin-top: 3px;
+}
+
+.selection-indicator {
+    display: none;
+}
+
+/* Employees Selection Stage */
+.employees-selection-stage {
+    animation: slideInRight 0.3s ease;
+}
+
+.stage-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.back-button {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+}
+
+.selected-unit-title {
+    margin: 0;
+    font-weight: 600;
+    color: #495057;
+    font-size: 1.1rem;
+}
+
+.employees-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.employee-card {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    position: relative;
+}
+
+.employee-card:hover {
+    border-color: #007bff;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.employee-card.selected {
+    border-color: #28a745;
+    background: #f8fff9;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+}
+
+.employee-card.selected .selection-check {
+    opacity: 1;
+    color: #28a745;
+}
+
+.employee-avatar-large {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 auto 15px;
+}
+
+.employee-details {
+    margin-bottom: 15px;
+}
+
+.employee-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.employee-department {
+    font-size: 0.9rem;
+    color: #007bff;
+    font-weight: 500;
+    margin-bottom: 3px;
+}
+
+.employee-email {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.selection-check {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 20px;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+/* Reviewers Section */
+.reviewers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.reviewer-card {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+}
+
+.reviewer-card:hover {
+    border-color: #17a2b8;
+    box-shadow: 0 2px 8px rgba(23, 162, 184, 0.15);
+}
+
+.reviewer-card.selected {
+    border-color: #17a2b8;
+    background: #f0f9ff;
+}
+
+.reviewer-card.selected .reviewer-check {
+    opacity: 1;
+    color: #17a2b8;
+}
+
+.reviewer-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.reviewer-info {
+    flex: 1;
+}
+
+.reviewer-name {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: #2c3e50;
+    margin-bottom: 2px;
+}
+
+.reviewer-department {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.reviewer-check {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 16px;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+/* Animations */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.units-selection-stage {
+    animation: slideInLeft 0.3s ease;
+}
+
+/* Modal Enhancements */
+.modal-lg {
+    max-width: 900px;
+}
+
+.modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Assign Button Enhancement */
+#assignButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#assignButton:not(:disabled) {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    font-weight: 600;
+}
+
+#assignButton:not(:disabled):hover {
+    background: linear-gradient(135deg, #218838, #1ca085);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+/* Search Box Enhancement */
+.search-box input {
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    font-size: 0.95rem;
+}
+
+.search-box input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    outline: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .business-units-grid,
+    .employees-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .reviewers-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stage-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+/* Test if CSS works when inline */
+.business-units-grid {
+    display: flex;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 30px;
+    padding: 0 20px;
+}
+
+.business-unit-icon {
+    width: 70px !important;
+    height: 70px !important;
+    background: linear-gradient(135deg, #007bff, #0056b3) !important;
+    color: white !important;
+    border-radius: 50% !important;
+    font-size: 20px !important;
+    font-weight: 600 !important;
+}
+.employees-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.employee-card {
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 12px;
+  text-align: center;
+  width: 110px;
+  transition: 0.2s;
+  position: relative;
+  background: #f8f9fa;
+}
+
+.employee-card:hover {
+  background: #eef2f7;
+}
+
+.employee-card.selected {
+  background: #e8f9f0;
+  border: 2px solid #28a745;
+}
+
+.employee-avatar {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  background: #6c757d;
+  color: #fff;
+  font-weight: bold;
+  font-size: 20px;
+  margin: 0 auto 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.employee-info {
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.employee-name {
+  font-weight: 600;
+}
+
+.employee-department {
+  color: #6c757d;
+  font-size: 12px;
+}
+
+.employee-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  color: #28a745;
+  display: none;
+}
+
+.employee-card.selected .employee-check {
+  display: block;
+}
+
+/* Modal Structure */
+#assignQuestionModal .modal-dialog {
+    max-width: 950px;
+}
+
+#assignQuestionModal .modal-content {
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    border: 1px solid #dee2e6;
+}
+
+#assignQuestionModal .modal-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 12px 12px 0 0;
+    padding: 20px 30px;
+}
+
+#assignQuestionModal .modal-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+#assignQuestionModal .modal-body {
+    padding: 30px;
+    background: #fafbfc;
+}
+
+#assignQuestionModal .modal-footer {
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    border-radius: 0 0 12px 12px;
+    padding: 15px 30px;
+}
+
+/* Assignment Sections - Match question containers */
+#assignQuestionModal .assignment-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    border: 1px solid #dee2e6;
+}
+
+#assignQuestionModal .section-header {
+    padding: 20px 30px;
+    border-bottom: 1px solid #dee2e6;
+    background: #f8f9fa;
+    border-radius: 12px 12px 0 0;
+}
+
+#assignQuestionModal .section-header h6 {
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#assignQuestionModal .section-header h6 i {
+    color: #007bff;
+    font-size: 16px;
+}
+
+#assignQuestionModal .section-header p {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin: 5px 0 0 0;
+}
+
+#assignQuestionModal .assignment-section > div:not(.section-header) {
+    padding: 30px;
+}
+
+/* Date Range Section */
+#assignQuestionModal .date-range-section {
+    background: white;
+    border: 1px solid #dee2e6;
+}
+
+#assignQuestionModal .date-range-section .section-header {
+    background: #e7f3ff;
+    border-bottom: 1px solid #b3d9ff;
+}
+
+#assignQuestionModal .date-range-section .section-header h6 i {
+    color: #0066cc;
+}
+
+/* Priority Section */
+#assignQuestionModal .priority-section {
+    background: white;
+    border: 1px solid #dee2e6;
+}
+
+#assignQuestionModal .priority-section .section-header {
+    background: #fff3cd;
+    border-bottom: 1px solid #ffc107;
+}
+
+#assignQuestionModal .priority-section .section-header h6 i {
+    color: #856404;
+}
+
+/* Form Controls - Match existing form styling */
+#assignQuestionModal .form-control,
+#assignQuestionModal .form-select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    background: white;
+}
+
+#assignQuestionModal .form-control:focus,
+#assignQuestionModal .form-select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+#assignQuestionModal .form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 8px;
+    display: block;
+    font-size: 0.95rem;
+}
+
+#assignQuestionModal .form-group {
+    margin-bottom: 20px;
+}
+
+/* Duration Display */
+#assignQuestionModal .duration-info {
+    background: #e7f3ff;
+    color: #0066cc;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: 1px solid #b3d9ff;
+}
+
+/* Search Box */
+#assignQuestionModal .search-box input {
+    border-radius: 20px;
+    padding-left: 40px;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3e%3cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: 12px center;
+}
+
+/* Business Units Grid */
+#assignQuestionModal .business-units-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;                 /* controls spacing between cards */
+  margin-bottom: 20px;
+}
+
+#assignQuestionModal .business-unit-card {
+  display: flex;             /* your original layout inside the card */
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: all .2s;
+  width: 100%;               /* fill the grid column */
+  /* remove any fixed width or max-width you added */
+}
+
+#assignQuestionModal .business-unit-card:hover {
+    border-color: #007bff;
+    background: #f8fffe;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+#assignQuestionModal .business-unit-card.selected {
+    border-color: #007bff;
+    background: #e7f3ff;
+}
+
+#assignQuestionModal .business-unit-icon {
+    width: 50px;
+    height: 50px;
+    background: #007bff;
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+#assignQuestionModal .business-unit-info {
+    flex: 1;
+}
+
+#assignQuestionModal .business-unit-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #2c3e50;
+    margin-bottom: 4px;
+}
+
+#assignQuestionModal .business-unit-location {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 8px;
+}
+
+#assignQuestionModal .business-unit-stats .badge {
+    background: #007bff;
+    color: white;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* Employees Grid */
+#assignQuestionModal .employees-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+#assignQuestionModal .employee-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+    text-align: center;
+}
+
+#assignQuestionModal .employee-card:hover {
+    border-color: #007bff;
+    background: #f8fffe;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+#assignQuestionModal .employee-card.selected {
+    border-color: #28a745;
+    background: #d4edda;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+}
+
+#assignQuestionModal .employee-avatar {
+    width: 50px;
+    height: 50px;
+    background: #007bff;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    font-weight: 600;
+    font-size: 18px;
+    position: relative;
+}
+
+#assignQuestionModal .employee-card.selected .employee-avatar {
+    background: #28a745;
+}
+
+#assignQuestionModal .employee-card.selected .employee-check {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    background: #28a745;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+}
+
+#assignQuestionModal .employee-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #2c3e50;
+    font-size: 0.95rem;
+}
+
+#assignQuestionModal .employee-department {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+/* Reviewers Grid */
+#assignQuestionModal .reviewers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+#assignQuestionModal .reviewer-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+    text-align: center;
+}
+
+#assignQuestionModal .reviewer-card:hover {
+    border-color: #17a2b8;
+    background: #f0f8ff;
+}
+
+#assignQuestionModal .reviewer-card.selected {
+    border-color: #17a2b8;
+    background: #d1ecf1;
+}
+
+#assignQuestionModal .reviewer-avatar {
+    width: 40px;
+    height: 40px;
+    background: #17a2b8;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+#assignQuestionModal .reviewer-name {
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+#assignQuestionModal .reviewer-department {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+/* Assignment Preview Panel */
+#assignQuestionModal .assignment-preview {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    padding: 20px;
+    position: sticky;
+    top: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+#assignQuestionModal .assignment-preview h6 {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#assignQuestionModal .assignment-preview h6 i {
+    color: #17a2b8;
+}
+
+#assignQuestionModal .preview-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 5px 0;
+    border-bottom: 1px dashed #dee2e6;
+    font-size: 0.9rem;
+}
+
+#assignQuestionModal .preview-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+#assignQuestionModal .preview-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+#assignQuestionModal .preview-value {
+    color: #6c757d;
+    text-align: right;
+    max-width: 60%;
+    word-wrap: break-word;
+}
+
+/* Selected Questions List */
+#assignQuestionModal #selectedQuestionsList {
+    margin: 0;
+    padding: 0;
+}
+
+#assignQuestionModal #selectedQuestionsList li {
+    list-style: none;
+    margin-bottom: 8px;
+}
+
+#assignQuestionModal #selectedQuestionsList .badge {
+    background: #e9ecef;
+    color: #495057;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    display: inline-block;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+
+/* Buttons - Match existing BRSR button styling */
+#assignQuestionModal .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+}
+
+#assignQuestionModal .btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+#assignQuestionModal .btn-primary:hover:not(:disabled) {
+    background: #0056b3;
+}
+
+#assignQuestionModal .btn-primary:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+#assignQuestionModal .btn-outline-secondary {
+    background: white;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+#assignQuestionModal .btn-outline-secondary:hover {
+    background: #f8f9fa;
+    border-color: #6c757d;
+}
+
+/* Alert Boxes */
+#assignQuestionModal .alert {
+    padding: 12px 15px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+#assignQuestionModal .alert-info {
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    #assignQuestionModal .modal-dialog {
+        margin: 10px;
+        max-width: calc(100% - 20px);
+    }
+    
+    #assignQuestionModal .modal-body {
+        padding: 20px;
+    }
+    
+    #assignQuestionModal .business-units-grid,
+    #assignQuestionModal .employees-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    #assignQuestionModal .col-md-8,
+    #assignQuestionModal .col-md-4 {
+        margin-bottom: 20px;
+    }
+}
+
+/* Loading States */
+#assignQuestionModal .text-center {
+    padding: 30px;
+    color: #6c757d;
+}
+
+#assignQuestionModal .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Hide assign section initially */
+#assignQuestionModal #assignSection {
+    display: none;
+}
+
+#assignQuestionModal #assignSection.show {
+    display: flex !important;
+}
+/* Staff Grid Layout */
+.staff-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.staff-location-group {
+    margin-bottom: 20px;
+}
+
+.staff-location-header {
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.staff-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+}
+
+.staff-card {
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.staff-card:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+}
+
+.staff-card.selected {
+    border-color: #007bff;
+    background: #e7f3ff;
+}
+
+.staff-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.staff-info {
+    min-width: 0;
+}
+
+.staff-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 2px;
+}
+
+.staff-role,
+.staff-dept,
+.staff-email {
+    font-size: 0.85em;
+    color: #6c757d;
+    line-height: 1.3;
+}
+
+.staff-check {
+    color: #007bff;
+    font-size: 20px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.staff-card.selected .staff-check {
+    opacity: 1;
+}
+
+/* Location Items */
+.location-group {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.location-header {
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 10px;
+}
+
+.locations-list {
+    display: grid;
+    gap: 10px;
+}
+
+.location-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.location-item:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+}
+
+.location-checkbox {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.location-item label {
+    margin: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+/* Business Unit Card Updates */
+.business-unit-card {
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+}
+
+.business-unit-card:has(.business-unit-checkbox:checked) {
+    border-color: #007bff;
+    background: #e7f3ff;
+}
+
+.business-unit-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.business-unit-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.business-unit-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 4px;
+}
+
+.business-unit-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+/* Preview Panel */
+.assignment-preview {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.preview-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.preview-item:last-child {
+    border-bottom: none;
+}
+
+.preview-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.preview-value {
+    color: #6c757d;
+    text-align: right;
+}

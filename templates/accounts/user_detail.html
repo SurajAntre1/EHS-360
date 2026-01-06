@@ -1,0 +1,317 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}User Details{% endblock %}
+{% block page_title %}User Details{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounts:user_list' %}">User Management</a></li>
+<li class="breadcrumb-item active">User Details</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-10 offset-md-1">
+    <div class="ehs-card">
+      <div class="card-header">
+        <div class="row align-items-center">
+          <div class="col">
+            <h3 class="card-title mb-0">
+              <i class="fas fa-user mr-2"></i>{{ user_detail.get_full_name }}
+            </h3>
+          </div>
+          <div class="col-auto">
+            <a href="{% url 'accounts:user_update' user_detail.pk %}" class="btn btn-primary btn-sm">
+              <i class="fas fa-edit mr-1"></i> Edit
+            </a>
+            <a href="{% url 'accounts:user_list' %}" class="btn btn-secondary btn-sm">
+              <i class="fas fa-arrow-left mr-1"></i> Back
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card-body">
+        <!-- Personal Information -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <h6 class="text-primary mb-3">
+              <i class="fas fa-id-card mr-2"></i>Personal Information
+            </h6>
+            <table class="table table-sm table-bordered">
+              <tr>
+                <th width="45%" class="bg-light">Full Name:</th>
+                <td>{{ user_detail.get_full_name }}</td>
+              </tr>
+              <tr>
+                <th class="bg-light">Email:</th>
+                <td>{{ user_detail.email }}</td>
+              </tr>
+              <tr>
+                <th class="bg-light">Phone:</th>
+                <td>{{ user_detail.phone|default:"N/A" }}</td>
+              </tr>
+              <tr>
+                <th class="bg-light">Employee ID:</th>
+                <td>{{ user_detail.employee_id|default:"N/A" }}</td>
+              </tr>
+            </table>
+          </div>
+          
+          <div class="col-md-6">
+            <h6 class="text-primary mb-3">
+              <i class="fas fa-user-lock mr-2"></i>Account Information
+            </h6>
+            <table class="table table-sm table-bordered">
+              <tr>
+                <th width="45%" class="bg-light">Username:</th>
+                <td>{{ user_detail.username }}</td>
+              </tr>
+              <tr>
+                <th class="bg-light">Role:</th>
+                <td><span class="badge badge-info">{{ user_detail.get_role_display }}</span></td>
+              </tr>
+              <tr>
+                <th class="bg-light">Status:</th>
+                <td>
+                  {% if user_detail.is_active %}
+                    <span class="badge badge-success">Active</span>
+                  {% else %}
+                    <span class="badge badge-danger">Inactive</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th class="bg-light">Account Created:</th>
+                <td>{{ user_detail.date_joined|date:"M d, Y" }}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Personal & Employment Details -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <h6 class="text-primary mb-3">
+              <i class="fas fa-user-circle mr-2"></i>Personal & Employment Details
+            </h6>
+          </div>
+          <div class="col-md-6">
+            <table class="table table-sm table-bordered">
+              <tr>
+                <th width="45%" class="bg-light">Date of Birth:</th>
+                <td>
+                  {% if user_detail.date_of_birth %}
+                    {{ user_detail.date_of_birth|date:"M d, Y" }}
+                  {% else %}
+                    N/A
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th class="bg-light">Age:</th>
+                <td>
+                  {% if user_detail.age %}
+                    {{ user_detail.age }} years
+                  {% else %}
+                    N/A
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th class="bg-light">Gender:</th>
+                <td>
+                  {% if user_detail.gender %}
+                    {{ user_detail.get_gender_display }}
+                  {% else %}
+                    N/A
+                  {% endif %}
+                </td>
+              </tr>
+            </table>
+          </div>
+          
+          <div class="col-md-6">
+            <table class="table table-sm table-bordered">
+              <tr>
+                <th width="45%" class="bg-light">Employment Type:</th>
+                <td>
+                  <span class="badge badge-secondary">
+                    {{ user_detail.get_employment_type_display }}
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <th class="bg-light">Job Title:</th>
+                <td>{{ user_detail.job_title|default:"N/A" }}</td>
+              </tr>
+              <tr>
+                <th class="bg-light">Date of Joining:</th>
+                <td>
+                  {% if user_detail.date_joined_company %}
+                    {{ user_detail.date_joined_company|date:"M d, Y" }}
+                  {% else %}
+                    N/A
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th class="bg-light">Experience:</th>
+                <td>
+                  {% if user_detail.years_in_current_job %}
+                    <strong>{{ user_detail.years_in_current_job }}</strong>
+                  {% else %}
+                    N/A
+                  {% endif %}
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Organization Information -->
+        <div class="row">
+          <div class="col-12">
+            <h6 class="text-primary mb-3">
+              <i class="fas fa-building mr-2"></i>Organization Information
+            </h6>
+            <table class="table table-sm table-bordered">
+              <tr>
+                <th width="20%" class="bg-light">Department:</th>
+                <td>{{ user_detail.department|default:"Not Assigned" }}</td>
+              </tr>
+              <tr>
+                <th class="bg-light">Plant:</th>
+                <td>
+                  {% if user_detail.plant %}
+                    {{ user_detail.plant.name }} ({{ user_detail.plant.code }})
+                  {% else %}
+                    Not Assigned
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th class="bg-light">Zone:</th>
+                <td>
+                  {% if user_detail.zone %}
+                    {{ user_detail.zone.name }} ({{ user_detail.zone.code }})
+                  {% else %}
+                    Not Assigned
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th class="bg-light">Location:</th>
+                <td>
+                  {% if user_detail.location %}
+                    {{ user_detail.location.name }} ({{ user_detail.location.code }})
+                  {% else %}
+                    Not Assigned
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th class="bg-light">Sub-Location:</th>
+                <td>
+                  {% if user_detail.sublocation %}
+                    {{ user_detail.sublocation.name }}
+                    {% if user_detail.sublocation.code %}
+                      ({{ user_detail.sublocation.code }})
+                    {% endif %}
+                  {% else %}
+                    Not Assigned
+                  {% endif %}
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Module Access Permissions (Optional - if you want to show) -->
+        <div class="row mt-4">
+          <div class="col-12">
+            <h6 class="text-primary mb-3">
+              <i class="fas fa-unlock-alt mr-2"></i>Module Access
+            </h6>
+            <div class="row">
+              <div class="col-md-6">
+                <ul class="list-unstyled">
+                  <li>
+                    {% if user_detail.can_access_incident_module %}
+                      <i class="fas fa-check-circle text-success"></i>
+                    {% else %}
+                      <i class="fas fa-times-circle text-danger"></i>
+                    {% endif %}
+                    Incident Module
+                  </li>
+                  <li>
+                    {% if user_detail.can_access_hazard_module %}
+                      <i class="fas fa-check-circle text-success"></i>
+                    {% else %}
+                      <i class="fas fa-times-circle text-danger"></i>
+                    {% endif %}
+                    Hazard Module
+                  </li>
+                  <li>
+                    {% if user_detail.can_access_inspection_module %}
+                      <i class="fas fa-check-circle text-success"></i>
+                    {% else %}
+                      <i class="fas fa-times-circle text-danger"></i>
+                    {% endif %}
+                    Inspection Module
+                  </li>
+                  <li>
+                    {% if user_detail.can_access_audit_module %}
+                      <i class="fas fa-check-circle text-success"></i>
+                    {% else %}
+                      <i class="fas fa-times-circle text-danger"></i>
+                    {% endif %}
+                    Audit Module
+                  </li>
+                </ul>
+              </div>
+              <div class="col-md-6">
+                <ul class="list-unstyled">
+                  <li>
+                    {% if user_detail.can_access_training_module %}
+                      <i class="fas fa-check-circle text-success"></i>
+                    {% else %}
+                      <i class="fas fa-times-circle text-danger"></i>
+                    {% endif %}
+                    Training Module
+                  </li>
+                  <li>
+                    {% if user_detail.can_access_permit_module %}
+                      <i class="fas fa-check-circle text-success"></i>
+                    {% else %}
+                      <i class="fas fa-times-circle text-danger"></i>
+                    {% endif %}
+                    Permit Module
+                  </li>
+                  <li>
+                    {% if user_detail.can_access_observation_module %}
+                      <i class="fas fa-check-circle text-success"></i>
+                    {% else %}
+                      <i class="fas fa-times-circle text-danger"></i>
+                    {% endif %}
+                    Observation Module
+                  </li>
+                  <li>
+                    {% if user_detail.can_access_reports_module %}
+                      <i class="fas fa-check-circle text-success"></i>
+                    {% else %}
+                      <i class="fas fa-times-circle text-danger"></i>
+                    {% endif %}
+                    Reports Module
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

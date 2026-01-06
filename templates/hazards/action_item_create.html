@@ -1,0 +1,211 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Create Action Item - {{ hazard.report_number }}{% endblock %}
+{% block page_title %}Create Action Item{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hazards:dashboard' %}">Hazard Management</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hazards:hazard_list' %}">All Hazards</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hazards:hazard_detail' hazard.pk %}">{{ hazard.report_number }}</a></li>
+<li class="breadcrumb-item active">Create Action Item</li>
+{% endblock %}
+
+{% block content %}
+<!-- Content Header -->
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1><i class="fas fa-tasks"></i> Create Action Item</h1>
+            </div>
+            <div class="col-sm-6">
+                <div class="float-sm-right">
+                    <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Hazard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main content -->
+<section class="content">
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <!-- Hazard Info Card -->
+            <div class="card bg-light mb-3">
+                <div class="card-body">
+                    <h5 class="mb-2">
+                        <i class="fas fa-exclamation-triangle text-warning"></i> 
+                        {{ hazard.report_number }}
+                    </h5>
+                    <p class="mb-1"><strong>Title:</strong> {{ hazard.hazard_title }}</p>
+                    <p class="mb-0">
+                        <span class="badge {{ hazard.severity_badge_class }}">{{ hazard.get_severity_display }}</span>
+                        <span class="badge {{ hazard.status_badge_class }} ml-2">{{ hazard.get_status_display }}</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Action Item Form Card -->
+            <div class="card">
+                <div class="card-header bg-primary">
+                    <h3 class="card-title text-white">
+                        <i class="fas fa-plus-circle"></i> New Action Item
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="">
+                        {% csrf_token %}
+
+                        <!-- Action Description -->
+                        <div class="form-group">
+                            <label for="id_action_description">Action Description *</label>
+                            {{ form.action_description.errors }}
+                            <textarea name="action_description" id="id_action_description" 
+                                      class="form-control {% if form.action_description.errors %}is-invalid{% endif %}" 
+                                      rows="4" 
+                                      placeholder="Describe the action to be taken to address this hazard..." 
+                                      required>{{ form.action_description.value|default:'' }}</textarea>
+                            <small class="form-text text-muted">
+                                Provide a detailed description of the corrective action required
+                            </small>
+                        </div>
+
+                        <!-- Responsible Person -->
+                        <div class="form-group">
+                            <label for="id_responsible_person">Responsible Person *</label>
+                            {{ form.responsible_person.errors }}
+                            <select name="responsible_person" id="id_responsible_person" 
+                                    class="form-control {% if form.responsible_person.errors %}is-invalid{% endif %}" 
+                                    required>
+                                <option value="">Select Responsible Person</option>
+                                {% for user in users %}
+                                <option value="{{ user.id }}" {% if form.responsible_person.value == user.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ user.get_full_name|default:user.username }} - {{ user.email }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">
+                                Person responsible for completing this action
+                            </small>
+                        </div>
+
+                        <!-- Target Date -->
+                        <div class="form-group">
+                            <label for="id_target_date">Target Date *</label>
+                            {{ form.target_date.errors }}
+                            <input type="date" 
+                                name="target_date" 
+                                id="id_target_date" 
+                                class="form-control {% if form.target_date.errors %}is-invalid{% endif %}" 
+                                value="{{ action_deadline_date|default:'' }}" 
+                                data-deadline="{{ action_deadline_date|default:'' }}"
+                                required readonly>
+                            <small class="form-text text-muted">
+                                Expected completion date (Auto-filled from hazard deadline: {{ hazard.action_deadline|date:"d M Y" }})
+                            </small>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="form-group">
+                            <label for="id_status">Initial Status *</label>
+                            <input type="text" class="form-control" value="Pending" readonly style="background-color: #e9ecef;">
+                            <input type="hidden" name="status" value="PENDING">
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i> New action items are created with <strong>Pending</strong> status. 
+                                The assigned officer can update the status later.
+                            </small>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <hr class="my-4">
+                        <div class="form-group text-center">
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="fas fa-save"></i> Create Action Item
+                            </button>
+                            <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-secondary btn-lg px-5 ml-2">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Help Card -->
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="text-primary"><i class="fas fa-info-circle"></i> Action Item Guidelines</h5>
+                    <ul class="mb-0">
+                        <li>Provide a clear and specific action description</li>
+                        <li>Assign to the appropriate responsible person</li>
+                        <li>Set realistic target dates considering complexity</li>
+                        <li>Track progress by updating status regularly</li>
+                        <li>Document completion with remarks when done</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const targetDateInput = document.getElementById('id_target_date');
+    
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    targetDateInput.setAttribute('min', today);
+    
+    // Auto-populate with hazard deadline if available and field is empty
+    const deadlineDate = targetDateInput.dataset.deadline;
+    if (deadlineDate && !targetDateInput.value) {
+        targetDateInput.value = deadlineDate;
+    }
+    
+    // Simple form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (!document.getElementById('id_action_description').value.trim()) {
+            e.preventDefault();
+            alert('Please provide an action description');
+            return;
+        }
+        
+        if (!document.getElementById('id_responsible_person').value) {
+            e.preventDefault();
+            alert('Please select a responsible person');
+            return;
+        }
+        
+        if (!targetDateInput.value) {
+            e.preventDefault();
+            alert('Please set a target date');
+            return;
+        }
+        
+        if (!document.getElementById('id_status').value) {
+            e.preventDefault();
+            alert('Please select a status');
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

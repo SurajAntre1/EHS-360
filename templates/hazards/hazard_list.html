@@ -1,0 +1,204 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Hazard Reports{% endblock %}
+{% block page_title %}Hazard Reports{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hazards:dashboard' %}">Hazard Management</a></li>
+<li class="breadcrumb-item active">All Hazards</li>
+{% endblock %}
+
+{% block content %}
+<div class="ehs-card">
+  <div class="card-header">
+    <div class="row align-items-center">
+      <div class="col">
+        <h3 class="card-title mb-0">
+          <i class="fas fa-exclamation-triangle mr-2"></i>All Hazard Reports
+        </h3>
+      </div>
+      <div class="col-auto">
+        <a href="{% url 'hazards:hazard_create' %}" class="btn btn-warning">
+          <i class="fas fa-plus mr-1"></i> Report New Hazard
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card-body">
+    <!-- Search and Filter -->
+    <form method="GET" class="mb-4">
+      <div class="row">
+        <div class="col-md-3 mb-2">
+          <input type="text" name="search" class="form-control" 
+                 placeholder="Search report no, title..." 
+                 value="{{ search_query }}">
+        </div>
+        <div class="col-md-2 mb-2">
+          <select name="hazard_type" class="form-control">
+            <option value="">All Types</option>
+            {% for type_key, type_name in hazard_types %}
+            <option value="{{ type_key }}" {% if selected_hazard_type == type_key %}selected{% endif %}>
+              {{ type_name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2 mb-2">
+          <select name="risk_level" class="form-control">
+            <option value="">All Risk Levels</option>
+            {% for risk_key, risk_name in risk_levels %}
+            <option value="{{ risk_key }}" {% if selected_risk_level == risk_key %}selected{% endif %}>
+              {{ risk_name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2 mb-2">
+          <select name="status" class="form-control">
+            <option value="">All Status</option>
+            {% for status_key, status_name in status_choices %}
+            <option value="{{ status_key }}" {% if selected_status == status_key %}selected{% endif %}>
+              {{ status_name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3 mb-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-search"></i> Filter
+          </button>
+          <a href="{% url 'hazards:hazard_list' %}" class="btn btn-secondary">
+            <i class="fas fa-redo"></i> Reset
+          </a>
+        </div>
+      </div>
+      
+      <!-- Date Range Filter -->
+      <div class="row mt-2">
+        <div class="col-md-3">
+          <label class="small">Date From:</label>
+          <input type="date" name="date_from" class="form-control form-control-sm" 
+                 value="{{ request.GET.date_from }}">
+        </div>
+        <div class="col-md-3">
+          <label class="small">Date To:</label>
+          <input type="date" name="date_to" class="form-control form-control-sm" 
+                 value="{{ request.GET.date_to }}">
+        </div>
+      </div>
+    </form>
+
+    <!-- Hazards Table -->
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Report No.</th>
+            <th>Type</th>
+            <th>Hazard Title</th>
+            <th>Date & Time</th>
+            <th>Plant / Location</th>
+            <th>Risk Level</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for hazard in hazards %}
+          <tr>
+            <td>
+              <strong>{{ hazard.report_number }}</strong>
+              {% if hazard.is_action_overdue %}
+              <span class="badge badge-danger badge-sm">Overdue</span>
+              {% endif %}
+            </td>
+            <td>
+            <span class="badge 
+                {% if hazard.hazard_category == 'slip_trip_fall' %}badge-warning
+                {% elif hazard.hazard_category == 'chemical' %}badge-danger
+                {% else %}badge-info{% endif %}">
+                {{ hazard.get_hazard_category_display }}
+            </span>
+            </td>
+
+            <td>{{ hazard.hazard_title|truncatewords:10 }}</td>
+            <td>
+            {{ hazard.incident_datetime|date:"d/m/Y" }}<br>
+            <small class="text-muted">{{ hazard.incident_datetime|time:"H:i" }}</small>
+            </td>
+
+            <td>
+              <strong>{{ hazard.plant.code }}</strong><br>
+              <small class="text-muted">{{ hazard.location.name }}</small>
+            </td>
+           <td>
+            <span class="badge 
+                {% if hazard.severity == 'critical' %}badge-dark
+                {% elif hazard.severity == 'high' %}badge-danger
+                {% elif hazard.severity == 'medium' %}badge-warning
+                {% else %}badge-success{% endif %}">
+                {{ hazard.get_severity_display }}
+            </span>
+            </td>
+            <td>
+              <span class="badge 
+                {% if hazard.status == 'CLOSED' %}badge-success
+                {% elif hazard.status == 'REPORTED' %}badge-secondary
+                {% else %}badge-primary{% endif %}">
+                {{ hazard.get_status_display }}
+              </span>
+            </td>
+            <td>
+              <div class="btn-group" role="group">
+                <a href="{% url 'hazards:hazard_detail' hazard.pk %}" 
+                   class="btn btn-sm btn-info" title="View">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a href="{% url 'hazards:hazard_update' hazard.pk %}" 
+                   class="btn btn-sm btn-primary" title="Edit">
+                  <i class="fas fa-edit"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center">
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle mr-2"></i>No hazards found.
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav aria-label="Page navigation">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        </li>
+        {% endif %}
+        
+        <li class="page-item active">
+          <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        
+        {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

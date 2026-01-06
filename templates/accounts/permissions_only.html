@@ -1,0 +1,610 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}User Permissions Management{% endblock %}
+{% block page_title %}User Permissions Management{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item active">Permissions Management</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .permission-checkbox {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+    .permission-checkbox:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+    .user-row:hover {
+        background-color: #f8f9fa;
+    }
+    .module-header {
+        text-orientation: mixed;
+        font-size: 11px;
+        font-weight: bold;
+        padding: 10px 5px;
+    }
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        background-color: #fff;
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .permission-cell {
+        text-align: center;
+        vertical-align: middle;
+        padding: 8px 5px !important;
+    }
+    .section-divider {
+        border-left: 3px solid #007bff;
+    }
+    .stats-card {
+        transition: transform 0.2s;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .module-header.bg-success {
+    color: #0b2e13 !important;
+
+}
+th.bg-success {
+    color: #0b2e13 !important;
+}
+th.bg-danger{
+    color: #0b2e13 !important;
+
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1><i class="fas fa-user-shield"></i> User Permissions Management</h1>
+            </div>
+            <div class="col-sm-6">
+                <div class="float-sm-right">
+                    <button class="btn btn-primary" data-toggle="modal" data-target="#bulkActionModal">
+                        <i class="fas fa-users-cog"></i> Bulk Actions
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Statistics Cards -->
+    <div class="row mb-3">
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-info stats-card">
+                <div class="inner">
+                    <h3>{{ total_users }}</h3>
+                    <p>Total Users</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-success stats-card">
+                <div class="inner">
+                    <h3>{{ users_with_incident_access }}</h3>
+                    <p>Incident Access</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-ambulance"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning stats-card">
+                <div class="inner">
+                    <h3>{{ users_with_hazard_access }}</h3>
+                    <p>Hazard Access</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger stats-card">
+                <div class="inner">
+                    <h3>{{ hazard_approvers }}</h3>
+                    <p>Approvers</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="card collapsed-card">
+        <div class="card-header bg-light">
+            <h3 class="card-title"><i class="fas fa-filter"></i> Filters</h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Search User</label>
+                            <input type="text" name="search" class="form-control" 
+                                   placeholder="Name, email, employee ID..." 
+                                   value="{{ search_query }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Role</label>
+                            <select name="role" class="form-control">
+                                <option value="">All Roles</option>
+                                {% for value, label in roles %}
+                                <option value="{{ value }}" {% if request.GET.role == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Plant</label>
+                            <select name="plant" class="form-control">
+                                <option value="">All Plants</option>
+                                {% for plant in plants %}
+                                <option value="{{ plant.id }}" {% if request.GET.plant == plant.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ plant.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-search"></i> Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Permissions Matrix -->
+    <div class="card">
+        <div class="card-header bg-primary">
+            <h3 class="card-title text-white">
+                <i class="fas fa-table"></i> Permissions Matrix
+            </h3>
+            <div class="card-tools">
+                <span class="badge badge-light">{{ users|length }} Users</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div style="overflow-x: auto;">
+                <form id="bulkForm" method="POST" action="{% url 'accounts:bulk_update_permissions' %}">
+                    {% csrf_token %}
+                    <table class="table table-bordered table-hover mb-0" style="min-width: 1400px;">
+                        <thead class="sticky-header">
+                            <tr class="bg-light">
+                                <th rowspan="2" style="vertical-align: middle; min-width: 40px;">
+                                    <input type="checkbox" id="selectAll" style="width: 18px; height: 18px;">
+                                </th>
+                                <th rowspan="2" style="vertical-align: middle; min-width: 200px;">User Details</th>
+                                <th rowspan="2" style="vertical-align: middle; min-width: 100px;">Role</th>
+                                
+                                <!-- Module Access Section -->
+                                <th colspan="8" class="text-center bg-success text-dark">
+                                    <i class="fas fa-th-large"></i> Module Access
+                                </th>
+                                
+                                <!-- Approval Section -->
+                                <th colspan="4" class="text-center bg-warning">
+                                    <i class="fas fa-check-circle"></i> Approval Permissions
+                                </th>
+                                
+                                <!-- Closure Section -->
+                                <th colspan="2" class="text-center bg-danger text-dark">
+                                    <i class="fas fa-lock"></i> Closure
+                                </th>
+                            </tr>
+                            <tr class="bg-light">
+                                <!-- Module Access Headers -->
+                                <th class="module-header bg-success text-white">
+                                    <i class="fas fa-ambulance"></i><br>Incidents
+                                </th>
+                                <th class="module-header bg-success text-white">
+                                    <i class="fas fa-exclamation-triangle"></i><br>Hazards
+                                </th>
+                                <th class="module-header bg-success text-white">
+                                    <i class="fas fa-clipboard-check"></i><br>Inspections
+                                </th>
+                                <th class="module-header bg-success text-white">
+                                    <i class="fas fa-search"></i><br>Audits
+                                </th>
+                                <th class="module-header bg-success text-white">
+                                    <i class="fas fa-graduation-cap"></i><br>Training
+                                </th>
+                                <th class="module-header bg-success text-white">
+                                    <i class="fas fa-file-signature"></i><br>Emission Data collection
+                                </th>
+                                <th class="module-header bg-success text-white">
+                                    <i class="fas fa-eye"></i><br>Observations
+                                </th>
+                                <th class="module-header bg-success text-white section-divider">
+                                    <i class="fas fa-chart-bar"></i><br>Reports
+                                </th>
+                                
+                                <!-- Approval Headers -->
+                                <th class="module-header bg-warning">
+                                    <i class="fas fa-ambulance"></i><br>Incidents
+                                </th>
+                                <th class="module-header bg-warning">
+                                    <i class="fas fa-exclamation-triangle"></i><br>Hazards
+                                </th>
+                                <th class="module-header bg-warning">
+                                    <i class="fas fa-clipboard-check"></i><br>Inspections
+                                </th>
+                                <th class="module-header bg-warning section-divider">
+                                    <i class="fas fa-file-signature"></i><br>Permits
+                                </th>
+                                
+                                <!-- Closure Headers -->
+                                <th class="module-header bg-danger text-dark">
+                                    <i class="fas fa-ambulance"></i><br>Incidents
+                                </th>
+                                <th class="module-header bg-danger text-dark">
+                                    <i class="fas fa-exclamation-triangle"></i><br>Hazards
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr class="user-row">
+                                <td class="permission-cell">
+                                    <input type="checkbox" name="user_ids" value="{{ user.id }}" class="user-checkbox">
+                                </td>
+                                <td>
+                                    <strong>{{ user.get_full_name }}</strong><br>
+                                    <small class="text-muted">{{ user.email }}</small><br>
+                                    <small class="text-muted">ID: {{ user.employee_id|default:"N/A" }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge badge-info">{{ user.get_role_display }}</span>
+                                </td>
+                                
+                                <!-- Module Access Checkboxes -->
+                                <td class="permission-cell bg-light">
+                                    <input type="checkbox" class="permission-checkbox" 
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_access_incident_module"
+                                           {% if user.can_access_incident_module %}checked{% endif %}>
+                                </td>
+                                <td class="permission-cell bg-light">
+                                    <input type="checkbox" class="permission-checkbox"
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_access_hazard_module"
+                                           {% if user.can_access_hazard_module %}checked{% endif %}>
+                                </td>
+                                <td class="permission-cell bg-light">
+                                    <input type="checkbox" class="permission-checkbox"
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_access_inspection_module"
+                                           {% if user.can_access_inspection_module %}checked{% endif %}>
+                                </td>
+                                <td class="permission-cell bg-light">
+                                    <input type="checkbox" class="permission-checkbox"
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_access_audit_module"
+                                           {% if user.can_access_audit_module %}checked{% endif %}>
+                                </td>
+                                <td class="permission-cell bg-light">
+                                    <input type="checkbox" class="permission-checkbox"
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_access_training_module"
+                                           {% if user.can_access_training_module %}checked{% endif %}>
+                                </td>
+                                <td class="permission-cell bg-light">
+                                    <input type="checkbox" class="permission-checkbox"
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_access_permit_module"
+                                           {% if user.can_access_permit_module %}checked{% endif %}>
+                                </td>
+                                <td class="permission-cell bg-light">
+                                    <input type="checkbox" class="permission-checkbox"
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_access_observation_module"
+                                           {% if user.can_access_observation_module %}checked{% endif %}>
+                                </td>
+                                <td class="permission-cell bg-light section-divider">
+                                    <input type="checkbox" class="permission-checkbox"
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_access_reports_module"
+                                           {% if user.can_access_reports_module %}checked{% endif %}>
+                                </td>
+                                
+                                <!-- Approval Checkboxes -->
+                                <td class="permission-cell" style="background-color: #fff8dc;">
+                                    <input type="checkbox" class="permission-checkbox"
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_approve_incidents"
+                                           {% if user.can_approve_incidents %}checked{% endif %}>
+                                </td>
+                                <td class="permission-cell" style="background-color: #fff8dc;">
+                                    <input type="checkbox" class="permission-checkbox"
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_approve_hazards"
+                                           {% if user.can_approve_hazards %}checked{% endif %}>
+                                </td>
+                                <td class="permission-cell" style="background-color: #fff8dc;">
+                                    <input type="checkbox" class="permission-checkbox"
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_approve_inspections"
+                                           {% if user.can_approve_inspections %}checked{% endif %}>
+                                </td>
+                                <td class="permission-cell section-divider" style="background-color: #fff8dc;">
+                                    <input type="checkbox" class="permission-checkbox"
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_approve_permits"
+                                           {% if user.can_approve_permits %}checked{% endif %}>
+                                </td>
+                                
+                                <!-- Closure Checkboxes -->
+                                <td class="permission-cell" style="background-color: #ffe4e1;">
+                                    <input type="checkbox" class="permission-checkbox"
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_close_incidents"
+                                           {% if user.can_close_incidents %}checked{% endif %}>
+                                </td>
+                                <td class="permission-cell" style="background-color: #ffe4e1;">
+                                    <input type="checkbox" class="permission-checkbox"
+                                           data-user-id="{{ user.id }}"
+                                           data-permission="can_close_hazards"
+                                           {% if user.can_close_hazards %}checked{% endif %}>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="17" class="text-center py-4">
+                                    <i class="fas fa-users fa-3x text-muted mb-2"></i>
+                                    <p class="text-muted">No users found</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="card-footer clearfix">
+            <ul class="pagination pagination-sm m-0 float-right">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">First</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a></li>
+                {% endif %}
+                
+                <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">Last</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Legend Card -->
+    <div class="card bg-light">
+        <div class="card-body">
+            <h5><i class="fas fa-info-circle"></i> Legend</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <span class="badge badge-success mr-2">■</span> <strong>Module Access:</strong> User can access and use this module
+                </div>
+                <div class="col-md-4">
+                    <span class="badge badge-warning mr-2">■</span> <strong>Approval Permissions:</strong> User can approve/reject requests
+                </div>
+                <div class="col-md-4">
+                    <span class="badge badge-danger mr-2">■</span> <strong>Closure:</strong> User can close completed items
+                </div>
+            </div>
+            <hr>
+            <p class="mb-0 text-muted">
+                <i class="fas fa-lightbulb text-warning"></i> 
+                Click any checkbox to instantly grant or revoke that permission. Changes are saved automatically.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Bulk Action Modal -->
+<div class="modal fade" id="bulkActionModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-users-cog"></i> Bulk Permission Update
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Select users from the table, then choose a permission and action:</p>
+                
+                <div class="form-group">
+                    <label>Permission Type</label>
+                    <select name="permission_field" class="form-control" form="bulkForm" required>
+                        <option value="">-- Select Permission --</option>
+                        <optgroup label="Module Access">
+                            <option value="can_access_incident_module">Incident Module Access</option>
+                            <option value="can_access_hazard_module">Hazard Module Access</option>
+                            <option value="can_access_inspection_module">Inspection Module Access</option>
+                            <option value="can_access_audit_module">Audit Module Access</option>
+                            <option value="can_access_training_module">Training Module Access</option>
+                            <option value="can_access_permit_module">Permit Module Access</option>
+                            <option value="can_access_observation_module">Observation Module Access</option>
+                            <option value="can_access_reports_module">Reports Module Access</option>
+                        </optgroup>
+                        <optgroup label="Approval Permissions">
+                            <option value="can_approve_incidents">Approve Incidents</option>
+                            <option value="can_approve_hazards">Approve Hazards</option>
+                            <option value="can_approve_inspections">Approve Inspections</option>
+                            <option value="can_approve_permits">Approve Permits</option>
+                        </optgroup>
+                        <optgroup label="Closure Permissions">
+                            <option value="can_close_incidents">Close Incidents</option>
+                            <option value="can_close_hazards">Close Hazards</option>
+                        </optgroup>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Action</label>
+                    <select name="action" class="form-control" form="bulkForm" required>
+                        <option value="">-- Select Action --</option>
+                        <option value="grant">✅ Grant Permission</option>
+                        <option value="revoke">❌ Revoke Permission</option>
+                    </select>
+                </div>
+                
+                <p class="text-muted">
+                    <i class="fas fa-info-circle"></i> 
+                    <span id="selectedCount">0</span> user(s) selected
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="submit" form="bulkForm" class="btn btn-primary">
+                    <i class="fas fa-check"></i> Apply Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Select All checkbox
+    const selectAll = document.getElementById('selectAll');
+    const userCheckboxes = document.querySelectorAll('.user-checkbox');
+    const selectedCount = document.getElementById('selectedCount');
+    
+    selectAll.addEventListener('change', function() {
+        userCheckboxes.forEach(cb => cb.checked = this.checked);
+        updateSelectedCount();
+    });
+    
+    userCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateSelectedCount);
+    });
+    
+    function updateSelectedCount() {
+        const count = document.querySelectorAll('.user-checkbox:checked').length;
+        selectedCount.textContent = count;
+    }
+    
+    // Form validation
+    document.getElementById('bulkForm').addEventListener('submit', function(e) {
+        const checked = document.querySelectorAll('.user-checkbox:checked').length;
+        if (checked === 0) {
+            e.preventDefault();
+            alert('Please select at least one user');
+            return false;
+        }
+        
+        const permission = document.querySelector('select[name="permission_field"]').value;
+        const action = document.querySelector('select[name="action"]').value;
+        
+        if (!permission || !action) {
+            e.preventDefault();
+            alert('Please select permission type and action');
+            return false;
+        }
+    });
+    
+    // Real-time permission update via AJAX
+    document.querySelectorAll('.permission-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const userId = this.dataset.userId;
+            const permission = this.dataset.permission;
+            const value = this.checked;
+            
+            // Show loading state
+            this.disabled = true;
+            
+            // Send AJAX request
+            fetch(`/accounts/permissions-only/${userId}/update/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: `permission_field=${permission}&value=${value}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success feedback
+                    this.parentElement.style.backgroundColor = value ? '#d4edda' : '#f8d7da';
+                    setTimeout(() => {
+                        this.parentElement.style.backgroundColor = '';
+                    }, 1000);
+                } else {
+                    // Revert on error
+                    this.checked = !value;
+                    alert('Error updating permission: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.checked = !value;
+                alert('Error updating permission');
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,282 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Organization Setup{% endblock %}
+{% block page_title %}Organization Setup{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item active">Organization Setup</li>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row mb-4">
+  <div class="col-lg-3 col-md-6 mb-3">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #1E90FF, #1565C0);">
+        <i class="fas fa-industry"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Plants</div>
+        <div class="ehs-stat-value">{{ total_plants }}</div>
+        <div class="ehs-stat-trend">
+          <span>{{ active_plants }} Active</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-lg-3 col-md-6 mb-3">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #9C27B0, #7B1FA2);">
+        <i class="fas fa-layer-group"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Zones</div>
+        <div class="ehs-stat-value">{{ total_zones }}</div>
+        <div class="ehs-stat-trend">
+          <span>{{ active_zones }} Active</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-lg-3 col-md-6 mb-3">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #FF9800, #F57C00);">
+        <i class="fas fa-building"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Departments</div>
+        <div class="ehs-stat-value">{{ total_departments }}</div>
+        <div class="ehs-stat-trend">
+          <span>{{ active_departments }} Active</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-3 col-md-6 mb-3">
+    <div class="ehs-stat-card">
+      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #E91E63, #C2185B);">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Employees</div>
+        <div class="ehs-stat-value">{{ total_employees }}</div>
+        <div class="ehs-stat-trend">
+          <span>{{ active_employees }} Active</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+  <div class="col-lg-4 col-md-6 mb-4">
+    <div class="card h-100 border-0 shadow-sm d-flex flex-column">
+      <div class="card-body text-center d-flex flex-column">
+        <div class="mb-3">
+          <i class="fas fa-industry fa-3x text-primary"></i>
+        </div>
+
+        <h5 class="card-title">Plants Management</h5>
+        <p class="card-text text-muted">Manage manufacturing plants and units</p>
+
+        <!-- Buttons -->
+        <div class="mt-auto d-flex justify-content-center flex-wrap">
+          <a href="{% url 'organizations:plant_list' %}" class="btn btn-primary btn-sm mr-2 mb-2">
+            <i class="fas fa-list mr-1"></i> View
+          </a>
+          <a href="{% url 'organizations:plant_create' %}" class="btn btn-success btn-sm mb-2">
+            <i class="fas fa-plus mr-1"></i> Add
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4 col-md-6 mb-4">
+    <div class="card h-100 border-0 shadow-sm d-flex flex-column">
+      <div class="card-body text-center d-flex flex-column">
+        <div class="mb-3">
+          <i class="fas fa-layer-group fa-3x text-purple"></i>
+        </div>
+
+        <h5 class="card-title">Zones Management</h5>
+        <p class="card-text text-muted">Manage zones within plants</p>
+
+        <div class="mt-auto d-flex justify-content-center flex-wrap">
+          <a href="{% url 'organizations:zone_list' %}" class="btn btn-primary btn-sm mr-2 mb-2">
+            <i class="fas fa-list mr-1"></i> View
+          </a>
+          <a href="{% url 'organizations:zone_create' %}" class="btn btn-success btn-sm mb-2">
+            <i class="fas fa-plus mr-1"></i> Add
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4 col-md-6 mb-4">
+    <div class="card h-100 border-0 shadow-sm d-flex flex-column">
+      <div class="card-body text-center d-flex flex-column">
+        <div class="mb-3">
+          <i class="fas fa-building fa-3x text-warning"></i>
+        </div>
+
+        <h5 class="card-title">Departments Management</h5>
+        <p class="card-text text-muted">Manage organizational departments</p>
+
+        <div class="mt-auto d-flex justify-content-center flex-wrap">
+          <a href="{% url 'organizations:department_list' %}" class="btn btn-primary btn-sm mr-2 mb-2">
+            <i class="fas fa-list mr-1"></i> View
+          </a>
+          <a href="{% url 'organizations:department_create' %}" class="btn btn-success btn-sm mb-2">
+            <i class="fas fa-plus mr-1"></i> Add
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Organizational Hierarchy Visualization -->
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-gradient-primary text-white">
+        <h5 class="mb-0">
+          <i class="fas fa-sitemap mr-2"></i>Organizational Hierarchy
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="text-center py-4">
+          <div class="d-inline-block text-center mx-3">
+            <div class="mb-2">
+              <i class="fas fa-industry fa-3x text-primary"></i>
+            </div>
+            <strong>Plant</strong>
+            <div class="small text-muted">Manufacturing Unit</div>
+          </div>
+          <i class="fas fa-arrow-right fa-2x text-muted mx-2"></i>
+          
+          <div class="d-inline-block text-center mx-3">
+            <div class="mb-2">
+              <i class="fas fa-layer-group fa-3x text-purple"></i>
+            </div>
+            <strong>Zone</strong>
+            <div class="small text-muted">Zone A, B, C</div>
+          </div>
+          <i class="fas fa-arrow-right fa-2x text-muted mx-2"></i>
+          
+          <div class="d-inline-block text-center mx-3">
+            <div class="mb-2">
+              <i class="fas fa-map-marker-alt fa-3x text-success"></i>
+            </div>
+            <strong>Location</strong>
+            <div class="small text-muted">Production Area</div>
+          </div>
+          <i class="fas fa-arrow-right fa-2x text-muted mx-2"></i>
+          
+          <div class="d-inline-block text-center mx-3">
+            <div class="mb-2">
+              <i class="fas fa-map-pin fa-3x text-warning"></i>
+            </div>
+            <strong>Sub-Location</strong>
+            <div class="small text-muted">Specific Section</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Information Card -->
+<div class="row">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>Organization Setup Guide</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6 class="font-weight-bold mb-3">
+              <i class="fas fa-list-ol mr-2 text-primary"></i>Setup Steps
+            </h6>
+            <ol class="mb-0">
+              <li class="mb-2">
+                <strong>Create Plants:</strong> Start by setting up your manufacturing plants/units
+              </li>
+              <li class="mb-2">
+                <strong>Add Zones:</strong> Create zones within each plant (locations and sub-locations are managed within zones)
+              </li>
+              <li class="mb-2">
+                <strong>Setup Departments:</strong> Create organizational departments
+              </li>
+              <li class="mb-2">
+                <strong>Assign Users:</strong> Go to User Management to assign employees to plants, zones, and departments
+              </li>
+            </ol>
+          </div>
+          
+          <div class="col-md-6">
+            <h6 class="font-weight-bold mb-3">
+              <i class="fas fa-lightbulb mr-2 text-warning"></i>Key Features
+            </h6>
+            <ul class="mb-0">
+              <li class="mb-2">
+                <i class="fas fa-check-circle text-success mr-1"></i>
+                <strong>Hierarchical Structure:</strong> Plant → Zone → Location → Sub-Location
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-check-circle text-success mr-1"></i>
+                <strong>Zones contain Locations:</strong> Locations and sub-locations are managed through zone management
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-check-circle text-success mr-1"></i>
+                <strong>Flexible Assignment:</strong> Assign users to single or multiple locations
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-check-circle text-success mr-1"></i>
+                <strong>Department-based Organization:</strong> Group employees by functional departments
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-check-circle text-success mr-1"></i>
+                <strong>Active/Inactive Status:</strong> Control visibility and usage of each organizational unit
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .text-purple {
+    color: #9C27B0 !important;
+  }
+  
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, #1E90FF, #1565C0);
+  }
+  
+  .ehs-stat-card {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+  }
+  
+  .ehs-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,221 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Schedule Inspection{% endblock %}
+{% block page_title %}Schedule New Inspection{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-section {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.form-section h5 {
+    color: #2c3e50;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #17a2b8;
+}
+
+.info-box {
+    background-color: #d1ecf1;
+    border-left: 4px solid #17a2b8;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:dashboard' %}">Inspection Management</a></li>
+<li class="breadcrumb-item active">Schedule Inspection</li>
+{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card ehs-card">
+            <div class="card-header bg-info text-white">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-calendar-plus mr-2"></i>Schedule New Inspection
+                </h3>
+            </div>
+            
+            <form method="POST" id="scheduleForm">
+                {% csrf_token %}
+                
+                <div class="card-body">
+                    <!-- Info Box -->
+                    <div class="info-box">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>Note:</strong> Schedule an inspection by selecting a template, assigning it to an HOD, 
+                        and setting the due date. The assigned person will be notified via email.
+                    </div>
+
+                    <!-- Template Selection -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-clipboard-list mr-2"></i>Inspection Template</h5>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.template.id_for_label }}">
+                                    Select Inspection Template <span class="text-danger">*</span>
+                                </label>
+                                {{ form.template }}
+                                {% if form.template.errors %}
+                                    <div class="text-danger">{{ form.template.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Choose the type of inspection to conduct (e.g., Fire Safety, Electrical Safety)
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Location Details -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-map-marker-alt mr-2"></i>Location Information</h5>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.plant.id_for_label }}">
+                                    Plant <span class="text-danger">*</span>
+                                </label>
+                                {{ form.plant }}
+                                {% if form.plant.errors %}
+                                    <div class="text-danger">{{ form.plant.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.zone.id_for_label }}">Zone</label>
+                                {{ form.zone }}
+                                {% if form.zone.errors %}
+                                    <div class="text-danger">{{ form.zone.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.location.id_for_label }}">Location</label>
+                                {{ form.location }}
+                                {% if form.location.errors %}
+                                    <div class="text-danger">{{ form.location.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Assignment Details -->
+                    <div class="form-section">
+                        <h5><i class="fas fa-user-check mr-2"></i>Assignment Details</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.assigned_to.id_for_label }}">
+                                    Assign To (HOD) <span class="text-danger">*</span>
+                                </label>
+                                {{ form.assigned_to }}
+                                {% if form.assigned_to.errors %}
+                                    <div class="text-danger">{{ form.assigned_to.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Select the Head of Department who will conduct this inspection
+                                </small>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label for="{{ form.scheduled_date.id_for_label }}">
+                                    Scheduled Date <span class="text-danger">*</span>
+                                </label>
+                                {{ form.scheduled_date }}
+                                {% if form.scheduled_date.errors %}
+                                    <div class="text-danger">{{ form.scheduled_date.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label for="{{ form.due_date.id_for_label }}">
+                                    Due Date <span class="text-danger">*</span>
+                                </label>
+                                {{ form.due_date }}
+                                {% if form.due_date.errors %}
+                                    <div class="text-danger">{{ form.due_date.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.notes.id_for_label }}">
+                                    Special Instructions / Notes
+                                </label>
+                                {{ form.notes }}
+                                {% if form.notes.errors %}
+                                    <div class="text-danger">{{ form.notes.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Any specific instructions or focus areas for this inspection
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-info btn-lg">
+                        <i class="fas fa-calendar-check mr-2"></i>Schedule Inspection
+                    </button>
+                    <a href="{% url 'inspections:schedule_list' %}" class="btn btn-secondary btn-lg ml-2">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap4',
+        width: '100%'
+    });
+    
+    // Set minimum date for scheduled_date to today
+    const today = new Date().toISOString().split('T')[0];
+    $('#{{ form.scheduled_date.id_for_label }}').attr('min', today);
+    
+    // When scheduled_date changes, update due_date minimum
+    $('#{{ form.scheduled_date.id_for_label }}').on('change', function() {
+        const scheduledDate = $(this).val();
+        $('#{{ form.due_date.id_for_label }}').attr('min', scheduledDate);
+        
+        // If due_date is before scheduled_date, clear it
+        const dueDate = $('#{{ form.due_date.id_for_label }}').val();
+        if (dueDate && dueDate < scheduledDate) {
+            $('#{{ form.due_date.id_for_label }}').val('');
+        }
+    });
+    
+    // Form validation
+    $('#scheduleForm').on('submit', function(e) {
+        const scheduledDate = $('#{{ form.scheduled_date.id_for_label }}').val();
+        const dueDate = $('#{{ form.due_date.id_for_label }}').val();
+        
+        if (dueDate && scheduledDate && dueDate < scheduledDate) {
+            e.preventDefault();
+            alert('Due date cannot be before scheduled date.');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

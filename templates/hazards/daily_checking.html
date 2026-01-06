@@ -1,0 +1,821 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Report New Hazard{% endblock %}
+{% block page_title %}Report New Hazard{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hazards:dashboard' %}">Hazard Management</a></li>
+<li class="breadcrumb-item active">Report New Hazard</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hazard-photo-preview {
+        display: inline-block;
+        position: relative;
+        margin: 10px;
+    }
+    .hazard-photo-preview img {
+        width: 120px;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 5px;
+        border: 2px solid #ddd;
+    }
+    .hazard-photo-preview .remove-photo {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background-color: #dc3545;
+        color: white;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        text-align: center;
+        line-height: 25px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    .photo-upload-area {
+        border: 2px dashed #007bff;
+        border-radius: 5px;
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        background-color: #f8f9fa;
+        transition: all 0.3s;
+    }
+    .photo-upload-area:hover {
+        background-color: #e9ecef;
+        border-color: #0056b3;
+    }
+    .photo-upload-area i {
+        font-size: 48px;
+        color: #007bff;
+        margin-bottom: 10px;
+    }
+    .severity-option {
+        padding: 15px;
+        border: 3px solid #ddd;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+        background-color: white;
+        position: relative;
+    }
+    .severity-option:hover {
+        border-color: #007bff;
+        background-color: #f8f9fa;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .severity-option.selected {
+        border-color: #28a745;
+        background-color: #d4edda;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(40,167,69,0.3);
+    }
+    .severity-option.selected::before {
+        content: '✓ SELECTED';
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #28a745;
+        color: white;
+        padding: 3px 10px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+    }
+    .severity-low { border-left: 5px solid #28a745; }
+    .severity-medium { border-left: 5px solid #ffc107; }
+    .severity-high { border-left: 5px solid #fd7e14; }
+    .severity-critical { border-left: 5px solid #dc3545; }
+    
+    .hazard-type-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+    .hazard-type-item {
+        padding: 15px 10px;
+        border: 3px solid #ddd;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background-color: white;
+        position: relative;
+    }
+    .hazard-type-item:hover {
+        border-color: #007bff;
+        background-color: #f8f9fa;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .hazard-type-item.selected {
+        border-color: #28a745;
+        background-color: #d4edda;
+        color: #155724;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(40,167,69,0.3);
+    }
+    .hazard-type-item .checkbox-indicator {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 24px;
+        height: 24px;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        background-color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+    .hazard-type-item.selected .checkbox-indicator {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+    .hazard-type-item.selected .checkbox-indicator::after {
+        content: '✓';
+        color: white;
+        font-weight: bold;
+        font-size: 16px;
+    }
+    .hazard-type-item.selected i {
+        color: #155724 !important;
+    }
+    .hazard-type-item.selected p {
+        color: #155724 !important;
+        font-weight: bold;
+    }
+    
+    /* Auto-generated title styling */
+    #id_hazard_title {
+        background-color: #f0f8ff;
+        border: 2px solid #007bff;
+        font-weight: 500;
+    }
+    
+    #id_hazard_title.generating {
+        background-color: #fff3cd;
+        border-color: #ffc107;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="ehs-card">
+      <div class="card-header bg-warning">
+        <h3 class="card-title mb-0">
+          <i class="fas fa-exclamation-triangle mr-2"></i>Report New Hazard
+        </h3>
+      </div>
+      
+      <form method="POST" id="hazardForm" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="card-body">
+          <!-- Alert Info -->
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle mr-2"></i>
+            <strong>Hazard Types:</strong> 
+            <span class="badge badge-warning">UA - Unsafe Act</span> 
+            <span class="badge badge-danger">UC - Unsafe Condition</span>
+            <br>
+            All fields marked with <span class="text-danger">*</span> are mandatory.
+          </div>
+
+          <!-- Reporter Information -->
+          <h5 class="mb-3"><i class="fas fa-user mr-2"></i>Reporter Information</h5>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label>Reporter Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" value="{{ user.get_full_name|default:user.username }}" readonly>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label>Reporter Email <span class="text-danger">*</span></label>
+              <input type="email" class="form-control" value="{{ user.email }}" readonly>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label>Reported Date</label>
+              <input type="text" class="form-control" value="{% now 'd/m/Y H:i' %}" readonly>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Hazard Details -->
+          <h5 class="mb-3"><i class="fas fa-exclamation-circle mr-2"></i>Hazard Details</h5>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="id_hazard_title">
+                Hazard Title <span class="text-danger">*</span>
+                <small class="text-muted">(Auto-generated)</small>
+              </label>
+              {{ form.hazard_title }}
+              <small class="form-text text-info">
+                <i class="fas fa-magic"></i> This field is automatically generated from your description
+              </small>
+              {% if form.hazard_title.errors %}
+                <div class="text-danger">{{ form.hazard_title.errors }}</div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-3 mb-3">
+              <label for="{{ form.identified_date.id_for_label }}">Date Identified <span class="text-danger">*</span></label>
+              {{ form.identified_date }}
+              {% if form.identified_date.errors %}
+                <div class="text-danger">{{ form.identified_date.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-3 mb-3">
+              <label for="{{ form.identified_time.id_for_label }}">Time Identified <span class="text-danger">*</span></label>
+              {{ form.identified_time }}
+              {% if form.identified_time.errors %}
+                <div class="text-danger">{{ form.identified_time.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.description.id_for_label }}">Hazard Description <span class="text-danger">*</span></label>
+              {{ form.description }}
+              <small class="form-text text-muted">
+                Provide a detailed description (The title will be auto-generated as you type)
+              </small>
+              {% if form.description.errors %}
+                <div class="text-danger">{{ form.description.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Hazard Type Selection (UA or UC) -->
+          <h5 class="mb-3"><i class="fas fa-tags mr-2"></i>Hazard Classification</h5>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="{{ form.hazard_type.id_for_label }}">Hazard Type <span class="text-danger">*</span></label>
+              {{ form.hazard_type }}
+              {% if form.hazard_type.errors %}
+                <div class="text-danger">{{ form.hazard_type.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Hazard Category Selection (Visual Grid) -->
+          <div class="mb-3">
+            <label>Hazard Category <span class="text-danger">*</span></label>
+            <input type="hidden" name="hazard_category" id="hazard_category_hidden" required>
+            <div class="hazard-type-grid">
+              <div class="hazard-type-item" data-value="slip_trip_fall">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-person-falling" style="font-size: 30px; color: #007bff;"></i>
+                <p class="mt-2 mb-0"><small>Slip/Trip/Fall</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="chemical">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-flask" style="font-size: 30px; color: #fd7e14;"></i>
+                <p class="mt-2 mb-0"><small>Chemical</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="electrical">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-bolt" style="font-size: 30px; color: #ffc107;"></i>
+                <p class="mt-2 mb-0"><small>Electrical</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="fire">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-fire" style="font-size: 30px; color: #dc3545;"></i>
+                <p class="mt-2 mb-0"><small>Fire</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="equipment">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-cogs" style="font-size: 30px; color: #6c757d;"></i>
+                <p class="mt-2 mb-0"><small>Equipment</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="ergonomic">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-chair" style="font-size: 30px; color: #17a2b8;"></i>
+                <p class="mt-2 mb-0"><small>Ergonomic</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="biological">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-biohazard" style="font-size: 30px; color: #e83e8c;"></i>
+                <p class="mt-2 mb-0"><small>Biological</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="environmental">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-leaf" style="font-size: 30px; color: #28a745;"></i>
+                <p class="mt-2 mb-0"><small>Environmental</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="confined_space">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-box" style="font-size: 30px; color: #6610f2;"></i>
+                <p class="mt-2 mb-0"><small>Confined Space</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="working_at_height">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-ladder" style="font-size: 30px; color: #fd7e14;"></i>
+                <p class="mt-2 mb-0"><small>Working at Height</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="manual_handling">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-box-open" style="font-size: 30px; color: #20c997;"></i>
+                <p class="mt-2 mb-0"><small>Manual Handling</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="noise">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-volume-up" style="font-size: 30px; color: #ffc107;"></i>
+                <p class="mt-2 mb-0"><small>Noise/Vibration</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="temperature">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-temperature-high" style="font-size: 30px; color: #dc3545;"></i>
+                <p class="mt-2 mb-0"><small>Temperature</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="radiation">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-radiation" style="font-size: 30px; color: #e83e8c;"></i>
+                <p class="mt-2 mb-0"><small>Radiation</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="vehicular">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-car" style="font-size: 30px; color: #007bff;"></i>
+                <p class="mt-2 mb-0"><small>Vehicular/Traffic</small></p>
+              </div>
+              <div class="hazard-type-item" data-value="other">
+                <div class="checkbox-indicator"></div>
+                <i class="fas fa-question-circle" style="font-size: 30px; color: #6c757d;"></i>
+                <p class="mt-2 mb-0"><small>Other</small></p>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Type-Specific Sections -->
+          <div id="unsafeActSection" style="display: none;">
+            <h5 class="mb-3"><i class="fas fa-user-shield mr-2 text-warning"></i>Unsafe Act Details</h5>
+            
+            <div class="alert alert-warning">
+              <i class="fas fa-info-circle mr-2"></i>
+              <strong>Unsafe Act:</strong> Any behavior or action that deviates from safe work practices.
+            </div>
+            
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <label for="{{ form.unsafe_act_description.id_for_label }}">Description of Unsafe Act <span class="text-danger" id="ua_desc_required">*</span></label>
+                {{ form.unsafe_act_description }}
+                <small class="form-text text-muted">What unsafe behavior was observed?</small>
+                {% if form.unsafe_act_description.errors %}
+                  <div class="text-danger">{{ form.unsafe_act_description.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="{{ form.person_involved.id_for_label }}">Person Involved</label>
+                {{ form.person_involved }}
+                <small class="form-text text-muted">Optional - for follow-up training</small>
+                {% if form.person_involved.errors %}
+                  <div class="text-danger">{{ form.person_involved.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="{{ form.person_department.id_for_label }}">Department</label>
+                {{ form.person_department }}
+                {% if form.person_department.errors %}
+                  <div class="text-danger">{{ form.person_department.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <hr>
+          </div>
+
+          <!-- Unsafe Condition Section (UC) -->
+          <div id="unsafeConditionSection" style="display: none;">
+            <h5 class="mb-3"><i class="fas fa-tools mr-2 text-danger"></i>Unsafe Condition Details</h5>
+            
+            <div class="alert alert-danger">
+              <i class="fas fa-info-circle mr-2"></i>
+              <strong>Unsafe Condition:</strong> Any physical condition that may cause injury, illness, or property damage.
+            </div>
+            
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <label for="{{ form.unsafe_condition_description.id_for_label }}">Description of Unsafe Condition <span class="text-danger" id="uc_desc_required">*</span></label>
+                {{ form.unsafe_condition_description }}
+                <small class="form-text text-muted">What unsafe condition was identified?</small>
+                {% if form.unsafe_condition_description.errors %}
+                  <div class="text-danger">{{ form.unsafe_condition_description.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <label for="{{ form.equipment_involved.id_for_label }}">Equipment/Machinery Involved</label>
+                {{ form.equipment_involved }}
+                {% if form.equipment_involved.errors %}
+                  <div class="text-danger">{{ form.equipment_involved.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <hr>
+          </div>
+
+          <!-- Location Information -->
+          <h5 class="mb-3"><i class="fas fa-map-marker-alt mr-2"></i>Location Information</h5>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label for="id_plant">Plant <span class="text-danger">*</span></label>
+              {{ form.plant }}
+              {% if form.plant.errors %}
+                <div class="text-danger">{{ form.plant.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="id_zone">Zone</label>
+              {{ form.zone }}
+              <small class="form-text text-muted">Select plant first</small>
+              {% if form.zone.errors %}
+                <div class="text-danger">{{ form.zone.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="id_location">Location <span class="text-danger">*</span></label>
+              {{ form.location }}
+              <small class="form-text text-muted">Select zone first</small>
+              {% if form.location.errors %}
+                <div class="text-danger">{{ form.location.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Risk Assessment -->
+          <h5 class="mb-3"><i class="fas fa-shield-alt mr-2"></i>Risk Assessment</h5>
+          
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label for="{{ form.severity.id_for_label }}">Severity <span class="text-danger">*</span></label>
+              {{ form.severity }}
+              <small class="form-text text-muted">Potential impact</small>
+              {% if form.severity.errors %}
+                <div class="text-danger">{{ form.severity.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="{{ form.likelihood.id_for_label }}">Likelihood <span class="text-danger">*</span></label>
+              {{ form.likelihood }}
+              <small class="form-text text-muted">Probability of occurrence</small>
+              {% if form.likelihood.errors %}
+                <div class="text-danger">{{ form.likelihood.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4">
+              <label for="{{ form.risk_level.id_for_label }}">Risk Level <span class="text-danger">*</span></label>
+              {{ form.risk_level }}
+              {% if form.risk_level.errors %}
+                <div class="text-danger">{{ form.risk_level.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Visual Risk Level Selection -->
+          <div class="mb-3">
+            <label>Quick Risk Level Selection</label>
+            <input type="hidden" id="risk_level_visual">
+            <div class="row">
+              <div class="col-md-3">
+                <div class="severity-option severity-low" data-value="Low">
+                  <i class="fas fa-check-circle" style="font-size: 30px; color: #28a745;"></i>
+                  <h6 class="mt-2">Low</h6>
+                  <small>Minor issue</small>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="severity-option severity-medium" data-value="Medium">
+                  <i class="fas fa-exclamation-circle" style="font-size: 30px; color: #ffc107;"></i>
+                  <h6 class="mt-2">Medium</h6>
+                  <small>Needs attention</small>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="severity-option severity-high" data-value="High">
+                  <i class="fas fa-exclamation-triangle" style="font-size: 30px; color: #fd7e14;"></i>
+                  <h6 class="mt-2">High</h6>
+                  <small>Urgent action</small>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="severity-option severity-critical" data-value="Critical">
+                  <i class="fas fa-skull-crossbones" style="font-size: 30px; color: #dc3545;"></i>
+                  <h6 class="mt-2">Critical</h6>
+                  <small>Immediate danger</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.potential_consequences.id_for_label }}">Potential Consequences <span class="text-danger">*</span></label>
+              {{ form.potential_consequences }}
+              {% if form.potential_consequences.errors %}
+                <div class="text-danger">{{ form.potential_consequences.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Immediate Actions -->
+          <h5 class="mb-3"><i class="fas fa-check-circle mr-2"></i>Immediate Actions</h5>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.immediate_actions_taken.id_for_label }}">Actions Taken</label>
+              {{ form.immediate_actions_taken }}
+              {% if form.immediate_actions_taken.errors %}
+                <div class="text-danger">{{ form.immediate_actions_taken.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.temporary_controls.id_for_label }}">Temporary Controls</label>
+              {{ form.temporary_controls }}
+              {% if form.temporary_controls.errors %}
+                <div class="text-danger">{{ form.temporary_controls.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Photo Upload -->
+          <h5 class="mb-3"><i class="fas fa-camera mr-2"></i>Photo Evidence</h5>
+          <div class="mb-3">
+            <label>Upload Photos (Max 5 images, 5MB each)</label>
+            <div class="photo-upload-area" id="photoUploadArea">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <h6>Click to upload or drag and drop</h6>
+              <small class="text-muted">PNG, JPG, JPEG up to 5MB</small>
+              <input type="file" id="hazard_photos" name="photos" accept="image/*" multiple style="display: none;" max="5">
+            </div>
+            <div id="photoPreviewArea" class="mt-3"></div>
+          </div>
+
+        </div>
+
+        <div class="card-footer">
+          <button type="submit" class="btn btn-warning btn-lg" id="submitBtn">
+            <i class="fas fa-paper-plane mr-2"></i>Submit Hazard Report
+          </button>
+          <a href="{% url 'hazards:hazard_list' %}" class="btn btn-secondary btn-lg ml-2">
+            <i class="fas fa-times mr-2"></i>Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("🚀 Hazard form loaded");
+    
+    const descriptionField = document.getElementById('id_description');
+    const titleField = document.getElementById('id_hazard_title');
+    const hazardTypeSelect = document.getElementById('id_hazard_type');
+    const unsafeActSection = document.getElementById('unsafeActSection');
+    const unsafeConditionSection = document.getElementById('unsafeConditionSection');
+    const plantSelect = document.getElementById('id_plant');
+    const zoneSelect = document.getElementById('id_zone');
+    const locationSelect = document.getElementById('id_location');
+    
+    // Auto-generate title from description
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    function generateTitle() {
+        const description = descriptionField.value.trim();
+        
+        if (!description || description.length < 10) {
+            titleField.value = '';
+            return;
+        }
+        
+        // Simple auto-generation: First 60 chars
+        let title = description.substring(0, 60);
+        if (description.length > 60) {
+            title += '...';
+        }
+        
+        titleField.value = title;
+        titleField.classList.remove('generating');
+    }
+    
+    const debouncedGenerate = debounce(generateTitle, 1000);
+    
+    if (descriptionField) {
+        descriptionField.addEventListener('input', function() {
+            titleField.classList.add('generating');
+            debouncedGenerate();
+        });
+    }
+    
+    // Hazard Type (UA/UC) - Show/Hide sections
+    hazardTypeSelect.addEventListener('change', function() {
+        const selectedType = this.value;
+        
+        // Hide all sections
+        unsafeActSection.style.display = 'none';
+        unsafeConditionSection.style.display = 'none';
+        
+        // Remove required attributes
+        document.getElementById('id_unsafe_act_description').removeAttribute('required');
+        document.getElementById('id_unsafe_condition_description').removeAttribute('required');
+        
+        if (selectedType === 'UA') {
+            unsafeActSection.style.display = 'block';
+            document.getElementById('id_unsafe_act_description').setAttribute('required', 'required');
+        } else if (selectedType === 'UC') {
+            unsafeConditionSection.style.display = 'block';
+            document.getElementById('id_unsafe_condition_description').setAttribute('required', 'required');
+        }
+    });
+    
+    // Hazard Category Selection (Visual Grid)
+    document.querySelectorAll('.hazard-type-item').forEach(item => {
+        item.addEventListener('click', function() {
+            document.querySelectorAll('.hazard-type-item').forEach(i => i.classList.remove('selected'));
+            this.classList.add('selected');
+            document.getElementById('hazard_category_hidden').value = this.getAttribute('data-value');
+            document.getElementById('id_hazard_category').value = this.getAttribute('data-value');
+        });
+    });
+    
+    // Risk Level Visual Selection
+    document.querySelectorAll('.severity-option').forEach(item => {
+        item.addEventListener('click', function() {
+            document.querySelectorAll('.severity-option').forEach(i => i.classList.remove('selected'));
+            this.classList.add('selected');
+            const value = this.getAttribute('data-value');
+            document.getElementById('id_risk_level').value = value;
+        });
+    });
+    
+    // Plant → Zone → Location cascading
+    plantSelect.addEventListener('change', function() {
+        const plantId = this.value;
+        
+        if (plantId) {
+            fetch(`{% url 'hazards:ajax_get_zones' %}?plant_id=${plantId}`)
+                .then(response => response.json())
+                .then(data => {
+                    zoneSelect.innerHTML = '<option value="">Select a zone</option>';
+                    locationSelect.innerHTML = '<option value="">Select location first</option>';
+                    
+                    data.forEach(zone => {
+                        const option = document.createElement('option');
+                        option.value = zone.id;
+                        option.textContent = `${zone.name} (${zone.code})`;
+                        zoneSelect.appendChild(option);
+                    });
+                });
+        }
+    });
+    
+    zoneSelect.addEventListener('change', function() {
+        const zoneId = this.value;
+        
+        if (zoneId) {
+            fetch(`{% url 'hazards:ajax_get_locations' %}?zone_id=${zoneId}`)
+                .then(response => response.json())
+                .then(data => {
+                    locationSelect.innerHTML = '<option value="">Select a location</option>';
+                    
+                    data.forEach(location => {
+                        const option = document.createElement('option');
+                        option.value = location.id;
+                        option.textContent = `${location.name} (${location.code})`;
+                        locationSelect.appendChild(option);
+                    });
+                });
+        }
+    });
+    
+    // Photo Upload
+    const photoUploadArea = document.getElementById('photoUploadArea');
+    const photoInput = document.getElementById('hazard_photos');
+    const photoPreviewArea = document.getElementById('photoPreviewArea');
+    let selectedFiles = [];
+    
+    photoUploadArea.addEventListener('click', () => photoInput.click());
+    
+    photoInput.addEventListener('change', function(e) {
+        handleFiles(e.target.files);
+    });
+    
+    photoUploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.style.backgroundColor = '#e9ecef';
+    });
+    
+    photoUploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.style.backgroundColor = '#f8f9fa';
+    });
+    
+    photoUploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.style.backgroundColor = '#f8f9fa';
+        handleFiles(e.dataTransfer.files);
+    });
+    
+    function handleFiles(files) {
+        if (selectedFiles.length + files.length > 5) {
+            alert('Maximum 5 photos allowed');
+            return;
+        }
+        
+        for (let file of files) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert(`File ${file.name} is too large. Max 5MB per file.`);
+                continue;
+            }
+            selectedFiles.push(file);
+        }
+        updatePhotoPreview();
+    }
+    
+    function updatePhotoPreview() {
+        photoPreviewArea.innerHTML = '';
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'hazard-photo-preview';
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview">
+                    <span class="remove-photo" data-index="${index}">&times;</span>
+                `;
+                photoPreviewArea.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+        
+        setTimeout(() => {
+            document.querySelectorAll('.remove-photo').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    selectedFiles.splice(index, 1);
+                    updatePhotoPreview();
+                });
+            });
+        }, 100);
+    }
+    
+    // Set current date and time
+    const now = new Date();
+    const dateInput = document.getElementById('id_identified_date');
+    const timeInput = document.getElementById('id_identified_time');
+    
+    if (!dateInput.value) {
+        dateInput.value = now.toISOString().split('T')[0];
+    }
+    if (!timeInput.value) {
+        timeInput.value = now.toTimeString().split(' ')[0].substring(0, 5);
+    }
+    
+    console.log("✅ Hazard form initialized!");
+});
+</script>
+{% endblock %}

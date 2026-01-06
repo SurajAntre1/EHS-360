@@ -1,0 +1,59 @@
+.offer_login_button {
+    min-width: 135px;
+}
+
+.offerdetail_parameters {
+    width: 120px;
+}
+
+
+/* .sidebar,
+.main-sidebar {
+    width: 200px;
+}
+
+@media (min-width: 768px) {
+    body:not(.sidebar-mini-md) .content-wrapper,
+    body:not(.sidebar-mini-md) .main-footer,
+    body:not(.sidebar-mini-md) .main-header {
+        margin-left: 200px;
+    }
+} */
+
+.offer-detail-block img {
+    width: 30px;
+    height: 30px;
+}
+
+
+.offer_textarea_link {
+    width: 100%;
+    height: 50px;
+    font-size: 14px;
+    border: 1px solid #a24949;
+    padding: 5px;
+}
+
+.content-wrapper {
+    position: relative;
+}
+
+.content-wrapper::after {
+    content: "";
+    /* background: url(/static/website/img/logo/BRSR.png) no-repeat center center fixed; */
+    /* background-size: cover; */
+    opacity: 0.1;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    position: absolute;
+    z-index: 1;
+    /* height: 100%;
+    width: 100%; */
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}

@@ -1,0 +1,125 @@
+{% load static %}
+<style>
+  .navbar-esg {
+    background: linear-gradient(135deg, #58C4DC, #6DBF4B);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .navbar-esg .nav-link {
+    color: white !important;
+    transition: all 0.3s ease;
+  }
+  
+  .navbar-esg .nav-link:hover {
+    color: rgba(255, 255, 255, 0.8) !important;
+    transform: translateY(-1px);
+  }
+  
+  .navbar-search .form-control {
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.9);
+    padding-left: 15px;
+  }
+  
+  .navbar-search .btn {
+    background: transparent;
+    border: none;
+    color: #58C4DC;
+  }
+  
+  .icon-btn {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .icon-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+  }
+</style>
+
+<!-- Navbar -->
+<nav class="main-header navbar navbar-expand navbar-esg">
+  <!-- Left navbar links -->
+  <ul class="navbar-nav">
+    <li class="nav-item">
+      <a class="nav-link" data-widget="pushmenu" href="#" role="button">
+        <i class="fas fa-bars"></i>
+      </a>
+    </li>
+  </ul>
+
+  <!-- Center - Search Form -->
+  <form class="form-inline ml-3 mr-auto navbar-search">
+    <div class="input-group">
+      <input class="form-control" type="search" placeholder="Search hazards, incidents..." aria-label="Search">
+      <div class="input-group-append">
+        <button class="btn" type="submit">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Right navbar links -->
+  <ul class="navbar-nav">
+    <!-- Notifications -->
+    <li class="nav-item dropdown">
+      <a class="nav-link" data-toggle="dropdown" href="#">
+        <div class="icon-btn">
+          <i class="fas fa-bell"></i>
+          <span class="badge badge-danger navbar-badge" style="position: absolute; top: 5px; right: 5px;">3</span>
+        </div>
+      </a>
+      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+        <span class="dropdown-item dropdown-header">3 Notifications</span>
+        <div class="dropdown-divider"></div>
+        <a href="#" class="dropdown-item">
+          <i class="fas fa-exclamation-triangle mr-2 text-warning"></i> High Priority Hazard
+          <span class="float-right text-muted text-sm">3 mins</span>
+        </a>
+        <div class="dropdown-divider"></div>
+        <a href="#" class="dropdown-item dropdown-footer">See All Notifications</a>
+      </div>
+    </li>
+
+    <!-- Settings -->
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'dashboards:settings' %}">
+        <div class="icon-btn"><i class="fas fa-cog"></i></div>
+      </a>
+    </li>
+
+    <!-- Profile -->
+    <li class="nav-item dropdown">
+      <a class="nav-link" data-toggle="dropdown" href="#">
+        <div class="icon-btn"><i class="fas fa-user"></i></div>
+      </a>
+      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+        <div class="dropdown-item dropdown-header">
+          <strong>{{ user.get_full_name|default:user.username }}</strong>
+          <p class="text-sm text-muted mb-0">{{ user.get_role_display }}</p>
+          {% if user.plant %}
+          <p class="text-sm text-muted mb-0">{{ user.plant.name }}</p>
+          {% endif %}
+        </div>
+        <div class="dropdown-divider"></div>
+        <a href="{% url 'accounts:profile' %}" class="dropdown-item">
+          <i class="fas fa-user mr-2"></i> My Profile
+        </a>
+        <div class="dropdown-divider"></div>
+        <a href="{% url 'accounts:logout' %}" class="dropdown-item">
+          <i class="fas fa-sign-out-alt mr-2"></i> Logout
+        </a>
+      </div>
+    </li>
+  </ul>
+</nav>
+<!-- /.navbar -->

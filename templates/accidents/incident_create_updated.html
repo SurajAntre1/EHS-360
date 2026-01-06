@@ -1,0 +1,861 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Report New Incident{% endblock %}
+{% block page_title %}Report New Incident{% endblock %}
+{% block extra_css %}
+<style>
+/* ... existing styles ... */
+
+/* On Behalf Section Styling */
+.custom-switch-lg .custom-control-label {
+    padding-left: 2.5rem;
+    padding-top: 0.25rem;
+    cursor: pointer;
+}
+
+.custom-switch-lg .custom-control-label::before {
+    height: 1.5rem;
+    width: 2.75rem;
+    border-radius: 1rem;
+}
+
+.custom-switch-lg .custom-control-label::after {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+}
+
+.custom-switch-lg .custom-control-input:checked ~ .custom-control-label::after {
+    transform: translateX(1.25rem);
+}
+
+#behalfReporterSection {
+    background-color: #fff3cd;
+    padding: 20px;
+    border-radius: 8px;
+    border: 2px solid #ffc107;
+    margin-bottom: 20px;
+}
+
+#behalfReporterSection .alert-warning {
+    background-color: #fff;
+    border-color: #ffc107;
+}
+
+/* Unsafe Acts and Conditions Section */
+.unsafe-section {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    margin-bottom: 20px;
+}
+
+.unsafe-section h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.unsafe-checkbox-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+.unsafe-checkbox-item {
+    padding: 5px 0;
+}
+
+.unsafe-checkbox-item .form-check {
+    margin-bottom: 0;
+}
+
+.unsafe-checkbox-item .form-check-label {
+    font-size: 0.95rem;
+    color: #495057;
+    cursor: pointer;
+    padding-left: 5px;
+}
+
+.unsafe-checkbox-item .form-check-input {
+    margin-top: 0.25rem;
+}
+
+.unsafe-checkbox-item .form-check-input:checked ~ .form-check-label {
+    color: #000;
+    font-weight: 500;
+}
+</style>
+{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Incident Management</a></li>
+<li class="breadcrumb-item active">Report New Incident</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="ehs-card">
+      <div class="card-header bg-danger text-white">
+        <h3 class="card-title mb-0">
+          <i class="fas fa-file-medical mr-2"></i>Report New Incident/Accident
+        </h3>
+      </div>
+      
+      <form method="POST" id="incidentForm" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="affected_body_parts_json" id="affectedBodyPartsJson">
+        <input type="hidden" name="unsafe_acts_json" id="unsafeActsJson">
+        <input type="hidden" name="unsafe_conditions_json" id="unsafeConditionsJson">
+        
+        <div class="card-body">
+          <!-- Alert Info -->
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle mr-2"></i>
+            <strong>Note:</strong> Investigation report is required within 7 days of incident occurrence.
+            All fields marked with <span class="text-danger">*</span> are mandatory.
+          </div>
+
+          <!-- Incident Type & Date/Time -->
+          <h5 class="mb-3"><i class="fas fa-calendar-alt mr-2"></i>Incident Information</h5>
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <label for="{{ form.incident_type.id_for_label }}">Type of Incident <span class="text-danger">*</span></label>
+              {{ form.incident_type }}
+              {% if form.incident_type.errors %}
+                <div class="text-danger">{{ form.incident_type.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-3 mb-3">
+              <label for="{{ form.incident_date.id_for_label }}">Date of Incident <span class="text-danger">*</span></label>
+              {{ form.incident_date }}
+              {% if form.incident_date.errors %}
+                <div class="text-danger">{{ form.incident_date.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-3 mb-3">
+              <label for="{{ form.incident_time.id_for_label }}">Time of Incident <span class="text-danger">*</span></label>
+              {{ form.incident_time }}
+              {% if form.incident_time.errors %}
+                <div class="text-danger">{{ form.incident_time.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-3 mb-3">
+              <label for="{{ form.severity_level.id_for_label }}">Severity Level <span class="text-danger">*</span></label>
+              {{ form.severity_level }}
+              {% if form.severity_level.errors %}
+                <div class="text-danger">{{ form.severity_level.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Location Information -->
+          <h5 class="mb-3"><i class="fas fa-map-marker-alt mr-2"></i>Location Information</h5>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label for="id_plant">Plant <span class="text-danger">*</span></label>
+              {{ form.plant }}
+              {% if form.plant.errors %}
+                <div class="text-danger">{{ form.plant.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="id_zone">Zone</label>
+              {{ form.zone }}
+              <small class="form-text text-muted">Select plant first</small>
+              {% if form.zone.errors %}
+                <div class="text-danger">{{ form.zone.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-4 mb-3">
+              <label for="id_location">Location <span class="text-danger">*</span></label>
+              {{ form.location }}
+              <small class="form-text text-muted">Select zone first</small>
+              {% if form.location.errors %}
+                <div class="text-danger">{{ form.location.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Incident Details -->
+          <h5 class="mb-3"><i class="fas fa-file-alt mr-2"></i>Incident Details</h5>
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.incident_title.id_for_label }}">Incident Title <span class="text-danger">*</span></label>
+              {{ form.incident_title }}
+              {% if form.incident_title.errors %}
+                <div class="text-danger">{{ form.incident_title.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.description.id_for_label }}">Detailed Description <span class="text-danger">*</span></label>
+              {{ form.description }}
+              <small class="form-text text-muted">Describe what happened in detail, sequence of events, and circumstances</small>
+              {% if form.description.errors %}
+                <div class="text-danger">{{ form.description.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Unsafe Acts and Unsafe Conditions Section -->
+          <div id="unsafeActsConditionsSection">
+            <h5 class="mb-3"><i class="fas fa-exclamation-triangle mr-2"></i>Unsafe Acts & Unsafe Conditions</h5>
+            
+            <div class="alert alert-warning">
+              <i class="fas fa-info-circle mr-2"></i>
+              <strong>Note:</strong> Select all applicable unsafe acts and/or unsafe conditions that contributed to this incident.
+            </div>
+
+            <div class="row">
+              <!-- Unsafe Acts -->
+              <div class="col-md-6">
+                <div class="unsafe-section">
+                  <h6><i class="fas fa-user-times mr-2"></i>Unsafe Act (Tick one or combination)</h6>
+                  <div class="unsafe-checkbox-grid">
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-act-checkbox" type="checkbox" name="unsafe_act" value="Operating Equipment without authority" id="ua1">
+                        <label class="form-check-label" for="ua1">Operating Equipment without authority</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-act-checkbox" type="checkbox" name="unsafe_act" value="Failure to warn / Secure" id="ua2">
+                        <label class="form-check-label" for="ua2">Failure to warn / Secure</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-act-checkbox" type="checkbox" name="unsafe_act" value="Operating at unsafe speed" id="ua3">
+                        <label class="form-check-label" for="ua3">Operating at unsafe speed</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-act-checkbox" type="checkbox" name="unsafe_act" value="Bi-passing safety devices/ Interlocks" id="ua4">
+                        <label class="form-check-label" for="ua4">Bi-passing safety devices/ Interlocks</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-act-checkbox" type="checkbox" name="unsafe_act" value="Using unsafe equipment" id="ua5">
+                        <label class="form-check-label" for="ua5">Using unsafe equipment</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-act-checkbox" type="checkbox" name="unsafe_act" value="Unsafe loading/unloading/Lifting" id="ua6">
+                        <label class="form-check-label" for="ua6">Unsafe loading/unloading/Lifting</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-act-checkbox" type="checkbox" name="unsafe_act" value="Improper position for task" id="ua7">
+                        <label class="form-check-label" for="ua7">Improper position for task</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-act-checkbox" type="checkbox" name="unsafe_act" value="Taking unsafe positions or postures" id="ua8">
+                        <label class="form-check-label" for="ua8">Taking unsafe positions or postures</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-act-checkbox" type="checkbox" name="unsafe_act" value="Working on dangerous or moving equipment" id="ua9">
+                        <label class="form-check-label" for="ua9">Working on dangerous or moving equipment</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-act-checkbox" type="checkbox" name="unsafe_act" value="Failure to use PPE" id="ua10">
+                        <label class="form-check-label" for="ua10">Failure to use PPE</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-act-checkbox" type="checkbox" name="unsafe_act" value="Horse play / Improper personal behavior" id="ua11">
+                        <label class="form-check-label" for="ua11">Horse play / Improper personal behavior</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-act-checkbox" type="checkbox" name="unsafe_act" value="Servicing equipment while in operation" id="ua12">
+                        <label class="form-check-label" for="ua12">Servicing equipment while in operation</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-act-checkbox" type="checkbox" name="unsafe_act" value="Other (explain)" id="ua13">
+                        <label class="form-check-label" for="ua13">Other (explain)</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Unsafe Conditions -->
+              <div class="col-md-6">
+                <div class="unsafe-section">
+                  <h6><i class="fas fa-hard-hat mr-2"></i>Unsafe Condition (Tick one or combination)</h6>
+                  <div class="unsafe-checkbox-grid">
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Inadequate guards/ barriers" id="uc1">
+                        <label class="form-check-label" for="uc1">Inadequate guards/ barriers</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Defective conditions of machines, tools, equipment" id="uc2">
+                        <label class="form-check-label" for="uc2">Defective conditions of machines, tools, equipment</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Unsafe design or construction" id="uc3">
+                        <label class="form-check-label" for="uc3">Unsafe design or construction</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Inadequate illumination" id="uc4">
+                        <label class="form-check-label" for="uc4">Inadequate illumination</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Inadequate ventilation" id="uc5">
+                        <label class="form-check-label" for="uc5">Inadequate ventilation</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Poor housekeeping" id="uc6">
+                        <label class="form-check-label" for="uc6">Poor housekeeping</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Non-provision of PPE" id="uc7">
+                        <label class="form-check-label" for="uc7">Non-provision of PPE</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Slippery floors" id="uc8">
+                        <label class="form-check-label" for="uc8">Slippery floors</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Broken/Uneven floors" id="uc9">
+                        <label class="form-check-label" for="uc9">Broken/Uneven floors</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Absence of hand rails" id="uc10">
+                        <label class="form-check-label" for="uc10">Absence of hand rails</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Exposure to excessive noise" id="uc11">
+                        <label class="form-check-label" for="uc11">Exposure to excessive noise</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Congested or restricted work areas" id="uc12">
+                        <label class="form-check-label" for="uc12">Congested or restricted work areas</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Extreme temperature" id="uc13">
+                        <label class="form-check-label" for="uc13">Extreme temperature</label>
+                      </div>
+                    </div>
+                    <div class="unsafe-checkbox-item">
+                      <div class="form-check">
+                        <input class="form-check-input unsafe-condition-checkbox" type="checkbox" name="unsafe_condition" value="Other (explain)" id="uc14">
+                        <label class="form-check-label" for="uc14">Other (explain)</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Affected Person Information -->
+          <div id="affectedPersonSection">
+            <h5 class="mb-3"><i class="fas fa-user-injured mr-2"></i>Affected Person Information</h5>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="{{ form.affected_person_name.id_for_label }}">Name of Affected Person <span class="text-danger" id="person_name_required">*</span></label>
+                {{ form.affected_person_name }}
+                {% if form.affected_person_name.errors %}
+                  <div class="text-danger">{{ form.affected_person_name.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="{{ form.affected_person_employee_id.id_for_label }}">Employee ID</label>
+                {{ form.affected_person_employee_id }}
+                {% if form.affected_person_employee_id.errors %}
+                  <div class="text-danger">{{ form.affected_person_employee_id.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="{{ form.affected_person_department.id_for_label }}">Department</label>
+                {{ form.affected_person_department }}
+                {% if form.affected_person_department.errors %}
+                  <div class="text-danger">{{ form.affected_person_department.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Body Parts Section (Will be shown/hidden based on incident type) -->
+            <div id="bodyPartsSection" style="display: none;">
+              {% include 'accidents/body_diagram_interactive.html' %}
+            </div>
+
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <label for="{{ form.nature_of_injury.id_for_label }}">Nature of Injury</label>
+                {{ form.nature_of_injury }}
+                <small class="form-text text-muted">Describe the type and extent of injury (e.g., cut, fracture, burn)</small>
+                {% if form.nature_of_injury.errors %}
+                  <div class="text-danger">{{ form.nature_of_injury.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <hr>
+
+            <!-- Immediate Actions & Medical Treatment -->
+            <h5 class="mb-3"><i class="fas fa-medkit mr-2"></i>Medical Treatment & Actions</h5>
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <label for="{{ form.immediate_actions_taken.id_for_label }}">Immediate Actions Taken</label>
+                {{ form.immediate_actions_taken }}
+                {% if form.immediate_actions_taken.errors %}
+                  <div class="text-danger">{{ form.immediate_actions_taken.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="row" id="medicalTreatmentRow">
+              <div class="col-md-4 mb-3">
+                <div class="form-check">
+                  {{ form.first_aid_provided }}
+                  <label class="form-check-label" for="{{ form.first_aid_provided.id_for_label }}">
+                    First Aid Provided
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <div class="form-check">
+                  {{ form.hospitalization_required }}
+                  <label class="form-check-label" for="{{ form.hospitalization_required.id_for_label }}">
+                    Hospitalization Required
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="row" id="hospitalNameDiv" style="display: none;">
+              <div class="col-md-6 mb-3">
+                <label for="{{ form.hospital_name.id_for_label }}">Hospital Name <span class="text-danger">*</span></label>
+                {{ form.hospital_name }}
+                {% if form.hospital_name.errors %}
+                  <div class="text-danger">{{ form.hospital_name.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <hr>
+          </div>
+
+          <!-- Witnesses -->
+          <h5 class="mb-3"><i class="fas fa-users mr-2"></i>Witnesses</h5>
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="{{ form.witnesses.id_for_label }}">Witnesses (if any)</label>
+              {{ form.witnesses }}
+              <small class="form-text text-muted">Names and contact details of witnesses</small>
+              {% if form.witnesses.errors %}
+                <div class="text-danger">{{ form.witnesses.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Photo Attachments -->
+          <h5 class="mb-3"><i class="fas fa-camera mr-2"></i>Photo Evidence</h5>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="photos">Upload Photos (if any)</label>
+              <input type="file" class="form-control-file" id="photos" name="photos" multiple accept="image/*">
+              <small class="form-text text-muted">Multiple photos can be selected. Supported formats: JPG, PNG</small>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Reporting Information -->
+          <h5 class="mb-3"><i class="fas fa-user-edit mr-2"></i>Reporting Information</h5>
+
+          <!-- On Behalf Checkbox -->
+          <div class="row">
+              <div class="col-md-12 mb-3">
+                  <div class="custom-control custom-switch custom-switch-lg">
+                      <input type="checkbox" class="custom-control-input" id="id_is_reported_on_behalf" name="is_reported_on_behalf">
+                      <label class="custom-control-label" for="id_is_reported_on_behalf">
+                          <strong>I am reporting this incident on behalf of someone else</strong>
+                          <br><small class="text-muted">Check this if you are filing this report for another person (as supervisor, witness, or safety officer)</small>
+                      </label>
+                  </div>
+              </div>
+          </div>
+
+          <!-- Reporter Details (Your Information) - Shown when "On Behalf" is checked -->
+          <div id="behalfReporterSection" style="display: none;">
+              <div class="alert alert-warning">
+                  <i class="fas fa-info-circle mr-2"></i>
+                  <strong>Note:</strong> Please provide YOUR information below as the person filing this report.
+                  The affected person's information will be captured in the "Affected Person Information" section.
+              </div>
+              
+              <div class="row">
+                  <div class="col-md-3 mb-3">
+                      <label for="behalf_reporter_name">Your Name <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="behalf_reporter_name" name="behalf_reporter_name" 
+                            placeholder="Your full name" value="{{ user.get_full_name|default:user.username }}">
+                  </div>
+                  <div class="col-md-3 mb-3">
+                      <label for="behalf_reporter_email">Your Email <span class="text-danger">*</span></label>
+                      <input type="email" class="form-control" id="behalf_reporter_email" name="behalf_reporter_email" 
+                            placeholder="your.email@company.com" value="{{ user.email }}">
+                  </div>
+                  <div class="col-md-3 mb-3">
+                      <label for="behalf_reporter_phone">Your Phone</label>
+                      <input type="tel" class="form-control" id="behalf_reporter_phone" name="behalf_reporter_phone" 
+                            placeholder="9999999999" pattern="[0-9]{10}" maxlength="10">
+                  </div>
+                  <div class="col-md-3 mb-3">
+                      <label for="behalf_reporter_relationship">Your Relationship <span class="text-danger">*</span></label>
+                      <select class="form-control" id="behalf_reporter_relationship" name="behalf_reporter_relationship">
+                          <option value="">Select Relationship</option>
+                          <option value="Supervisor">Supervisor</option>
+                          <option value="Manager">Manager</option>
+                          <option value="Safety Officer">Safety Officer</option>
+                          <option value="HR Representative">HR Representative</option>
+                          <option value="Colleague">Colleague</option>
+                          <option value="Witness">Witness</option>
+                          <option value="Security Personnel">Security Personnel</option>
+                          <option value="Other">Other</option>
+                      </select>
+                  </div>
+              </div>
+          </div>
+
+          <!-- Default Reporter (You) - Shown when "On Behalf" is NOT checked -->
+          <div id="defaultReporterSection">
+              <div class="row">
+                  <div class="col-md-6 mb-3">
+                      <label>Reported By</label>
+                      <input type="text" class="form-control" value="{{ user.get_full_name|default:user.username }}" readonly>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                      <label>Reported Date</label>
+                      <input type="text" class="form-control" value="{% now 'd/m/Y H:i' %}" readonly>
+                  </div>
+              </div>
+          </div>
+
+          <hr>
+        </div>
+        
+        <div class="card-footer">
+          <button type="submit" class="btn btn-danger btn-lg">
+            <i class="fas fa-paper-plane mr-2"></i>Submit Incident Report
+          </button>
+          <a href="{% url 'accidents:incident_list' %}" class="btn btn-secondary btn-lg ml-2">
+            <i class="fas fa-times mr-2"></i>Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const plantSelect = document.getElementById('id_plant');
+    const zoneSelect = document.getElementById('id_zone');
+    const locationSelect = document.getElementById('id_location');
+    const incidentTypeSelect = document.getElementById('id_incident_type');
+    const severityLevelSelect = document.getElementById('id_severity_level');
+    const bodyPartsSection = document.getElementById('bodyPartsSection');
+    const affectedPersonSection = document.getElementById('affectedPersonSection');
+    const medicalTreatmentRow = document.getElementById('medicalTreatmentRow');
+    const hospitalizationCheckbox = document.getElementById('id_hospitalization_required');
+    const hospitalNameDiv = document.getElementById('hospitalNameDiv');
+    
+    // Severity level options
+    const firstAidSeverityLevels = [
+        {value: 'Minor', text: 'Minor'},
+        {value: 'Moderate', text: 'Moderate'}
+    ];
+    
+    const otherIncidentSeverityLevels = [
+        {value: 'Serious', text: 'Serious'},
+        {value: 'Critical', text: 'Critical'},
+        {value: 'Fatal', text: 'Fatal'}
+    ];
+    
+    // Function to update severity level options
+    function updateSeverityLevels(incidentType) {
+        const currentValue = severityLevelSelect.value;
+        severityLevelSelect.innerHTML = '<option value="">Select severity level</option>';
+        
+        let levelsToShow = [];
+        
+        // If First Aid (FA) is selected, show only Minor and Moderate
+        if (incidentType === 'FA') {
+            levelsToShow = firstAidSeverityLevels;
+        } else if (incidentType === 'LTI' || incidentType === 'MTC' || incidentType === 'HLFI') {
+            // For other incident types, show Serious, Critical, Fatal
+            levelsToShow = otherIncidentSeverityLevels;
+        }
+        
+        levelsToShow.forEach(level => {
+            const option = document.createElement('option');
+            option.value = level.value;
+            option.textContent = level.text;
+            if (currentValue === level.value) {
+                option.selected = true;
+            }
+            severityLevelSelect.appendChild(option);
+        });
+    }
+    
+    // Load zones when plant is selected
+    plantSelect.addEventListener('change', function() {
+        const plantId = this.value;
+        
+        if (plantId) {
+            fetch(`{% url 'accidents:ajax_get_zones' %}?plant_id=${plantId}`)
+                .then(response => response.json())
+                .then(data => {
+                    zoneSelect.innerHTML = '<option value="">Select a zone</option>';
+                    locationSelect.innerHTML = '<option value="">Select location first</option>';
+                    
+                    if (data.length === 0) {
+                        zoneSelect.innerHTML = '<option value="">No zones available</option>';
+                    } else {
+                        data.forEach(zone => {
+                            const option = document.createElement('option');
+                            option.value = zone.id;
+                            option.textContent = `${zone.name} (${zone.code})`;
+                            zoneSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading zones:', error);
+                    zoneSelect.innerHTML = '<option value="">Error loading zones</option>';
+                });
+        } else {
+            zoneSelect.innerHTML = '<option value="">Select plant first</option>';
+            locationSelect.innerHTML = '<option value="">Select zone first</option>';
+        }
+    });
+    
+    // Load locations when zone is selected
+    zoneSelect.addEventListener('change', function() {
+        const zoneId = this.value;
+        
+        if (zoneId) {
+            fetch(`{% url 'accidents:ajax_get_locations' %}?zone_id=${zoneId}`)
+                .then(response => response.json())
+                .then(data => {
+                    locationSelect.innerHTML = '<option value="">Select a location</option>';
+                    
+                    if (data.length === 0) {
+                        locationSelect.innerHTML = '<option value="">No locations available</option>';
+                    } else {
+                        data.forEach(location => {
+                            const option = document.createElement('option');
+                            option.value = location.id;
+                            option.textContent = `${location.name} (${location.code})`;
+                            locationSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading locations:', error);
+                    locationSelect.innerHTML = '<option value="">Error loading locations</option>';
+                });
+        } else {
+            locationSelect.innerHTML = '<option value="">Select zone first</option>';
+        }
+    });
+    
+    // Show/hide sections and update severity based on incident type
+    incidentTypeSelect.addEventListener('change', function() {
+        const selectedType = this.value;
+        
+        console.log('Incident type changed to:', selectedType);
+        
+        // Update severity level options based on incident type
+        updateSeverityLevels(selectedType);
+        
+        if (selectedType === 'LTI' || selectedType === 'MTC' || selectedType === 'FA' || selectedType === 'HLFI') {
+            // Injury types selected - SHOW injury-related sections
+            bodyPartsSection.style.display = 'block';
+            medicalTreatmentRow.style.display = 'flex';
+            
+            // Make affected person name required
+            document.getElementById('id_affected_person_name').setAttribute('required', 'required');
+            document.getElementById('person_name_required').style.display = 'inline';
+            
+            console.log('Body part section shown for:', selectedType);
+        } else {
+            // Other types or no selection
+            bodyPartsSection.style.display = 'none';
+            medicalTreatmentRow.style.display = 'none';
+        }
+    });
+    
+    // Show/hide hospital name field
+    hospitalizationCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            hospitalNameDiv.style.display = 'block';
+            document.getElementById('id_hospital_name').setAttribute('required', 'required');
+        } else {
+            hospitalNameDiv.style.display = 'none';
+            document.getElementById('id_hospital_name').removeAttribute('required');
+        }
+    });
+    
+    // On Behalf Reporting Logic
+    const behalfCheckbox = document.getElementById('id_is_reported_on_behalf');
+    const behalfReporterSection = document.getElementById('behalfReporterSection');
+    const defaultReporterSection = document.getElementById('defaultReporterSection');
+
+    behalfCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            // Show behalf reporter fields
+            behalfReporterSection.style.display = 'block';
+            defaultReporterSection.style.display = 'none';
+            
+            // Make behalf fields required
+            document.getElementById('behalf_reporter_name').setAttribute('required', 'required');
+            document.getElementById('behalf_reporter_email').setAttribute('required', 'required');
+            document.getElementById('behalf_reporter_relationship').setAttribute('required', 'required');
+            
+            // Update affected person label to be more clear
+            const affectedPersonLabel = document.querySelector('label[for="id_affected_person_name"]');
+            if (affectedPersonLabel) {
+                affectedPersonLabel.innerHTML = 'Name of Affected Person <span class="text-danger">*</span> <small class="text-info">(The person who was injured/involved)</small>';
+            }
+            
+        } else {
+            // Hide behalf reporter fields
+            behalfReporterSection.style.display = 'none';
+            defaultReporterSection.style.display = 'block';
+            
+            // Remove required from behalf fields
+            document.getElementById('behalf_reporter_name').removeAttribute('required');
+            document.getElementById('behalf_reporter_email').removeAttribute('required');
+            document.getElementById('behalf_reporter_relationship').removeAttribute('required');
+            
+            // Reset affected person label
+            const affectedPersonLabel = document.querySelector('label[for="id_affected_person_name"]');
+            if (affectedPersonLabel) {
+                affectedPersonLabel.innerHTML = 'Name of Affected Person <span class="text-danger" id="person_name_required">*</span>';
+            }
+        }
+    });
+    
+    // Form submission
+    document.getElementById('incidentForm').addEventListener('submit', function(e) {
+        const isOnBehalf = behalfCheckbox.checked;
+        
+        if (isOnBehalf) {
+            const behalfName = document.getElementById('behalf_reporter_name').value.trim();
+            const behalfEmail = document.getElementById('behalf_reporter_email').value.trim();
+            const behalfRelationship = document.getElementById('behalf_reporter_relationship').value;
+            
+            if (!behalfName || !behalfEmail || !behalfRelationship) {
+                e.preventDefault();
+                alert('Please fill in all required fields in the "Reporting on Behalf" section');
+                window.scrollTo(0, 0);
+                return false;
+            }
+        }
+        
+        // Save body parts as JSON
+        const bodyPartsInput = document.getElementById('affectedBodyPartsJson');
+        if (window.selectedBodyParts && window.selectedBodyParts.size > 0) {
+            bodyPartsInput.value = JSON.stringify(Array.from(window.selectedBodyParts));
+        } else {
+            bodyPartsInput.value = '[]';
+        }
+        
+        // Save unsafe acts as JSON
+        const unsafeActs = [];
+        document.querySelectorAll('.unsafe-act-checkbox:checked').forEach(checkbox => {
+            unsafeActs.push(checkbox.value);
+        });
+        document.getElementById('unsafeActsJson').value = JSON.stringify(unsafeActs);
+        
+        // Save unsafe conditions as JSON
+        const unsafeConditions = [];
+        document.querySelectorAll('.unsafe-condition-checkbox:checked').forEach(checkbox => {
+            unsafeConditions.push(checkbox.value);
+        });
+        document.getElementById('unsafeConditionsJson').value = JSON.stringify(unsafeConditions);
+        
+        console.log('Submitting with:');
+        console.log('Body parts:', bodyPartsInput.value);
+        console.log('Unsafe acts:', unsafeActs);
+        console.log('Unsafe conditions:', unsafeConditions);
+    });
+    
+    // Set current date and time
+    const now = new Date();
+    const dateInput = document.getElementById('id_incident_date');
+    const timeInput = document.getElementById('id_incident_time');
+    
+    if (!dateInput.value) {
+        dateInput.value = now.toISOString().split('T')[0];
+    }
+    if (!timeInput.value) {
+        timeInput.value = now.toTimeString().split(' ')[0].substring(0, 5);
+    }
+});
+</script>
+{% endblock %}

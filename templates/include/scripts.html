@@ -1,0 +1,101 @@
+{% load static %}
+<!-- templates/client/include/scripts.html -->
+
+<!-- Custom JavaScript -->
+<script src="{% static 'website/costom.js' %}"></script>
+<script src="{% static 'website/js/search.js' %}"></script>
+
+<!-- jQuery -->
+<script src="{% static 'admin/plugins/jquery/jquery.min.js' %}"></script>
+<!-- Bootstrap 4 -->
+<script src="{% static 'admin/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<!-- Select2 -->
+<script src="{% static 'admin/plugins/select2/js/select2.full.min.js' %}"></script>
+<!-- SweetAlert2 -->
+<script src="{% static 'admin/plugins/sweetalert2/sweetalert2.min.js' %}"></script>
+<!-- DataTables & Plugins -->
+<script src="{% static 'admin/plugins/datatables/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'admin/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<script src="{% static 'admin/plugins/datatables-responsive/js/dataTables.responsive.min.js' %}"></script>
+<script src="{% static 'admin/plugins/datatables-responsive/js/responsive.bootstrap4.min.js' %}"></script>
+<script src="{% static 'plugins/datatables-buttons/js/dataTables.buttons.min.js' %}"></script>
+<script src="{% static 'plugins/datatables-buttons/js/buttons.bootstrap4.min.js' %}"></script>
+<script src="{% static 'plugins/datatables-buttons/js/buttons.html5.min.js' %}"></script>
+<script src="{% static 'plugins/datatables-buttons/js/buttons.print.min.js' %}"></script>
+<script src="{% static 'plugins/datatables-buttons/js/buttons.colVis.min.js' %}"></script>
+
+<!-- Additional Plugins -->
+<script src="{% static 'admin/plugins/bs-custom-file-input/bs-custom-file-input.min.js' %}"></script>
+<script src="{% static 'admin/js/adminlte.min.js' %}"></script>
+<script src="{% static 'admin/plugins/ekko-lightbox/ekko-lightbox.min.js' %}"></script>
+<script src="{% static 'admin/plugins/filterizr/jquery.filterizr.min.js' %}"></script>
+<script src="{% static 'admin/plugins/chart.js/Chart.min.js' %}"></script>
+<script src="{% static 'admin/plugins/summernote/summernote-bs4.min.js' %}"></script>
+
+<!-- Date Range Picker -->
+<script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+
+<!-- Initialize Plugins -->
+<script>
+$(function () {
+    // Summernote
+    $('#summernote').summernote();
+    
+    // Select2
+    $('.select2').select2();
+    $('.select2bs4').select2({
+        theme: 'bootstrap4'
+    });
+
+    // DataTables
+    $("#example1").DataTable({
+        "responsive": true,
+        "lengthChange": true,
+        "autoWidth": false
+    });
+
+    // Date Range Picker
+    $('#reportrange').daterangepicker({
+        startDate: moment(),
+        endDate: moment(),
+        locale: {
+            format: 'DD/MM/YY'
+        },
+        ranges: {
+            'Today': [moment(), moment()],
+            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+            'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+            'This Month': [moment().startOf('month'), moment().endOf('month')],
+            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+        }
+    }, function(start, end) {
+        $('#reportrange span').html(start.format('DD/MM/YYYY') + ' - ' + end.format('DD/MM/YYYY'));
+    });
+});
+
+// Sidebar Toggle Handler
+$(document).ready(function() {
+    $('.menu-toggle').click(function() {
+        $('.sidebar').toggleClass('active');
+        const isActive = $('.sidebar').hasClass('active');
+        $('.main-header, .main-content, .main-footer').css('left', isActive ? '0' : '250px');
+    });
+
+    // Responsive handling
+    function checkWidth() {
+        if ($(window).width() < 992) {
+            $('.sidebar').addClass('active');
+            $('.main-header, .main-content, .main-footer').css('left', '0');
+        } else {
+            $('.sidebar').removeClass('active');
+            $('.main-header, .main-content, .main-footer').css('left', '250px');
+        }
+    }
+
+    checkWidth();
+    $(window).resize(checkWidth);
+});
+</script>
