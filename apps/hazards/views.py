@@ -328,18 +328,43 @@ class HazardCreateView(LoginRequiredMixin, CreateView):
             return redirect('hazards:hazard_create')
 
 class HazardDetailView(LoginRequiredMixin, DetailView):
+    """
+    Display details of a specific hazard, optimized for performance.
+    """
     model = Hazard
     template_name = 'hazards/hazard_detail.html'
     context_object_name = 'hazard'
-    
+
     def get_queryset(self):
+        """
+        Optimize the query by pre-fetching related objects to avoid
+        multiple database hits in the template.
+        """
+       
         return Hazard.objects.select_related(
             'plant', 'zone', 'location', 'sublocation',
-            'reported_by', 'assigned_to',
-            'behalf_person', 'behalf_person__department',  # Add these
-            'behalf_person_dept'  # Add this
-        ).prefetch_related('photos', 'action_items__responsible_person')
+            'reported_by', 'assigned_to', 'approved_by',
+            'behalf_person', 
+            'behalf_person_dept'
+        ).prefetch_related(
+            'photos', 
+            'action_items__responsible_person' 
+        )
 
+    def get_context_data(self, **kwargs):
+        """
+        Add the prefetched photos and action items to the context so the
+        template can access them directly.
+        """
+        
+        context = super().get_context_data(**kwargs)
+        
+     
+        hazard = self.get_object()
+        context['action_items'] = hazard.action_items.all()
+        context['photos'] = hazard.photos.all()
+        
+        return context
 
 class HazardUpdateView(LoginRequiredMixin, UpdateView):
     model = Hazard
