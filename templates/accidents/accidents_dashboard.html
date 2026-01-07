@@ -623,7 +623,7 @@
                     <thead>
                         <tr>
                             <th>Report #</th>
-                            <th>Title</th>
+                            <!-- <th>Title</th> -->
                             <th>Type</th>
                             <!-- The 'Severity' column that caused the error has been removed -->
                             <th>Date</th>
@@ -635,7 +635,7 @@
                         {% for incident in recent_incidents %}
                         <tr>
                             <td><strong>{{ incident.report_number }}</strong></td>
-                            <td>{{ incident.incident_title|truncatewords:5 }}</td>
+                            <!-- <td>{{ incident.incident_title|truncatewords:5 }}</td> -->
                             <td>
                                 <span class="badge badge-custom 
                                     {% if incident.incident_type == 'LTI' %}bg-danger
@@ -858,7 +858,8 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(severityCtx, {
             type: 'bar',
             data: {
-                labels: {{ severity_labels|safe }},
+                // MODIFICATION: Replaced dynamic labels with short, static labels for clarity.
+                labels: ['LTI', 'MTC/RWC', 'First Aid (FA)', 'HLFI', 'Fatality'],
                 datasets: [{
                     label: 'Incidents',
                     data: {{ severity_data|safe }},
@@ -868,7 +869,16 @@ document.addEventListener('DOMContentLoaded', function() {
             options: {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        ticks: { 
+                            // Ensures y-axis ticks are whole numbers (e.g., 1, 2, 3)
+                            stepSize: 1,
+                            precision: 0
+                        } 
+                    } 
+                }
             }
         });
     }

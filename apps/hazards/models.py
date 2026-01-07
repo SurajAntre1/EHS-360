@@ -113,6 +113,7 @@ class Hazard(models.Model):
     # Basic Hazard Information
     hazard_title = models.CharField(max_length=255)
     hazard_description = models.TextField(help_text="Detailed description of the hazard")
+    immediate_action = models.TextField(blank=True)
     hazard_category = models.CharField(max_length=30, choices=HAZARD_CATEGORIES)
     incident_datetime = models.DateTimeField(
         default=timezone.now,
@@ -158,20 +159,20 @@ class Hazard(models.Model):
     location_details = models.TextField(blank=True, help_text="Additional location information")
     
     # GPS Coordinates (Optional)
-    gps_latitude = models.DecimalField(
-        max_digits=10, 
-        decimal_places=6, 
-        null=True, 
-        blank=True,
-        help_text="GPS latitude coordinate"
-    )
-    gps_longitude = models.DecimalField(
-        max_digits=10, 
-        decimal_places=6, 
-        null=True, 
-        blank=True,
-        help_text="GPS longitude coordinate"
-    )
+    # gps_latitude = models.DecimalField(
+    #     max_digits=10, 
+    #     decimal_places=6, 
+    #     null=True, 
+    #     blank=True,
+    #     help_text="GPS latitude coordinate"
+    # )
+    # gps_longitude = models.DecimalField(
+    #     max_digits=10, 
+    #     decimal_places=6, 
+    #     null=True, 
+    #     blank=True,
+    #     help_text="GPS longitude coordinate"
+    # )
     
     # Additional Information
     injury_status = models.CharField(

@@ -234,6 +234,7 @@ class HazardCreateView(LoginRequiredMixin, CreateView):
             # Auto-generate title from category and type
             hazard.hazard_title = f"{hazard.get_hazard_type_display()} - {hazard.get_hazard_category_display()}"
             hazard.hazard_description = request.POST.get('hazard_description', '').strip()
+            hazard.immediate_action = request.POST.get('immediate_action', '').strip()
             
             # Parse datetime
             incident_datetime_str = request.POST.get('incident_datetime')
@@ -432,6 +433,7 @@ class HazardUpdateView(LoginRequiredMixin, UpdateView):
             self.object.severity = request.POST.get('severity')
             self.object.hazard_title = request.POST.get('hazard_title', '').strip()
             self.object.hazard_description = request.POST.get('hazard_description', '').strip()
+            self.object.immediate_action = request.POST.get('immediate_action', '').strip()
             
             # Parse datetime
             incident_datetime_str = request.POST.get('incident_datetime')
@@ -442,10 +444,10 @@ class HazardUpdateView(LoginRequiredMixin, UpdateView):
             self.object.location_details = request.POST.get('location_details', '').strip()
             
             # GPS
-            gps_lat = request.POST.get('gps_latitude', '').strip()
-            gps_long = request.POST.get('gps_longitude', '').strip()
-            self.object.gps_latitude = gps_lat if gps_lat else None
-            self.object.gps_longitude = gps_long if gps_long else None
+            # gps_lat = request.POST.get('gps_latitude', '').strip()
+            # gps_long = request.POST.get('gps_longitude', '').strip()
+            # self.object.gps_latitude = gps_lat if gps_lat else None
+            # self.object.gps_longitude = gps_long if gps_long else None
             
             # Additional info
             self.object.injury_status = request.POST.get('injury_status', '')

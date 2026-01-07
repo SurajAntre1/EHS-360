@@ -69,8 +69,8 @@ class HazardAdmin(admin.ModelAdmin):
                 'zone',
                 'location',
                 'location_details',
-                'gps_latitude',
-                'gps_longitude'
+                # 'gps_latitude',
+                # 'gps_longitude'
             )
         }),
         ('Additional Information', {

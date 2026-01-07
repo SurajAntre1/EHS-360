@@ -158,6 +158,10 @@
                             <strong>Description:</strong>
                             <p>{{ hazard.hazard_description|linebreaks }}</p>
                         </div>
+                        <div class="col-md-12 mb-3">
+                            <strong>Immediate Actions:</strong>
+                            <p>{% if hazard.immediate_action %}{{ hazard.immediate_action|linebreaks }}{% else %}N/A{% endif %}</p>
+                        </div>
                         <div class="col-md-6 mb-2">
                             <strong>Identified Date & Time:</strong>
                             <p>{{ hazard.incident_datetime|date:"d M Y, h:i A" }}</p>
@@ -194,7 +198,7 @@
                             <p>{{ hazard.location_details }}</p>
                         </div>
                         {% endif %}
-                        {% if hazard.gps_latitude and hazard.gps_longitude %}
+                        <!-- {% if hazard.gps_latitude and hazard.gps_longitude %}
                         <div class="col-md-12 mb-2">
                             <strong>GPS Coordinates:</strong>
                             <p>
@@ -205,7 +209,7 @@
                                 </a>
                             </p>
                         </div>
-                        {% endif %}
+                        {% endif %} -->
                     </div>
 
                     <hr>

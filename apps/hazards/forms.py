@@ -29,6 +29,11 @@ class HazardReportForm(forms.ModelForm):
                 'rows': 4,
                 'placeholder': 'Describe the hazard in detail...'
             }),
+            'immediate_action': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Immediate actions taken...'
+            }),
             'incident_datetime': forms.DateTimeInput(attrs={
                 'class': 'form-control',
                 'type': 'datetime-local',
