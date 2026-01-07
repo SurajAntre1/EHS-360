@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-check-circle"></i> Close Hazard</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'hazards:dashboard' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'hazards:hazard_list' %}">Hazards</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'hazards:hazard_detail' hazard.pk %}">{{ hazard.report_number }}</a></li>
+                            <li class="breadcrumb-item active">Close Hazard</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Hazard Information -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Hazard Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Report Number:</strong> {{ hazard.report_number }}</p>
+                            <p><strong>Type:</strong> {{ hazard.get_hazard_type_display }}</p>
+                            <p><strong>Category:</strong> {{ hazard.get_hazard_category_display }}</p>
+                            <p><strong>Severity:</strong> 
+                                <span class="badge {{ hazard.severity_badge_class }}">{{ hazard.get_severity_display }}</span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Current Status:</strong> 
+                                <span class="badge {{ hazard.status_badge_class }}">{{ hazard.get_status_display }}</span>
+                            </p>
+                            <p><strong>Reported Date:</strong> {{ hazard.reported_date|date:"d M Y" }}</p>
+                            <p><strong>Action Deadline:</strong> {{ hazard.action_deadline|date:"d M Y" }}</p>
+                            <p><strong>Location:</strong> {{ hazard.get_full_location }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Closure Eligibility Check -->
+            <div class="card mb-4">
+                <div class="card-header {% if can_close %}bg-success{% else %}bg-warning{% endif %} text-white">
+                    <h5 class="mb-0">
+                        <i class="fas {% if can_close %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}"></i>
+                        Closure Eligibility Check
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if can_close %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> 
+                            <strong>{{ closure_message }}</strong>
+                            <p class="mb-0 mt-2">All requirements have been met. This hazard is ready to be closed.</p>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <strong>Cannot close hazard</strong>
+                            <p class="mb-0 mt-2">{{ closure_message }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Corrective Action Plan -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-tasks"></i> Corrective Action Plan</h5>
+                </div>
+                <div class="card-body">
+                    {% if hazard.corrective_action_plan %}
+                        <p>{{ hazard.corrective_action_plan|linebreaks }}</p>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> No corrective action plan defined
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Action Items Status -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list-check"></i> Action Items Status
+                        <span class="badge badge-light float-right">
+                            {{ completed_count }} / {{ total_actions }} Completed
+                        </span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if action_items %}
+                        <!-- Completed Actions -->
+                        {% if completed_actions %}
+                            <h6 class="text-success"><i class="fas fa-check-circle"></i> Completed Actions ({{ completed_actions.count }})</h6>
+                            <div class="table-responsive mb-4">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Description</th>
+                                            <th>Responsible Person</th>
+                                            <th>Target Date</th>
+                                            <th>Completed Date</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for action in completed_actions %}
+                                        <tr>
+                                            <td>{{ action.action_description }}</td>
+                                            <td>{{ action.responsible_person.get_full_name }}</td>
+                                            <td>{{ action.target_date|date:"d M Y" }}</td>
+                                            <td>{{ action.completion_date|date:"d M Y"|default:"-" }}</td>
+                                            <td><span class="badge badge-success">{{ action.get_status_display }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+
+                        <!-- Pending Actions -->
+                        {% if pending_actions %}
+                            <h6 class="text-warning"><i class="fas fa-clock"></i> Pending Actions ({{ pending_actions.count }})</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Description</th>
+                                            <th>Responsible Person</th>
+                                            <th>Target Date</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for action in pending_actions %}
+                                        <tr>
+                                            <td>{{ action.action_description }}</td>
+                                            <td>{{ action.responsible_person.get_full_name }}</td>
+                                            <td>{{ action.target_date|date:"d M Y" }}</td>
+                                            <td><span class="badge {{ action.status_badge_class }}">{{ action.get_status_display }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No action items defined for this hazard
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Hazard Details
+                        </a>
+                        
+                        {% if can_close %}
+                            <a href="{% url 'hazards:hazard_closure' hazard.pk %}" class="btn btn-success">
+                                <i class="fas fa-check-circle"></i> Proceed to Close Hazard
+                            </a>
+                        {% else %}
+                            <button type="button" class="btn btn-success" disabled>
+                                <i class="fas fa-times-circle"></i> Cannot Close Yet
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
