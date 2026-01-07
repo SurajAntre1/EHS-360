@@ -121,6 +121,37 @@
             All fields marked with <span class="text-danger">*</span> are mandatory.
           </div>
 
+          <!-- Form Errors Display -->
+          {% if form.errors or form.non_field_errors %}
+          <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <h5 class="alert-heading"><i class="fas fa-exclamation-triangle mr-2"></i>Please Correct the Following Errors:</h5>
+            
+            {% if form.non_field_errors %}
+              <ul class="mb-2">
+                {% for error in form.non_field_errors %}
+                  <li><strong>{{ error }}</strong></li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            
+            {% if form.errors %}
+              <ul class="mb-0">
+                {% for field in form %}
+                  {% if field.errors %}
+                    {% for error in field.errors %}
+                      <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            {% endif %}
+            
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          {% endif %}
+
           <!-- Incident Type & Date/Time -->
           <h5 class="mb-3"><i class="fas fa-calendar-alt mr-2"></i>Incident Information</h5>
           <div class="row">
@@ -221,7 +252,7 @@
           <div class="row mt-3">
             <div class="col-md-12 mb-3">
               <label for="id_additional_location_details">Additional Location Details</label>
-              <textarea name="additional_location_details" id="id_additional_location_details" class="form-control" rows="2" placeholder="Specific area, equipment, or landmark near the hazard"></textarea>
+              <textarea name="additional_location_details" id="id_additional_location_details" class="form-control" rows="3" placeholder="Specific area, equipment, or landmark near the hazard"></textarea>
               <small class="form-text text-muted">Optional: Provide specific details about the exact location (e.g., "Near conveyor belt #3", "Next to chemical storage tank")</small>
             </div>
           </div>
@@ -470,6 +501,13 @@
                   <option value="ON_ROLL">On Roll</option>
                 </select>
                 <small class="form-text text-muted">Select the employment category</small>
+                {% if form.affected_employment_category.errors %}
+                  <div class="text-danger mt-1">
+                    {% for error in form.affected_employment_category.errors %}
+                      <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
+                    {% endfor %}
+                  </div>
+                {% endif %}
               </div>
             </div>
 
@@ -505,8 +543,15 @@
             <div class="row">
               <div class="col-md-4 mb-3">
                 <label for="id_affected_date_of_birth">Date of Birth <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" id="id_affected_date_of_birth" name="affected_date_of_birth" required>
+                <input type="date" class="form-control {% if form.affected_date_of_birth.errors %}is-invalid{% endif %}" id="id_affected_date_of_birth" name="affected_date_of_birth" required>
                 <small class="form-text text-muted">Select the date of birth</small>
+                {% if form.affected_date_of_birth.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.affected_date_of_birth.errors %}
+                      <i class="fas fa-exclamation-circle"></i> {{ error }}<br>
+                    {% endfor %}
+                  </div>
+                {% endif %}
               </div>
               
               <div class="col-md-4 mb-3">
@@ -540,8 +585,15 @@
               
               <div class="col-md-6 mb-3">
                 <label for="id_affected_date_of_joining">Date of Joining <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" id="id_affected_date_of_joining" name="affected_date_of_joining" required>
+                <input type="date" class="form-control {% if form.affected_date_of_joining.errors %}is-invalid{% endif %}" id="id_affected_date_of_joining" name="affected_date_of_joining" required>
                 <small class="form-text text-muted">Select the date of joining</small>
+                {% if form.affected_date_of_joining.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.affected_date_of_joining.errors %}
+                      <i class="fas fa-exclamation-circle"></i> {{ error }}<br>
+                    {% endfor %}
+                  </div>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -735,11 +787,12 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('unsafeConditionsJson').value = JSON.stringify(unsafeConditions);
     });
     
-    // Set current date and time
+    // Optional: Set current date and time as default (user can change)
     const now = new Date();
     const dateInput = document.getElementById('id_incident_date');
     const timeInput = document.getElementById('id_incident_time');
     
+    // Only set if fields are empty (for new forms)
     if (dateInput && !dateInput.value) {
         dateInput.value = now.toISOString().split('T')[0];
     }
