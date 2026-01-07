@@ -391,8 +391,7 @@ class IncidentInvestigationReportForm(forms.ModelForm):
         model = IncidentInvestigationReport
         fields = [
             'investigation_date', 'investigation_team',
-            'sequence_of_events', 'root_cause_analysis', 'contributing_factors',
-            'unsafe_conditions_identified', 'unsafe_acts_identified',
+            'sequence_of_events', 'root_cause_analysis', 
             'personal_factors', 'job_factors',
             'evidence_collected', 'witness_statements',
             'immediate_corrective_actions', 'preventive_measures', 
@@ -404,9 +403,9 @@ class IncidentInvestigationReportForm(forms.ModelForm):
             'investigation_team': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'sequence_of_events': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'root_cause_analysis': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'contributing_factors': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'unsafe_conditions_identified': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'unsafe_acts_identified': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            # 'contributing_factors': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            # 'unsafe_conditions_identified': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            # 'unsafe_acts_identified': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'evidence_collected': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'witness_statements': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'immediate_corrective_actions': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -422,7 +421,7 @@ class IncidentActionItemForm(forms.ModelForm):
         model = IncidentActionItem
         fields = [
             'action_description', 'responsible_person', 'target_date',
-            'status', 'completion_date', 'completion_remarks',
+            'status', 'completion_date', 
         ]
         
         widgets = {
@@ -431,7 +430,7 @@ class IncidentActionItemForm(forms.ModelForm):
             'target_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
             'completion_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'completion_remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            # 'completion_remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
 

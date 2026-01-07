@@ -365,7 +365,7 @@
             </div>
           </div>
 
-          <div class="row">
+          <!-- <div class="row">
             <div class="col-md-12 mb-3">
               <label for="{{ form.contributing_factors.id_for_label }}">Contributing Factors <span class="text-danger">*</span></label>
               {{ form.contributing_factors }}
@@ -391,7 +391,7 @@
                 <div class="text-danger">{{ form.unsafe_acts_identified.errors }}</div>
               {% endif %}
             </div>
-          </div>
+          </div> -->
 
           <hr>
 
@@ -503,13 +503,13 @@
                     {% if form.completion_date.errors %}<div class="text-danger">{{ form.completion_date.errors }}</div>{% endif %}
                   </div>
                 </div>
-                <div class="row">
+                <!-- <div class="row">
                    <div class="col-md-12 mb-3 ">
                     <label for="{{ form.completion_remarks.id_for_label }}">Completion Remarks</label>
                     {{ form.completion_remarks }}
                     {% if form.completion_remarks.errors %}<div class="text-danger">{{ form.completion_remarks.errors }}</div>{% endif %}
                   </div>
-                </div>
+                </div> -->
               </div>
             {% endfor %}
           </div>
@@ -546,12 +546,12 @@
                     <small class="form-text text-muted">Fill this when action is completed.</small>
                   </div>
                 </div>
-                <div class="row">
+                <!-- <div class="row">
                    <div class="col-md-12 mb-3">
                     <label for="{{ action_item_formset.empty_form.completion_remarks.id_for_label }}">Completion Remarks</label>
                     {{ action_item_formset.empty_form.completion_remarks }}
                   </div>
-                </div>
+                </div> -->
             </div>
           </div>
 

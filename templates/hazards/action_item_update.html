@@ -134,11 +134,13 @@
                             <input type="date" name="completion_date" class="form-control" value="{{ object.completion_date|date:'Y-m-d' }}">
                         </div>
 
-                        <!-- Completion Remarks -->
-                        <div class="form-group" id="completionRemarksGroup" style="display: none;">
-                            <label>Completion Remarks</label>
-                            <textarea name="completion_remarks" class="form-control" rows="3">{{ object.completion_remarks }}</textarea>
-                        </div>
+
+                        <!-- Completion Remarks (shown only if COMPLETED) -->
+                        <!-- <div class="form-group" id="completion_remarks_group" style="display: none;">
+                            <label for="id_completion_remarks">Completion Remarks</label>
+                            <textarea name="completion_remarks" id="id_completion_remarks" 
+                                      class="form-control" rows="3">{{ object.completion_remarks|default:'' }}</textarea>
+                        </div> -->
 
                         <hr>
                         <button type="submit" class="btn btn-warning btn-lg">
