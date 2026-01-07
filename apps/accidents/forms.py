@@ -1,5 +1,7 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from .models import *
+from datetime import date
 
 class IncidentReportForm(forms.ModelForm):
     """Form for creating/updating incident reports with manual affected person entry"""
@@ -31,7 +33,10 @@ class IncidentReportForm(forms.ModelForm):
         required=True,
         widget=forms.Select(attrs={
             'class': 'form-control',
-        })
+        }),
+        error_messages={
+            'required': 'Please select an employment category.'
+        }
     )
     
     # Name
@@ -41,7 +46,10 @@ class IncidentReportForm(forms.ModelForm):
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': 'Enter full name'
-        })
+        }),
+        error_messages={
+            'required': 'Please enter the name of the affected person.'
+        }
     )
     
     # Employee ID
@@ -51,7 +59,10 @@ class IncidentReportForm(forms.ModelForm):
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': 'Enter employee ID'
-        })
+        }),
+        error_messages={
+            'required': 'Please enter the employee ID.'
+        }
     )
     
     # Department - From Master Table
@@ -61,7 +72,11 @@ class IncidentReportForm(forms.ModelForm):
         empty_label='-- Select Department --',
         widget=forms.Select(attrs={
             'class': 'form-control',
-        })
+        }),
+        error_messages={
+            'required': 'Please select a department.',
+            'invalid_choice': 'Please select a valid department from the list.'
+        }
     )
     
     # Date of Birth
@@ -70,7 +85,11 @@ class IncidentReportForm(forms.ModelForm):
         widget=forms.DateInput(attrs={
             'class': 'form-control',
             'type': 'date'
-        })
+        }),
+        error_messages={
+            'required': 'Please enter the date of birth.',
+            'invalid': 'Please enter a valid date.'
+        }
     )
     
     # Age (Auto-calculated, read-only)
@@ -95,7 +114,10 @@ class IncidentReportForm(forms.ModelForm):
         required=True,
         widget=forms.Select(attrs={
             'class': 'form-control',
-        })
+        }),
+        error_messages={
+            'required': 'Please select a gender.'
+        }
     )
     
     # Job Title
@@ -105,7 +127,10 @@ class IncidentReportForm(forms.ModelForm):
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': 'Enter job title'
-        })
+        }),
+        error_messages={
+            'required': 'Please enter the job title.'
+        }
     )
     
     # Date of Joining
@@ -114,7 +139,11 @@ class IncidentReportForm(forms.ModelForm):
         widget=forms.DateInput(attrs={
             'class': 'form-control',
             'type': 'date'
-        })
+        }),
+        error_messages={
+            'required': 'Please enter the date of joining.',
+            'invalid': 'Please enter a valid date.'
+        }
     )
     
     class Meta:
@@ -127,7 +156,7 @@ class IncidentReportForm(forms.ModelForm):
             'zone', 
             'location', 
             'sublocation',
-            'additional_location_details',  # NEW FIELD
+            'additional_location_details',
             'description',
             # Affected person fields
             'affected_employment_category',
@@ -171,6 +200,32 @@ class IncidentReportForm(forms.ModelForm):
                 'placeholder': 'Describe the type and extent of injury (e.g., cut, fracture, burn)'
             }),
         }
+        
+        error_messages = {
+            'incident_type': {
+                'required': 'Please select an incident type.'
+            },
+            'incident_date': {
+                'required': 'Please enter the incident date.',
+                'invalid': 'Please enter a valid date.'
+            },
+            'incident_time': {
+                'required': 'Please enter the incident time.',
+                'invalid': 'Please enter a valid time.'
+            },
+            'plant': {
+                'required': 'Please select a plant.'
+            },
+            'location': {
+                'required': 'Please select a location.'
+            },
+            'description': {
+                'required': 'Please provide a detailed description of the incident.'
+            },
+            'nature_of_injury': {
+                'required': 'Please describe the nature of injury.'
+            }
+        }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -206,48 +261,86 @@ class IncidentReportForm(forms.ModelForm):
                     location=self.instance.location, is_active=True
                 )
     
+    def clean_affected_date_of_birth(self):
+        """Validate date of birth"""
+        dob = self.cleaned_data.get('affected_date_of_birth')
+        
+        if dob:
+            today = date.today()
+            
+            # Check if DOB is not in future
+            if dob > today:
+                raise ValidationError("Date of birth cannot be in the future.")
+            
+            # Calculate age
+            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+            
+            # Check minimum age
+            if age < 16:
+                raise ValidationError(
+                    f"The affected person must be at least 16 years old. "
+                    f"Current age based on date of birth: {age} years."
+                )
+            
+            # Check maximum age
+            if age > 100:
+                raise ValidationError(
+                    f"Please verify the date of birth. The calculated age is {age} years, which seems incorrect."
+                )
+        
+        return dob
+    
+    def clean_affected_date_of_joining(self):
+        """Validate date of joining"""
+        doj = self.cleaned_data.get('affected_date_of_joining')
+        
+        if doj:
+            today = date.today()
+            
+            # Check if DOJ is not in future
+            if doj > today:
+                raise ValidationError("Date of joining cannot be in the future.")
+        
+        return doj
+    
+    def clean_incident_date(self):
+        """Validate incident date"""
+        incident_date = self.cleaned_data.get('incident_date')
+        
+        if incident_date:
+            today = date.today()
+            
+            if incident_date > today:
+                raise ValidationError("Incident date cannot be in the future.")
+        
+        return incident_date
+    
     def clean(self):
+        """Cross-field validation"""
         cleaned_data = super().clean()
         
-        # Validate incident date is not in future
-        incident_date = cleaned_data.get('incident_date')
-        if incident_date:
-            from django.utils import timezone
-            if incident_date > timezone.now().date():
-                raise forms.ValidationError("Incident date cannot be in the future.")
+        # Get dates
+        dob = cleaned_data.get('affected_date_of_birth')
+        doj = cleaned_data.get('affected_date_of_joining')
         
-        # Validate date of birth
-        affected_dob = cleaned_data.get('affected_date_of_birth')
-        if affected_dob:
-            from django.utils import timezone
-            if affected_dob > timezone.now().date():
-                raise forms.ValidationError("Date of birth cannot be in the future.")
+        # Validate DOJ is after DOB
+        if dob and doj:
+            if doj <= dob:
+                raise ValidationError({
+                    'affected_date_of_joining': "Date of joining must be after the date of birth."
+                })
             
-            # Check if age is reasonable (between 16 and 100 years)
-            age = (timezone.now().date() - affected_dob).days // 365
-            if age < 16:
-                raise forms.ValidationError("Affected person must be at least 16 years old.")
-            if age > 100:
-                raise forms.ValidationError("Please check the date of birth entered.")
-        
-        # Validate date of joining
-        affected_doj = cleaned_data.get('affected_date_of_joining')
-        if affected_doj:
-            from django.utils import timezone
-            if affected_doj > timezone.now().date():
-                raise forms.ValidationError("Date of joining cannot be in the future.")
+            # Calculate age at joining
+            age_at_joining = doj.year - dob.year - ((doj.month, doj.day) < (dob.month, dob.day))
             
-            # Date of joining should be after date of birth
-            if affected_dob and affected_doj:
-                if affected_doj <= affected_dob:
-                    raise forms.ValidationError("Date of joining must be after date of birth.")
-                
-                # Check if person was at least 16 when they joined
-                age_at_joining = (affected_doj - affected_dob).days // 365
-                if age_at_joining < 16:
-                    raise forms.ValidationError("Person must be at least 16 years old at the time of joining.")
+            if age_at_joining < 16:
+                raise ValidationError({
+                    'affected_date_of_joining': f"Person must be at least 16 years old at the time of joining. Age at joining: {age_at_joining} years."
+                })
         
         return cleaned_data
+
+
 class IncidentUpdateForm(forms.ModelForm):
     """Form for updating existing incidents"""
     
@@ -296,8 +389,6 @@ class IncidentInvestigationReportForm(forms.ModelForm):
     
     class Meta:
         model = IncidentInvestigationReport
-        # ===== MODIFIED SECTION START =====
-        # Removed 'action_items' and 'target_completion_date' from the fields list.
         fields = [
             'investigation_date', 'investigation_team',
             'sequence_of_events', 'root_cause_analysis', 'contributing_factors',
@@ -307,7 +398,6 @@ class IncidentInvestigationReportForm(forms.ModelForm):
             'immediate_corrective_actions', 'preventive_measures', 
             'completed_date',
         ]
-        # ===== MODIFIED SECTION END =====
         
         widgets = {
             'investigation_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
@@ -321,14 +411,10 @@ class IncidentInvestigationReportForm(forms.ModelForm):
             'witness_statements': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'immediate_corrective_actions': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'preventive_measures': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            # ===== MODIFIED SECTION START =====
-            # Removed widgets for the deleted fields.
-            # 'action_items': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            # 'target_completion_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            # ===== MODIFIED SECTION END =====
             'completed_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
 
+####
 class IncidentActionItemForm(forms.ModelForm):
     """Form for action items"""
     
