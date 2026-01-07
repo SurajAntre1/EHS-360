@@ -335,6 +335,16 @@
             </p>
           </div>
         </div>
+        
+        <!-- Additional Location Details -->
+        {% if incident.additional_location_details %}
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label class="text-muted">Additional Location Details:</label>
+            <p>{{ incident.additional_location_details|linebreaks }}</p>
+          </div>
+        </div>
+        {% endif %}
       </div>
     </div>
 
@@ -410,66 +420,63 @@
         </h5>
       </div>
       <div class="card-body">
-        <!-- Basic Info -->
+        <!-- Basic Info Row 1 -->
         <div class="row">
-          <div class="col-md-3 mb-3">
+          <div class="col-md-4 mb-3">
             <label class="text-muted">Name:</label>
             <p class="font-weight-bold">{{ incident.affected_person_name }}</p>
           </div>
-          <div class="col-md-3 mb-3">
+          <div class="col-md-4 mb-3">
             <label class="text-muted">Employee ID:</label>
             <p class="font-weight-bold">{{ incident.affected_person_employee_id|default:"N/A" }}</p>
           </div>
-          <div class="col-md-3 mb-3">
-            <label class="text-muted">Role:</label>
-            <p class="font-weight-bold">
-              {% if incident.affected_person %}
-                {{ incident.affected_person.get_role_display|default:"N/A" }}
-              {% else %}
-                N/A
-              {% endif %}
-            </p>
-          </div>
-          <div class="col-md-3 mb-3">
+          <div class="col-md-4 mb-3">
             <label class="text-muted">Department:</label>
             <p class="font-weight-bold">{{ incident.affected_person_department.name|default:"N/A" }}</p>
           </div>
         </div>
         
-        <!-- Personal & Employment Details -->
+        <!-- Personal & Employment Demographics -->
         <div class="demographics-grid mt-3">
-          {% if incident.affected_person_dob %}
+          {% if incident.affected_employment_category %}
+          <div class="demographic-item">
+            <label>Employment Category:</label>
+            <p>{{ incident.get_affected_employment_category_display }}</p>
+          </div>
+          {% endif %}
+          
+          {% if incident.affected_date_of_birth %}
           <div class="demographic-item">
             <label>Date of Birth:</label>
-            <p>{{ incident.affected_person_dob|date:"d/m/Y" }}</p>
+            <p>{{ incident.affected_date_of_birth|date:"d/m/Y" }}</p>
           </div>
           {% endif %}
           
-          {% if incident.affected_person_age %}
+          {% if incident.affected_age %}
           <div class="demographic-item">
             <label>Age:</label>
-            <p>{{ incident.affected_person_age }} years</p>
+            <p>{{ incident.affected_age }} years</p>
           </div>
           {% endif %}
           
-          {% if incident.affected_person_gender %}
+          {% if incident.affected_gender %}
           <div class="demographic-item">
             <label>Gender:</label>
-            <p>{{ incident.get_affected_person_gender_display }}</p>
+            <p>{{ incident.get_affected_gender_display }}</p>
           </div>
           {% endif %}
           
-          {% if incident.affected_person_job_title %}
+          {% if incident.affected_job_title %}
           <div class="demographic-item">
             <label>Job Title:</label>
-            <p>{{ incident.affected_person_job_title }}</p>
+            <p>{{ incident.affected_job_title }}</p>
           </div>
           {% endif %}
           
-          {% if incident.affected_person_employment_type %}
+          {% if incident.affected_date_of_joining %}
           <div class="demographic-item">
-            <label>Employment Type:</label>
-            <p>{{ incident.get_affected_person_employment_type_display }}</p>
+            <label>Date of Joining:</label>
+            <p>{{ incident.affected_date_of_joining|date:"d/m/Y" }}</p>
           </div>
           {% endif %}
         </div>
