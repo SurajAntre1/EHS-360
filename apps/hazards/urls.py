@@ -20,7 +20,7 @@ urlpatterns = [
     path('hazards/<int:hazard_pk>/action-items/create/', views.HazardActionItemCreateView.as_view(), name='action_item_create'),
     path('action-items/<int:pk>/edit/', views.HazardActionItemUpdateView.as_view(), name='action_item_update'),
 
-    # AJAX URLs for Cascading Dropdowns (YEH BAHUT ZARURI HAIN)
+    # AJAX URLs for Cascading Dropdown
     path('ajax/get-zones/', views.GetZonesForPlantAjaxView.as_view(), name='ajax_get_zones'),
     path('ajax/get-locations/', views.GetLocationsForZoneAjaxView.as_view(), name='ajax_get_locations'),
     path('ajax/get-sublocations/', views.GetSubLocationsForLocationAjaxView.as_view(), name='ajax_get_sublocations'),

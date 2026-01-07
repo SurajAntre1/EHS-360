@@ -365,41 +365,124 @@
                 <div class="card-body">
                     {% if action_items %}
                         {% for action in action_items %}
-                        <div class="card action-item-card {% if action.status == 'COMPLETED' %}completed{% elif action.is_overdue %}overdue{% endif %}">
+                        <div class="card action-item-card {% if action.status == 'COMPLETED' %}completed{% elif action.is_overdue %}overdue{% endif %} mb-3">
                             <div class="card-body">
-                                <div class="row">
+                                <!-- Action Description -->
+                                <div class="row mb-2">
                                     <div class="col-md-8">
-                                        <h6>{{ action.action_description }}</h6>
-                                        <p class="text-muted mb-1">
-                                            <i class="fas fa-user"></i> <strong>Responsible:</strong> 
-                                            {{ action.responsible_person.get_full_name|default:action.responsible_person.username }}
-                                        </p>
-                                        <p class="text-muted mb-0">
-                                            <i class="fas fa-calendar"></i> <strong>Target Date:</strong> 
-                                            {{ action.target_date|date:"d M Y" }}
-                                            {% if action.is_overdue %}
-                                                <span class="badge badge-danger ml-2">OVERDUE</span>
-                                            {% endif %}
-                                        </p>
+                                        <h6><i class="fas fa-clipboard-check"></i> {{ action.action_description }}</h6>
                                     </div>
                                     <div class="col-md-4 text-right">
                                         <span class="badge {{ action.status_badge_class }} badge-lg">{{ action.get_status_display }}</span>
-                                        {% if action.completion_date %}
-                                        <p class="text-muted small mt-2 mb-0">
-                                            Completed: {{ action.completion_date|date:"d M Y" }}
+                                    </div>
+                                </div>
+
+                                <hr class="my-2">
+
+                                <!-- Assigned To (Emails) -->
+                                <div class="row mb-2">
+                                    <div class="col-md-12">
+                                        <p class="mb-1">
+                                            <i class="fas fa-envelope"></i> <strong>Assigned To:</strong>
                                         </p>
+                                        {% if action.responsible_emails %}
+                                            <div>
+                                                {% for email in action.get_emails_list %}
+                                                    <span class="badge badge-primary mr-1 mb-1">{{ email }}</span>
+                                                {% endfor %}
+                                            </div>
+                                            <small class="text-muted">Total: {{ action.get_emails_count }} email(s)</small>
+                                            
+                                            <!-- Self-Assigned Indicator -->
+                                            {% if action.get_emails_count == 1 and user.email in action.get_emails_list %}
+                                                <span class="badge badge-success ml-2">
+                                                    <i class="fas fa-user-check"></i> Self-Assigned
+                                                </span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">Not assigned</span>
                                         {% endif %}
                                     </div>
                                 </div>
-                                {% if action.completion_remarks %}
-                                <hr class="my-2">
-                                <p class="mb-0"><strong>Remarks:</strong> {{ action.completion_remarks }}</p>
+
+                                <!-- Target Date -->
+                                <div class="row mb-2">
+                                    <div class="col-md-6">
+                                        <p class="mb-0">
+                                            <i class="fas fa-calendar"></i> <strong>Target Date:</strong> 
+                                            {{ action.target_date|date:"d M Y" }}
+                                            {% if action.is_overdue %}
+                                                <span class="badge badge-danger ml-2">
+                                                    <i class="fas fa-exclamation-triangle"></i> OVERDUE
+                                                </span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    {% if action.completion_date %}
+                                    <div class="col-md-6">
+                                        <p class="mb-0">
+                                            <i class="fas fa-check-circle text-success"></i> <strong>Completed:</strong> 
+                                            {{ action.completion_date|date:"d M Y" }}
+                                        </p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Attachment -->
+                                {% if action.attachment %}
+                                <div class="row mb-2">
+                                    <div class="col-md-12">
+                                        <p class="mb-1">
+                                            <i class="fas fa-paperclip"></i> <strong>Attachment:</strong>
+                                        </p>
+                                        <a href="{{ action.attachment.url }}" target="_blank" class="btn btn-sm btn-info">
+                                            <i class="fas fa-download"></i> {{ action.get_attachment_name }}
+                                        </a>
+                                        <small class="text-muted ml-2">({{ action.get_attachment_size }})</small>
+                                    </div>
+                                </div>
                                 {% endif %}
+
+                                <!-- Auto-Close Hazard Indicator -->
+                                {% if '[AUTO_CLOSE_HAZARD]' in action.completion_remarks %}
+                                <div class="row mb-2">
+                                    <div class="col-md-12">
+                                        <span class="badge badge-warning">
+                                            <i class="fas fa-lock"></i> Will auto-close hazard on completion
+                                        </span>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Completion Remarks -->
+                                {% if action.completion_remarks and '[AUTO_CLOSE_HAZARD]' not in action.completion_remarks %}
+                                <hr class="my-2">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <p class="mb-0">
+                                            <strong><i class="fas fa-comment"></i> Remarks:</strong> 
+                                            {{ action.completion_remarks|linebreaks }}
+                                        </p>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Edit Button -->
+                                <hr class="my-2">
+                                <div class="row">
+                                    <div class="col-md-12 text-right">
+                                        <a href="{% url 'hazards:action_item_update' action.pk %}" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i> Edit Action Item
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         {% endfor %}
                     {% else %}
-                        <p class="text-muted text-center">No action items yet.</p>
+                        <div class="alert alert-info text-center">
+                            <i class="fas fa-info-circle"></i> No action items created yet.
+                        </div>
                     {% endif %}
                 </div>
             </div>

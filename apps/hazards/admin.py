@@ -68,9 +68,8 @@ class HazardAdmin(admin.ModelAdmin):
                 'plant',
                 'zone',
                 'location',
+                'sublocation',  # Added sublocation
                 'location_details',
-                # 'gps_latitude',
-                # 'gps_longitude'
             )
         }),
         ('Additional Information', {
@@ -108,7 +107,7 @@ class HazardAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('plant', 'zone', 'location', 'reported_by', 'assigned_to')
+        return qs.select_related('plant', 'zone', 'location', 'sublocation', 'reported_by', 'assigned_to')
 
 
 @admin.register(HazardPhoto)
@@ -116,11 +115,13 @@ class HazardPhotoAdmin(admin.ModelAdmin):
     list_display = [
         'id',
         'hazard',
+        'photo_type',
         'description',
         'uploaded_by',
         'uploaded_at'
     ]
     list_filter = [
+        'photo_type',
         'uploaded_at'
     ]
     search_fields = [
@@ -142,7 +143,8 @@ class HazardActionItemAdmin(admin.ModelAdmin):
         'id',
         'hazard',
         'action_description_short',
-        'responsible_person',
+        'get_assigned_emails',  # CHANGED: Show emails instead
+        'get_email_count',      # NEW: Show count
         'target_date',
         'status',
         'completion_date'
@@ -154,7 +156,8 @@ class HazardActionItemAdmin(admin.ModelAdmin):
     ]
     search_fields = [
         'hazard__report_number',
-        'action_description'
+        'action_description',
+        'responsible_emails'  # CHANGED: Search in emails field
     ]
     readonly_fields = [
         'created_at',
@@ -172,7 +175,7 @@ class HazardActionItemAdmin(admin.ModelAdmin):
         }),
         ('Assignment', {
             'fields': (
-                'responsible_person',
+                'responsible_emails',  # CHANGED: Show emails field
                 'target_date'
             )
         }),
@@ -200,6 +203,23 @@ class HazardActionItemAdmin(admin.ModelAdmin):
         return obj.action_description
     action_description_short.short_description = 'Action Description'
     
+    def get_assigned_emails(self, obj):
+        """Display assigned emails (truncated)"""
+        if obj.responsible_emails:
+            emails = obj.get_emails_list()
+            if len(emails) > 2:
+                # Show first 2 emails + count
+                display = ', '.join(emails[:2])
+                return f"{display} (+{len(emails)-2} more)"
+            return ', '.join(emails)
+        return '-'
+    get_assigned_emails.short_description = 'Assigned To'
+    
+    def get_email_count(self, obj):
+        """Display count of assigned emails"""
+        return obj.get_emails_count()
+    get_email_count.short_description = 'Email Count'
+    
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.select_related('hazard', 'responsible_person', 'verified_by')
+        return qs.select_related('hazard', 'verified_by')

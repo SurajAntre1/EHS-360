@@ -349,7 +349,7 @@ class HazardDetailView(LoginRequiredMixin, DetailView):
             'behalf_person_dept'
         ).prefetch_related(
             'photos', 
-            'action_items__responsible_person' 
+            'action_items'  # ✅ FIXED: Just prefetch action_items (no responsible_person)
         )
 
     def get_context_data(self, **kwargs):
@@ -360,13 +360,11 @@ class HazardDetailView(LoginRequiredMixin, DetailView):
         
         context = super().get_context_data(**kwargs)
         
-     
         hazard = self.get_object()
         context['action_items'] = hazard.action_items.all()
         context['photos'] = hazard.photos.all()
         
         return context
-
 
 class HazardUpdateView(LoginRequiredMixin, UpdateView):
     model = Hazard
@@ -510,7 +508,7 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
     """Create action item for hazard"""
     model = HazardActionItem
     template_name = 'hazards/action_item_create.html'
-    fields = ['action_description', 'responsible_person', 'target_date', 'status']
+    fields = []
     
     def dispatch(self, request, *args, **kwargs):
         self.hazard = get_object_or_404(Hazard, pk=self.kwargs['hazard_pk'])
@@ -519,31 +517,30 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['hazard'] = self.hazard
-        context['users'] = User.objects.filter(is_active=True)
         if self.hazard.action_deadline:
             context['action_deadline_date'] = self.hazard.action_deadline.strftime('%Y-%m-%d')
         return context
     
-    def form_valid(self, form):
-        form.instance.hazard = self.hazard
-        messages.success(self.request, 'Action item created successfully!')
-        return super().form_valid(form)
-    
-    def get_success_url(self):
-        return reverse_lazy('hazards:hazard_detail', kwargs={'pk': self.hazard.pk})
     def post(self, request, *args, **kwargs):
         try:
             action_item = HazardActionItem()
-            
             action_item.hazard = self.hazard
             action_item.action_description = request.POST.get('action_description', '').strip()
             
-            # Responsible Person
-            responsible_person_id = request.POST.get('responsible_person')
-            if responsible_person_id:
-                action_item.responsible_person = User.objects.get(id=responsible_person_id)
+            # Check assignment type
+            assignment_type = request.POST.get('assignment_type', 'self')
             
-            # Target Date - PARSE THE STRING TO DATE
+            if assignment_type == 'self':
+                # Assign to current user (store their email)
+                action_item.responsible_emails = request.user.email
+                is_self_assigned = True
+            else:
+                # Assign to others (get comma-separated emails)
+                responsible_emails = request.POST.get('responsible_emails', '').strip()
+                action_item.responsible_emails = responsible_emails
+                is_self_assigned = False
+            
+            # Target Date
             target_date_str = request.POST.get('target_date')
             if target_date_str:
                 from datetime import datetime
@@ -554,26 +551,43 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             
             action_item.save()
             
-            messages.success(request, 'Action item created successfully with Pending status!')
-            return redirect(self.get_success_url())
+            email_count = action_item.get_emails_count()
+            
+            if is_self_assigned:
+                message = mark_safe(
+                    f'✅ <strong>Action item created successfully!</strong><br>'
+                    f'Assigned to: <strong>You ({request.user.email})</strong><br>'
+                    f'<em>💡 When you mark this complete, it will automatically close!</em>'
+                )
+            else:
+                message = mark_safe(
+                    f'✅ <strong>Action item created successfully!</strong><br>'
+                    f'Assigned to <strong>{email_count}</strong> email(s) with Pending status.'
+                )
+            
+            messages.success(request, message)
+            
+            return redirect('hazards:hazard_detail', pk=self.hazard.pk)
             
         except Exception as e:
             import traceback
             print("ERROR:", traceback.format_exc())
             messages.error(request, f'Error creating action item: {str(e)}')
             return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
+    
+    def get_success_url(self):
+        return reverse_lazy('hazards:hazard_detail', kwargs={'pk': self.hazard.pk})
+
+
 class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
     """Update action item"""
     model = HazardActionItem
     template_name = 'hazards/action_item_update.html'
-    fields = ['action_description', 'responsible_person', 'target_date', 'status', 'completion_date', 'completion_remarks']
+    fields = []
     
     def get_success_url(self):
         return reverse_lazy('hazards:hazard_detail', kwargs={'pk': self.object.hazard.pk})
     
-    def form_valid(self, form):
-        messages.success(self.request, 'Action item updated successfully!')
-        return super().form_valid(form)
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         
@@ -581,11 +595,11 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
             # Update fields
             self.object.action_description = request.POST.get('action_description', '').strip()
             
-            responsible_person_id = request.POST.get('responsible_person')
-            if responsible_person_id:
-                self.object.responsible_person = User.objects.get(id=responsible_person_id)
+            # Update emails
+            responsible_emails = request.POST.get('responsible_emails', '').strip()
+            self.object.responsible_emails = responsible_emails
             
-            # Target Date - PARSE THE STRING TO DATE
+            # Target Date
             target_date_str = request.POST.get('target_date')
             if target_date_str:
                 from datetime import datetime
@@ -599,14 +613,22 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
                 completion_date_str = request.POST.get('completion_date')
                 if completion_date_str:
                     from datetime import datetime
-
                     self.object.completion_date = datetime.strptime(completion_date_str, '%Y-%m-%d').date()
                 
                 self.object.completion_remarks = request.POST.get('completion_remarks', '').strip()
             
             self.object.save()
             
-            messages.success(request, f'Action item updated successfully! Status: {self.object.get_status_display()}')
+            email_count = self.object.get_emails_count()
+            
+            messages.success(
+                request, 
+                mark_safe(
+                    f'✅ <strong>Action item updated successfully!</strong><br>'
+                    f'Status: <strong>{self.object.get_status_display()}</strong> | '
+                    f'Assigned to: <strong>{email_count}</strong> email(s)'
+                )
+            )
             return redirect(self.get_success_url())
             
         except Exception as e:

@@ -448,12 +448,21 @@ class HazardActionItem(models.Model):
     action_description = models.TextField(
         help_text="Description of the action to be taken"
     )
-    responsible_person = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name='hazard_actions_responsible',
-        help_text="Person responsible for completing the action"
+    
+    # Email addresses (comma-separated)
+    responsible_emails = models.TextField(
+        blank=True,
+        help_text="Email addresses of responsible persons (comma-separated)"
     )
+    
+    # NEW: Attachment field
+    attachment = models.FileField(
+        upload_to='action_item_attachments/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text="Optional file attachment (documents, images, etc.)"
+    )
+    
     target_date = models.DateField(
         help_text="Target date for completing the action"
     )
@@ -472,6 +481,7 @@ class HazardActionItem(models.Model):
         blank=True,
         help_text="Remarks about action completion"
     )
+    
     verified_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -500,6 +510,33 @@ class HazardActionItem(models.Model):
     
     def __str__(self):
         return f"{self.hazard.report_number} - Action Item {self.id}"
+    
+    def get_emails_list(self):
+        """Return list of emails"""
+        if self.responsible_emails:
+            return [email.strip() for email in self.responsible_emails.split(',') if email.strip()]
+        return []
+    
+    def get_emails_count(self):
+        """Return count of emails"""
+        return len(self.get_emails_list())
+    
+    def get_attachment_name(self):
+        """Get filename from attachment"""
+        if self.attachment:
+            import os
+            return os.path.basename(self.attachment.name)
+        return None
+    
+    def get_attachment_size(self):
+        """Get attachment file size in human readable format"""
+        if self.attachment:
+            size = self.attachment.size
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size < 1024.0:
+                    return f"{size:.1f} {unit}"
+                size /= 1024.0
+        return None
     
     @property
     def is_overdue(self):

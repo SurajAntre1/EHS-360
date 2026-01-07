@@ -12,8 +12,108 @@
 <li class="breadcrumb-item active">Create Action Item</li>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Email input styling */
+    .email-tags-input {
+        min-height: 60px;
+        padding: 8px;
+        border: 2px solid #ced4da;
+        border-radius: 0.25rem;
+        cursor: text;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        align-items: center;
+    }
+    
+    .email-tags-input:focus-within {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+    
+    .email-tag {
+        background-color: #007bff;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        font-size: 14px;
+    }
+    
+    .email-tag .remove-tag {
+        margin-left: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        color: white;
+    }
+    
+    .email-tag .remove-tag:hover {
+        color: #ffcccc;
+    }
+    
+    .email-input-field {
+        border: none;
+        outline: none;
+        flex: 1;
+        min-width: 200px;
+        padding: 5px;
+        font-size: 14px;
+    }
+    
+    .email-count {
+        color: #6c757d;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+    
+    /* File upload styling */
+    .file-upload-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+    }
+    
+    .file-upload-input {
+        position: absolute;
+        left: -9999px;
+    }
+    
+    .file-upload-label {
+        display: block;
+        padding: 10px 15px;
+        background-color: #f8f9fa;
+        border: 2px dashed #ced4da;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.3s;
+    }
+    
+    .file-upload-label:hover {
+        background-color: #e9ecef;
+        border-color: #007bff;
+    }
+    
+    .file-upload-label.has-file {
+        background-color: #d4edda;
+        border-color: #28a745;
+        border-style: solid;
+    }
+    
+    .close-hazard-box {
+        background-color: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 0.25rem;
+        padding: 15px;
+        margin-top: 15px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<!-- Content Header -->
 <section class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
@@ -31,13 +131,11 @@
     </div>
 </section>
 
-<!-- Main content -->
 <section class="content">
-    <!-- Messages -->
     {% if messages %}
         {% for message in messages %}
             <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
-                {{ message }}
+                {{ message|safe }}
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -70,66 +168,133 @@
                     </h3>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="">
+                    <form method="POST" action="" id="actionItemForm" enctype="multipart/form-data">
                         {% csrf_token %}
 
                         <!-- Action Description -->
                         <div class="form-group">
-                            <label for="id_action_description">Action Description *</label>
-                            {{ form.action_description.errors }}
+                            <label for="id_action_description">
+                                <i class="fas fa-align-left"></i> Action Description *
+                            </label>
                             <textarea name="action_description" id="id_action_description" 
-                                      class="form-control {% if form.action_description.errors %}is-invalid{% endif %}" 
+                                      class="form-control" 
                                       rows="4" 
                                       placeholder="Describe the action to be taken to address this hazard..." 
-                                      required>{{ form.action_description.value|default:'' }}</textarea>
+                                      required></textarea>
                             <small class="form-text text-muted">
                                 Provide a detailed description of the corrective action required
                             </small>
                         </div>
 
-                        <!-- Responsible Person -->
+                        <!-- Assignment Type Selection -->
                         <div class="form-group">
-                            <label for="id_responsible_person">Responsible Person *</label>
-                            {{ form.responsible_person.errors }}
-                            <select name="responsible_person" id="id_responsible_person" 
-                                    class="form-control {% if form.responsible_person.errors %}is-invalid{% endif %}" 
-                                    required>
-                                <option value="">Select Responsible Person</option>
-                                {% for user in users %}
-                                <option value="{{ user.id }}" {% if form.responsible_person.value == user.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ user.get_full_name|default:user.username }} - {{ user.email }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                            <small class="form-text text-muted">
-                                Person responsible for completing this action
+                            <label>
+                                <i class="fas fa-user-check"></i> Assignment Type *
+                            </label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="assignment_type" 
+                                       id="assignSelf" value="self" checked>
+                                <label class="form-check-label" for="assignSelf">
+                                    <strong>Assign to Myself</strong> - I will complete this action
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="assignment_type" 
+                                       id="assignOthers" value="others">
+                                <label class="form-check-label" for="assignOthers">
+                                    <strong>Assign to Others</strong> - Delegate to other people
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Close Hazard Option (Only for Self-Assignment) -->
+                        <div class="close-hazard-box" id="closeHazardBox">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="closeHazardCheckbox" name="close_hazard">
+                                <label class="custom-control-label" for="closeHazardCheckbox">
+                                    <strong><i class="fas fa-check-circle"></i> Close this hazard when action is completed</strong>
+                                </label>
+                            </div>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> 
+                                When you mark this action complete, the entire hazard will be automatically closed.
                             </small>
+                        </div>
+
+                        <!-- Responsible Emails (Hidden by default) -->
+                        <div class="form-group" id="emailAssignmentSection" style="display: none;">
+                            <label>
+                                <i class="fas fa-envelope"></i> Assign To (Email Addresses) *
+                            </label>
+                            <div class="email-input-container">
+                                <div class="email-tags-input" id="emailTagsContainer">
+                                    <input type="text" 
+                                           class="email-input-field" 
+                                           id="emailInput" 
+                                           placeholder="Type email and press Enter or comma..."
+                                           autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="email-count" id="emailCount">0 email(s) added</div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i> 
+                                Type email addresses and press <strong>Enter</strong> or <strong>comma (,)</strong> to add.
+                            </small>
+                            <input type="hidden" name="responsible_emails" id="responsibleEmails">
+                        </div>
+
+                        <!-- File Attachment -->
+                        <div class="form-group">
+                            <label>
+                                <i class="fas fa-paperclip"></i> Attachment (Optional)
+                            </label>
+                            <div class="file-upload-wrapper">
+                                <input type="file" 
+                                       name="attachment" 
+                                       id="attachmentInput" 
+                                       class="file-upload-input"
+                                       accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt">
+                                <label for="attachmentInput" class="file-upload-label" id="attachmentLabel">
+                                    <i class="fas fa-cloud-upload-alt"></i> 
+                                    <span id="attachmentText">Click to upload file or drag and drop</span>
+                                    <br>
+                                    <small class="text-muted">PDF, DOC, Excel, Images (Max 10MB)</small>
+                                </label>
+                            </div>
+                            <div id="attachmentInfo" style="display: none; margin-top: 10px;">
+                                <span class="badge badge-success">
+                                    <i class="fas fa-file"></i> <span id="fileName"></span>
+                                </span>
+                                <button type="button" class="btn btn-sm btn-danger ml-2" id="removeAttachment">
+                                    <i class="fas fa-times"></i> Remove
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Target Date -->
                         <div class="form-group">
-                            <label for="id_target_date">Target Date *</label>
-                            {{ form.target_date.errors }}
+                            <label for="id_target_date">
+                                <i class="fas fa-calendar-alt"></i> Target Date *
+                            </label>
                             <input type="date" 
                                 name="target_date" 
                                 id="id_target_date" 
-                                class="form-control {% if form.target_date.errors %}is-invalid{% endif %}" 
+                                class="form-control" 
                                 value="{{ action_deadline_date|default:'' }}" 
-                                data-deadline="{{ action_deadline_date|default:'' }}"
-                                required readonly>
+                                required>
                             <small class="form-text text-muted">
-                                Expected completion date (Auto-filled from hazard deadline: {{ hazard.action_deadline|date:"d M Y" }})
+                                Expected completion date (Hazard deadline: {{ hazard.action_deadline|date:"d M Y" }})
                             </small>
                         </div>
 
-                        <!-- Status -->
+                        <!-- Status Info -->
                         <div class="form-group">
-                            <label for="id_status">Initial Status *</label>
+                            <label>
+                                <i class="fas fa-flag"></i> Initial Status
+                            </label>
                             <input type="text" class="form-control" value="Pending" readonly style="background-color: #e9ecef;">
-                            <input type="hidden" name="status" value="PENDING">
                             <small class="form-text text-muted">
-                                <i class="fas fa-info-circle"></i> New action items are created with <strong>Pending</strong> status. 
-                                The assigned officer can update the status later.
+                                <i class="fas fa-info-circle"></i> New action items are created with <strong>Pending</strong> status.
                             </small>
                         </div>
 
@@ -150,13 +315,14 @@
             <!-- Help Card -->
             <div class="card bg-light">
                 <div class="card-body">
-                    <h5 class="text-primary"><i class="fas fa-info-circle"></i> Action Item Guidelines</h5>
+                    <h5 class="text-primary">
+                        <i class="fas fa-info-circle"></i> Quick Guide
+                    </h5>
                     <ul class="mb-0">
-                        <li>Provide a clear and specific action description</li>
-                        <li>Assign to the appropriate responsible person</li>
-                        <li>Set realistic target dates considering complexity</li>
-                        <li>Track progress by updating status regularly</li>
-                        <li>Document completion with remarks when done</li>
+                        <li><strong>Assign to Myself:</strong> You'll complete this action. Option to auto-close hazard.</li>
+                        <li><strong>Assign to Others:</strong> Delegate to team members via email.</li>
+                        <li><strong>Attachment:</strong> Upload supporting documents, images, or files.</li>
+                        <li><strong>Auto-close:</strong> Check the box to automatically close hazard when action completes.</li>
                     </ul>
                 </div>
             </div>
@@ -168,43 +334,177 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const assignSelf = document.getElementById('assignSelf');
+    const assignOthers = document.getElementById('assignOthers');
+    const emailAssignmentSection = document.getElementById('emailAssignmentSection');
+    const closeHazardBox = document.getElementById('closeHazardBox');
+    const emailInput = document.getElementById('emailInput');
+    const emailTagsContainer = document.getElementById('emailTagsContainer');
+    const responsibleEmails = document.getElementById('responsibleEmails');
+    const emailCount = document.getElementById('emailCount');
     const targetDateInput = document.getElementById('id_target_date');
+    
+    // File attachment elements
+    const attachmentInput = document.getElementById('attachmentInput');
+    const attachmentLabel = document.getElementById('attachmentLabel');
+    const attachmentText = document.getElementById('attachmentText');
+    const attachmentInfo = document.getElementById('attachmentInfo');
+    const fileName = document.getElementById('fileName');
+    const removeAttachment = document.getElementById('removeAttachment');
+    
+    let emails = [];
     
     // Set minimum date to today
     const today = new Date().toISOString().split('T')[0];
     targetDateInput.setAttribute('min', today);
     
-    // Auto-populate with hazard deadline if available and field is empty
-    const deadlineDate = targetDateInput.dataset.deadline;
-    if (deadlineDate && !targetDateInput.value) {
-        targetDateInput.value = deadlineDate;
+    // Toggle assignment type
+    function toggleAssignmentType() {
+        if (assignSelf.checked) {
+            emailAssignmentSection.style.display = 'none';
+            closeHazardBox.style.display = 'block';  // Show close hazard option
+            emails = [];
+            updateUI();
+        } else {
+            emailAssignmentSection.style.display = 'block';
+            closeHazardBox.style.display = 'none';  // Hide close hazard option
+        }
     }
     
-    // Simple form validation
-    document.querySelector('form').addEventListener('submit', function(e) {
-        if (!document.getElementById('id_action_description').value.trim()) {
-            e.preventDefault();
-            alert('Please provide an action description');
+    assignSelf.addEventListener('change', toggleAssignmentType);
+    assignOthers.addEventListener('change', toggleAssignmentType);
+    
+    // File attachment handling
+    attachmentInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            const fileSize = file.size / 1024 / 1024; // Convert to MB
+            
+            if (fileSize > 10) {
+                alert('⚠️ File size exceeds 10MB limit!');
+                this.value = '';
+                return;
+            }
+            
+            fileName.textContent = file.name;
+            attachmentLabel.classList.add('has-file');
+            attachmentText.innerHTML = '<i class="fas fa-check-circle"></i> File selected';
+            attachmentInfo.style.display = 'block';
+        }
+    });
+    
+    removeAttachment.addEventListener('click', function() {
+        attachmentInput.value = '';
+        attachmentLabel.classList.remove('has-file');
+        attachmentText.innerHTML = 'Click to upload file or drag and drop';
+        attachmentInfo.style.display = 'none';
+    });
+    
+    // Email validation
+    function isValidEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+    }
+    
+    // Add email tag
+    function addEmail(email) {
+        email = email.trim().toLowerCase();
+        
+        if (!email) return;
+        
+        if (!isValidEmail(email)) {
+            alert('⚠️ Invalid email format: ' + email);
             return;
         }
         
-        if (!document.getElementById('id_responsible_person').value) {
-            e.preventDefault();
-            alert('Please select a responsible person');
+        if (emails.includes(email)) {
+            alert('ℹ️ Email already added: ' + email);
             return;
+        }
+        
+        emails.push(email);
+        updateUI();
+    }
+    
+    // Remove email tag
+    function removeEmail(email) {
+        emails = emails.filter(e => e !== email);
+        updateUI();
+    }
+    
+    // Update UI
+    function updateUI() {
+        const existingTags = emailTagsContainer.querySelectorAll('.email-tag');
+        existingTags.forEach(tag => tag.remove());
+        
+        emails.forEach(email => {
+            const tag = document.createElement('span');
+            tag.className = 'email-tag';
+            tag.innerHTML = `
+                ${email}
+                <span class="remove-tag" data-email="${email}">×</span>
+            `;
+            emailTagsContainer.insertBefore(tag, emailInput);
+        });
+        
+        responsibleEmails.value = emails.join(', ');
+        emailCount.textContent = `${emails.length} email(s) added`;
+        emailInput.value = '';
+    }
+    
+    // Handle Enter key and comma
+    emailInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addEmail(emailInput.value);
+        }
+    });
+    
+    // Handle click on remove button
+    emailTagsContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-tag')) {
+            const email = e.target.getAttribute('data-email');
+            removeEmail(email);
+        }
+    });
+    
+    // Focus input when clicking container
+    emailTagsContainer.addEventListener('click', function(e) {
+        if (e.target === emailTagsContainer || e.target.classList.contains('email-tags-input')) {
+            emailInput.focus();
+        }
+    });
+    
+    // Form validation
+    document.getElementById('actionItemForm').addEventListener('submit', function(e) {
+        const actionDesc = document.getElementById('id_action_description');
+        
+        if (!actionDesc.value.trim()) {
+            e.preventDefault();
+            alert('⚠️ Please provide an action description');
+            actionDesc.focus();
+            return false;
+        }
+        
+        // Only validate emails if "Assign to Others" is selected
+        if (assignOthers.checked && emails.length === 0) {
+            e.preventDefault();
+            alert('⚠️ Please add at least one email address or select "Assign to Myself"');
+            emailInput.focus();
+            return false;
         }
         
         if (!targetDateInput.value) {
             e.preventDefault();
-            alert('Please set a target date');
-            return;
+            alert('⚠️ Please set a target date');
+            targetDateInput.focus();
+            return false;
         }
         
-        if (!document.getElementById('id_status').value) {
-            e.preventDefault();
-            alert('Please select a status');
-            return;
-        }
+        // Show loading indicator
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
     });
 });
 </script>
