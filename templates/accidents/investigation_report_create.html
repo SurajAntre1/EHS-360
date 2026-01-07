@@ -59,6 +59,42 @@
     color: #000;
     font-weight: 500;
 }
+.unsafe-checkbox-item .form-check-input:checked ~ .form-check-label {
+    color: #000;
+    font-weight: 500;
+}
+
+
+.action-item-form {
+    position: relative;
+    border: 1px solid #e3e6f0;
+    background-color: #fdfdff;
+}
+
+.remove-action-item-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background-color: #e74a3b;
+    color: white;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 3px; 
+    transition: background-color 0.2s;
+    z-index: 10;
+}
+
+.remove-action-item-btn:hover {
+    background-color: #c82333;
+}
 </style>
 {% endblock %}
 
@@ -433,6 +469,7 @@
             {{ action_item_formset.management_form }}
             {% for form in action_item_formset %}
               <div class="action-item-form p-3 mb-3 rounded">
+                <!-- <button type="button" class="remove-action-item-btn" title="Remove Action Item">&times;</button> -->
                 <div class="row">
                   <div class="col-md-12 mb-3">
                     <label for="{{ form.action_description.id_for_label }}">Action Description <span class="text-danger">*</span></label>
@@ -480,6 +517,7 @@
           <!-- Hidden template for new action item forms -->
           <div id="empty-action-item-form" class="d-none">
             <div class="action-item-form p-3 mb-3 border rounded">
+              <button type="button" class="remove-action-item-btn" title="Remove Action Item">&times;</button>
                 <div class="row">
                   <div class="col-md-12 mb-3">
                     <label for="{{ action_item_formset.empty_form.action_description.id_for_label }}">Action Description <span class="text-danger">*</span></label>
@@ -660,31 +698,46 @@ document.addEventListener('DOMContentLoaded', function() {
     /* ----------------------------------------------------
        DYNAMIC ACTION ITEMS (NEW)
     ---------------------------------------------------- */
+    
     const addActionItemBtn = document.getElementById('add-action-item-btn');
     const container = document.getElementById('action-items-container');
     const emptyFormTemplate = document.getElementById('empty-action-item-form');
     const totalForms = document.getElementById('id_actionitems-TOTAL_FORMS');
 
     if (addActionItemBtn && container && emptyFormTemplate && totalForms) {
+        
         addActionItemBtn.addEventListener('click', function() {
-
             let formNum = parseInt(totalForms.value);
+            
             const newFormHtml = emptyFormTemplate.innerHTML.replace(/__prefix__/g, formNum);
 
-            const newFormDiv = document.createElement('div');
-            newFormDiv.innerHTML = newFormHtml;
-            container.appendChild(newFormDiv);
+           
+            const newFormWrapper = document.createElement('div');
+            newFormWrapper.innerHTML = newFormHtml;
+            
+            const newFormElement = newFormWrapper.firstElementChild;
+            container.appendChild(newFormElement);
 
-            // Set min date on newly added date field
-            const newDateInput = newFormDiv.querySelector('input[type="date"]');
+            const newDateInput = newFormElement.querySelector('input[name$="-target_date"]');
             if (newDateInput) {
-                newDateInput.min = today;
+                newDateInput.min = new Date().toISOString().split('T')[0];
             }
 
             totalForms.value = formNum + 1;
         });
-    }
 
+        container.addEventListener('click', function(event) {
+           
+            if (event.target && event.target.classList.contains('remove-action-item-btn')) {
+                
+                const formToRemove = event.target.closest('.action-item-form');
+                if (formToRemove) {
+                    formToRemove.remove();
+                    
+                }
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

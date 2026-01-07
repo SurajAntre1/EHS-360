@@ -80,6 +80,42 @@
         content: " *";
         color: red;
     }
+        
+    .add-photo-btn:hover {
+        background: #e7f3ff;
+        border-color: #0056b3;
+    }
+    
+    .photo-item {
+        position: relative;
+    }
+
+    .remove-photo-slot {
+        position: absolute;
+        top: 5px;
+        right: 20px;
+        background: #6c757d;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        line-height: 1;
+        z-index: 10;
+    }
+    .remove-photo-slot:hover {
+        background: #5a6268;
+    }
+    
+    .readonly-field {
+        background-color: #e9ecef;
+        cursor: not-allowed;
+    }
     
     .info-box {
         background: #e7f3ff;
@@ -553,8 +589,7 @@ $(document).ready(function() {
         }
     });
     
-    // Photo handling
-    let photoCount = 1;
+  let photoCount = 1;
     
     // Handle photo input change
     $(document).on('change', '.photo-input', function() {
@@ -574,26 +609,36 @@ $(document).ready(function() {
                     </div>
                 `);
                 
-                // Hide the add button for this slot
                 $(input).siblings('.add-photo-btn').hide();
+                
+                $(input).closest('.photo-item').find('.remove-photo-slot').hide();
             };
             reader.readAsDataURL(input.files[0]);
         }
     });
     
-    // Remove photo
+    // Remove photo PREVIEW
     $(document).on('click', '.remove-photo', function() {
         const index = $(this).data('index');
-        $(`#photo_${index}`).val('');
+        const photoInput = $(`#photo_${index}`);
+        
+        photoInput.val('');
         $(`#preview_${index}`).html('');
-        $(`#photo_${index}`).siblings('.add-photo-btn').show();
+        photoInput.siblings('.add-photo-btn').show();
+       
+        photoInput.closest('.photo-item').find('.remove-photo-slot').show();
     });
     
     // Add more photos
     $('#add-more-photos').click(function() {
         const newIndex = photoCount;
+
+       
         const newPhotoHtml = `
             <div class="col-md-4 mb-3 photo-item">
+                
+                <button type="button" class="remove-photo-slot" title="Remove this slot">&times;</button>
+
                 <div class="add-photo-btn" onclick="document.getElementById('photo_${newIndex}').click()">
                     <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
                     <p class="mb-0">Click to add photo</p>
@@ -608,9 +653,14 @@ $(document).ready(function() {
         $('#photo-container').append(newPhotoHtml);
         photoCount++;
     });
+
+    
+    $(document).on('click', '.remove-photo-slot', function() {
+        $(this).closest('.photo-item').remove();
+    });
 });
 
-// Delete Photo Function
+// Delete Existing Photo Function 
 function deletePhoto(photoId) {
     if (confirm('Are you sure you want to delete this photo?')) {
         // Mark photo for deletion

@@ -13,6 +13,34 @@
         margin-bottom: 20px;
         border-left: 4px solid #007bff;
     }
+
+
+    .photo-item {
+        position: relative;
+    }
+    
+    
+    .remove-photo-slot {
+        position: absolute;
+        top: 5px;
+        right: 20px;
+        background: #6c757d;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        line-height: 1;
+        z-index: 10;
+    }
+    .remove-photo-slot:hover {
+        background: #5a6268;
+    }
     
     .section-title {
         color: #007bff;
@@ -542,26 +570,33 @@ $(document).ready(function() {
                     </div>
                 `);
                 
-                // Hide the add button for this slot
                 $(input).siblings('.add-photo-btn').hide();
+
+                $(input).closest('.photo-item').find('.remove-photo-slot').hide();
             };
             reader.readAsDataURL(input.files[0]);
         }
     });
     
-    // Remove photo
+    // Remove photo preview
     $(document).on('click', '.remove-photo', function() {
         const index = $(this).data('index');
         $(`#photo_${index}`).val('');
         $(`#preview_${index}`).html('');
         $(`#photo_${index}`).siblings('.add-photo-btn').show();
+        $(`#photo_${index}`).closest('.photo-item').find('.remove-photo-slot').show();
     });
     
     // Add more photos
     $('#add-more-photos').click(function() {
         const newIndex = photoCount;
+
+
         const newPhotoHtml = `
             <div class="col-md-4 mb-3 photo-item">
+               
+                <button type="button" class="remove-photo-slot" title="Remove this slot">&times;</button>
+                
                 <div class="add-photo-btn" onclick="document.getElementById('photo_${newIndex}').click()">
                     <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
                     <p class="mb-0">Click to add photo</p>
@@ -577,7 +612,12 @@ $(document).ready(function() {
         photoCount++;
         $('#photo_count').val(photoCount);
     });
-});
 
+
+    $(document).on('click', '.remove-photo-slot', function() {
+       
+        $(this).closest('.photo-item').remove();
+    });
+});
 </script>
 {% endblock %}
