@@ -334,9 +334,9 @@ class IncidentInvestigationReport(models.Model):
     # Findings
     sequence_of_events = models.TextField()
     root_cause_analysis = models.TextField()
-    contributing_factors = models.TextField()
-    unsafe_conditions_identified = models.TextField(blank=True)
-    unsafe_acts_identified = models.TextField(blank=True)
+    # contributing_factors = models.TextField()
+    # unsafe_conditions_identified = models.TextField(blank=True)
+    # unsafe_acts_identified = models.TextField(blank=True)
     personal_factors = models.JSONField(default=list, blank=True)
     job_factors = models.JSONField(default=list, blank=True)
     
@@ -397,7 +397,7 @@ class IncidentActionItem(models.Model):
     target_date = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     completion_date = models.DateField(null=True, blank=True)
-    completion_remarks = models.TextField(blank=True)
+    # completion_remarks = models.TextField(blank=True)
     
     verified_by = models.ForeignKey(
         User,

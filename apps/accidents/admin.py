@@ -130,8 +130,7 @@ class IncidentInvestigationReportAdmin(admin.ModelAdmin):
         ('Findings', {
             'fields': (
                 'sequence_of_events', 'root_cause_analysis',
-                'contributing_factors', 'unsafe_conditions_identified',
-                'unsafe_acts_identified', 'personal_factors', 'job_factors'
+                 'personal_factors', 'job_factors'
             )
         }),
         ('Evidence', {
@@ -181,7 +180,7 @@ class IncidentActionItemAdmin(admin.ModelAdmin):
         }),
         ('Status', {
             'fields': (
-                'status', 'completion_date', 'completion_remarks'
+                'status', 'completion_date', 
             )
         }),
         ('Verification', {
