@@ -93,6 +93,16 @@ class Hazard(models.Model):
     reporter_phone = models.CharField(max_length=10, blank=True)
     
     # Behalf Information (ForeignKey relationships)
+
+    behalf_person_name = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        help_text="Name of the person on whose behalf the report is made"
+    )
+
+    # This ForeignKey is no longer actively used by the form but is kept
+    # to avoid data loss on existing records. New records will leave this null.
     behalf_person = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,

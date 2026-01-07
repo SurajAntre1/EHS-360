@@ -320,8 +320,8 @@
                                 <div class="col-md-12">
                                     <div class="form-group">
                                         <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input" id="behalf_checkbox" 
-                                                   {% if object.behalf_person %}checked{% endif %}>
+                                            <input type="checkbox" name="behalf_checkbox" class="custom-control-input" id="behalf_checkbox" 
+                                                   {% if object.behalf_person_name %}checked{% endif %}>
                                             <label class="custom-control-label" for="behalf_checkbox">
                                                 <strong>Reporting on behalf of someone else</strong>
                                             </label>
@@ -330,8 +330,8 @@
                                 </div>
                             </div>
                             
-                            <!-- Behalf Fields (Show if behalf_person exists) -->
-                            <div id="behalf_fields" style="display: {% if object.behalf_person %}block{% else %}none{% endif %};">
+                            <!-- Behalf Fields (Show if name exists) -->
+                            <div id="behalf_fields" style="display: {% if object.behalf_person_name %}block{% else %}none{% endif %};">
                                 <div class="section-title">
                                     <i class="fas fa-user-friends"></i>
                                     Person Details
@@ -341,28 +341,19 @@
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Employee Name</label>
-                                            <select name="behalf_person_id" id="behalf_person_id" class="form-control">
-                                                <option value="">-- Select Employee --</option>
-                                                {% for employee in employees %}
-                                                    <option value="{{ employee.id }}" 
-                                                            data-dept="{{ employee.department.id|default:'' }}" 
-                                                            data-dept-name="{{ employee.department.name|default:'' }}"
-                                                            {% if object.behalf_person and object.behalf_person.id == employee.id %}selected{% endif %}>
-                                                        {{ employee.get_full_name }} 
-                                                        {% if employee.role %}({{ employee.get_role_display }}){% endif %}
-                                                    </option>
-                                                {% endfor %}
-                                            </select>
+                                            <!-- CORRECTED: Text input using the new 'behalf_person_name' field -->
+                                            <input type="text" name="behalf_person_name" class="form-control" 
+                                                   placeholder="Enter employee's full name"
+                                                   value="{{ object.behalf_person_name|default:'' }}">
                                         </div>
                                     </div>
                                     
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Department</label>
-                                            <select name="behalf_person_dept" id="behalf_person_dept" class="form-control" 
-                                                    {% if not object.behalf_person %}disabled{% endif %} 
-                                                    style="background-color: #e9ecef;">
-                                                <option value="">-- Select Employee First --</option>
+                                            <!-- CORRECTED: Independent department dropdown -->
+                                            <select name="behalf_person_dept" id="behalf_person_dept" class="form-control">
+                                                <option value="">-- Select Department --</option>
                                                 {% for dept in departments %}
                                                     <option value="{{ dept.id }}" 
                                                             {% if object.behalf_person_dept and object.behalf_person_dept.id == dept.id %}selected{% endif %}>
@@ -370,7 +361,6 @@
                                                     </option>
                                                 {% endfor %}
                                             </select>
-                                            <small class="form-text text-muted">Auto-filled based on selected employee</small>
                                         </div>
                                     </div>
                                 </div>
@@ -560,14 +550,15 @@
 <script>
 $(document).ready(function() {
     // Toggle Behalf Fields
+  
     $('#behalf_checkbox').change(function() {
         if ($(this).is(':checked')) {
             $('#behalf_fields').slideDown();
         } else {
             $('#behalf_fields').slideUp();
             // Clear fields when unchecked
-            $('#behalf_person_id').val('');
-            $('#behalf_person_dept').val('').prop('disabled', true).css('background-color', '#e9ecef');
+            $('input[name="behalf_person_name"]').val('');
+            $('#behalf_person_dept').val('');
         }
     });
     

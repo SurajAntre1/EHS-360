@@ -266,7 +266,8 @@
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <div class="custom-control custom-checkbox">
-                                                <input type="checkbox" class="custom-control-input" id="behalf_checkbox">
+                                                <!-- This checkbox name is now used in the view to check if the section is active -->
+                                                <input type="checkbox" name="behalf_checkbox" class="custom-control-input" id="behalf_checkbox">
                                                 <label class="custom-control-label" for="behalf_checkbox">
                                                     <strong>Reporting on behalf of someone else</strong>
                                                 </label>
@@ -286,28 +287,22 @@
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label>Employee Name</label>
-                                                <select name="behalf_person_id" id="behalf_person_id" class="form-control">
-                                                    <option value="">-- Select Employee --</option>
-                                                    {% for employee in employees %}
-                                                        <option value="{{ employee.id }}" data-dept="{{ employee.department.id|default:'' }}" data-dept-name="{{ employee.department.name|default:'' }}">
-                                                            {{ employee.get_full_name }} 
-                                                            {% if employee.role %}({{ employee.get_role_display }}){% endif %}
-                                                        </option>
-                                                    {% endfor %}
-                                                </select>
+                                                <!-- UPDATED: Changed from a select dropdown to a text input -->
+                                                <input type="text" name="behalf_person_name" class="form-control" placeholder="Enter employee's full name">
                                             </div>
                                         </div>
                                         
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label>Department</label>
-                                                <select name="behalf_person_dept" id="behalf_person_dept" class="form-control" disabled style="background-color: #e9ecef;">
-                                                    <option value="">-- Select Employee First --</option>
+                                                <!-- UPDATED: This dropdown is now independent and always enabled when visible -->
+                                                <select name="behalf_person_dept" id="behalf_person_dept" class="form-control">
+                                                    <option value="">-- Select Department --</option>
                                                     {% for dept in departments %}
                                                         <option value="{{ dept.id }}">{{ dept.name }}</option>
                                                     {% endfor %}
                                                 </select>
-                                                <small class="form-text text-muted">Auto-filled based on selected employee</small>
+                                                <!-- The helper text is removed as it's no longer auto-filled -->
                                             </div>
                                         </div>
                                     </div>
@@ -499,8 +494,8 @@ $(document).ready(function() {
             $('#behalf_fields').slideDown();
         } else {
             $('#behalf_fields').slideUp();
-            // Clear fields when unchecked
-            $('#behalf_person_id').val('');
+            // Clear fields when unchecked to avoid submitting stale data
+            $('input[name="behalf_person_name"]').val('');
             $('#behalf_person_dept').val('');
         }
     });
