@@ -2,7 +2,7 @@ from django import forms
 from .models import *
 
 class IncidentReportForm(forms.ModelForm):
-    """Form for creating/updating incident reports"""
+    """Form for creating/updating incident reports with manual affected person entry"""
     
     # Updated incident_type to include FATALITY and exclude Near Miss
     incident_type = forms.ChoiceField(
@@ -18,13 +18,127 @@ class IncidentReportForm(forms.ModelForm):
         required=True
     )
     
+    # ===== MANUAL AFFECTED PERSON FIELDS =====
+    
+    # Employment Category
+    affected_employment_category = forms.ChoiceField(
+        choices=[
+            ('', '-- Select Employment Category --'),
+            ('PERMANENT', 'Permanent'),
+            ('CONTRACT', 'Contract'),
+            ('ON_ROLL', 'On Roll'),
+        ],
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+        })
+    )
+    
+    # Name
+    affected_person_name = forms.CharField(
+        max_length=200,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter full name'
+        })
+    )
+    
+    # Employee ID
+    affected_person_employee_id = forms.CharField(
+        max_length=50,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter employee ID'
+        })
+    )
+    
+    # Department - From Master Table
+    affected_person_department = forms.ModelChoiceField(
+        queryset=Department.objects.filter(is_active=True).order_by('name'),
+        required=True,
+        empty_label='-- Select Department --',
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+        })
+    )
+    
+    # Date of Birth
+    affected_date_of_birth = forms.DateField(
+        required=True,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )
+    
+    # Age (Auto-calculated, read-only)
+    affected_age = forms.IntegerField(
+        required=False,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control readonly-field',
+            'placeholder': 'Calculated automatically',
+            'readonly': 'readonly'
+        })
+    )
+    
+    # Gender
+    affected_gender = forms.ChoiceField(
+        choices=[
+            ('', '-- Select Gender --'),
+            ('MALE', 'Male'),
+            ('FEMALE', 'Female'),
+            ('OTHER', 'Other'),
+            ('PREFER_NOT_TO_SAY', 'Prefer not to say'),
+        ],
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+        })
+    )
+    
+    # Job Title
+    affected_job_title = forms.CharField(
+        max_length=100,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter job title'
+        })
+    )
+    
+    # Date of Joining
+    affected_date_of_joining = forms.DateField(
+        required=True,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )
+    
     class Meta:
         model = Incident
         fields = [
-            'incident_type', 'incident_date', 'incident_time',
-            'plant', 'zone', 'location', 'sublocation',
+            'incident_type', 
+            'incident_date', 
+            'incident_time',
+            'plant', 
+            'zone', 
+            'location', 
+            'sublocation',
+            'additional_location_details',  # NEW FIELD
             'description',
-            'affected_person_name', 'affected_person_employee_id', 'affected_person_department',
+            # Affected person fields
+            'affected_employment_category',
+            'affected_person_name', 
+            'affected_person_employee_id', 
+            'affected_person_department',
+            'affected_date_of_birth',
+            'affected_age',
+            'affected_gender',
+            'affected_job_title',
+            'affected_date_of_joining',
             'nature_of_injury',
         ]
         
@@ -32,33 +146,25 @@ class IncidentReportForm(forms.ModelForm):
             'incident_date': forms.DateInput(attrs={
                 'type': 'date',
                 'class': 'form-control',
-                'readonly': 'readonly'
             }),
             'incident_time': forms.TimeInput(attrs={
                 'type': 'time',
                 'class': 'form-control',
-                'readonly': 'readonly'
             }),
             'plant': forms.Select(attrs={'class': 'form-control'}),
             'zone': forms.Select(attrs={'class': 'form-control'}),
             'location': forms.Select(attrs={'class': 'form-control'}),
             'sublocation': forms.Select(attrs={'class': 'form-control'}),
+            'additional_location_details': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Specific area, equipment, or landmark near the hazard'
+            }),
             'description': forms.Textarea(attrs={
                 'class': 'form-control', 
                 'rows': 4, 
                 'placeholder': 'Describe what happened in detail, sequence of events, and circumstances'
             }),
-            'affected_person_name': forms.TextInput(attrs={
-                'class': 'form-control', 
-                'placeholder': 'Full name', 
-                'readonly': 'readonly'
-            }),
-            'affected_person_employee_id': forms.TextInput(attrs={
-                'class': 'form-control', 
-                'placeholder': 'Employee ID', 
-                'readonly': 'readonly'
-            }),
-            'affected_person_department': forms.Select(attrs={'class': 'form-control'}),
             'nature_of_injury': forms.Textarea(attrs={
                 'class': 'form-control', 
                 'rows': 2, 
@@ -81,7 +187,6 @@ class IncidentReportForm(forms.ModelForm):
         self.fields['nature_of_injury'].required = True
         
         # Set empty querysets for zone and location
-        from apps.organizations.models import Zone, Location, SubLocation
         self.fields['zone'].queryset = Zone.objects.none()
         self.fields['location'].queryset = Location.objects.none()
         self.fields['sublocation'].queryset = SubLocation.objects.none()
@@ -100,8 +205,49 @@ class IncidentReportForm(forms.ModelForm):
                 self.fields['sublocation'].queryset = SubLocation.objects.filter(
                     location=self.instance.location, is_active=True
                 )
-
-
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Validate incident date is not in future
+        incident_date = cleaned_data.get('incident_date')
+        if incident_date:
+            from django.utils import timezone
+            if incident_date > timezone.now().date():
+                raise forms.ValidationError("Incident date cannot be in the future.")
+        
+        # Validate date of birth
+        affected_dob = cleaned_data.get('affected_date_of_birth')
+        if affected_dob:
+            from django.utils import timezone
+            if affected_dob > timezone.now().date():
+                raise forms.ValidationError("Date of birth cannot be in the future.")
+            
+            # Check if age is reasonable (between 16 and 100 years)
+            age = (timezone.now().date() - affected_dob).days // 365
+            if age < 16:
+                raise forms.ValidationError("Affected person must be at least 16 years old.")
+            if age > 100:
+                raise forms.ValidationError("Please check the date of birth entered.")
+        
+        # Validate date of joining
+        affected_doj = cleaned_data.get('affected_date_of_joining')
+        if affected_doj:
+            from django.utils import timezone
+            if affected_doj > timezone.now().date():
+                raise forms.ValidationError("Date of joining cannot be in the future.")
+            
+            # Date of joining should be after date of birth
+            if affected_dob and affected_doj:
+                if affected_doj <= affected_dob:
+                    raise forms.ValidationError("Date of joining must be after date of birth.")
+                
+                # Check if person was at least 16 when they joined
+                age_at_joining = (affected_doj - affected_dob).days // 365
+                if age_at_joining < 16:
+                    raise forms.ValidationError("Person must be at least 16 years old at the time of joining.")
+        
+        return cleaned_data
 class IncidentUpdateForm(forms.ModelForm):
     """Form for updating existing incidents"""
     

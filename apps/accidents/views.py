@@ -143,13 +143,7 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         
         # Add departments
-        from apps.organizations.models import Department
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
-        
-        # Add employees for affected person dropdown - FIXED QUERY
-        context['employees'] = User.objects.filter(
-            is_active=True
-        ).select_related('department').order_by('first_name', 'last_name')
         
         return context
     
@@ -190,20 +184,56 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
         # Set reported_by to current user
         form.instance.reported_by = self.request.user
         
-        # Handle affected person selection
-        affected_person_id = self.request.POST.get('affected_person_id', '').strip()
-        if affected_person_id:
+        # ===== HANDLE MANUAL AFFECTED PERSON ENTRY =====
+        
+        # Employment Category
+        form.instance.affected_employment_category = self.request.POST.get('affected_employment_category', '').strip()
+        
+        # Name and Employee ID
+        form.instance.affected_person_name = self.request.POST.get('affected_person_name', '').strip()
+        form.instance.affected_person_employee_id = self.request.POST.get('affected_person_employee_id', '').strip()
+        
+        # Department - FROM MASTER TABLE
+        affected_department_id = self.request.POST.get('affected_person_department', '').strip()
+        if affected_department_id:
             try:
-                affected_employee = User.objects.select_related('department').get(
-                    id=affected_person_id,
-                    is_active=True
-                )
-                form.instance.affected_person = affected_employee
-                form.instance.affected_person_name = affected_employee.get_full_name()
-                form.instance.affected_person_employee_id = affected_employee.employee_id or ''
-                form.instance.affected_person_department = affected_employee.department
-            except (User.DoesNotExist, ValueError):
-                pass
+                from apps.organizations.models import Department
+                department = Department.objects.get(id=affected_department_id, is_active=True)
+                form.instance.affected_person_department = department
+            except (Department.DoesNotExist, ValueError):
+                form.instance.affected_person_department = None
+        
+        # Date of Birth
+        affected_dob = self.request.POST.get('affected_date_of_birth', '').strip()
+        if affected_dob:
+            try:
+                form.instance.affected_date_of_birth = affected_dob
+            except:
+                form.instance.affected_date_of_birth = None
+        
+        # Age (from form - already calculated in frontend)
+        affected_age = self.request.POST.get('affected_age', '').strip()
+        if affected_age:
+            try:
+                form.instance.affected_age = int(affected_age)
+            except:
+                form.instance.affected_age = None
+        
+        # Gender
+        form.instance.affected_gender = self.request.POST.get('affected_gender', '').strip()
+        
+        # Job Title
+        form.instance.affected_job_title = self.request.POST.get('affected_job_title', '').strip()
+        
+        # Date of Joining
+        affected_doj = self.request.POST.get('affected_date_of_joining', '').strip()
+        if affected_doj:
+            try:
+                form.instance.affected_date_of_joining = affected_doj
+            except:
+                form.instance.affected_date_of_joining = None
+        
+        # ===== END AFFECTED PERSON SECTION =====
         
         # Handle affected body parts JSON
         affected_body_parts_json = self.request.POST.get('affected_body_parts_json', '[]')
@@ -272,6 +302,7 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
         )
         
         return response
+
     
     def form_invalid(self, form):
         messages.error(self.request, 'Please correct the errors below.')
