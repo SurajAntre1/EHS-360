@@ -61,6 +61,33 @@
 .other-explanation-box.show {
     display: block;
 }
+
+/* Affected Person Section Styling */
+.affected-person-section {
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.affected-person-section h5 {
+    color: #dc3545;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #dc3545;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 5px;
+}
+
+.readonly-field {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
 </style>
 {% endblock %}
 
@@ -188,6 +215,15 @@
                     <div class="text-danger">{{ form.sublocation.errors }}</div>
                   {% endif %}
               </div>
+          </div>
+
+          <!-- Additional Location Details -->
+          <div class="row mt-3">
+            <div class="col-md-12 mb-3">
+              <label for="id_additional_location_details">Additional Location Details</label>
+              <textarea name="additional_location_details" id="id_additional_location_details" class="form-control" rows="2" placeholder="Specific area, equipment, or landmark near the hazard"></textarea>
+              <small class="form-text text-muted">Optional: Provide specific details about the exact location (e.g., "Near conveyor belt #3", "Next to chemical storage tank")</small>
+            </div>
           </div>
 
           <hr>
@@ -414,53 +450,105 @@
 
           <hr>
 
-          <!-- Affected Person Information -->
-          <h5 class="mb-3"><i class="fas fa-user-injured mr-2"></i>Affected Person Information</h5>
-          
-          <div class="row">
-            <div class="col-md-12 mb-3">
-              <label for="affected_person_id">Select Affected Employee <span class="text-danger">*</span></label>
-              <select name="affected_person_id" id="affected_person_id" class="form-control" required>
-                <option value="">-- Select Employee --</option>
-                {% for employee in employees %}
-                  <option value="{{ employee.id }}" 
-                          data-name="{{ employee.get_full_name }}"
-                          data-emp-id="{{ employee.employee_id|default:'' }}"
-                          data-role="{{ employee.role|default:'' }}"
-                          data-role-display="{{ employee.get_role_display|default:'' }}"
-                          data-dept="{{ employee.department.id|default:'' }}"
-                          data-dept-name="{{ employee.department.name|default:'' }}"
-                          {% if employee.id == user.id %}selected{% endif %}>
-                    {{ employee.get_full_name }}
-                    {% if employee.employee_id %} ({{ employee.employee_id }}){% endif %}
-                    {% if employee.role %} - {{ employee.get_role_display }}{% endif %}
-                  </option>
-                {% endfor %}
-              </select>
-              <small class="form-text text-muted">Select the employee who was affected by this incident</small>
+          <!-- ===== NEW AFFECTED PERSON SECTION WITH MANUAL ENTRY ===== -->
+          <div class="affected-person-section">
+            <h5><i class="fas fa-user-injured mr-2"></i>Affected Person Information (Manual Entry)</h5>
+            
+            <div class="alert alert-info mb-3">
+              <i class="fas fa-info-circle mr-2"></i>
+              <strong>Note:</strong> Please enter all details of the affected person manually. All fields marked with <span class="text-danger">*</span> are mandatory.
+            </div>
+
+            <!-- Row 1: Employment Type Dropdown -->
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="id_affected_employment_category">Employment Category <span class="text-danger">*</span></label>
+                <select name="affected_employment_category" id="id_affected_employment_category" class="form-control" required>
+                  <option value="">-- Select Employment Category --</option>
+                  <option value="PERMANENT">Permanent</option>
+                  <option value="CONTRACT">Contract</option>
+                  <option value="ON_ROLL">On Roll</option>
+                </select>
+                <small class="form-text text-muted">Select the employment category</small>
+              </div>
+            </div>
+
+            <!-- Row 2: Name, Employee ID, Department -->
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="id_affected_person_name">Name of Affected Person <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="id_affected_person_name" name="affected_person_name" 
+                       placeholder="Enter full name" required maxlength="200">
+                <small class="form-text text-muted">Enter the full name of affected person</small>
+              </div>
+              
+              <div class="col-md-4 mb-3">
+                <label for="id_affected_person_employee_id">Employee ID <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="id_affected_person_employee_id" name="affected_person_employee_id" 
+                       placeholder="Enter employee ID" required maxlength="50">
+                <small class="form-text text-muted">Enter the employee identification number</small>
+              </div>
+              
+              <div class="col-md-4 mb-3">
+                <label for="id_affected_person_department">Department <span class="text-danger">*</span></label>
+                <select name="affected_person_department" id="id_affected_person_department" class="form-control" required>
+                  <option value="">-- Select Department --</option>
+                  {% for department in departments %}
+                    <option value="{{ department.id }}">{{ department.name }}</option>
+                  {% endfor %}
+                </select>
+                <small class="form-text text-muted">Select the department from master list</small>
+              </div>
+            </div>
+
+            <!-- Row 3: Date of Birth, Gender, Age (Auto-calculated) -->
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="id_affected_date_of_birth">Date of Birth <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="id_affected_date_of_birth" name="affected_date_of_birth" required>
+                <small class="form-text text-muted">Select the date of birth</small>
+              </div>
+              
+              <div class="col-md-4 mb-3">
+                <label for="id_affected_gender">Gender <span class="text-danger">*</span></label>
+                <select name="affected_gender" id="id_affected_gender" class="form-control" required>
+                  <option value="">-- Select Gender --</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                  <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+                </select>
+                <small class="form-text text-muted">Select gender</small>
+              </div>
+              
+              <div class="col-md-4 mb-3">
+                <label for="id_affected_age">Age</label>
+                <input type="number" class="form-control readonly-field" id="id_affected_age" name="affected_age" 
+                       placeholder="Calculated automatically" readonly>
+                <small class="form-text text-muted">Age is calculated automatically from date of birth</small>
+              </div>
+            </div>
+
+            <!-- Row 4: Job Title, Date of Joining -->
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="id_affected_job_title">Job Title <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="id_affected_job_title" name="affected_job_title" 
+                       placeholder="Enter job title" required maxlength="100">
+                <small class="form-text text-muted">Enter the job title or designation</small>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <label for="id_affected_date_of_joining">Date of Joining <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="id_affected_date_of_joining" name="affected_date_of_joining" required>
+                <small class="form-text text-muted">Select the date of joining</small>
+              </div>
             </div>
           </div>
-          
-          <div class="row">
-            <div class="col-md-4 mb-3">
-              <label>Name of Affected Person <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="id_affected_person_name" name="affected_person_name"
-                    value="{{ user.get_full_name|default:user.username }}" readonly required style="background-color: #e9ecef;">
-            </div>
-            <div class="col-md-4 mb-3">
-              <label>Employee ID</label>
-              <input type="text" class="form-control" id="id_affected_person_employee_id" name="affected_person_employee_id"
-                    value="{% if user.employee_id %}{{ user.employee_id }}{% endif %}" readonly style="background-color: #e9ecef;">
-            </div>
-            <div class="col-md-4 mb-3">
-              <label>Department <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" id="affected_person_department_display"
-                    value="{% if user.department %}{{ user.department.name }}{% else %}Not Assigned{% endif %}" readonly style="background-color: #e9ecef;">
-              <input type="hidden" id="affected_person_department_hidden" name="affected_person_department" 
-                    value="{% if user.department %}{{ user.department.id }}{% endif %}">
-            </div>
-          </div>
-          
+          <!-- ===== END OF NEW AFFECTED PERSON SECTION ===== -->
+
+          <hr>
+
           <!-- Body Parts Section -->
           <div id="bodyPartsSection" style="display: none;">
             {% include 'accidents/body_diagram_interactive.html' %}
@@ -528,32 +616,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const bodyPartsSection = document.getElementById('bodyPartsSection');
     const natureOfInjuryField = document.getElementById('id_nature_of_injury');
     
-    // Affected person dropdown
-    const affectedPersonSelect = document.getElementById('affected_person_id');
-    const affectedNameField = document.getElementById('id_affected_person_name');
-    const affectedEmployeeIdField = document.getElementById('id_affected_person_employee_id');
-    const affectedDepartmentDisplayField = document.getElementById('affected_person_department_display');
-    const affectedDepartmentHiddenField = document.getElementById('affected_person_department_hidden');
+    // Age calculation fields
+    const dateOfBirthField = document.getElementById('id_affected_date_of_birth');
+    const ageField = document.getElementById('id_affected_age');
     
-    // Auto-fill affected person details when employee is selected
-    affectedPersonSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
+    // Function to calculate age from date of birth
+    function calculateAge(dateOfBirth) {
+        if (!dateOfBirth) return '';
         
-        if (selectedOption.value) {
-            // Fill all fields from selected employee
-            affectedNameField.value = selectedOption.getAttribute('data-name') || '';
-            affectedEmployeeIdField.value = selectedOption.getAttribute('data-emp-id') || '';
-            
-            // Fill Department
-            affectedDepartmentDisplayField.value = selectedOption.getAttribute('data-dept-name') || 'Not Assigned';
-            affectedDepartmentHiddenField.value = selectedOption.getAttribute('data-dept') || '';
-        } else {
-            // Clear all fields if no employee selected
-            affectedNameField.value = '';
-            affectedEmployeeIdField.value = '';
-            affectedDepartmentDisplayField.value = '';
-            affectedDepartmentHiddenField.value = '';
+        const today = new Date();
+        const birthDate = new Date(dateOfBirth);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
         }
+        
+        return age >= 0 ? age : '';
+    }
+    
+    // Auto-calculate age when date of birth changes
+    dateOfBirthField.addEventListener('change', function() {
+        const age = calculateAge(this.value);
+        ageField.value = age;
     });
     
     // Show/hide sections based on incident type
@@ -607,6 +693,25 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         
+        // Validate affected person details
+        const affectedName = document.getElementById('id_affected_person_name').value.trim();
+        const affectedEmployeeId = document.getElementById('id_affected_person_employee_id').value.trim();
+        const affectedDepartment = document.getElementById('id_affected_person_department_manual').value.trim();
+        
+        if (!affectedName || !affectedEmployeeId || !affectedDepartment) {
+            e.preventDefault();
+            alert('Please fill in all required affected person details (Name, Employee ID, Department).');
+            return false;
+        }
+        
+        // Validate age is calculated
+        if (!ageField.value) {
+            e.preventDefault();
+            alert('Please select a valid Date of Birth to calculate age.');
+            dateOfBirthField.focus();
+            return false;
+        }
+        
         // Save body parts as JSON
         const bodyPartsInput = document.getElementById('affectedBodyPartsJson');
         if (window.selectedBodyParts && window.selectedBodyParts.size > 0) {
@@ -635,10 +740,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.getElementById('id_incident_date');
     const timeInput = document.getElementById('id_incident_time');
     
-    if (!dateInput.value) {
+    if (dateInput && !dateInput.value) {
         dateInput.value = now.toISOString().split('T')[0];
     }
-    if (!timeInput.value) {
+    if (timeInput && !timeInput.value) {
         timeInput.value = now.toTimeString().split(' ')[0].substring(0, 5);
     }
 });

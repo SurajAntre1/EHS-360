@@ -30,7 +30,67 @@ class Incident(models.Model):
         ('COMPLETED', 'Completed'),
         ('CLOSED', 'Closed'),
     ]
+    # Employment Category
+    EMPLOYMENT_CATEGORY_CHOICES = [
+        ('PERMANENT', 'Permanent'),
+        ('CONTRACT', 'Contract'),
+        ('ON_ROLL', 'On Roll'),
+    ]
+    # Gender
+    GENDER_CHOICES = [
+        ('MALE', 'Male'),
+        ('FEMALE', 'Female'),
+        ('OTHER', 'Other'),
+        ('PREFER_NOT_TO_SAY', 'Prefer not to say'),
+    ]
+    affected_employment_category = models.CharField(
+        max_length=20,
+        choices=EMPLOYMENT_CATEGORY_CHOICES,
+        blank=True,
+        help_text="Employment category of affected person"
+    )
+       # Basic Information (already exists - keep these)
+    affected_person_name = models.CharField(max_length=200)
+    affected_person_employee_id = models.CharField(max_length=50, blank=True)
     
+    # Department - FROM MASTER TABLE (ForeignKey)
+    affected_person_department = models.ForeignKey(
+        Department, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='incidents_affected',
+        help_text="Department from master table"
+    )
+    # Date of Birth and Age
+    affected_date_of_birth = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Date of birth of affected person"
+    )
+    affected_age = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Age of affected person (calculated from DOB)"
+    )
+    affected_gender = models.CharField(
+        max_length=20,
+        choices=GENDER_CHOICES,
+        blank=True,
+        help_text="Gender of affected person"
+    )
+    # Job Title
+    affected_job_title = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Job title or designation of affected person"
+    )
+    # Date of Joining
+    affected_date_of_joining = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Date of joining of affected person"
+    )
     # Auto-generated Report Number: INC-PLANT-YYYYMMDD-XXX
     report_number = models.CharField(max_length=50, unique=True, editable=False)
     
@@ -49,7 +109,10 @@ class Incident(models.Model):
         blank=True,
         help_text="Optional: Specific sub-location where incident occurred"
     )
-    
+    additional_location_details = models.TextField(
+        blank=True,
+        help_text="Specific area, equipment, or landmark near the incident location"
+    )
     # Incident Details
     description = models.TextField(help_text="Detailed description of what happened")
     
