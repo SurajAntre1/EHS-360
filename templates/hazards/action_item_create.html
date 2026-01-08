@@ -207,20 +207,6 @@
                             </div>
                         </div>
 
-                        <!-- Close Hazard Option (Only for Self-Assignment) -->
-                        <div class="close-hazard-box" id="closeHazardBox">
-                            <div class="custom-control custom-checkbox">
-                                <input type="checkbox" class="custom-control-input" id="closeHazardCheckbox" name="close_hazard">
-                                <label class="custom-control-label" for="closeHazardCheckbox">
-                                    <strong><i class="fas fa-check-circle"></i> Close this hazard when action is completed</strong>
-                                </label>
-                            </div>
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle"></i> 
-                                When you mark this action complete, the entire hazard will be automatically closed.
-                            </small>
-                        </div>
-
                         <!-- Responsible Emails (Hidden by default) -->
                         <div class="form-group" id="emailAssignmentSection" style="display: none;">
                             <label>
@@ -290,13 +276,13 @@
                         <!-- Status Info -->
                         <div class="form-group">
                             <label>
-                                <i class="fas fa-flag"></i> Initial Status
+                                 <i class="fas fa-flag"></i> Initial Status
                             </label>
-                            <input type="text" class="form-control" value="Pending" readonly style="background-color: #e9ecef;">
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle"></i> New action items are created with <strong>Pending</strong> status.
-                            </small>
+                            <input type="text" id="initialStatus" class="form-control" value="Completed" readonly style="background-color: #e9ecef;">
                         </div>
+
+                    <input type="hidden" name="initial_status" id="initialStatusValue" value="completed">
+
 
                         <!-- Submit Buttons -->
                         <hr class="my-4">
@@ -343,6 +329,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const responsibleEmails = document.getElementById('responsibleEmails');
     const emailCount = document.getElementById('emailCount');
     const targetDateInput = document.getElementById('id_target_date');
+    const initialStatusInput = document.getElementById('initialStatus');
+    const initialStatusValue = document.getElementById('initialStatusValue');
+    const statusHelpText = document.getElementById('statusHelpText');
+
     
     // File attachment elements
     const attachmentInput = document.getElementById('attachmentInput');
@@ -360,16 +350,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Toggle assignment type
     function toggleAssignmentType() {
-        if (assignSelf.checked) {
-            emailAssignmentSection.style.display = 'none';
-            closeHazardBox.style.display = 'block';  // Show close hazard option
-            emails = [];
-            updateUI();
-        } else {
-            emailAssignmentSection.style.display = 'block';
-            closeHazardBox.style.display = 'none';  // Hide close hazard option
-        }
+    if (assignSelf.checked) {
+        emailAssignmentSection.style.display = 'none';
+        initialStatusInput.value = 'Completed';
+        initialStatusValue.value = 'completed';
+
+        emails = [];
+        updateUI();
+    } else {
+        emailAssignmentSection.style.display = 'block';
+        initialStatusInput.value = 'Pending';
+        initialStatusValue.value = 'pending';
+        statusHelpText.innerHTML = `
+            <i class="fas fa-info-circle"></i>
+            This action will start in <strong>Pending</strong> status until completed.
+        `;
     }
+}
+
     
     assignSelf.addEventListener('change', toggleAssignmentType);
     assignOthers.addEventListener('change', toggleAssignmentType);
