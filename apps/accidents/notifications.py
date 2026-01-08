@@ -161,17 +161,31 @@ def send_email_to_stakeholder(recipient, incident, message):
     try:
         subject = f"⚠️ New Incident Reported - {incident.report_number}"
         
-        # Simple text email for now
+        # Sending email
+        email = {
+            "incident" : incident,
+            "incident_type"  : incident.get_incident_type_display(),
+            "location" : incident.location.name if incident.location else "N/A",
+             "description": incident.description[:300] + (
+                "..." if len(incident.description) > 300 else ""
+            ),
+        }
+
+        html_content = render_to_string(
+            "emails/incident_notification.html",
+            email
+        )
         email = EmailMultiAlternatives(
             subject=subject,
-            body=message,
+            body=message,  
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[recipient.email]
         )
-        
-        print(f"  Sending email...")
+
+        email.attach_alternative(html_content, "text/html")
+        print("  Sending email...")
         email.send(fail_silently=False)
-        print(f"  ✅ Email sent successfully")
+        print("  ✅ Email sent successfully")
         return True
         
     except Exception as e:
@@ -215,19 +229,33 @@ def notify_incident_reported(incident):
         print(f"STAKEHOLDER {idx}/{len(stakeholders)}: {stakeholder.username}")
         print(f"{'=' * 70}")
         
-        title = f"New Incident Reported: {incident.report_number}"
-        message = f"""A new {incident.get_incident_type_display()} has been reported.
+        title = f"New Incident Reported | {incident.report_number}"
+        message = message = f"""
+Hello,
+A new {incident.get_incident_type_display()} has been reported. Please find the details below:
 
-Incident Number: {incident.report_number}
-Date & Time: {incident.incident_date} at {incident.incident_time}
-Plant: {incident.plant.name}
-Location: {incident.location.name if incident.location else 'N/A'}
-Reported by: {incident.reported_by.get_full_name()}
+--------------------------------------------------
+INCIDENT DETAILS
+--------------------------------------------------
+Incident Number      : {incident.report_number}
+Date & Time          : {incident.incident_date} {incident.incident_time}
+Plant                : {incident.plant.name}
+Location             : {incident.location.name if incident.location else 'N/A'}
+Reported By          : {incident.reported_by.get_full_name()}
 Investigation Deadline: {incident.investigation_deadline}
 
-Description: {incident.description[:200]}...
+--------------------------------------------------
+DESCRIPTION           
+--------------------------------------------------
+{incident.description[:300]}{'...' if len(incident.description) > 300 else ''}
 
+--------------------------------------------------
+ACTION REQUIRED
+--------------------------------------------------
 Please review this incident and take necessary action.
+
+Regards,
+EHS Management System
 """
         
         # Create in-app notification

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>New Incident Reported</title>
+</head>
+
+<body style="margin:0; padding:0; background-color:#f3f4f6; font-family: Arial, sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding: 20px;">
+        <tr>
+            <td align="center">
+                <table width="650" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; border:1px solid #e5e7eb; padding:20px;">
+                    <tr>
+                        <td style="padding-bottom:15px;">
+                            <h2 style="margin:0; color:#dc2626;">
+                                New {{ incident_type }} Reported
+                            </h2>
+                        </td>
+                    </tr>
+                
+                    <tr>
+                        <td style="padding-bottom:15px;">
+                            A new incident has been reported Please review the details below:
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td>
+                            <table width="100%" cellpadding="8" cellspacing="0" style="border-collapse:collapse;">
+                            <tr>
+                                <td width:"40%"><strong>Incident Number</strong></td>
+                                <td>: {{ incident.report_number }} </td>
+                            </tr>
+                            <tr style="background:#f9fafb;">
+                                <td><strong>Date & Time</strong></td>
+                                <td>: {{ incident.incident_date }} {{ incdient.incident_time }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Plant</strong></td>
+                                <td>: {{ incident.plant.name }} </td>
+                            </tr>
+                            <tr style="background:#f9fafb;">
+                                <td><strong>Location</strong></td>
+                                <td>: {{ location }} </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Reported By</strong></td>
+                                <td>: {{ incident.reported_by.get_full_name }} </td>
+                            </tr>
+                            <tr style="background:#f9fafb;">
+                                <td><strong>Investigation Deadline</strong></td>
+                                <td style="color:#b91c1c;">
+                                    :{{ incident.investigation_deadline }}
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding-top:20px;">
+                        <h4 style="margin-bottom:8px;">Description</h4>
+                        <div style="background:#f9fafb; padding:12px; border-left:4px solid #dc2626;">
+                            {{ description }}
+                        </div>
+                    </td>
+                </tr>
+                
+            </table>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
+                    
+
+
+
+
