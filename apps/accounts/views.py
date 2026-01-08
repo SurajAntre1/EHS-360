@@ -519,7 +519,7 @@ class GetSubLocationsAjaxView(LoginRequiredMixin, View):
 #========================
 class RoleCreateView(LoginRequiredMixin, TemplateView):
     """Assigning user roles"""
-    template_name = 'role/roles_permission.html'
+    template_name = 'roles/roles_permission.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
