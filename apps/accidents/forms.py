@@ -479,3 +479,15 @@ class IncidentClosureForm(forms.ModelForm):
                 'class': 'form-check-input'
             })
         }
+        
+class IncidentAttachmentForm(forms.ModelForm):
+    """
+    A simple form dedicated to uploading the closure attachment on the
+    verification screen.
+    """
+    class Meta:
+        model = Incident
+        fields = ['attachment']
+        widgets = {
+            'attachment': forms.FileInput(attrs={'class': 'form-control-file'})
+        }

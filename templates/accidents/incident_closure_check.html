@@ -94,7 +94,7 @@
                 </div>
             </div>
 
-            <!-- Action Items Status -->
+            <!-- Action Items Status & Attachment Upload -->
             <div class="card mt-3">
                 <div class="card-header bg-info">
                     <h5 class="card-title text-white mb-0">
@@ -161,6 +161,53 @@
                             <i class="fas fa-check-circle mr-2"></i>
                             All action items have been completed!
                         </div>
+
+
+                        <!-- ================================================================ -->
+                        <!-- NEW ATTACHMENT FORM SECTION WITH DRAG-AND-DROP STYLE             -->
+                        <!-- ================================================================ -->
+                        <hr>
+                        <h5 class="mt-3 font-weight-bold">
+                            <i class="fas fa-paperclip mr-1"></i>Attachment (Optional)
+                        </h5>
+                        <p>You can attach the final closure document here.</p>
+
+                        <!-- The form tag must have enctype -->
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <!-- This is the styled dropzone -->
+                            <div class="file-drop-area">
+                                <!-- The visible part of the dropzone -->
+                                <div class="file-drop-zone-title">
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-secondary mb-3"></i>
+                                    <p class="file-drop-message">Click to upload file or drag and drop</p>
+                                    <small class="text-muted">PDF, DOC, Excel, Images (Max 10MB)</small>
+                                </div>
+                                <!-- This is the actual file input, which we hide -->
+                                {{ attachment_form.attachment }}
+                            </div>
+                            
+                            <!-- Display errors if any -->
+                            {% if attachment_form.attachment.errors %}
+                                <div class="invalid-feedback d-block mt-2">
+                                    {{ attachment_form.attachment.errors }}
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Display the name of the currently attached file -->
+                            {% if incident.attachment %}
+                                <div class="alert alert-info py-2 mt-3">
+                                    <strong>Current File:</strong> 
+                                    <a href="{{ incident.attachment.url }}" target="_blank">{{ incident.attachment.name|truncatechars:50 }}</a>
+                                    <p class="mb-0 small text-muted">Uploading a new file will replace this one.</p>
+                                </div>
+                            {% endif %}
+                            
+                            <button type="submit" class="btn btn-primary mt-3">
+                                <i class="fas fa-upload mr-2"></i>Upload Attachment
+                            </button>
+                        </form>
                     {% endif %}
                 </div>
             </div>

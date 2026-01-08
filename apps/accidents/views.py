@@ -20,7 +20,9 @@ import datetime
 from django.db.models import Q
 import json
 import openpyxl
+from django.shortcuts import render
 
+from .forms import IncidentAttachmentForm # <-- Import the new form
 class IncidentDashboardView(LoginRequiredMixin, TemplateView):
     """Incident Management Dashboard"""
     template_name = 'accidents/dashboard.html'
@@ -900,32 +902,36 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
 
 ######################Closure 
 
-class IncidentClosureCheckView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
-    """Pre-closure verification page"""
+class IncidentClosureCheckView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """
+    Pre-closure verification page.
+    Also handles the attachment upload directly on this page.
+    """
     template_name = 'accidents/incident_closure_check.html'
     
     def test_func(self):
-        """Check if user has permission to close incidents"""
+        """Check if user has permission to view this page."""
         return (
             self.request.user.is_superuser or
-            self.request.user.can_close_incidents or
+            # self.request.user.can_close_incidents or # Uncomment if you have this on your user model
             self.request.user.role in ['ADMIN', 'SAFETY_MANAGER', 'PLANT_HEAD']
         )
     
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        """Helper method to gather all context data."""
+        context = {}
         incident = get_object_or_404(Incident, pk=self.kwargs['pk'])
         
-        # Check if incident can be closed
+        # --- THIS IS THE CORRECTED LINE ---
+        # Removed the parentheses from incident.can_be_closed
         can_close, message = incident.can_be_closed
+        # ------------------------------------
         
-        # Get investigation status (OneToOneField, not ManyToMany)
         try:
             investigation = incident.investigation_report
         except IncidentInvestigationReport.DoesNotExist:
             investigation = None
         
-        # Get action items status
         action_items = incident.action_items.all()
         pending_actions = action_items.exclude(status='COMPLETED')
         completed_actions = action_items.filter(status='COMPLETED')
@@ -942,8 +948,30 @@ class IncidentClosureCheckView(LoginRequiredMixin, UserPassesTestMixin, Template
             'completed_count': completed_actions.count(),
         })
         
+        if 'attachment_form' not in kwargs:
+             context['attachment_form'] = IncidentAttachmentForm(instance=incident)
+
         return context
 
+    def get(self, request, *args, **kwargs):
+        """Handles the display of the verification page."""
+        context = self.get_context_data()
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        """Handles the file upload form submission."""
+        incident = get_object_or_404(Incident, pk=self.kwargs['pk'])
+        form = IncidentAttachmentForm(request.POST, request.FILES, instance=incident)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Closure attachment has been successfully uploaded.')
+            return redirect('accidents:incident_closure_check', pk=incident.pk)
+        else:
+            messages.error(request, 'There was an error uploading the file. Please try again.')
+            context = self.get_context_data(attachment_form=form)
+            return render(request, self.template_name, context)
+        
 
 class IncidentClosureView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """Close an incident"""

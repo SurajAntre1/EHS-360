@@ -224,7 +224,13 @@ class Incident(models.Model):
         null=True,
         blank=True,
         related_name='incidents_closed'
-    )    
+    ) 
+    attachment = models.FileField(
+        upload_to='action_item_attachments/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text="Optional file attachment (documents, images, etc.)"
+    )   
     closure_remarks = models.TextField(blank=True)
     lessons_learned = models.TextField(blank=True)
     preventive_measures = models.TextField(blank=True)
