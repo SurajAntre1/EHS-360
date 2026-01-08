@@ -1,0 +1,197 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Create Role{% endblock %}
+{% block page_title %}Create Role{% endblock %}
+
+{% block extra_css %}
+<style>
+  .role-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .role-select-wrapper {
+    max-width: 460px;
+  }
+
+  .form-select.role-select {
+    width: 100%;
+    height: 56px;
+    border-radius: 10px;
+    border: 1px solid #d1d5db;
+    background-color: #f9fafb;
+    background-position: right 16px center;
+    background-repeat: no-repeat;
+    background-size: 18px 18px;
+    font-size: 15px;
+    padding: 0 48px 0 16px;
+    transition: all 0.2s ease;
+  }
+
+  .form-select.role-select:hover {
+    background-color: #ffffff;
+    border-color: #94a3b8;
+  }
+
+  .form-select.role-select:focus {
+    background-color: #ffffff;
+    border-color: #3b82f6;
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15);
+    outline: none;
+  }
+
+  .permissions-box {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #fff;
+  }
+
+  .permission-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    margin-bottom: 8px;
+  }
+
+  .permission-row:hover {
+    background-color: #f1f5f9;
+  }
+
+  .permission-row input {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+
+  .permission-label {
+    font-size: 14px;
+    color: #111827;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .btn-spacing {
+    margin-right: 12px !important;
+  }
+
+  .form-section {
+    margin-bottom: 1rem;
+  }
+
+  .permissions-header {
+    margin-bottom: 1.25rem;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="form-section">
+        <label class="role-label">
+          Role <span class="text-danger">*</span>
+        </label>
+        <div class="role-select-wrapper">
+          <select name="role_name" class="form-select role-select" required>
+            <option value="">----------</option>
+            {% for value, label in roles %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label fw-semibold">Description</label>
+        <textarea
+          name="description"
+          class="form-control"
+          rows="3"
+          placeholder="Enter role description"
+        ></textarea>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center permissions-header">
+        <label class="fw-semibold mb-0">Permissions</label>
+        <div>
+          <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="selectAll()">
+            Select All
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAll()">
+            Deselect All
+          </button>
+        </div>
+      </div>
+
+      <div class="permissions-box">
+        {% for value, label in permission %}
+        <div class="permission-row">
+          <input
+            type="checkbox"
+            class="permission-checkbox"
+            name="permissions"
+            value="{{ value }}"
+            id="perm_{{ value }}"
+          >
+          <label for="perm_{{ value }}" class="permission-label">
+            {{ label }}
+          </label>
+        </div>
+        {% empty %}
+        <p class="text-muted text-center m-0 py-4">
+          No permissions available
+        </p>
+        {% endfor %}
+      </div>
+
+      <div class="d-flex justify-content-end mt-5">
+        <a href="#" class="btn btn-outline-secondary btn-spacing">
+          Cancel
+        </a>
+        <button type="submit" class="btn btn-primary">
+          Create Role
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+  function selectAll() {
+    document.querySelectorAll(".permission-checkbox")
+      .forEach(cb => cb.checked = true);
+  }
+
+  function deselectAll() {
+    document.querySelectorAll(".permission-checkbox")
+      .forEach(cb => cb.checked = false);
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".permission-row").forEach(row => {
+      row.addEventListener("click", function (e) {
+        if (e.target.tagName !== "INPUT") {
+          const checkbox = this.querySelector(".permission-checkbox");
+          checkbox.checked = !checkbox.checked;
+        }
+      });
+    });
+  });
+</script>
+{% endblock extra_js %}

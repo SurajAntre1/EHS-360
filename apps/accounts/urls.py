@@ -33,5 +33,6 @@ urlpatterns = [
     
     # Bulk Actions
     # path('permissions/bulk-grant/', views.bulk_grant_permissions, name='bulk_grant_permissions'),
-
+    #roles and permission
+    path('createrole/', views.RoleCreateView.as_view(), name='createrole'),
 ]

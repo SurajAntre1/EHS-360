@@ -513,3 +513,15 @@ class GetSubLocationsAjaxView(LoginRequiredMixin, View):
             is_active=True
         ).values('id', 'name', 'code')
         return JsonResponse(list(sublocations), safe=False)
+
+# =======================
+# Role and permission
+#========================
+class RoleCreateView(LoginRequiredMixin, TemplateView):
+    """Assigning user roles"""
+    template_name = 'role/roles_permission.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['roles'] = User.ROLE_CHOICES
+        return context
