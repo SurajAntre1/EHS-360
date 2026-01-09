@@ -1,0 +1,186 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ plant.name }} - Questions{% endblock %}
+{% block page_title %}Questions for {{ plant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.plant-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.category-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.category-card-header {
+    background: #f8f9fa;
+    padding: 15px 20px;
+    border-bottom: 2px solid #dee2e6;
+    border-radius: 8px 8px 0 0;
+}
+
+.question-list-item {
+    padding: 12px 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.question-list-item:last-child {
+    border-bottom: none;
+}
+
+.question-list-item:hover {
+    background: #f8f9fa;
+}
+
+.question-meta {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.unit-badge {
+    background: #e7f3ff;
+    color: #0066cc;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'data_collection:dashboard' %}">Data Collection</a></li>
+<li class="breadcrumb-item"><a href="{% url 'data_collection:question_assignment' %}">Question Assignment</a></li>
+<li class="breadcrumb-item active">{{ plant.name }}</li>
+{% endblock %}
+
+{% block content %}
+
+<!-- Plant Header -->
+<div class="plant-header">
+    <h2 class="mb-3">
+        <i class="fas fa-industry mr-2"></i>{{ plant.name }}
+    </h2>
+    <div class="row">
+        <div class="col-md-3">
+            <h4 class="mb-0">{{ total_questions }}</h4>
+            <small>Total Questions</small>
+        </div>
+        <div class="col-md-3">
+            <h4 class="mb-0">{{ questions_by_category|length }}</h4>
+            <small>Categories</small>
+        </div>
+        <div class="col-md-3">
+            <h4 class="mb-0">{{ plant.code }}</h4>
+            <small>Plant Code</small>
+        </div>
+        <div class="col-md-3">
+            <h4 class="mb-0">{{ plant.location_count }}</h4>
+            <small>Locations</small>
+        </div>
+    </div>
+</div>
+
+<!-- Back Button -->
+<div class="mb-3">
+    <a href="{% url 'data_collection:question_assignment' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left mr-2"></i>Back to Assignment Manager
+    </a>
+    <button onclick="window.print()" class="btn btn-outline-primary">
+        <i class="fas fa-print mr-2"></i>Print
+    </button>
+</div>
+
+<!-- Questions by Category -->
+{% for category, questions in questions_by_category.items %}
+<div class="category-card">
+    <div class="category-card-header">
+        <h5 class="mb-0">
+            <i class="{{ category.icon_class }} mr-2"></i>
+            {{ category.name }}
+            <span class="badge badge-primary float-right">{{ questions|length }} questions</span>
+        </h5>
+        {% if category.description %}
+        <small class="text-muted">{{ category.description }}</small>
+        {% endif %}
+    </div>
+    
+    <div class="list-group list-group-flush">
+        {% for question in questions %}
+        <div class="question-list-item">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">
+                        {{ forloop.counter }}. {{ question.question_text }}
+                        {% if question.is_required %}
+                            <span class="badge badge-danger ml-2">Required</span>
+                        {% endif %}
+                    </h6>
+                    <div class="question-meta">
+                        <span class="mr-3">
+                            <strong>Code:</strong> {{ question.question_code }}
+                        </span>
+                        <span class="mr-3">
+                            <strong>Type:</strong> {{ question.get_field_type_display }}
+                        </span>
+                        {% if question.unit_of_measurement %}
+                        <span class="unit-badge">
+                            <i class="fas fa-balance-scale-right mr-1"></i>
+                            {{ question.unit_of_measurement }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if question.help_text %}
+                    <small class="text-muted d-block mt-1">
+                        <i class="fas fa-info-circle mr-1"></i>{{ question.help_text }}
+                    </small>
+                    {% endif %}
+                </div>
+                <div class="text-right">
+                    {% if question.applicable_to_all_plants %}
+                        <span class="badge badge-success">All Plants</span>
+                    {% else %}
+                        <span class="badge badge-warning">Plant-Specific</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% empty %}
+<div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle mr-2"></i>
+    No questions assigned to this plant yet.
+</div>
+{% endfor %}
+
+<!-- Summary Section -->
+<div class="card mt-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-chart-pie mr-2"></i>Summary
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for category, questions in questions_by_category.items %}
+            <div class="col-md-3 mb-2">
+                <strong>{{ category.name }}:</strong> {{ questions|length }} questions
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

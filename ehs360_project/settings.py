@@ -52,7 +52,7 @@ INSTALLED_APPS = [
     'apps.organizations',
     'apps.hazards',
     'apps.accidents',
-    'apps.environmental',
+    'apps.data_collection',
     'apps.inspections',
     'apps.dashboards',
     'apps.notifications',

@@ -1,0 +1,522 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Question Assignment - Plants{% endblock %}
+{% block page_title %}Question Assignment Management{% endblock %}
+
+{% block extra_css %}
+<style>
+.assignment-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.question-item {
+    border-left: 4px solid #007bff;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
+.question-item.all-plants {
+    border-left-color: #28a745;
+}
+
+.question-item.specific-plants {
+    border-left-color: #ffc107;
+}
+
+.plant-badge {
+    display: inline-block;
+    background: #007bff;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 15px;
+    margin: 3px;
+    font-size: 0.85rem;
+}
+
+.category-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.filter-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.assignment-form {
+    background: white;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.month-checkbox {
+    display: inline-block;
+    margin-right: 15px;
+    margin-bottom: 10px;
+}
+
+.month-checkbox input {
+    margin-right: 5px;
+}
+
+.save-indicator {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    padding: 15px 25px;
+    background: #28a745;
+    color: white;
+    border-radius: 5px;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+.plant-selector {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.plant-selector .form-check {
+    padding: 8px 0;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'data_collection:dashboard' %}">Data Collection</a></li>
+<li class="breadcrumb-item active">Question Assignment</li>
+{% endblock %}
+
+{% block content %}
+
+<div class="save-indicator" id="saveIndicator">
+    <i class="fas fa-check-circle mr-2"></i> Changes saved successfully!
+</div>
+
+<!-- Filter Section -->
+<div class="filter-section">
+    <form method="GET" class="form-inline">
+        <div class="form-group mr-3">
+            <label for="category" class="mr-2">Category:</label>
+            <select name="category" id="category" class="form-control" onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>
+                        {{ cat.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group mr-3">
+            <label for="assignment_type" class="mr-2">Type:</label>
+            <select name="assignment_type" id="assignment_type" class="form-control" onchange="this.form.submit()">
+                <option value="">All Questions</option>
+                <option value="all_plants" {% if selected_type == 'all_plants' %}selected{% endif %}>All Plants</option>
+                <option value="specific_plants" {% if selected_type == 'specific_plants' %}selected{% endif %}>Specific Plants</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-filter mr-1"></i>Apply Filters
+        </button>
+        
+        <a href="{% url 'data_collection:question_assignment' %}" class="btn btn-secondary ml-2">
+            <i class="fas fa-times mr-1"></i>Clear
+        </a>
+    </form>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h3 class="mb-0">{{ total_questions }}</h3>
+                <small>Total Questions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h3 class="mb-0">{{ all_plants_count }}</h3>
+                <small>All Plants Questions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <h3 class="mb-0">{{ specific_plants_count }}</h3>
+                <small>Plant-Specific Questions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h3 class="mb-0">{{ plants.count }}</h3>
+                <small>Total Plants</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Questions by Category -->
+{% for category, category_questions in questions_by_category.items %}
+<div class="assignment-card">
+    <div class="category-header">
+        <h4 class="mb-0">
+            <i class="{{ category.icon_class }} mr-2"></i>
+            {{ category.name }}
+            <small class="float-right">{{ category_questions|length }} question{{ category_questions|length|pluralize }}</small>
+        </h4>
+    </div>
+    
+    {% for question in category_questions %}
+    <div class="question-item {% if question.applicable_to_all_plants %}all-plants{% else %}specific-plants{% endif %}" 
+         id="question-{{ question.id }}">
+        <div class="row">
+            <div class="col-md-8">
+                <h6>{{ question.question_text }}</h6>
+                <small class="text-muted">
+                    <strong>Code:</strong> {{ question.question_code }} | 
+                    <strong>Type:</strong> {{ question.get_field_type_display }} | 
+                    <strong>Unit:</strong> {{ question.unit_of_measurement|default:"N/A" }}
+                    {% if question.is_required %}
+                        <span class="badge badge-danger ml-2">Required</span>
+                    {% endif %}
+                </small>
+            </div>
+            <div class="col-md-4 text-right">
+                <button type="button" class="btn btn-sm btn-primary" 
+                        onclick="openAssignmentModal({{ question.id }}, '{{ question.question_text|escapejs }}')">
+                    <i class="fas fa-edit mr-1"></i>Edit Assignment
+                </button>
+            </div>
+        </div>
+        
+        <div class="mt-2">
+            {% if question.applicable_to_all_plants %}
+                <span class="badge badge-success">
+                    <i class="fas fa-globe mr-1"></i>Applicable to ALL Plants
+                </span>
+            {% else %}
+                <strong>Assigned Plants:</strong>
+                {% for plant in question.applicable_plants.all %}
+                    <span class="plant-badge">{{ plant.name }}</span>
+                {% empty %}
+                    <span class="text-danger">No plants assigned!</span>
+                {% endfor %}
+            {% endif %}
+        </div>
+        
+        {% if question.applicable_months %}
+        <div class="mt-2">
+            <strong>Applicable Months:</strong>
+            <span class="badge badge-info">{{ question.get_months_display }}</span>
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle mr-2"></i>
+        No questions in this category matching your filters.
+    </div>
+    {% endfor %}
+</div>
+{% empty %}
+<div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle mr-2"></i>
+    No questions found. Please add questions via Django Admin or adjust your filters.
+</div>
+{% endfor %}
+
+<!-- Assignment Modal -->
+<div class="modal fade" id="assignmentModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-cog mr-2"></i>Edit Question Assignment
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            
+            <form id="assignmentForm" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="question_id" id="modalQuestionId">
+                
+                <div class="modal-body">
+                    <h6 id="modalQuestionText" class="mb-3"></h6>
+                    
+                    <!-- Plant Assignment -->
+                    <div class="form-group">
+                        <label class="font-weight-bold">Plant Assignment</label>
+                        
+                        <div class="form-check mb-3">
+                            <input type="radio" class="form-check-input" 
+                                   name="assignment_type" value="all" id="assignAll"
+                                   onchange="togglePlantSelector()">
+                            <label class="form-check-label" for="assignAll">
+                                <strong>All Plants</strong> - This question applies to all plants
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input type="radio" class="form-check-input" 
+                                   name="assignment_type" value="specific" id="assignSpecific"
+                                   onchange="togglePlantSelector()">
+                            <label class="form-check-label" for="assignSpecific">
+                                <strong>Specific Plants</strong> - Select plants below
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Plant Selector -->
+                    <div id="plantSelector" class="plant-selector" style="display: none;">
+                        <label class="font-weight-bold mb-2">Select Plants:</label>
+                        {% for plant in plants %}
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input plant-checkbox" 
+                                   name="plants[]" value="{{ plant.id }}" id="plant-{{ plant.id }}">
+                            <label class="form-check-label" for="plant-{{ plant.id }}">
+                                {{ plant.name }} ({{ plant.code }})
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Month Assignment -->
+                    <div class="form-group">
+                        <label class="font-weight-bold">Month Assignment (Optional)</label>
+                        <p class="text-muted small">Select specific months if this question applies only to certain months. Leave all unchecked for all months.</p>
+                        
+                        <div class="row">
+                            {% for month_num, month_name in months %}
+                            <div class="col-md-3">
+                                <div class="month-checkbox">
+                                    <input type="checkbox" name="months[]" 
+                                           value="{{ month_num }}" id="month-{{ month_num }}">
+                                    <label for="month-{{ month_num }}">{{ month_name }}</label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times mr-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save mr-1"></i>Save Assignment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Assignment Panel -->
+<div class="card mt-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-tasks mr-2"></i>Bulk Assignment Actions
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <button type="button" class="btn btn-success btn-block" onclick="bulkAssignAllPlants()">
+                    <i class="fas fa-globe mr-2"></i>
+                    Make All Questions Available to All Plants
+                </button>
+            </div>
+            <div class="col-md-4">
+                <button type="button" class="btn btn-warning btn-block" onclick="bulkAssignByCategory()">
+                    <i class="fas fa-layer-group mr-2"></i>
+                    Bulk Assign by Category
+                </button>
+            </div>
+            <div class="col-md-4">
+                <a href="/admin/data_collection/datacollectionquestion/" 
+                   class="btn btn-outline-primary btn-block">
+                    <i class="fas fa-cog mr-2"></i>
+                    Advanced Settings (Admin)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Toggle plant selector visibility
+function togglePlantSelector() {
+    const assignSpecific = document.getElementById('assignSpecific').checked;
+    const plantSelector = document.getElementById('plantSelector');
+    
+    if (assignSpecific) {
+        plantSelector.style.display = 'block';
+    } else {
+        plantSelector.style.display = 'none';
+    }
+}
+
+// Open assignment modal
+function openAssignmentModal(questionId, questionText) {
+    // Set question info
+    document.getElementById('modalQuestionId').value = questionId;
+    document.getElementById('modalQuestionText').innerText = questionText;
+    
+    // Load current assignment via AJAX
+    fetch(`/data_collection/get-question-assignment/${questionId}/`)
+        .then(response => response.json())
+        .then(data => {
+            // Set assignment type
+            if (data.applicable_to_all_plants) {
+                document.getElementById('assignAll').checked = true;
+            } else {
+                document.getElementById('assignSpecific').checked = true;
+            }
+            
+            togglePlantSelector();
+            
+            // Check assigned plants
+            document.querySelectorAll('.plant-checkbox').forEach(checkbox => {
+                checkbox.checked = data.assigned_plants.includes(parseInt(checkbox.value));
+            });
+            
+            // Check assigned months
+            document.querySelectorAll('input[name="months[]"]').forEach(checkbox => {
+                checkbox.checked = data.assigned_months.includes(parseInt(checkbox.value));
+            });
+        });
+    
+    // Show modal
+    $('#assignmentModal').modal('show');
+}
+
+// Submit assignment form
+document.getElementById('assignmentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const questionId = formData.get('question_id');
+    
+    fetch(`/data_collection/update-question-assignment/${questionId}/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success indicator
+            const indicator = document.getElementById('saveIndicator');
+            indicator.style.display = 'block';
+            setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 3000);
+            
+            // Close modal
+            $('#assignmentModal').modal('hide');
+            
+            // Reload page to show updated assignments
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error saving assignment: ' + error);
+    });
+});
+
+// Bulk assign all plants
+function bulkAssignAllPlants() {
+    if (confirm('Are you sure you want to make ALL questions available to ALL plants?')) {
+        fetch('/data_collection/bulk-assign-all-plants/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(`Success! ${data.count} questions updated.`);
+            location.reload();
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+}
+
+// Bulk assign by category
+function bulkAssignByCategory() {
+    const category = prompt('Enter category code (e.g., WASTE, ENERGY):');
+    if (!category) return;
+    
+    const plantIds = prompt('Enter plant IDs separated by commas (e.g., 1,2,3):');
+    if (!plantIds) return;
+    
+    fetch('/data_collection/bulk-assign-by-category/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            category: category,
+            plant_ids: plantIds.split(',').map(id => parseInt(id.trim()))
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Success! ${data.count} questions assigned.`);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+</script>
+{% endblock %}
