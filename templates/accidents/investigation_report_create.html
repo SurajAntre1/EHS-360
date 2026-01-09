@@ -376,10 +376,11 @@
 
           <!-- Keep the existing textarea for additional root cause details -->
           <div class="row">
-            <div class="col-md-12 mb-3">
-              <label for="{{ form.root_cause_analysis.id_for_label }}">Additional Root Cause Analysis Details</label>
+            <div class="col-md-12 mb-3 required-field">
+              <label for="{{ form.root_cause_analysis.id_for_label }}">Additional Root Cause Analysis Details<span class="text-danger">*</span></label>
+
               {{ form.root_cause_analysis }}
-              <small class="form-text text-muted">Provide additional details or explanation for selected root causes</small>
+              <small class="form-text text-muted ">Provide additional details or explanation for selected root causes</small>
               {% if form.root_cause_analysis.errors %}
                 <div class="text-danger">{{ form.root_cause_analysis.errors }}</div>
               {% endif %}
