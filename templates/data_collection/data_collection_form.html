@@ -1,0 +1,466 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Monthly Data Collection{% endblock %}
+{% block page_title %}Monthly Data Collection - {{ period.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Category Section Styling */
+.category-section {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    margin-bottom: 20px;
+}
+
+.category-section h5 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.category-section.collapsed {
+    padding: 10px 20px;
+}
+
+.category-section.collapsed .category-body {
+    display: none;
+}
+
+.category-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.category-header:hover {
+    opacity: 0.8;
+}
+
+.toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+.category-section.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+/* Question Row Styling */
+.question-row {
+    background-color: white;
+    border: 1px solid #e9ecef;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.question-row:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.question-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.question-label .required-mark {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.question-help-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 3px;
+}
+
+.unit-display {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.input-with-unit {
+    position: relative;
+}
+
+.input-with-unit input {
+    padding-right: 80px;
+}
+
+/* Progress Bar */
+.progress-container {
+    position: sticky;
+    top: 60px;
+    z-index: 100;
+    background: white;
+    padding: 15px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.readonly-field {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+/* Radio and Checkbox Styling */
+.radio-group, .checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.form-check-label {
+    font-weight: normal;
+    cursor: pointer;
+}
+
+/* Action Buttons */
+.action-buttons {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 15px 0;
+    border-top: 2px solid #dee2e6;
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'data_collection:dashboard' %}">Data Collection</a></li>
+<li class="breadcrumb-item active">{{ collection.id|default:"New Collection" }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="ehs-card">
+      <div class="card-header bg-primary text-white">
+        <h3 class="card-title mb-0">
+          <i class="fas fa-clipboard-list mr-2"></i>
+          {% if collection %}Edit{% else %}New{% endif %} Monthly Data Collection - {{ period.name }}
+        </h3>
+      </div>
+      
+      <form method="POST" id="dataCollectionForm" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="card-body">
+          <!-- Alert Info -->
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle mr-2"></i>
+            <strong>Note:</strong> Please ensure all required fields marked with 
+            <span class="text-danger">*</span> are completed. Submission deadline: 
+            <strong>{{ period.submission_deadline|date:"d M Y" }}</strong>
+            {% if period.days_remaining %}
+              ({{ period.days_remaining }} days remaining)
+            {% endif %}
+          </div>
+
+          <!-- Form Errors Display -->
+          {% if form.errors or dynamic_form.errors %}
+          <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <h5 class="alert-heading"><i class="fas fa-exclamation-triangle mr-2"></i>Please Correct the Following Errors:</h5>
+            
+            {% if form.non_field_errors %}
+              <ul class="mb-2">
+                {% for error in form.non_field_errors %}
+                  <li><strong>{{ error }}</strong></li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            
+            {% if form.errors %}
+              <ul class="mb-0">
+                {% for field in form %}
+                  {% if field.errors %}
+                    {% for error in field.errors %}
+                      <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            {% endif %}
+            
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          {% endif %}
+
+          <!-- Progress Indicator -->
+          {% if collection %}
+          <div class="progress-container mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="font-weight-bold">Completion Progress</span>
+              <span class="badge badge-primary">{{ collection.completion_percentage }}%</span>
+            </div>
+            <div class="progress" style="height: 25px;">
+              <div class="progress-bar" role="progressbar" 
+                   style="width: {{ collection.completion_percentage }}%;" 
+                   aria-valuenow="{{ collection.completion_percentage }}" 
+                   aria-valuemin="0" aria-valuemax="100">
+                {{ collection.completion_percentage }}% Complete
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Period & Location Information -->
+          <h5 class="mb-3"><i class="fas fa-map-marker-alt mr-2"></i>Location Information</h5>
+          <div class="row">
+              <div class="col-md-3 mb-3">
+                  <label for="id_plant">Plant <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control readonly-field" 
+                        value="{% if user.plant %}{{ user.plant.name }} ({{ user.plant.code }}){% else %}Not Assigned{% endif %}" readonly>
+                  {{ form.plant }}
+              </div>
+              
+              <div class="col-md-3 mb-3">
+                  <label for="id_zone">Zone</label>
+                  <input type="text" class="form-control readonly-field" 
+                        value="{% if user.zone %}{{ user.zone.name }} ({{ user.zone.code }}){% else %}Not Assigned{% endif %}" readonly>
+                  {{ form.zone }}
+              </div>
+              
+              <div class="col-md-3 mb-3">
+                  <label for="id_location">Location <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control readonly-field" 
+                        value="{% if user.location %}{{ user.location.name }} ({{ user.location.code }}){% else %}Not Assigned{% endif %}" readonly>
+                  {{ form.location }}
+              </div>
+              
+              <div class="col-md-3 mb-3">
+                  <label for="id_sublocation">Sub-Location</label>
+                  {% if user.sublocation %}
+                      <input type="text" class="form-control readonly-field" 
+                          value="{{ user.sublocation.name }}{% if user.sublocation.code %} ({{ user.sublocation.code }}){% endif %}" readonly>
+                      {{ form.sublocation }}
+                  {% else %}
+                      {{ form.sublocation }}
+                  {% endif %}
+              </div>
+          </div>
+
+          <!-- Department (Optional) -->
+          <div class="row">
+              <div class="col-md-6 mb-3">
+                  <label for="id_department">Department (Optional)</label>
+                  <select name="department" id="id_department" class="form-control">
+                      <option value="">-- Select Department --</option>
+                      {% for department in departments %}
+                          <option value="{{ department.id }}" 
+                                  {% if collection.department.id == department.id %}selected{% endif %}>
+                              {{ department.name }}
+                          </option>
+                      {% endfor %}
+                  </select>
+              </div>
+          </div>
+
+          <hr>
+
+          <!-- Dynamic Questions by Category -->
+          {% for category, questions in categories_with_questions %}
+          <div class="category-section" id="category-{{ category.id }}" data-category-id="{{ category.id }}">
+            <div class="category-header" onclick="toggleCategory({{ category.id }})">
+              <h5 class="mb-0">
+                <i class="{{ category.icon_class }} mr-2"></i>
+                {{ category.name }}
+                <small class="text-muted">({{ questions|length }} question{{ questions|length|pluralize }})</small>
+              </h5>
+              <i class="fas fa-chevron-down toggle-icon"></i>
+            </div>
+            
+            <div class="category-body mt-3">
+              {% if category.description %}
+              <p class="text-muted">{{ category.description }}</p>
+              {% endif %}
+              
+              {% for item in questions %}
+              <div class="question-row">
+                <div class="row">
+                  <div class="col-md-12">
+                    <label class="question-label" for="id_{{ item.field_name }}">
+                      {{ item.question.question_text }}
+                      {% if item.question.is_required %}
+                        <span class="required-mark">*</span>
+                      {% endif %}
+                    </label>
+                    
+                    {% if item.question.help_text %}
+                    <div class="question-help-text">
+                      <i class="fas fa-info-circle"></i> {{ item.question.help_text }}
+                    </div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="col-md-6 mt-2">
+                    {% if item.question.field_type == 'NUMBER' and item.question.unit_of_measurement %}
+                      <div class="input-with-unit">
+                        {{ item.field }}
+                        <span class="unit-display">{{ item.question.unit_of_measurement }}</span>
+                      </div>
+                    {% elif item.question.field_type == 'CHECKBOX' %}
+                      <div class="form-check">
+                        {{ item.field }}
+                        <label class="form-check-label" for="id_{{ item.field_name }}">
+                          {{ item.question.placeholder|default:"Yes" }}
+                        </label>
+                      </div>
+                    {% elif item.question.field_type == 'RADIO' %}
+                      <div class="radio-group">
+                        {{ item.field }}
+                      </div>
+                    {% else %}
+                      {{ item.field }}
+                    {% endif %}
+                    
+                    {% if item.field.errors %}
+                      <div class="text-danger mt-1">
+                        {{ item.field.errors }}
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="col-md-6 mt-2">
+                    <label for="id_{{ item.field_name }}_remarks">Remarks (Optional)</label>
+                    {{ item.remarks_field }}
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+
+          <hr>
+
+          <!-- General Remarks -->
+          <h5 class="mb-3"><i class="fas fa-comment-alt mr-2"></i>General Remarks</h5>
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              {{ form.remarks }}
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Reporting Information -->
+          <h5 class="mb-3"><i class="fas fa-user-edit mr-2"></i>Reporting Information</h5>
+          <div class="row">
+              <div class="col-md-6 mb-3">
+                  <label>Reported By</label>
+                  <input type="text" class="form-control readonly-field" 
+                         value="{{ user.get_full_name|default:user.username }}" readonly>
+              </div>
+              <div class="col-md-6 mb-3">
+                  <label>Reported Date</label>
+                  <input type="text" class="form-control readonly-field" 
+                         value="{% now 'd/m/Y H:i' %}" readonly>
+              </div>
+          </div>
+
+          {% if collection.status != 'DRAFT' %}
+          <div class="alert alert-warning mt-3">
+            <strong>Status:</strong> {{ collection.get_status_display }}
+            {% if collection.submitted_at %}
+              <br><strong>Submitted:</strong> {{ collection.submitted_at|date:"d M Y H:i" }} by {{ collection.submitted_by.get_full_name }}
+            {% endif %}
+            {% if collection.approved_at %}
+              <br><strong>Approved:</strong> {{ collection.approved_at|date:"d M Y H:i" }} by {{ collection.approved_by.get_full_name }}
+            {% endif %}
+          </div>
+          {% endif %}
+
+        </div>
+        
+        <div class="card-footer action-buttons">
+          {% if not collection or collection.status == 'DRAFT' or collection.status == 'REJECTED' %}
+            <button type="submit" name="action" value="save_draft" class="btn btn-secondary btn-lg">
+              <i class="fas fa-save mr-2"></i>Save as Draft
+            </button>
+            <button type="submit" name="action" value="submit" class="btn btn-primary btn-lg" 
+                    onclick="return confirm('Are you sure you want to submit? You cannot edit after submission.')">
+              <i class="fas fa-paper-plane mr-2"></i>Submit Data Collection
+            </button>
+          {% endif %}
+          
+          <a href="{% url 'data_collection:list' %}" class="btn btn-outline-secondary btn-lg ml-2">
+            <i class="fas fa-times mr-2"></i>Cancel
+          </a>
+          
+          {% if collection and collection.status == 'DRAFT' %}
+          <a href="{% url 'data_collection:delete_collection' collection.id %}" 
+             class="btn btn-outline-danger btn-lg float-right"
+             onclick="return confirm('Are you sure you want to delete this draft?')">
+            <i class="fas fa-trash mr-2"></i>Delete Draft
+          </a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle category sections
+    window.toggleCategory = function(categoryId) {
+        const section = document.getElementById('category-' + categoryId);
+        section.classList.toggle('collapsed');
+    };
+    
+    // Form validation before submit
+    document.getElementById('dataCollectionForm').addEventListener('submit', function(e) {
+        const action = document.activeElement.value;
+        
+        if (action === 'submit') {
+            // Check if all required fields are filled
+            let allFilled = true;
+            const requiredFields = document.querySelectorAll('[required]');
+            
+            requiredFields.forEach(field => {
+                if (!field.value) {
+                    allFilled = false;
+                    field.classList.add('is-invalid');
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            if (!allFilled) {
+                e.preventDefault();
+                alert('Please fill in all required fields before submitting.');
+                return false;
+            }
+        }
+    });
+    
+    // Auto-save draft every 5 minutes (optional)
+    let autoSaveInterval = setInterval(function() {
+        // Implement auto-save functionality if needed
+        console.log('Auto-save triggered');
+    }, 300000); // 5 minutes
+    
+    // Clear interval on page unload
+    window.addEventListener('beforeunload', function() {
+        clearInterval(autoSaveInterval);
+    });
+});
+</script>
+{% endblock %}

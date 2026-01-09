@@ -28,6 +28,8 @@ urlpatterns = [
     path('accidents/', include('apps.accidents.urls')),  
     path('hazards/', include('apps.hazards.urls')),  
     path('inspections/', include('apps.inspections.urls')),
+    path('data_collection/', include('apps.data_collection.urls', namespace='data_collection')),
+
     #path('observations/', include('apps.observations.urls')),
 
     # Redirect root to login
