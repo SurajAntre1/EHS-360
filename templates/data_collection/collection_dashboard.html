@@ -1,0 +1,308 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Data Collection Dashboard{% endblock %}
+{% block page_title %}EHS & Environmental Data Collection{% endblock %}
+
+{% block extra_css %}
+<style>
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.stat-card.success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.stat-card.warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stat-card.info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.stat-card h3 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.stat-card p {
+    margin: 5px 0 0 0;
+    opacity: 0.9;
+}
+
+.period-card {
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.period-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.period-card.active {
+    border-color: #28a745;
+    background-color: #f0fff4;
+}
+
+.collection-item {
+    border-left: 4px solid #007bff;
+    background: white;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.collection-item.draft {
+    border-left-color: #6c757d;
+}
+
+.collection-item.submitted {
+    border-left-color: #007bff;
+}
+
+.collection-item.approved {
+    border-left-color: #28a745;
+}
+
+.collection-item.rejected {
+    border-left-color: #dc3545;
+}
+
+.status-badge {
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item active">Data Collection Dashboard</li>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card warning">
+            <i class="fas fa-clock fa-2x mb-2"></i>
+            <h3>{{ pending_collections }}</h3>
+            <p>Pending Drafts</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card info">
+            <i class="fas fa-paper-plane fa-2x mb-2"></i>
+            <h3>{{ total_submitted }}</h3>
+            <p>Submitted</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card success">
+            <i class="fas fa-check-circle fa-2x mb-2"></i>
+            <h3>{{ total_approved }}</h3>
+            <p>Approved</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <i class="fas fa-tasks fa-2x mb-2"></i>
+            <h3>{{ pending_approvals }}</h3>
+            <p>Awaiting Approval</p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Active Periods -->
+    <div class="col-md-6">
+        <div class="ehs-card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-calendar-alt mr-2"></i>Active Collection Periods
+                </h4>
+            </div>
+            <div class="card-body">
+                {% if active_periods %}
+                    {% for period in active_periods %}
+                    <div class="period-card {% if period.is_active %}active{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="mb-1">
+                                    <i class="fas fa-calendar mr-2"></i>{{ period.name }}
+                                </h5>
+                                <p class="text-muted mb-2">
+                                    {{ period.start_date|date:"d M Y" }} - {{ period.end_date|date:"d M Y" }}
+                                </p>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    Deadline: {{ period.submission_deadline|date:"d M Y" }}
+                                    {% if period.days_remaining %}
+                                        ({{ period.days_remaining }} days remaining)
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <div>
+                                <span class="badge badge-{% if period.is_active %}success{% else %}secondary{% endif %}">
+                                    {{ period.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <a href="{% url 'data_collection:create_collection' period.id %}" 
+                               class="btn btn-sm btn-primary">
+                                <i class="fas fa-plus mr-1"></i>Start Collection
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        No active collection periods available.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Collections -->
+    <div class="col-md-6">
+        <div class="ehs-card">
+            <div class="card-header bg-success text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-list mr-2"></i>Recent Collections
+                </h4>
+            </div>
+            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                {% if user_collections %}
+                    {% for collection in user_collections %}
+                    <div class="collection-item {{ collection.status|lower }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    {{ collection.period.name }}
+                                </h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-map-marker-alt mr-1"></i>
+                                    {{ collection.plant.name }} - {{ collection.location.name }}
+                                </small>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    {{ collection.reported_at|date:"d M Y H:i" }}
+                                </small>
+                            </div>
+                            <div class="text-right">
+                                <span class="status-badge bg-{{ collection.status|lower }}">
+                                    {{ collection.get_status_display }}
+                                </span>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        {{ collection.completion_percentage }}% Complete
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            {% if collection.status == 'DRAFT' or collection.status == 'REJECTED' %}
+                                <a href="{% url 'data_collection:edit_collection' collection.id %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit mr-1"></i>Continue
+                                </a>
+                            {% else %}
+                                <a href="{% url 'data_collection:view_collection' collection.id %}" 
+                                   class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-eye mr-1"></i>View
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        No collections found. Start a new collection from an active period.
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'data_collection:list' %}" class="btn btn-sm btn-outline-primary btn-block">
+                    <i class="fas fa-th-list mr-2"></i>View All Collections
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="ehs-card">
+            <div class="card-header bg-info text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-bolt mr-2"></i>Quick Actions
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <a href="{% url 'data_collection:list' %}" class="btn btn-lg btn-block btn-outline-primary">
+                            <i class="fas fa-list fa-2x mb-2 d-block"></i>
+                            View All Collections
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'data_collection:list' %}?status=DRAFT" 
+                           class="btn btn-lg btn-block btn-outline-warning">
+                            <i class="fas fa-file-alt fa-2x mb-2 d-block"></i>
+                            My Drafts
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'data_collection:list' %}?status=SUBMITTED" 
+                           class="btn btn-lg btn-block btn-outline-info">
+                            <i class="fas fa-paper-plane fa-2x mb-2 d-block"></i>
+                            Submitted Collections
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Section -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="alert alert-light border">
+            <h5><i class="fas fa-question-circle mr-2"></i>Need Help?</h5>
+            <p class="mb-2">
+                <strong>Monthly Data Collection</strong> allows you to systematically report EHS and 
+                environmental metrics on a monthly basis.
+            </p>
+            <ul class="mb-0">
+                <li>Select an <strong>Active Period</strong> to start a new collection</li>
+                <li>Complete all <strong>required fields</strong> marked with *</li>
+                <li>Save as <strong>Draft</strong> to continue later</li>
+                <li><strong>Submit</strong> before the deadline for review and approval</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
