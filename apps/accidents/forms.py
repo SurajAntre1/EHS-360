@@ -416,23 +416,43 @@ class IncidentInvestigationReportForm(forms.ModelForm):
 ####
 class IncidentActionItemForm(forms.ModelForm):
     """Form for action items"""
-    
+
+    responsible_person_emails = forms.CharField(
+        label="Responsible Person (Email Addresses)",
+        required=True,
+        widget=forms.TextInput(attrs={
+           
+            'class': 'email-tags-input',
+            'placeholder': 'Type email and press Enter or comma...'
+        })
+    )
+
     class Meta:
         model = IncidentActionItem
         fields = [
-            'action_description', 'responsible_person', 'target_date',
-            'status', 'completion_date', 
+            'action_description',
+            'target_date',
+            'status',
+            'completion_date',
         ]
-        
-        widgets = {
-            'action_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'responsible_person': forms.Select(attrs={'class': 'form-control'}),
-            'target_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'status': forms.Select(attrs={'class': 'form-control'}),
-            'completion_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            # 'completion_remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-        }
 
+        widgets = {
+            'action_description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2
+            }),
+            'target_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'completion_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
+        }
 
 class IncidentPhotoForm(forms.ModelForm):
     """Form for incident photos"""

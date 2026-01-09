@@ -457,25 +457,25 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         self.incident = get_object_or_404(Incident, pk=self.kwargs['incident_pk'])
         return super().dispatch(request, *args, **kwargs)
 
-    # ===== NEW/MODIFIED SECTION START =====
     def get_context_data(self, **kwargs):
         """Add the incident and action item formset to the context."""
         context = super().get_context_data(**kwargs)
         context['incident'] = self.incident
         
-        # Define the formset for creating action items linked to an incident
         ActionItemFormSet = inlineformset_factory(
             Incident, 
             IncidentActionItem, 
             form=IncidentActionItemForm, 
-            extra=1,  # Start with one extra form
-            can_delete=False
+            extra=1,
+            can_delete=False,
+            # Exclude the actual ManyToManyField from the formset
+            exclude=['responsible_person'] 
         )
         
         if self.request.POST:
-            context['action_item_formset'] = ActionItemFormSet(self.request.POST, prefix='actionitems')
+            context['action_item_formset'] = ActionItemFormSet(self.request.POST, instance=self.incident, prefix='actionitems')
         else:
-            context['action_item_formset'] = ActionItemFormSet(prefix='actionitems')
+            context['action_item_formset'] = ActionItemFormSet(instance=self.incident, prefix='actionitems')
             
         return context
 
@@ -485,7 +485,6 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         action_item_formset = context['action_item_formset']
 
         if not action_item_formset.is_valid():
-            # If the formset is invalid, re-render the form with errors
             return self.form_invalid(form)
 
         # 1. Save the main investigation report
@@ -494,7 +493,6 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         investigation.completed_by = self.request.user
         investigation.incident = self.incident
         
-        # Handle root cause factors (existing logic)
         personal_factors_json = self.request.POST.get('personal_factors_json', '[]')
         job_factors_json = self.request.POST.get('job_factors_json', '[]')
         try:
@@ -506,13 +504,22 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         
         investigation.save()
 
-        # 2. Save the action items from the formset
+        # 2. Save the action items and handle responsible persons
         action_items = action_item_formset.save(commit=False)
-        for item in action_items:
-            item.incident = self.incident  # Link each action item to the incident
-            item.save()
         
-        # Update incident status (existing logic)
+        for i, item in enumerate(action_items):
+            item.incident = self.incident
+            item.save()  # Save the item first to get an ID
+
+            # Now handle the ManyToMany relationship
+            email_str = action_item_formset.cleaned_data[i].get('responsible_person_emails', '')
+            email_list = [email.strip() for email in email_str.split(',') if email.strip()]
+            
+            # Find users with these emails
+            users = User.objects.filter(email__in=email_list)
+            item.responsible_person.set(users) # Set the relationship
+
+        # Update incident status
         self.incident.investigation_completed_date = investigation.investigation_date
         self.incident.status = 'UNDER_INVESTIGATION'
         self.incident.save()
@@ -523,12 +530,10 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         )
         
         return redirect(self.get_success_url())
-    # ===== NEW/MODIFIED SECTION END =====
     
     def get_success_url(self):
         """Redirect to the incident detail page on success."""
         return reverse_lazy('accidents:incident_detail', kwargs={'pk': self.incident.pk})
-
 
 class ActionItemCreateView(LoginRequiredMixin, CreateView):
     """Create action item"""

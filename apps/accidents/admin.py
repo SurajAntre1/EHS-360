@@ -161,27 +161,34 @@ class IncidentInvestigationReportAdmin(admin.ModelAdmin):
 @admin.register(IncidentActionItem)
 class IncidentActionItemAdmin(admin.ModelAdmin):
     list_display = [
-        'incident', 'action_description', 'responsible_person',
-        'target_date', 'status', 'completion_date'
+        'incident',
+        'action_description',
+        'get_responsible_persons',
+        'target_date',
+        'status',
+        'completion_date',
     ]
+
     list_filter = ['status', 'target_date', 'completion_date']
     search_fields = [
-        'incident__report_number', 'action_description',
-        'responsible_person__first_name', 'responsible_person__last_name'
+        'incident__report_number',
+        'action_description',
+        'responsible_person__first_name',
+        'responsible_person__last_name',
     ]
     readonly_fields = ['created_at', 'updated_at']
-    
+
     fieldsets = (
         ('Action Item', {
             'fields': (
-                'incident', 'action_description', 'responsible_person',
+                'incident',
+                'action_description',
+                'responsible_person',
                 'target_date'
             )
         }),
         ('Status', {
-            'fields': (
-                'status', 'completion_date', 
-            )
+            'fields': ('status', 'completion_date')
         }),
         ('Verification', {
             'fields': ('verified_by', 'verification_date'),
@@ -193,6 +200,13 @@ class IncidentActionItemAdmin(admin.ModelAdmin):
         }),
     )
 
+    def get_responsible_persons(self, obj):
+        return ", ".join(
+            user.get_full_name() or user.username
+            for user in obj.responsible_person.all()
+        )
+
+    get_responsible_persons.short_description = "Responsible Person(s)"
 @admin.register(IncidentNotification)
 class IncidentNotificationAdmin(admin.ModelAdmin):
     list_display = ['id', 'recipient', 'incident', 'notification_type', 'is_read', 'created_at']

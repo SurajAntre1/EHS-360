@@ -627,7 +627,7 @@
             <thead>
               <tr>
                 <th>Action Description</th>
-                <th>Responsible Person</th>
+                <!-- <th>Responsible Person</th> -->
                 <th>Target Date</th>
                 <th>Status</th>
               </tr>
@@ -636,7 +636,7 @@
               {% for action in action_items %}
               <tr>
                 <td>{{ action.action_description|truncatewords:15 }}</td>
-                <td>{{ action.responsible_person.get_full_name }}</td>
+                <!-- <td>{{ action.responsible_person.get_full_name }}</td> -->
                 <td>
                   {{ action.target_date|date:"d/m/Y" }}
                   {% if action.is_overdue %}
