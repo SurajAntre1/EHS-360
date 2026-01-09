@@ -17,6 +17,8 @@ from openpyxl.utils import get_column_letter
 from django.http import JsonResponse, HttpResponse
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from .models import Hazard, HazardPhoto, HazardActionItem
+from .utils import generate_hazard_pdf
+from django.views import View
 
 
 User = get_user_model()
@@ -1026,3 +1028,30 @@ class ExportHazardsView(LoginRequiredMixin, TemplateView):
 
         workbook.save(response)
         return response
+    
+    
+    
+
+class HazardPDFView(LoginRequiredMixin, View):
+    """
+    Handles the generation and download of a Hazard report in PDF format.
+    """
+    def get(self, request, *args, **kwargs):
+        """
+        Processes the GET request to download the PDF for a specific hazard.
+        """
+        # Retrieve the primary key of the hazard from the URL.
+        hazard_pk = self.kwargs.get('pk')
+        
+        # Fetch the Hazard object from the database, or return a 404 error if not found.
+        # This pre-fetches related objects to optimize database queries.
+        hazard = get_object_or_404(
+            Hazard.objects.select_related(
+                'plant', 'zone', 'location', 'sublocation', 
+                'reported_by', 'behalf_person_dept'
+            ), 
+            pk=hazard_pk
+        )
+        
+        # Call the PDF generation utility function and return its response.
+        return generate_hazard_pdf(hazard)
