@@ -9,7 +9,7 @@ from .models import (
     DataCollectionAttachment,
     DataCollectionComment
 )
-import json
+
 
 
 class MonthlyDataCollectionForm(forms.ModelForm):
