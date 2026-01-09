@@ -7,6 +7,11 @@ from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.db.models import Q, Count, Prefetch
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.views import View 
+from django.views.generic import ListView, DetailView
+from apps.organizations.models import Plant
+
 from .models import (
     DataCollectionPeriod,
     MonthlyDataCollection,
@@ -449,31 +454,11 @@ def delete_collection(request, pk):
 
 
 
-
-# Add these CLASS-BASED VIEWS to your apps/data_collection/views.py
-
-from django.views.generic import ListView, DetailView, View
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from django.db.models import Q, Count
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from .models import (
-    DataCollectionQuestion, 
-    DataCollectionCategory,
-    DataCollectionPeriod,
-    MonthlyDataCollection
-)
-from apps.organizations.models import Plant
-import json
-
-
 class StaffRequiredMixin(UserPassesTestMixin):
     """Mixin to require staff or superuser access"""
     
     def test_func(self):
-        return self.request.user.is_staff or self.request.user.is_superuser
+        return self.request.user.is_staff or self.request.user.is_superuser or self.request.user.role == 'ADMIN'
     
     def handle_no_permission(self):
         from django.contrib import messages

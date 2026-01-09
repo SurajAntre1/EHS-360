@@ -236,7 +236,7 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
                 form.instance.affected_date_of_joining = None
         
         # ===== END AFFECTED PERSON SECTION =====
-        
+        self.object = form.save(commit=False)
         # Handle affected body parts JSON
         affected_body_parts_json = self.request.POST.get('affected_body_parts_json', '[]')
         try:
@@ -265,7 +265,9 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
         form.instance.unsafe_conditions_other = self.request.POST.get('unsafe_conditions_other', '').strip()
         
         # Save the incident - IMPORTANT: This creates self.object
-        response = super().form_valid(form)
+        # response = super().form_valid(form)
+        self.object.save()
+        form.save_m2m()
         
         # Handle photo uploads
         photos = self.request.FILES.getlist('photos')
@@ -303,7 +305,7 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
             f'Incident {self.object.report_number} reported successfully! Investigation required within 7 days.'
         )
         
-        return response
+        return redirect(self.get_success_url())
 
     
     def form_invalid(self, form):
