@@ -224,8 +224,8 @@
         <li class="nav-item {% if 'accounts' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-users-cog"></i>
-            <p>User Management</p>
-            <i class="right fas fa-angle-left"></i>
+            <p>User Management
+            <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
@@ -315,8 +315,8 @@
         <li class="nav-item {% if 'hazards' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'hazards' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-biohazard"></i>
-            <p>Hazards Management</p>
-            <i class="right fas fa-angle-left"></i>
+            <p>Hazards Management
+            <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
             <!--dashboard-->
@@ -345,11 +345,47 @@
           </ul>
         </li>
 
-        <li class="nav-item">
-          <a href="#" class="nav-link">
-            <i class="nav-icon fas fa-chart-line"></i> <!-- icon for hazards -->
-            <p>Data Collection</p>
+        <!-- Data Collection -->
+        <li class="nav-item {% if 'data_collection' in request.path %}menu-open{% endif %}">
+          <a href="#" class="nav-link {% if 'data_collection' in request.path %}active{% endif %}">
+            <i class="nav-icon fas fa-chart-line"></i>
+            <p>
+              Data Collection
+              <i class="right fas fa-angle-left"></i>
+            </p>
           </a>
+
+          <ul class="nav nav-treeview">
+
+            <!-- Dashboard -->
+            <li class="nav-item">
+              <a href="{% url 'data_collection:dashboard' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Dashboard</p>
+              </a>
+            </li>
+
+            <!-- Data Collection List -->
+            <li class="nav-item">
+              <a href="{% url 'data_collection:list' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'list' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Collection List</p>
+              </a>
+            </li>
+
+            <!-- Question Assignment -->
+            <li class="nav-item">
+              <a href="{% url 'data_collection:question_assignment' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'question_assignment' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Question Assignment</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+        
         <!-- Inspection Module -->
         <li class="nav-item {% if 'inspections' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'inspections' in request.path %}active{% endif %}">
