@@ -399,7 +399,7 @@ class IncidentActionItem(models.Model):
     
     incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name='action_items')
     action_description = models.TextField()
-    responsible_person = models.ForeignKey(User, on_delete=models.CASCADE, related_name='incident_actions_responsible')
+    responsible_person = models.ManyToManyField(User, related_name='incident_actions_responsible')
     target_date = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     completion_date = models.DateField(null=True, blank=True)

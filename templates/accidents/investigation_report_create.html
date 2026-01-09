@@ -12,8 +12,12 @@
 {% endblock %}
 
 {% block extra_css %}
+<!-- NEW: Link to Tagify CSS for the email input -->
+<link href="https://unpkg.com/@yaireo/tagify/dist/tagify.css" rel="stylesheet" type="text/css" />
+
 <style>
-/* Root Cause Analysis Checkbox Section Styling */
+/* ... your existing styles ... */
+
 .unsafe-section {
     border: 1px solid #dee2e6;
     border-radius: 8px;
@@ -95,6 +99,23 @@
 .remove-action-item-btn:hover {
     background-color: #c82333;
 }
+
+/* NEW: Custom styles for the Tagify email input to match your theme */
+.tagify {
+    --tags-border-color: #ced4da;
+    --tags-focus-border-color: #80bdff;
+    width: 100%;
+    border-radius: .35rem; /* Match form-control border-radius */
+}
+
+.tagify__input {
+    font-size: 1rem;
+    padding: .375rem .75rem; /* Match form-control padding */
+}
+
+.tagify.form-control {
+    padding: 0;
+}
 </style>
 {% endblock %}
 
@@ -131,7 +152,7 @@
       <form method="POST" id="investigationForm">
         {% csrf_token %}
         
-        <!-- Hidden inputs for root cause checkboxes -->
+        <!-- ... your existing form content ... -->
         <input type="hidden" name="personal_factors_json" id="personalFactorsJson">
         <input type="hidden" name="job_factors_json" id="jobFactorsJson">
         
@@ -469,7 +490,6 @@
             {{ action_item_formset.management_form }}
             {% for form in action_item_formset %}
               <div class="action-item-form p-3 mb-3 rounded">
-                <!-- <button type="button" class="remove-action-item-btn" title="Remove Action Item">&times;</button> -->
                 <div class="row">
                   <div class="col-md-12 mb-3">
                     <label for="{{ form.action_description.id_for_label }}">Action Description <span class="text-danger">*</span></label>
@@ -479,10 +499,13 @@
                   </div>
                 </div>
                 <div class="row">
+                  <!-- MODIFIED SECTION FOR RESPONSIBLE PERSON -->
                   <div class="col-md-6 mb-3">
-                    <label for="{{ form.responsible_person.id_for_label }}">Responsible Person <span class="text-danger">*</span></label>
-                    {{ form.responsible_person }}
-                    {% if form.responsible_person.errors %}<div class="text-danger">{{ form.responsible_person.errors }}</div>{% endif %}
+                    <label for="{{ form.responsible_person_emails.id_for_label }}">Responsible Person <span class="text-danger">*</span></label>
+                    {{ form.responsible_person_emails }}
+                    <small class="form-text text-muted">Type email addresses and press Enter or comma.</small>
+                    {% if form.responsible_person_emails.errors %}
+                    <div class="text-danger">{{ form.responsible_person_emails.errors }}</div>{% endif %}
                   </div>
                   <div class="col-md-6 mb-3">
                     <label for="{{ form.target_date.id_for_label }}">Target Completion Date <span class="text-danger">*</span></label>
@@ -503,55 +526,46 @@
                     {% if form.completion_date.errors %}<div class="text-danger">{{ form.completion_date.errors }}</div>{% endif %}
                   </div>
                 </div>
-                <!-- <div class="row">
-                   <div class="col-md-12 mb-3 ">
-                    <label for="{{ form.completion_remarks.id_for_label }}">Completion Remarks</label>
-                    {{ form.completion_remarks }}
-                    {% if form.completion_remarks.errors %}<div class="text-danger">{{ form.completion_remarks.errors }}</div>{% endif %}
-                  </div>
-                </div> -->
               </div>
             {% endfor %}
           </div>
 
           <!-- Hidden template for new action item forms -->
-          <div id="empty-action-item-form" class="d-none">
-            <div class="action-item-form p-3 mb-3 border rounded">
-              <button type="button" class="remove-action-item-btn" title="Remove Action Item">&times;</button>
-                <div class="row">
-                  <div class="col-md-12 mb-3">
-                    <label for="{{ action_item_formset.empty_form.action_description.id_for_label }}">Action Description <span class="text-danger">*</span></label>
-                    {{ action_item_formset.empty_form.action_description }}
-                    <small class="form-text text-muted">Describe the specific action to be taken.</small>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label for="{{ action_item_formset.empty_form.responsible_person.id_for_label }}">Responsible Person <span class="text-danger">*</span></label>
-                    {{ action_item_formset.empty_form.responsible_person }}
-                  </div>
-                  <div class="col-md-6 mb-3">
-                    <label for="{{ action_item_formset.empty_form.target_date.id_for_label }}">Target Completion Date <span class="text-danger">*</span></label>
-                    {{ action_item_formset.empty_form.target_date }}
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label for="{{ action_item_formset.empty_form.status.id_for_label }}">Status <span class="text-danger">*</span></label>
-                    {{ action_item_formset.empty_form.status }}
-                  </div>
-                  <div class="col-md-6 mb-3">
-                    <label for="{{ action_item_formset.empty_form.completion_date.id_for_label }}">Completion Date</label>
-                    {{ action_item_formset.empty_form.completion_date }}
-                    <small class="form-text text-muted">Fill this when action is completed.</small>
-                  </div>
-                </div>
-                <!-- <div class="row">
-                   <div class="col-md-12 mb-3">
-                    <label for="{{ action_item_formset.empty_form.completion_remarks.id_for_label }}">Completion Remarks</label>
-                    {{ action_item_formset.empty_form.completion_remarks }}
-                  </div>
-                </div> -->
+      <div id="empty-action-item-form" class="d-none">
+        <div class="action-item-form p-3 mb-3 border rounded">
+          <button type="button" class="remove-action-item-btn" title="Remove Action Item">&times;</button>
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <label for="{{ action_item_formset.empty_form.action_description.id_for_label }}">Action Description <span class="text-danger">*</span></label>
+                {{ action_item_formset.empty_form.action_description }}
+                <small class="form-text text-muted">Describe the specific action to be taken.</small>
+              </div>
+            </div>
+            <div class="row">
+              <!-- MODIFIED SECTION FOR RESPONSIBLE PERSON -->
+              <div class="col-md-6 mb-3">
+                <label for="{{ action_item_formset.empty_form.responsible_person_emails.id_for_label }}">Responsible Person <span class="text-danger">*</span></label>
+                {{ action_item_formset.empty_form.responsible_person_emails }}
+                <small class="form-text text-muted">Type email addresses and press Enter or comma.</small>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="{{ action_item_formset.empty_form.target_date.id_for_label }}">Target Completion Date <span class="text-danger">*</span></label>
+                {{ action_item_formset.empty_form.target_date }}
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="{{ action_item_formset.empty_form.status.id_for_label }}">Status <span class="text-danger">*</span></label>
+                {{ action_item_formset.empty_form.status }}
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="{{ action_item_formset.empty_form.completion_date.id_for_label }}">Completion Date</label>
+                {{ action_item_formset.empty_form.completion_date }}
+                <small class="form-text text-muted">Fill this when action is completed.</small>
+              </div>
+            </div>
+        </div>
+      </div>
             </div>
           </div>
 
@@ -591,6 +605,10 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- NEW: Link to Tagify JS for the email input -->
+<script src="https://unpkg.com/@yaireo/tagify"></script>
+<script src="https://unpkg.com/@yaireo/tagify/dist/tagify.polyfills.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -623,25 +641,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     /* ----------------------------------------------------
-       "OTHER" CHECKBOX TOGGLE (OLD)
+       TAGIFY EMAIL INPUT (NEW)
     ---------------------------------------------------- */
-    const pfOtherCheckbox = document.getElementById('pf9');
-    const pfOtherInputDiv = document.getElementById('personalFactorOther');
+    // Function to initialize Tagify on a given input element
+    function initializeTagify(inputElement) {
+        if (!inputElement) return;
 
-    const jfOtherCheckbox = document.getElementById('jf12');
-    const jfOtherInputDiv = document.getElementById('jobFactorOther');
+        const emailPattern = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-    if (pfOtherCheckbox && pfOtherInputDiv) {
-        pfOtherCheckbox.addEventListener('change', function() {
-            pfOtherInputDiv.style.display = this.checked ? 'block' : 'none';
+        new Tagify(inputElement, {
+            pattern: emailPattern,
+            delimiters: ',|\n|\r',
+            keepInvalidTags: false,
+            originalInputValueFormat: valuesArr => valuesArr.map(item => item.value).join(','),
+            
+            class: 'form-control' 
         });
     }
-
-    if (jfOtherCheckbox && jfOtherInputDiv) {
-        jfOtherCheckbox.addEventListener('change', function() {
-            jfOtherInputDiv.style.display = this.checked ? 'block' : 'none';
-        });
-    }
+    // Initialize Tagify on all existing email inputs
+    document.querySelectorAll('.email-tags-input').forEach(initializeTagify);
+    
 
 
     /* ----------------------------------------------------
@@ -698,7 +717,6 @@ document.addEventListener('DOMContentLoaded', function() {
     /* ----------------------------------------------------
        DYNAMIC ACTION ITEMS (NEW)
     ---------------------------------------------------- */
-    
     const addActionItemBtn = document.getElementById('add-action-item-btn');
     const container = document.getElementById('action-items-container');
     const emptyFormTemplate = document.getElementById('empty-action-item-form');
@@ -708,16 +726,21 @@ document.addEventListener('DOMContentLoaded', function() {
         
         addActionItemBtn.addEventListener('click', function() {
             let formNum = parseInt(totalForms.value);
-            
             const newFormHtml = emptyFormTemplate.innerHTML.replace(/__prefix__/g, formNum);
-
-           
+            
             const newFormWrapper = document.createElement('div');
+            // Important: assign the class before setting innerHTML so the new form is a direct child
+            newFormWrapper.className = 'action-item-form-wrapper'; 
             newFormWrapper.innerHTML = newFormHtml;
             
             const newFormElement = newFormWrapper.firstElementChild;
             container.appendChild(newFormElement);
 
+            // Initialize Tagify on the new email input field that was just added
+            const newEmailInput = newFormElement.querySelector('[name$="-responsible_person_emails"]');
+            initializeTagify(newEmailInput);
+
+            // Set min date for the new date input
             const newDateInput = newFormElement.querySelector('input[name$="-target_date"]');
             if (newDateInput) {
                 newDateInput.min = new Date().toISOString().split('T')[0];
@@ -727,13 +750,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         container.addEventListener('click', function(event) {
-           
             if (event.target && event.target.classList.contains('remove-action-item-btn')) {
-                
                 const formToRemove = event.target.closest('.action-item-form');
                 if (formToRemove) {
                     formToRemove.remove();
-                    
+                    // Note: Django formset handles the re-indexing on the backend.
+                    // No need to decrement TOTAL_FORMS here, as it can cause issues.
                 }
             }
         });
