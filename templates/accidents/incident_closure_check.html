@@ -148,7 +148,14 @@
                                     {% for action in pending_actions %}
                                     <tr>
                                         <td>{{ action.action_description }}</td>
-                                        <td>{{ action.responsible_person.get_full_name }}</td>
+                                         <td>
+                                            {# Start loop for each user assigned to the action item #}
+                                            {% for user in action.responsible_person.all %}
+                                                <span class="badge badge-pill badge-secondary font-weight-normal">{{ user.email }}</span>
+                                            {% empty %}
+                                                <span class="text-muted">No person assigned</span>
+                                            {% endfor %}
+                                        </td>
                                         <td>{{ action.target_date|date:"d M Y" }}</td>
                                         <td><span class="badge badge-warning">{{ action.get_status_display }}</span></td>
                                     </tr>

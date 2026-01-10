@@ -604,7 +604,6 @@
   </div>
 </div>
 {% endblock %}
-
 {% block extra_js %}
 <!-- NEW: Link to Tagify JS for the email input -->
 <script src="https://unpkg.com/@yaireo/tagify"></script>
@@ -614,39 +613,13 @@
 document.addEventListener('DOMContentLoaded', function() {
 
     /* ----------------------------------------------------
-       DATE INITIALIZATION (OLD + UPDATED)
+       TAGIFY INITIALIZATION (IMPROVED LOGIC)
     ---------------------------------------------------- */
-    const today = new Date().toISOString().split('T')[0];
-
-    // Investigation & Completed dates (single form)
-    const investigationDateInput = document.getElementById('id_investigation_date');
-    const completedDateInput = document.getElementById('id_completed_date');
-
-    if (investigationDateInput && !investigationDateInput.value) {
-        investigationDateInput.value = today;
-    }
-    if (completedDateInput && !completedDateInput.value) {
-        completedDateInput.value = today;
-    }
-
-    // Target completion date (single form)
-    const targetDateInput = document.getElementById('id_target_completion_date');
-    if (targetDateInput) {
-        targetDateInput.min = today;
-    }
-
-    // Target dates inside formsets (new change)
-    document.querySelectorAll('input[name$="-target_date"]').forEach(function(input) {
-        input.min = today;
-    });
-
-
-    /* ----------------------------------------------------
-       TAGIFY EMAIL INPUT (NEW)
-    ---------------------------------------------------- */
-    // Function to initialize Tagify on a given input element
+    
     function initializeTagify(inputElement) {
-        if (!inputElement) return;
+        if (!inputElement || inputElement.tagify) {
+            return; 
+        }
 
         const emailPattern = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
@@ -656,67 +629,15 @@ document.addEventListener('DOMContentLoaded', function() {
             keepInvalidTags: false,
             originalInputValueFormat: valuesArr => valuesArr.map(item => item.value).join(','),
             
-            class: 'form-control' 
-        });
-    }
-    // Initialize Tagify on all existing email inputs
-    document.querySelectorAll('.email-tags-input').forEach(initializeTagify);
-    
-
-
-    /* ----------------------------------------------------
-       ROOT CAUSE FORM SUBMISSION HANDLING (OLD)
-    ---------------------------------------------------- */
-    const form = document.getElementById('investigationForm');
-    if (form) {
-        form.addEventListener('submit', function() {
-
-            // Personal Factors
-            const personalFactors = [];
-            document.querySelectorAll(
-                '.personal-factor-checkbox:checked, input[name="personal_factor_other_checkbox"]:checked'
-            ).forEach(checkbox => {
-                if (checkbox.id === 'pf9') {
-                    const otherText = document.querySelector(
-                        'input[name="personal_factor_other_text"]'
-                    )?.value.trim();
-                    if (otherText) {
-                        personalFactors.push(`Other: ${otherText}`);
-                    }
-                } else {
-                    personalFactors.push(checkbox.value);
-                }
-            });
-
-            // Job Factors
-            const jobFactors = [];
-            document.querySelectorAll(
-                '.job-factor-checkbox:checked, input[name="job_factor_other_checkbox"]:checked'
-            ).forEach(checkbox => {
-                if (checkbox.id === 'jf12') {
-                    const otherText = document.querySelector(
-                        'input[name="job_factor_other_text"]'
-                    )?.value.trim();
-                    if (otherText) {
-                        jobFactors.push(`Other: ${otherText}`);
-                    }
-                } else {
-                    jobFactors.push(checkbox.value);
-                }
-            });
-
-            // Store JSON in hidden fields
-            document.getElementById('personalFactorsJson').value = JSON.stringify(personalFactors);
-            document.getElementById('jobFactorsJson').value = JSON.stringify(jobFactors);
-
-            console.log('Personal Factors:', personalFactors);
-            console.log('Job Factors:', jobFactors);
+            class: 'form-control'
         });
     }
 
+    document.querySelectorAll('#action-items-container input[name$="-responsible_person_emails"]').forEach(initializeTagify);
+
 
     /* ----------------------------------------------------
-       DYNAMIC ACTION ITEMS (NEW)
+       DYNAMIC ACTION ITEMS (IMPROVED LOGIC)
     ---------------------------------------------------- */
     const addActionItemBtn = document.getElementById('add-action-item-btn');
     const container = document.getElementById('action-items-container');
@@ -727,21 +648,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         addActionItemBtn.addEventListener('click', function() {
             let formNum = parseInt(totalForms.value);
+           
             const newFormHtml = emptyFormTemplate.innerHTML.replace(/__prefix__/g, formNum);
             
-            const newFormWrapper = document.createElement('div');
-            // Important: assign the class before setting innerHTML so the new form is a direct child
-            newFormWrapper.className = 'action-item-form-wrapper'; 
-            newFormWrapper.innerHTML = newFormHtml;
+           
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = newFormHtml;
+            const newFormElement = tempDiv.firstElementChild;
             
-            const newFormElement = newFormWrapper.firstElementChild;
+         
             container.appendChild(newFormElement);
 
-            // Initialize Tagify on the new email input field that was just added
-            const newEmailInput = newFormElement.querySelector('[name$="-responsible_person_emails"]');
+           
+            const newEmailInput = newFormElement.querySelector('input[name$="-responsible_person_emails"]');
+            
             initializeTagify(newEmailInput);
 
-            // Set min date for the new date input
+       
             const newDateInput = newFormElement.querySelector('input[name$="-target_date"]');
             if (newDateInput) {
                 newDateInput.min = new Date().toISOString().split('T')[0];
@@ -750,17 +673,61 @@ document.addEventListener('DOMContentLoaded', function() {
             totalForms.value = formNum + 1;
         });
 
+       
         container.addEventListener('click', function(event) {
             if (event.target && event.target.classList.contains('remove-action-item-btn')) {
                 const formToRemove = event.target.closest('.action-item-form');
                 if (formToRemove) {
                     formToRemove.remove();
-                    // Note: Django formset handles the re-indexing on the backend.
-                    // No need to decrement TOTAL_FORMS here, as it can cause issues.
                 }
             }
         });
     }
+
+
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // Investigation & Completed dates
+    const investigationDateInput = document.getElementById('id_investigation_date');
+    if (investigationDateInput && !investigationDateInput.value) investigationDateInput.value = today;
+    
+    const completedDateInput = document.getElementById('id_completed_date');
+    if (completedDateInput && !completedDateInput.value) completedDateInput.value = today;
+
+    // Target dates inside formsets
+    document.querySelectorAll('input[name$="-target_date"]').forEach(function(input) {
+        input.min = today;
+    });
+
+    // Root Cause Form Submission Handling
+    const form = document.getElementById('investigationForm');
+    if (form) {
+        form.addEventListener('submit', function() {
+            
+            const personalFactors = [];
+            document.querySelectorAll('.personal-factor-checkbox:checked, input[name="personal_factor_other_checkbox"]:checked').forEach(checkbox => {
+                if (checkbox.id === 'pf9') {
+                    const otherText = document.querySelector('input[name="personal_factor_other_text"]')?.value.trim();
+                    if (otherText) personalFactors.push(`Other: ${otherText}`);
+                } else {
+                    personalFactors.push(checkbox.value);
+                }
+            });
+            const jobFactors = [];
+            document.querySelectorAll('.job-factor-checkbox:checked, input[name="job_factor_other_checkbox"]:checked').forEach(checkbox => {
+                if (checkbox.id === 'jf12') {
+                    const otherText = document.querySelector('input[name="job_factor_other_text"]')?.value.trim();
+                    if (otherText) jobFactors.push(`Other: ${otherText}`);
+                } else {
+                    jobFactors.push(checkbox.value);
+                }
+            });
+            document.getElementById('personalFactorsJson').value = JSON.stringify(personalFactors);
+            document.getElementById('jobFactorsJson').value = JSON.stringify(jobFactors);
+        });
+    }
+
 });
 </script>
 {% endblock %}
