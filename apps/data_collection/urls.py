@@ -29,7 +29,7 @@ urlpatterns = [
     path('get-question-assignment/<int:question_id>/', 
          views.GetQuestionAssignmentView.as_view(), 
          name='get_question_assignment'),
-    
+
     path('update-question-assignment/<int:question_id>/', 
          views.UpdateQuestionAssignmentView.as_view(), 
          name='update_question_assignment'),
