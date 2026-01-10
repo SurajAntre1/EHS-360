@@ -361,29 +361,29 @@ class IncidentUpdateView(LoginRequiredMixin, UpdateView):
         
         return context
     
+    #Incident Update Form
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        
-        if self.request.POST:
-            # Update zone queryset
-            plant_id = self.request.POST.get('plant')
-            if plant_id:
-                form.fields['zone'].queryset = Zone.objects.filter(plant_id=plant_id, is_active=True)
-            
-            # Update location queryset
-            zone_id = self.request.POST.get('zone')
-            if zone_id:
-                form.fields['location'].queryset = Location.objects.filter(zone_id=zone_id, is_active=True)
-            
-            # Update sublocation queryset
-            location_id = self.request.POST.get('location')
-            if location_id:
-                form.fields['sublocation'].queryset = SubLocation.objects.filter(
-                    location_id=location_id,
-                    is_active=True
-                )
-        
+
+        incident = self.object  
+        form.initial['affected_body_parts_json'] = json.dumps(
+            incident.affected_body_parts or []
+        )
+
+        form.initial['unsafe_acts_json'] = json.dumps(
+            incident.unsafe_acts or []
+        )
+
+        form.initial['unsafe_conditions_json'] = json.dumps(
+            incident.unsafe_conditions or []
+        )
+        form.initial['unsafe_acts_other'] = incident.unsafe_acts_other or ''
+        form.initial['unsafe_conditions_other'] = incident.unsafe_conditions_other or ''
+        if incident.affected_person:
+            form.initial['affected_person_id'] = incident.affected_person.id
+
         return form
+
     
     def form_valid(self, form):
         # Handle affected person selection
