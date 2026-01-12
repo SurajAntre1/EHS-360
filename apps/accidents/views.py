@@ -1,11 +1,9 @@
 from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
-from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView, TemplateView
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, TemplateView
 from django.urls import reverse, reverse_lazy
-from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from django.db.models import Q, Count
 from django.http import JsonResponse
-from apps.accounts.views import AdminRequiredMixin
 from apps.organizations.models import *
 from .models import *
 from .forms import *

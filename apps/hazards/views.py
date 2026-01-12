@@ -14,9 +14,8 @@ from django.contrib.auth import get_user_model
 import datetime
 import openpyxl
 from openpyxl.utils import get_column_letter
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from .models import Hazard, HazardPhoto, HazardActionItem
 from .utils import generate_hazard_pdf
 from django.views import View
 
