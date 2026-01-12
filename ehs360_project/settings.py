@@ -52,10 +52,10 @@ INSTALLED_APPS = [
     'apps.organizations',
     'apps.hazards',
     'apps.accidents',
-    'apps.data_collection',
     'apps.inspections',
     'apps.dashboards',
     'apps.notifications',
+    'apps.ENVdata',
 ]
 
 MIDDLEWARE = [
