@@ -357,32 +357,7 @@
 
           <ul class="nav nav-treeview">
 
-            <!-- Dashboard -->
-            <li class="nav-item">
-              <a href="{% url 'data_collection:dashboard' %}"
-                class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Dashboard</p>
-              </a>
-            </li>
-
-            <!-- Data Collection List -->
-            <li class="nav-item">
-              <a href="{% url 'data_collection:list' %}"
-                class="nav-link {% if request.resolver_match.url_name == 'list' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Collection List</p>
-              </a>
-            </li>
-
-            <!-- Question Assignment -->
-            <li class="nav-item">
-              <a href="{% url 'data_collection:question_assignment' %}"
-                class="nav-link {% if request.resolver_match.url_name == 'question_assignment' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Question Assignment</p>
-              </a>
-            </li>
+           
           </ul>
         </li>
         

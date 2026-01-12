@@ -1,0 +1,320 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load custom_tags %}
+
+{% block extra_css %}
+<style>
+    .env-data-container {
+        padding: 20px;
+        background: #f8f9fa;
+        min-height: 100vh;
+    }
+    
+    .header-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .header-section h2 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 24px;
+        font-weight: 600;
+    }
+    
+    .plant-info {
+        color: #7f8c8d;
+        margin-top: 5px;
+        font-size: 14px;
+    }
+    
+    .data-table-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .table-wrapper {
+        overflow-x: auto;
+        max-height: calc(100vh - 250px);
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 0;
+    }
+    
+    .data-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #34495e;
+    }
+    
+    .data-table thead th {
+        background: #34495e;
+        color: white;
+        padding: 12px 8px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 13px;
+        border-right: 1px solid #2c3e50;
+        white-space: nowrap;
+    }
+    
+    .data-table thead th:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 11;
+        text-align: left;
+        min-width: 350px;
+        max-width: 350px;
+        border-right: 2px solid #2c3e50;
+    }
+    
+    .data-table tbody tr {
+        border-bottom: 1px solid #e9ecef;
+        transition: background-color 0.2s;
+    }
+    
+    .data-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .data-table tbody tr:nth-child(even) {
+        background-color: #fafbfc;
+    }
+    
+    .data-table tbody td {
+        padding: 8px;
+        border-right: 1px solid #e9ecef;
+        text-align: center;
+    }
+    
+    .data-table tbody td:first-child {
+        position: sticky;
+        left: 0;
+        background: inherit;
+        text-align: left;
+        font-weight: 500;
+        color: #2c3e50;
+        min-width: 350px;
+        max-width: 350px;
+        border-right: 2px solid #dee2e6;
+        font-size: 13px;
+        padding-left: 12px;
+    }
+    
+    .data-table tbody tr:hover td:first-child {
+        background-color: #f8f9fa;
+    }
+    
+    .data-table tbody tr:nth-child(even) td:first-child {
+        background-color: #fafbfc;
+    }
+    
+    .data-input {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        text-align: center;
+        font-size: 13px;
+        transition: all 0.2s;
+        min-width: 80px;
+    }
+    
+    .data-input:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        background-color: #fff;
+    }
+    
+    .data-input:hover {
+        border-color: #3498db;
+    }
+    
+    .action-buttons {
+        padding: 20px;
+        background: white;
+        border-top: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .btn-save {
+        background: #27ae60;
+        color: white;
+        padding: 12px 32px;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .btn-save:hover {
+        background: #229954;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
+    }
+    
+    .btn-reset {
+        background: #95a5a6;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .btn-reset:hover {
+        background: #7f8c8d;
+    }
+    
+    .save-indicator {
+        display: none;
+        color: #27ae60;
+        font-size: 14px;
+        margin-left: 15px;
+    }
+    
+    .save-indicator.show {
+        display: inline-block;
+    }
+    
+    /* Loading state */
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .loading-overlay.show {
+        display: flex;
+    }
+    
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="env-data-container">
+    <div class="header-section">
+        <h2>Environmental Data Collection</h2>
+        <div class="plant-info">
+            <strong>Plant:</strong> {{ plant.name }} | 
+            <strong>Year:</strong> 2025 |
+            <strong>Last Updated:</strong> {% now "F d, Y - H:i" %}
+        </div>
+    </div>
+
+    <form method="post" id="dataEntryForm">
+        {% csrf_token %}
+        <div class="data-table-container">
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Environmental Indicators</th>
+                            {% for month in months %}
+                                <th>{{ month }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for question in questions %}
+                        <tr>
+                            <td>{{ forloop.counter }}. {{ question }}</td>
+                            {% for month in months %}
+                            <td>
+                                <input 
+                                    type="text" 
+                                    name="{{ question|slugify }}_{{ month|lower }}" 
+                                    value="{% if data|get_item:question %}{{ data|get_item:question|get_item:month|default:'' }}{% endif %}" 
+                                    class="data-input"
+                                    placeholder="0"
+                                    autocomplete="off"
+                                >
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="action-buttons">
+                <div>
+                    <button type="button" class="btn-reset" onclick="resetForm()">Reset</button>
+                    <span class="save-indicator" id="saveIndicator">
+                        <i class="fas fa-check-circle"></i> Saved successfully!
+                    </span>
+                </div>
+                <button type="submit" class="btn-save">
+                    <i class="fas fa-save"></i> Save Data
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+</div>
+
+<script>
+    // Show loading on form submit
+    document.getElementById('dataEntryForm').addEventListener('submit', function() {
+        document.getElementById('loadingOverlay').classList.add('show');
+    });
+    
+    // Reset form
+    function resetForm() {
+        if (confirm('Are you sure you want to reset all changes? This will reload the saved data.')) {
+            location.reload();
+        }
+    }
+    
+    // Auto-save indicator (optional)
+    let saveTimeout;
+    document.querySelectorAll('.data-input').forEach(input => {
+        input.addEventListener('input', function() {
+            clearTimeout(saveTimeout);
+            const indicator = document.getElementById('saveIndicator');
+            indicator.classList.remove('show');
+        });
+    });
+</script>
+{% endblock %}
