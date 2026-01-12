@@ -5,7 +5,6 @@ from .models import (
     MonthlyDataCollection,
     DataCollectionResponse,
     DataCollectionQuestion,
-    DataCollectionCategory,
     DataCollectionAttachment,
     DataCollectionComment
 )
