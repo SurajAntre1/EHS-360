@@ -1,11 +1,16 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm as BaseUserChangeForm
-from .models import User
+from .models import User,Role
 from apps.organizations.models import Plant, Zone, Location, SubLocation, Department
 
 class UserCreationFormCustom(UserCreationForm):
     """Custom User Creation Form with all fields"""
     
+    role = forms.ModelChoiceField(        
+        queryset=Role.objects.all(),
+        empty_label="Select Role",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
     class Meta:
         model = User
         fields = [

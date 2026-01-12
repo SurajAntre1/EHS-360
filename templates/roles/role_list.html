@@ -1,0 +1,198 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Role List{% endblock %}
+
+{% block extra_css %}
+<style>
+
+  .breadcrumb {
+    font-size: 14px;
+    color: #4f6df5;
+    margin-bottom: 20px;
+  }
+  .search-box input {
+    padding: 10px 15px;
+    width: 260px;
+    border-radius: 20px;
+    border: 1px solid #cdebd6;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .search-box input:focus {
+    border-color: #4f6df5;
+    box-shadow: 0 0 0 2px rgba(79, 109, 245, 0.15);
+  }
+
+  .create-btn {
+    background: #0d6efd;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .create-btn:hover {
+    background: #0b5ed7;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 20px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    background: #f9fafb;
+    border-bottom: 1px solid #e6e6e6;
+    padding: 14px 10px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+  }
+
+  tbody td {
+    padding: 14px 10px;
+    font-size: 14px;
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.2s ease;
+  }
+
+  tbody tr:hover {
+    background: #f8faff;
+  }
+
+  /* Utility */
+  .center {
+    text-align: center;
+  }
+
+  /* Role name */
+  .role-name {
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .role-desc {
+    color: #6b7280;
+    max-width: 300px;
+    line-height: 1.4;
+  }
+
+  /* Badge */
+  .badge {
+    background: #e8f1ff;
+    color: #2f6fed;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-block;
+    min-width: 80px;
+    text-align: center;
+  }
+
+  /* Actions */
+  .actions i {
+    cursor: pointer;
+    margin: 0 4px;
+    padding: 6px;
+    font-size: 16px;
+    border-radius: 6px;
+    transition: background 0.2s ease;
+  }
+
+  .actions i:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .edit {
+    color: #0d6efd;
+  }
+
+  .delete {
+    color: #dc3545;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+
+<div class="breadcrumb">🏠 / Settings / Roles</div>
+
+<div class="header">
+  <div class="search-box">
+    <input type="text" placeholder="Search roles...">
+  </div>
+  <button class="create-btn">＋ Create Role</button>
+</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th class="center"><input type="checkbox"></th>
+        <th>Role Name</th>
+        <th>Description</th>
+        <th>Permissions</th>
+        <th class="center">Actions</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for role in roles %}
+      <tr>
+        <td class="center">
+          <input type="checkbox">
+        </td>
+
+        <td>
+          <div class="role-name">{{ role.name }}</div>
+        </td>
+
+        <td>
+          <div class="role-desc">
+            {{ role.description|default:"—" }}
+          </div>
+        </td>
+
+        <td>
+          <span class="badge">
+            Permissions
+          </span>
+        </td>
+
+        <td class="actions center">
+          <i class="edit" title="Edit">✏️</i>
+          <i class="delete" title="Delete">🗑️</i>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="center" style="padding: 30px; color: #888;">
+          No roles found
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock content %}

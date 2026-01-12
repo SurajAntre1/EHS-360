@@ -34,7 +34,7 @@ class User(AbstractUser):
     employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPE_CHOICES, default='FULL_TIME', verbose_name="Employment Type")
     job_title = models.CharField(max_length=100, null=True, blank=True, verbose_name="Job Title", help_text="Employee's job title/designation")
     employee_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, null=True, blank=True)
+    role = models.ForeignKey('Role',on_delete=models.SET_NULL, null=True, blank=True, related_name="role_user")
     phone = models.CharField(max_length=15, blank=True)
     department = models.ForeignKey(
         'organizations.Department', 
@@ -249,81 +249,81 @@ class User(AbstractUser):
                 return "Less than a month"
         return None
     
-    def save(self, *args, **kwargs):
-        if self.is_superuser:
-            self.role = self.role or 'ADMIN'
-            self.is_staff = True
+    # def save(self, *args, **kwargs):
+    #     if self.is_superuser:
+    #         self.role = self.role or 'ADMIN'
+    #         self.is_staff = True
         
-        # Auto-assign based on role
-        if self.role == 'ADMIN':
-            # Admins get all module access
-            self.can_access_incident_module = True
-            self.can_access_hazard_module = True
-            self.can_access_inspection_module = True
-            self.can_access_audit_module = True
-            self.can_access_training_module = True
-            self.can_access_permit_module = True
-            self.can_access_observation_module = True
-            self.can_access_reports_module = True
-            # Admins get all approval permissions
-            self.can_approve_incidents = True
-            self.can_approve_hazards = True
-            self.can_approve_inspections = True
-            self.can_approve_permits = True
-            self.can_close_incidents = True
-            self.can_close_hazards = True
+    #     # Auto-assign based on role
+    #     if self.role == 'ADMIN':
+    #         # Admins get all module access
+    #         self.can_access_incident_module = True
+    #         self.can_access_hazard_module = True
+    #         self.can_access_inspection_module = True
+    #         self.can_access_audit_module = True
+    #         self.can_access_training_module = True
+    #         self.can_access_permit_module = True
+    #         self.can_access_observation_module = True
+    #         self.can_access_reports_module = True
+    #         # Admins get all approval permissions
+    #         self.can_approve_incidents = True
+    #         self.can_approve_hazards = True
+    #         self.can_approve_inspections = True
+    #         self.can_approve_permits = True
+    #         self.can_close_incidents = True
+    #         self.can_close_hazards = True
         
-        elif self.role == 'SAFETY_MANAGER':
-            # Safety Managers get all module access
-            self.can_access_incident_module = True
-            self.can_access_hazard_module = True
-            self.can_access_inspection_module = True
-            self.can_access_audit_module = True
-            self.can_access_reports_module = True
-            # Safety Managers can approve
-            self.can_approve_incidents = True
-            self.can_approve_hazards = True
-            self.can_approve_inspections = True
-            self.can_close_incidents = True
-            self.can_close_hazards = True
+    #     elif self.role == 'SAFETY_MANAGER':
+    #         # Safety Managers get all module access
+    #         self.can_access_incident_module = True
+    #         self.can_access_hazard_module = True
+    #         self.can_access_inspection_module = True
+    #         self.can_access_audit_module = True
+    #         self.can_access_reports_module = True
+    #         # Safety Managers can approve
+    #         self.can_approve_incidents = True
+    #         self.can_approve_hazards = True
+    #         self.can_approve_inspections = True
+    #         self.can_close_incidents = True
+    #         self.can_close_hazards = True
         
-        elif self.role == 'PLANT_HEAD':
-            # Plant Heads get most modules
-            self.can_access_incident_module = True
-            self.can_access_hazard_module = True
-            self.can_access_inspection_module = True
-            self.can_access_reports_module = True
-            # Plant Heads can approve
-            self.can_approve_incidents = True
-            self.can_approve_hazards = True
-            self.can_approve_permits = True
+    #     elif self.role == 'PLANT_HEAD':
+    #         # Plant Heads get most modules
+    #         self.can_access_incident_module = True
+    #         self.can_access_hazard_module = True
+    #         self.can_access_inspection_module = True
+    #         self.can_access_reports_module = True
+    #         # Plant Heads can approve
+    #         self.can_approve_incidents = True
+    #         self.can_approve_hazards = True
+    #         self.can_approve_permits = True
         
-        elif self.role == 'LOCATION_HEAD':
-            # Location Heads get basic modules
-            self.can_access_incident_module = True
-            self.can_access_hazard_module = True
-            self.can_access_observation_module = True
-            # Location Heads can approve hazards
-            self.can_approve_hazards = True
+    #     elif self.role == 'LOCATION_HEAD':
+    #         # Location Heads get basic modules
+    #         self.can_access_incident_module = True
+    #         self.can_access_hazard_module = True
+    #         self.can_access_observation_module = True
+    #         # Location Heads can approve hazards
+    #         self.can_approve_hazards = True
         
-        elif self.role == 'HOD':
-            # HODs get comprehensive access
-            self.can_access_incident_module = True
-            self.can_access_hazard_module = True
-            self.can_access_inspection_module = True
-            self.can_access_reports_module = True
-            # HODs can approve
-            self.can_approve_hazards = True
-            self.can_approve_inspections = True
+    #     elif self.role == 'HOD':
+    #         # HODs get comprehensive access
+    #         self.can_access_incident_module = True
+    #         self.can_access_hazard_module = True
+    #         self.can_access_inspection_module = True
+    #         self.can_access_reports_module = True
+    #         # HODs can approve
+    #         self.can_approve_hazards = True
+    #         self.can_approve_inspections = True
         
-        elif self.role == 'EMPLOYEE':
-            # Employees get basic reporting modules by default
-            self.can_access_incident_module = True
-            self.can_access_hazard_module = True
-            self.can_access_observation_module = True
-            self.can_access_training_module = True
+    #     elif self.role == 'EMPLOYEE':
+    #         # Employees get basic reporting modules by default
+    #         self.can_access_incident_module = True
+    #         self.can_access_hazard_module = True
+    #         self.can_access_observation_module = True
+    #         self.can_access_training_module = True
         
-        super().save(*args, **kwargs)
+    #     super().save(*args, **kwargs)
     
     # ============================================
     # HELPER METHODS FOR MULTIPLE ASSIGNMENTS
@@ -380,7 +380,7 @@ class User(AbstractUser):
     @property
     def is_admin_user(self):
         """Check if user is admin - employee with full EHS-360 access"""
-        return self.role == 'ADMIN'
+        return self.role == 'Admin' and self.role.name == 'ADMIN'
     
     @property
     def is_employee_account(self):
@@ -389,15 +389,15 @@ class User(AbstractUser):
     
     @property
     def is_safety_manager(self):
-        return self.role == 'SAFETY_MANAGER'
+        return self.role == 'SAFETY_MANAGER' and self.role.name == 'SAFETY MANAGER'
     
     @property
     def is_location_head(self):
-        return self.role == 'LOCATION_HEAD'
+        return self.role == 'LOCATION_HEAD' and self.role.name == 'LOCATION HEAD'
     
     @property
     def is_plant_head(self):
-        return self.role == 'PLANT_HEAD'
+        return self.role == 'PLANT_HEAD' and self.role.name == 'PLANT HEAD'
     
     @property
     def is_hod(self):
@@ -452,3 +452,18 @@ class User(AbstractUser):
             count += hazards_query.count()
         
         return count
+class Permissions(models.Model):
+    permission_id = models.IntegerField(unique=True)
+    permission_name = models.CharField(max_length=20)
+    permission_description = models.TextField(blank=True,help_text="Description of the Permission",null=True)
+    def __str__(self):
+        return self.permission_name
+
+class Role(models.Model):
+
+    name = models.CharField(max_length=20, unique=True)
+    description = models.TextField(blank=True,help_text="Description of the roles")
+    permissions= models.ManyToManyField(Permissions,related_name='permission_role')
+
+    def __str__(self):
+        return self.name

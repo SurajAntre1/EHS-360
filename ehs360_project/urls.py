@@ -28,7 +28,9 @@ urlpatterns = [
     path('accidents/', include('apps.accidents.urls')),  
     path('hazards/', include('apps.hazards.urls')),  
     path('inspections/', include('apps.inspections.urls')),
-    path('data_collection/', include('apps.data_collection.urls', namespace='data_collection')),
+    # path('data_collection/', include('apps.data_collection.urls')),
+    path('env-data/', include('apps.ENVdata.urls')),
+
 
     #path('observations/', include('apps.observations.urls')),
 

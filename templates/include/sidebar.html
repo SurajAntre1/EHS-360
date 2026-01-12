@@ -210,7 +210,7 @@
           </a>
         </li>
 
-        {% if user.is_staff or user.role == 'ADMIN' or user.is_plant_head %}
+        {% if user.is_superuser or user.is_admin_user or user.is_plant_head %}
         <!-- Administration Section -->
         <li class="nav-header">ADMINISTRATION</li>
         <li class="nav-item">
@@ -235,7 +235,7 @@
               </a>
             </li>
           <!--create user dropdown-->
-          {% if user.is_superuser or user.role == 'ADMIN' %}
+          {% if user.is_superuser or user.is_admin_user %}
           <li class="nav-item">
             <a href="{% url 'accounts:user_create' %}" class="nav-link {% if request.resolver_match.url_name == 'user_create' %}active{% endif %}">
               <i class="nav-icon far fa-circle"></i>
@@ -247,7 +247,7 @@
         </li>
 
         <!-- Add this in the admin section -->
-        {% if user.is_superuser or user.role == 'ADMIN' %}
+        {% if user.is_superuser or user.is_admin_user %}
         <li class="nav-item">
             <a href="{% url 'accounts:permissions_only' %}" class="nav-link">
                 <i class="nav-icon fas fa-user-shield text-primary"></i>
@@ -357,32 +357,7 @@
 
           <ul class="nav nav-treeview">
 
-            <!-- Dashboard -->
-            <li class="nav-item">
-              <a href="{% url 'data_collection:dashboard' %}"
-                class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Dashboard</p>
-              </a>
-            </li>
-
-            <!-- Data Collection List -->
-            <li class="nav-item">
-              <a href="{% url 'data_collection:list' %}"
-                class="nav-link {% if request.resolver_match.url_name == 'list' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Collection List</p>
-              </a>
-            </li>
-
-            <!-- Question Assignment -->
-            <li class="nav-item">
-              <a href="{% url 'data_collection:question_assignment' %}"
-                class="nav-link {% if request.resolver_match.url_name == 'question_assignment' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Question Assignment</p>
-              </a>
-            </li>
+           
           </ul>
         </li>
         
@@ -403,7 +378,7 @@
               </a>
             </li>
             
-            {% if user.role == 'HOD' or user.role == 'SAFETY_MANAGER' or user.is_superuser or user.role == 'ADMIN'%}
+            {% if user.is_hod or user.is_safety_manager or user.is_admin_user or user.is_superuser %}
             <li class="nav-item">
               <a href="{% url 'inspections:schedule_list' %}" class="nav-link {% if request.resolver_match.url_name == 'schedule_list' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
@@ -412,7 +387,7 @@
             </li>
             {% endif %}
             
-            {% if user.role == 'SAFETY_MANAGER' or user.is_superuser or user.role == 'ADMIN' %}
+            {% if user.is_safety_manager or user.is_admin_user or user.is_superuser %}
             <li class="nav-item">
               <a href="{% url 'inspections:schedule_create' %}" class="nav-link {% if request.resolver_match.url_name == 'schedule_create' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
@@ -433,14 +408,14 @@
                 <i class="nav-icon far fa-circle"></i>
                 <p>
                   Findings
-                  {% if user.role == 'HOD' or user.role == 'SAFETY_MANAGER' or user.role == 'ADMIN'%}
+                  {% if user.is_hod or user.is_safety_manager or user.is_admin_user %}
                   <span class="badge badge-danger right">New</span>
                   {% endif %}
                 </p>
               </a>
             </li>
             
-            {% if user.is_superuser or user.role == 'ADMIN' %}
+            {% if user.is_superuser or user.is_admin_user %}
             <li class="nav-item">
               <a href="{% url 'inspections:template_list' %}" class="nav-link {% if request.resolver_match.url_name == 'template_list' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>

@@ -4,10 +4,10 @@ from django.views import View
 from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib import messages
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404, render
 from django.http import JsonResponse
 from django.db.models import Q
-from .models import User
+from .models import User,Role,Permissions
 from .forms import UserCreationFormCustom, UserUpdateForm
 from apps.organizations.models import *
 
@@ -66,9 +66,10 @@ class AdminRequiredMixin(UserPassesTestMixin):
     """Mixin to require admin access"""
     
     def test_func(self):
-        return self.request.user.is_authenticated and (
-            self.request.user.role == 'ADMIN' or 
-            self.request.user.is_superuser
+        user = self.request.user
+        return user.is_authenticated and (
+            user.is_superuser or
+            (user.role and user.role.name == 'ADMIN')
         )
     
     def handle_no_permission(self):
@@ -119,7 +120,7 @@ class UserListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
         # Filter by role
         role = self.request.GET.get('role')
         if role:
-            queryset = queryset.filter(role=role)
+            queryset = queryset.filter(role__name=role)
         
         # Filter by active status
         status = self.request.GET.get('status')
@@ -385,7 +386,7 @@ class UserPermissionsOnlyView(LoginRequiredMixin, AdminRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         from apps.organizations.models import Plant
         
-        context['roles'] = User.ROLE_CHOICES
+        context['roles'] = Role.objects.all()
         context['plants'] = Plant.objects.filter(is_active=True)
         context['search_query'] = self.request.GET.get('search', '')
         
@@ -403,7 +404,7 @@ def update_user_permission(request, user_id):
     """
     AJAX endpoint to update a single permission for a user
     """
-    if not (request.user.is_superuser or request.user.role == 'ADMIN'):
+    if not (request.user.is_superuser or request.user.role == 'ADMIN' and request.user.role.name == 'ADMIN'):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     
     if request.method == 'POST':
@@ -517,11 +518,48 @@ class GetSubLocationsAjaxView(LoginRequiredMixin, View):
 # =======================
 # Role and permission
 #========================
+class RolePermission(LoginRequiredMixin, TemplateView):
+    template_name = 'roles/role_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['roles'] = Role.objects.all()
+        return context
+    
 class RoleCreateView(LoginRequiredMixin, TemplateView):
     """Assigning user roles"""
     template_name = 'roles/roles_permission.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['roles'] = User.ROLE_CHOICES
+        context['permission'] = Permissions.objects.all()
         return context
+
+    def post(self, request):
+        role_name = request.POST.get("role_name")
+        description = request.POST.get("description")
+        permission_ids = request.POST.getlist("permissions")
+
+        if not role_name:
+            messages.error(request, "Role name is required")
+            return redirect('accounts:permissions_only')
+
+        if Role.objects.filter(name=role_name).exists():
+            messages.error(request, "Role name already exists")
+            return redirect('accounts:permissions_only')
+
+        role = Role.objects.create(
+            name=role_name,
+            description=description
+        )
+
+        permissions = Permissions.objects.filter(
+            id__in=permission_ids
+        )
+
+        role.permissions.set(permissions)
+
+        messages.success(request, "Role created successfully")
+        return redirect('accounts:permissions_only')
+
+        
