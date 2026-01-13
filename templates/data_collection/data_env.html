@@ -154,6 +154,10 @@
         border-radius: 4px;
         margin-top: 5px;
     }
+
+    .data-table tbody td:first-child.z-index-front {
+    z-index: 20;
+    }
     
     .unit-option {
         padding: 10px 15px;
@@ -407,23 +411,26 @@
         rowUnits[rowId] = button.textContent.trim();
     });
     
-    // Handle row unit selector clicks
+    // Handle row unit selector clicks (YEH BLOCK BADLA GAYA HAI)
     document.querySelectorAll('.row-unit-selector').forEach(button => {
         button.addEventListener('click', function(e) {
             e.stopPropagation();
             const rowId = this.getAttribute('data-row');
             const modal = document.getElementById(`modal-row-${rowId}`);
-            
-            // Close all other modals
-            document.querySelectorAll('.unit-modal').forEach(m => {
-                if (m !== modal) m.style.display = 'none';
-            });
-            
-            // Toggle current modal
-            if (modal.style.display === 'block') {
-                modal.style.display = 'none';
-            } else {
+            const parentTd = this.closest('td');
+
+            const isAlreadyOpen = modal.style.display === 'block';
+
+            // Sabse pehle, saare modals band karein aur sabhi sticky cells se z-index class hatayein
+            document.querySelectorAll('.unit-modal').forEach(m => m.style.display = 'none');
+            document.querySelectorAll('.data-table tbody td:first-child').forEach(td => td.classList.remove('z-index-front'));
+
+            // Agar modal pehle se khula nahi tha, to use kholein aur z-index set karein
+            if (!isAlreadyOpen) {
                 modal.style.display = 'block';
+                if (parentTd) {
+                    parentTd.classList.add('z-index-front');
+                }
             }
         });
     });
@@ -435,52 +442,43 @@
             const rowId = modal.id.replace('modal-row-', '');
             const newUnit = this.getAttribute('data-unit');
             
-            // Update active option in modal
-            modal.querySelectorAll('.unit-option').forEach(opt => {
-                opt.classList.remove('active');
-            });
+            modal.querySelectorAll('.unit-option').forEach(opt => opt.classList.remove('active'));
             this.classList.add('active');
             
-            // Update button text
             const button = document.querySelector(`.row-unit-selector[data-row="${rowId}"]`);
             button.textContent = newUnit;
             
-            // Update hidden input for unit
             const unitInput = document.querySelector(`.unit-input[data-row="${rowId}"]`);
-            if (unitInput) {
-                unitInput.value = newUnit;
-            }
+            if (unitInput) unitInput.value = newUnit;
             
-            // Store the new unit for this row
             rowUnits[rowId] = newUnit;
             
-            // Highlight the entire row briefly
             const row = document.querySelector(`tr[data-row="${rowId}"]`);
             row.classList.add('row-highlight');
             
-            // Get all data cells in this row
             const dataCells = row.querySelectorAll('td:not(:first-child)');
-            dataCells.forEach(cell => {
-                cell.classList.add('highlight');
-            });
+            dataCells.forEach(cell => cell.classList.add('highlight'));
             
-            // Remove highlights after animation
             setTimeout(() => {
                 row.classList.remove('row-highlight');
-                dataCells.forEach(cell => {
-                    cell.classList.remove('highlight');
-                });
+                dataCells.forEach(cell => cell.classList.remove('highlight'));
             }, 1500);
             
-            // Close modal
             modal.style.display = 'none';
+            // z-index class ko bhi yahan se hata dein
+            const parentTd = button.closest('td');
+            if (parentTd) parentTd.classList.remove('z-index-front');
         });
     });
     
-    // Close modals when clicking outside
+    // Close modals when clicking outside (YEH BLOCK BHI BADLA GAYA HAI)
     document.addEventListener('click', function() {
         document.querySelectorAll('.unit-modal').forEach(modal => {
             modal.style.display = 'none';
+        });
+        // Baahar click karne par bhi saare sticky cells se z-index class hata dein
+        document.querySelectorAll('.data-table tbody td:first-child').forEach(td => {
+            td.classList.remove('z-index-front');
         });
     });
     
