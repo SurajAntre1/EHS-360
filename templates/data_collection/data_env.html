@@ -73,8 +73,8 @@
         left: 0;
         z-index: 11;
         text-align: left;
-        min-width: 350px;
-        max-width: 350px;
+        min-width: 450px;
+        max-width: 450px;
         border-right: 2px solid #2c3e50;
     }
     
@@ -104,11 +104,75 @@
         text-align: left;
         font-weight: 500;
         color: #2c3e50;
-        min-width: 350px;
-        max-width: 350px;
+        min-width: 450px;
+        max-width: 450px;
         border-right: 2px solid #dee2e6;
         font-size: 13px;
         padding-left: 12px;
+        padding-right: 12px;
+    }
+    
+    .indicator-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+    }
+    
+    .indicator-text {
+        flex: 1;
+        padding-right: 10px;
+    }
+    
+    .row-unit-selector {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 4px 10px;
+        font-size: 11px;
+        cursor: pointer;
+        border-radius: 3px;
+        min-width: 60px;
+        font-weight: 600;
+        transition: background-color 0.2s;
+    }
+    
+    .row-unit-selector:hover {
+        background-color: #2980b9;
+    }
+    
+    .unit-modal {
+        display: none;
+        position: fixed; 
+        background-color: white;
+        border: 1px solid #ccc;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999; 
+        min-width: 120px; 
+        border-radius: 4px;
+    }
+    
+    .unit-option {
+        padding: 10px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        text-align: left;
+        font-size: 12px;
+        transition: background-color 0.2s;
+    }
+    
+    .unit-option:last-child {
+        border-bottom: none;
+    }
+
+    .unit-option:hover {
+        background-color: #f5f5f5;
+    }
+
+    .unit-option.active {
+        background-color: #e8f4fc;
+        color: #2980b9;
+        font-weight: bold;
     }
     
     .data-table tbody tr:hover td:first-child {
@@ -195,7 +259,15 @@
         display: inline-block;
     }
     
-    /* Loading state */
+    .row-highlight {
+        background-color: #fffde7 !important;
+    }
+    
+    .highlight {
+        background-color: #e8f4fc !important;
+        transition: background-color 0.5s ease;
+    }
+    
     .loading-overlay {
         display: none;
         position: fixed;
@@ -226,6 +298,13 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+    
+    .unit-note {
+        font-size: 11px;
+        color: #666;
+        display: block;
+        margin-top: 3px;
+    }
 </style>
 {% endblock %}
 
@@ -247,22 +326,54 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Environmental Indicators</th>
+                            <th>
+                                Environmental Indicators
+                                <span class="unit-note">Select unit from dropdown (values will be saved and converted)</span>
+                            </th>
                             {% for month in months %}
                                 <th>{{ month }}</th>
                             {% endfor %}
                         </tr>
                     </thead>
                     <tbody>
-                        {% for question in questions %}
-                        <tr>
-                            <td>{{ forloop.counter }}. {{ question }}</td>
+                        {% for item in questions %}
+                        <tr data-row="{{ forloop.counter }}">
+                            <td>
+                                <div class="indicator-content">
+                                    <span class="indicator-text">{{ forloop.counter }}. {{ item.question }}</span>
+                                    
+                                    {% comment %} Show saved unit if available, otherwise default unit {% endcomment %}
+                                    <button type="button" class="row-unit-selector" data-row="{{ forloop.counter }}">
+                                        {% if unit_dict|get_item:item.question %}
+                                            {{ unit_dict|get_item:item.question }}
+                                        {% else %}
+                                            {{ item.default_unit }}
+                                        {% endif %}
+                                    </button>
+                                    
+                                    <div class="unit-modal" id="modal-row-{{ forloop.counter }}">
+                                        {% for unit_opt in item.unit_options %}
+                                        <div class="unit-option {% if unit_dict|get_item:item.question == unit_opt %}active{% elif not unit_dict|get_item:item.question and unit_opt == item.default_unit %}active{% endif %}" 
+                                            data-unit="{{ unit_opt }}">
+                                            {{ unit_opt }}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                {% comment %} Hidden input stores the selected unit {% endcomment %}
+                                <input type="hidden" 
+                                       name="unit_{{ item.question|slugify }}" 
+                                       value="{% if unit_dict|get_item:item.question %}{{ unit_dict|get_item:item.question }}{% else %}{{ item.default_unit }}{% endif %}" 
+                                       class="unit-input" 
+                                       data-row="{{ forloop.counter }}">
+                            </td>                     
                             {% for month in months %}
                             <td>
                                 <input 
                                     type="text" 
-                                    name="{{ question|slugify }}_{{ month|lower }}" 
-                                    value="{% if data|get_item:question %}{{ data|get_item:question|get_item:month|default:'' }}{% endif %}" 
+                                    name="{{ item.question|slugify }}_{{ month|lower }}" 
+                                    value="{% if data|get_item:item.question %}{{ data|get_item:item.question|get_item:month|default:'' }}{% endif %}" 
                                     class="data-input"
                                     placeholder="0"
                                     autocomplete="off"
@@ -295,26 +406,184 @@
 </div>
 
 <script>
-    // Show loading on form submit
+document.addEventListener('DOMContentLoaded', function() {
+    let activeModal = null;
+    const rowUnits = {}; // Track current unit for each row
+    
+    // Conversion factors (same as backend)
+    const conversionFactors = {
+        'MT': {'MT': 1, 'kg': 1000, 'lbs': 2204.62, 'cubic-m': 0.45},
+        'kg': {'MT': 0.001, 'kg': 1, 'lbs': 2.20462, 'cubic-m': 0.00045},
+        'lbs': {'MT': 0.000453592, 'kg': 0.453592, 'lbs': 1, 'cubic-m': 0.000204},
+        'cubic-m': {'MT': 2.22, 'kg': 2222.22, 'lbs': 4900, 'cubic-m': 1},
+        'KL': {'KL': 1, 'm³': 1, 'Liters': 1000},
+        'm³': {'KL': 1, 'm³': 1, 'Liters': 1000},
+        'Liters': {'KL': 0.001, 'm³': 0.001, 'Liters': 1},
+        'kWh': {'kWh': 1, 'MWh': 0.001, 'GJ': 0.0036},
+        'MWh': {'kWh': 1000, 'MWh': 1, 'GJ': 3.6},
+        'GJ': {'kWh': 277.778, 'MWh': 0.277778, 'GJ': 1},
+        'Days': {'Days': 1, 'Hours': 24},
+        'Hours': {'Days': 0.0416667, 'Hours': 1},
+        'mg/m³': {'mg/m³': 1, 'µg/m³': 1000},
+        'µg/m³': {'mg/m³': 0.001, 'µg/m³': 1},
+        '%': {'%': 1, 'PPM': 10000},
+        'PPM': {'%': 0.0001, 'PPM': 1},
+        'mg/L': {'mg/L': 1, 'ppm': 1},
+        'ppm': {'mg/L': 1, 'ppm': 1},
+        'Count': {'Count': 1, 'Rate': 1, 'Percentage': 1},
+        'Rate': {'Count': 1, 'Rate': 1, 'Percentage': 1},
+        'Percentage': {'Count': 1, 'Rate': 1, 'Percentage': 1},
+        'Yes/No': {'Yes/No': 1}
+    };
+    
+    // Initialize row units from buttons
+    document.querySelectorAll('.row-unit-selector').forEach(button => {
+        const rowId = button.getAttribute('data-row');
+        rowUnits[rowId] = button.textContent.trim();
+    });
+    
+    // Conversion function
+    function convertValue(value, fromUnit, toUnit) {
+        if (fromUnit === toUnit) return value;
+        
+        if (fromUnit === 'Count' || fromUnit === 'Rate' || fromUnit === 'Percentage' || 
+            fromUnit === 'Yes/No' || toUnit === 'Yes/No') {
+            return value;
+        }
+        
+        if (conversionFactors[fromUnit] && conversionFactors[fromUnit][toUnit]) {
+            return value * conversionFactors[fromUnit][toUnit];
+        }
+        
+        return value;
+    }
+    
+    // Format function
+    function formatValue(value) {
+        if (value === 0) return '0';
+        const absValue = Math.abs(value);
+        if (absValue < 0.001) return value.toFixed(6);
+        if (absValue < 0.01) return value.toFixed(4);
+        if (absValue < 1) return value.toFixed(3);
+        if (absValue < 100) return value.toFixed(2);
+        if (absValue < 1000) return value.toFixed(1);
+        return Math.round(value).toString();
+    }
+
+    // Handle unit button clicks
+    document.querySelectorAll('.row-unit-selector').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            if (activeModal) {
+                hideAndResetModal();
+            }
+
+            const rowId = this.getAttribute('data-row');
+            const modal = document.getElementById(`modal-row-${rowId}`);
+            
+            if (modal.parentNode !== document.body) {
+                modal.originalParent = modal.parentNode;
+                document.body.appendChild(modal);
+            }
+
+            const rect = this.getBoundingClientRect();
+            modal.style.top = `${rect.bottom + 5}px`; 
+            modal.style.left = `${rect.left}px`;     
+            modal.style.display = 'block';
+
+            activeModal = modal;
+        });
+    });
+
+    // Handle unit selection WITH CONVERSION
+    document.querySelectorAll('.unit-option').forEach(option => {
+        option.addEventListener('click', function() {
+            if (!activeModal) return;
+
+            const modal = this.closest('.unit-modal');
+            const rowId = modal.id.replace('modal-row-', '');
+            const newUnit = this.getAttribute('data-unit');
+            const oldUnit = rowUnits[rowId]; // Get OLD unit
+
+            console.log(`Converting row ${rowId} from ${oldUnit} to ${newUnit}`);
+
+            // Update active option
+            modal.querySelectorAll('.unit-option').forEach(opt => opt.classList.remove('active'));
+            this.classList.add('active');
+
+            // Update button text
+            const button = document.querySelector(`.row-unit-selector[data-row="${rowId}"]`);
+            button.textContent = newUnit;
+
+            // Update hidden input
+            const unitInput = document.querySelector(`.unit-input[data-row="${rowId}"]`);
+            if (unitInput) unitInput.value = newUnit;
+            
+            // CONVERT ALL VALUES IN THE ROW
+            const row = document.querySelector(`tr[data-row="${rowId}"]`);
+            const inputs = row.querySelectorAll('.data-input');
+            
+            inputs.forEach(input => {
+                const currentValue = parseFloat(input.value);
+                
+                if (!isNaN(currentValue) && currentValue !== 0) {
+                    // Convert from OLD unit to NEW unit
+                    const convertedValue = convertValue(currentValue, oldUnit, newUnit);
+                    const formattedValue = formatValue(convertedValue);
+                    
+                    console.log(`  ${currentValue} ${oldUnit} → ${formattedValue} ${newUnit}`);
+                    
+                    // Update input value
+                    input.value = formattedValue;
+                }
+            });
+            
+            // Update stored unit
+            rowUnits[rowId] = newUnit;
+            
+            // Visual feedback
+            if(row) {
+                row.classList.add('row-highlight');
+                const dataCells = row.querySelectorAll('td:not(:first-child)');
+                dataCells.forEach(cell => cell.classList.add('highlight'));
+                
+                setTimeout(() => {
+                    row.classList.remove('row-highlight');
+                    dataCells.forEach(cell => cell.classList.remove('highlight'));
+                }, 1500);
+            }
+            
+            hideAndResetModal();
+        });
+    });
+
+    function hideAndResetModal() {
+        if (!activeModal) return;
+        
+        activeModal.style.display = 'none';
+        
+        if (activeModal.originalParent) {
+            activeModal.originalParent.appendChild(activeModal);
+        }
+        activeModal = null;
+    }
+
+    document.addEventListener('click', function() {
+        if (activeModal) {
+            hideAndResetModal();
+        }
+    });
+
     document.getElementById('dataEntryForm').addEventListener('submit', function() {
         document.getElementById('loadingOverlay').classList.add('show');
     });
-    
-    // Reset form
-    function resetForm() {
-        if (confirm('Are you sure you want to reset all changes? This will reload the saved data.')) {
-            location.reload();
-        }
+});
+
+function resetForm() {
+    if (confirm('Are you sure you want to reset all changes? This will reload the saved data.')) {
+        location.reload();
     }
-    
-    // Auto-save indicator (optional)
-    let saveTimeout;
-    document.querySelectorAll('.data-input').forEach(input => {
-        input.addEventListener('input', function() {
-            clearTimeout(saveTimeout);
-            const indicator = document.getElementById('saveIndicator');
-            indicator.classList.remove('show');
-        });
-    });
+}
 </script>
 {% endblock %}
