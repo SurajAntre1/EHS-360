@@ -90,7 +90,7 @@ class HazardActionItemForm(forms.ModelForm):
             'completion_remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
-
+ 
 class HazardPhotoForm(forms.ModelForm):
     """Form for uploading hazard photos"""
     
