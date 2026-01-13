@@ -143,20 +143,20 @@
     
     .unit-modal {
         display: none;
-        position: absolute;
-        top: 100%;
-        right: 0;
+        
+        position: fixed; 
         background-color: white;
         border: 1px solid #ccc;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 1000;
-        min-width: 180px;
+       
+        z-index: 9999; 
+        min-width: 120px; 
         border-radius: 4px;
-        margin-top: 5px;
     }
 
-    .data-table tbody td:first-child.z-index-front {
-    z-index: 20;
+    .data-table tbody tr.row-active {
+        position: relative;
+        z-index: 20;
     }
     
     .unit-option {
@@ -171,11 +171,11 @@
     .unit-option:last-child {
         border-bottom: none;
     }
-    
+
     .unit-option:hover {
         background-color: #f5f5f5;
     }
-    
+
     .unit-option.active {
         background-color: #e8f4fc;
         color: #2980b9;
@@ -349,20 +349,24 @@
                             <td>
                                 <div class="indicator-content">
                                     <span class="indicator-text">{{ forloop.counter }}. {{ item.question }}</span>
+                                    
+                                  
                                     <button type="button" class="row-unit-selector" data-row="{{ forloop.counter }}">
                                         {{ item.default_unit }}
                                     </button>
+                                    
+                                    
                                     <div class="unit-modal" id="modal-row-{{ forloop.counter }}">
                                         {% for unit_opt in item.unit_options %}
                                         <div class="unit-option {% if unit_opt == item.default_unit %}active{% endif %}" 
-                                             data-unit="{{ unit_opt }}">
+                                            data-unit="{{ unit_opt }}">
                                             {{ unit_opt }}
                                         </div>
                                         {% endfor %}
                                     </div>
                                 </div>
                                 <input type="hidden" name="unit_{{ item.question|slugify }}" value="{{ item.default_unit }}" class="unit-input" data-row="{{ forloop.counter }}">
-                            </td>
+                            </td>                     
                             {% for month in months %}
                             <td>
                                 <input 
@@ -402,103 +406,105 @@
 </div>
 
 <script>
-    // Store row units
-    const rowUnits = {};
-    
-    // Initialize row units from buttons
-    document.querySelectorAll('.row-unit-selector').forEach(button => {
-        const rowId = button.getAttribute('data-row');
-        rowUnits[rowId] = button.textContent.trim();
-    });
-    
-    // Handle row unit selector clicks (YEH BLOCK BADLA GAYA HAI)
+document.addEventListener('DOMContentLoaded', function() {
+   
+    let activeModal = null;
+
+
     document.querySelectorAll('.row-unit-selector').forEach(button => {
         button.addEventListener('click', function(e) {
             e.stopPropagation();
+            
+           
+            if (activeModal) {
+                hideAndResetModal();
+            }
+
             const rowId = this.getAttribute('data-row');
             const modal = document.getElementById(`modal-row-${rowId}`);
-            const parentTd = this.closest('td');
-
-            const isAlreadyOpen = modal.style.display === 'block';
-
-            // Sabse pehle, saare modals band karein aur sabhi sticky cells se z-index class hatayein
-            document.querySelectorAll('.unit-modal').forEach(m => m.style.display = 'none');
-            document.querySelectorAll('.data-table tbody td:first-child').forEach(td => td.classList.remove('z-index-front'));
-
-            // Agar modal pehle se khula nahi tha, to use kholein aur z-index set karein
-            if (!isAlreadyOpen) {
-                modal.style.display = 'block';
-                if (parentTd) {
-                    parentTd.classList.add('z-index-front');
-                }
+            
+            
+            if (modal.parentNode !== document.body) {
+                
+                modal.originalParent = modal.parentNode;
+                document.body.appendChild(modal);
             }
+
+            
+            const rect = this.getBoundingClientRect();
+            modal.style.top = `${rect.bottom + 5}px`; 
+            modal.style.left = `${rect.left}px`;     
+            modal.style.display = 'block';
+
+           
+            activeModal = modal;
         });
     });
+
     
-    // Handle unit selection for rows
     document.querySelectorAll('.unit-option').forEach(option => {
         option.addEventListener('click', function() {
+            if (!activeModal) return;
+
             const modal = this.closest('.unit-modal');
             const rowId = modal.id.replace('modal-row-', '');
             const newUnit = this.getAttribute('data-unit');
-            
+
+           
             modal.querySelectorAll('.unit-option').forEach(opt => opt.classList.remove('active'));
             this.classList.add('active');
-            
+
+           
             const button = document.querySelector(`.row-unit-selector[data-row="${rowId}"]`);
             button.textContent = newUnit;
+
             
             const unitInput = document.querySelector(`.unit-input[data-row="${rowId}"]`);
             if (unitInput) unitInput.value = newUnit;
             
-            rowUnits[rowId] = newUnit;
-            
+          
             const row = document.querySelector(`tr[data-row="${rowId}"]`);
-            row.classList.add('row-highlight');
+            if(row) {
+                row.classList.add('row-highlight');
+                setTimeout(() => row.classList.remove('row-highlight'), 1500);
+            }
             
-            const dataCells = row.querySelectorAll('td:not(:first-child)');
-            dataCells.forEach(cell => cell.classList.add('highlight'));
             
-            setTimeout(() => {
-                row.classList.remove('row-highlight');
-                dataCells.forEach(cell => cell.classList.remove('highlight'));
-            }, 1500);
-            
-            modal.style.display = 'none';
-            // z-index class ko bhi yahan se hata dein
-            const parentTd = button.closest('td');
-            if (parentTd) parentTd.classList.remove('z-index-front');
+            hideAndResetModal();
         });
     });
-    
-    // Close modals when clicking outside (YEH BLOCK BHI BADLA GAYA HAI)
+
+  
+    function hideAndResetModal() {
+        if (!activeModal) return;
+        
+        activeModal.style.display = 'none';
+        
+       
+        if (activeModal.originalParent) {
+            activeModal.originalParent.appendChild(activeModal);
+        }
+        activeModal = null;
+    }
+
+   
     document.addEventListener('click', function() {
-        document.querySelectorAll('.unit-modal').forEach(modal => {
-            modal.style.display = 'none';
-        });
-        // Baahar click karne par bhi saare sticky cells se z-index class hata dein
-        document.querySelectorAll('.data-table tbody td:first-child').forEach(td => {
-            td.classList.remove('z-index-front');
-        });
+        if (activeModal) {
+            hideAndResetModal();
+        }
     });
-    
-    // Prevent modal from closing when clicking inside
-    document.querySelectorAll('.unit-modal').forEach(modal => {
-        modal.addEventListener('click', function(e) {
-            e.stopPropagation();
-        });
-    });
-    
-    // Show loading on form submit
+
+   
     document.getElementById('dataEntryForm').addEventListener('submit', function() {
         document.getElementById('loadingOverlay').classList.add('show');
     });
-    
-    // Reset form
-    function resetForm() {
-        if (confirm('Are you sure you want to reset all changes? This will reload the saved data.')) {
-            location.reload();
-        }
+});
+
+
+function resetForm() {
+    if (confirm('Are you sure you want to reset all changes? This will reload the saved data.')) {
+        location.reload();
     }
+}
 </script>
 {% endblock %}
