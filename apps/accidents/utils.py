@@ -3,6 +3,8 @@ from io import BytesIO
 from django.http import HttpResponse
 from django.conf import settings
 import datetime
+from django.db.models import Q
+from .models import Incident
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -387,3 +389,23 @@ def generate_incident_pdf(incident):
     
     
     return response
+
+#Displaying incident based on the user's role
+def get_incidents_for_user(user):
+    if user.is_superuser:
+        return Incident.objects.all()
+
+    role_name = user.role.name.upper()
+
+    if role_name == 'ADMIN':
+        return Incident.objects.all()
+
+    if role_name == 'PLANT HEAD':
+        plants = user.get_all_plants()
+        return Incident.objects.filter(plant__in=plants)
+
+    if role_name == 'LOCATION HEAD':
+        locations = user.get_all_locations()
+        return Incident.objects.filter(location__in=locations)
+
+    return Incident.objects.filter(reported_by=user)

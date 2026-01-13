@@ -91,7 +91,7 @@
                     <a href="{% url 'hazards:hazard_list' %}" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Back to List
                     </a>
-                    {% if user.is_superuser or user.role == 'ADMIN' %}
+                    {% if user.is_superuser or user.role.name == 'ADMIN' %}
                     <a href="{% url 'hazards:hazard_update' hazard.pk %}" class="btn btn-primary">
                         <i class="fas fa-edit"></i> Edit Hazard
                     </a>
@@ -355,7 +355,7 @@
                         <i class="fas fa-tasks"></i> Action Items ({{ action_items.count }})
                     </h3>
                     <div class="card-tools">
-                        {% if user.is_superuser or user.role == 'ADMIN' %}
+                        {% if user.is_superuser or user.role.name == 'ADMIN' %}
                         <a href="{% url 'hazards:action_item_create' hazard.pk %}" class="btn btn-sm btn-success">
                             <i class="fas fa-plus"></i> Add Action Item
                         </a>

@@ -575,3 +575,47 @@ class HazardActionItem(models.Model):
             self.completion_date = datetime.date.today()
         
         super().save(*args, **kwargs)
+
+class HazardNotification(models.Model):
+
+    NOTIFICATION_TYPES = [
+        ('HAZARD_REPORTED','Hazard Reported'),
+        ('HAZARD_DUE','Hazard Due Soon'),
+        ('HAZARD_OVERDUE','Hazard Overdue'),
+        ('ACTION_ASSIGNED','Action Item Assigned'),
+        ('ACTION_DUE','Action Item Due Soon'),
+        ('HAZARD_CLOSED','Hazard Closed'),
+    ]
+
+    recipient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='hazard_notifications'
+    )
+    hazard = models.ForeignKey(
+        Hazard,
+        on_delete=models.CASCADE,
+        related_name='notifications'
+    )
+    notifications_type = models.CharField(max_length=30, choices=NOTIFICATION_TYPES)
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient','is_read']),
+            models.Index(fields=['-created_at']),
+        ] 
+
+    def __str__(self):
+        return f"{self.recipient.get_full_name()} - {self.title}"
+    
+    def mark_as_read(self):
+        from django.utils import timezone
+        if not self.is_read:
+            self.is_read = timezone.now()
+            self.save(update_fields=['is_read','read_at'])

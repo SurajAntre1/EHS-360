@@ -14,34 +14,28 @@
     display: block;
   }
 
-  .role-select-wrapper {
-    max-width: 460px;
+  @media (max-width: 768px) {
+    .permissions-box {
+      max-height: 250px;
+    }
+    .permission-row {
+      padding: 10px;
+      gap: 10px;
+    }
   }
 
-  .form-select.role-select {
-    width: 100%;
-    height: 56px;
-    border-radius: 10px;
-    border: 1px solid #d1d5db;
-    background-color: #f9fafb;
-    background-position: right 16px center;
-    background-repeat: no-repeat;
-    background-size: 18px 18px;
-    font-size: 15px;
-    padding: 0 48px 0 16px;
-    transition: all 0.2s ease;
+  .permission-row:focus-within {
+    background-color: #eff6ff;
+    border: 2px solid #3b82f6;
+    margin: -1px;
+    padding: 11px 13px;
   }
 
-  .form-select.role-select:hover {
-    background-color: #ffffff;
-    border-color: #94a3b8;
+  .permission-checkbox:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
   }
-
-  .form-select.role-select:focus {
-    background-color: #ffffff;
-    border-color: #3b82f6;
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.15);
-    outline: none;
+  .permission-row {
+    position: relative;
   }
 
   .permissions-box {
@@ -98,7 +92,7 @@
 {% block content %}
 <div class="card shadow-sm">
   <div class="card-body">
-    <form method="post">
+    <form method="post" id='role_form'>
       {% csrf_token %}
 
       <div class="form-section">
@@ -106,18 +100,14 @@
           Role <span class="text-danger">*</span>
         </label>
         <div class="role-select-wrapper">
-          <select name="role_name" class="form-select role-select" required>
-            <option value="">----------</option>
-            {% for value, label in roles %}
-              <option value="{{ value }}">{{ label }}</option>
-            {% endfor %}
-          </select>
+        <input type="text" class="form-control" id="role_name" name="role_name" placeholder="Enter role name" required maxlength="100">
         </div>
       </div>
 
       <div class="form-section">
         <label class="form-label fw-semibold">Description</label>
         <textarea
+          id = "role_description"
           name="description"
           class="form-control"
           rows="3"
@@ -138,25 +128,26 @@
       </div>
 
       <div class="permissions-box">
-        {% for value, label in permission %}
-        <div class="permission-row">
-          <input
-            type="checkbox"
-            class="permission-checkbox"
-            name="permissions"
-            value="{{ value }}"
-            id="perm_{{ value }}"
-          >
-          <label for="perm_{{ value }}" class="permission-label">
-            {{ label }}
-          </label>
-        </div>
-        {% empty %}
-        <p class="text-muted text-center m-0 py-4">
-          No permissions available
-        </p>
+      {% if permission %}
+        {% for perm in permission %}
+          <div class="permission-row">
+            <input
+              class="permission-checkbox"
+              type="checkbox"
+              name="permissions"
+              value="{{ perm.permission_id }}"
+              id="perm_{{ perm.permission_id }}"
+            >
+            <label for="perm_{{ perm.permission_id }}">
+              {{ perm.permission_name }}
+            </label>
+          </div>
         {% endfor %}
-      </div>
+      {% else %}
+        <p>No permissions available</p>
+      {% endif %}
+    </div>
+
 
       <div class="d-flex justify-content-end mt-5">
         <a href="#" class="btn btn-outline-secondary btn-spacing">
@@ -183,15 +174,24 @@
       .forEach(cb => cb.checked = false);
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".permission-row").forEach(row => {
-      row.addEventListener("click", function (e) {
-        if (e.target.tagName !== "INPUT") {
-          const checkbox = this.querySelector(".permission-checkbox");
-          checkbox.checked = !checkbox.checked;
-        }
-      });
-    });
+  function isChecked(rowElement, event) {
+  if (event.target.tagName !== "INPUT") {
+    const checkbox = rowElement.querySelector(".permission-checkbox");
+    if (checkbox) {
+      checkbox.checked = !checkbox.checked;
+    }
+  }
+}
+  
+// Form submission
+document.getElementById('role_form').addEventListener('submit',function(e){
+  const name = document.getElementById('role_name').value.trim();
+  const description = document.getElementById('role_description').value.trim();
+  const permissions = [];
+  document.querySelectorAll('.permission-checkbox:checked').forEach(checkbox => {
+    permissions.push(checkbox.value);
   });
+});
+  
 </script>
 {% endblock extra_js %}

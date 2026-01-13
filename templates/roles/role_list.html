@@ -1,0 +1,223 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Role List{% endblock %}
+{% block page_title %}Role List{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Breadcrumb */
+  .breadcrumb {
+    font-size: 14px;
+    color: #4f6df5;
+    margin-bottom: 18px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 15px;
+  }
+
+  /* Search Box */
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .search-box input {
+    padding: 10px 18px;
+    width: 260px;
+    border-radius: 20px;
+    border: 1px solid #cdebd6;
+    outline: none;
+    transition: all 0.25s ease;
+  }
+
+  .search-box input:focus {
+    border-color: #4f6df5;
+    box-shadow: 0 0 0 3px rgba(79, 109, 245, 0.15);
+  }
+
+  .search-btn {
+    background: #0d6efd;
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: all 0.2s ease;
+  }
+
+  .search-btn:hover {
+    background: #0b5ed7;
+  }
+
+  .search-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* Create Button */
+  .create-btn {
+    padding: 10px 22px;
+    border-radius: 22px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Card */
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    padding: 20px;
+    transition: transform 0.2s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    background: #f9fafb;
+    border-bottom: 1px solid #e6e6e6;
+    padding: 14px 12px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+  }
+
+  tbody td {
+    padding: 14px 12px;
+    font-size: 14px;
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.2s ease;
+  }
+
+  tbody tr:hover {
+    background: #f8faff;
+  }
+
+  /* Utility */
+  .center {
+    text-align: center;
+  }
+
+  /* Role Name */
+  .role-name {
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .role-desc {
+    color: #6b7280;
+    max-width: 320px;
+    line-height: 1.4;
+  }
+
+  /* badges */
+  .badges {
+    background: #e8f1ff;
+    color: #2f6fed;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-block;
+    min-width: 90px;
+    text-align: center;
+  }
+
+  /* Actions */
+  .actions i {
+    cursor: pointer;
+    margin: 0 6px;
+    padding: 8px;
+    font-size: 16px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .actions i:hover {
+    background: rgba(0, 0, 0, 0.06);
+    transform: scale(1.1);
+  }
+
+  .edit {
+    color: #0d6efd;
+  }
+
+  .delete {
+    color: #dc3545;
+  }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+
+<div class="header">
+  <form method="get" class="search-box">
+    <input type="text" name="search" placeholder="Search roles..." value="{{ search_query }}">
+    <button type="submit" class="search-btn">Search 🔍</button>
+  </form>
+  <a href="{% url 'accounts:createrole' %}" class="btn btn-primary create-btn">
+    ➕ Create Role
+  </a>
+</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Role Name</th>
+        <th>Description</th>
+        <th>Permissions</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for role in roles %}
+      <tr>
+        <td>
+          <div class="role-name">{{ role.name }}</div>
+        </td>
+        <td>
+          <div class="role-desc">
+            {{ role.description|default:"—" }}
+          </div>
+        </td>
+        <td>
+          <span class="badges">{{ role.permissions.count }} Permissions</span>
+        </td>
+      </tr>
+
+      {% empty %}
+      <tr>
+        <td colspan="4" class="center" style="padding: 30px; color: #888;">
+          No roles found
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock content %}
