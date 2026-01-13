@@ -627,7 +627,7 @@
             <thead>
               <tr>
                 <th>Action Description</th>
-                <!-- <th>Responsible Person</th> -->
+                <th>Responsible Person</th>
                 <th>Target Date</th>
                 <th>Status</th>
               </tr>
@@ -636,7 +636,14 @@
               {% for action in action_items %}
               <tr>
                 <td>{{ action.action_description|truncatewords:15 }}</td>
-                <!-- <td>{{ action.responsible_person.get_full_name }}</td> -->
+                <td>
+                    {# Start loop for each user assigned to the action item #}
+                    {% for user in action.responsible_person.all %}
+                        <span class="badge badge-pill badge-secondary font-weight-normal">{{ user.email }}</span>
+                    {% empty %}
+                        <span class="text-muted">No person assigned</span>
+                    {% endfor %}
+                </td>
                 <td>
                   {{ action.target_date|date:"d/m/Y" }}
                   {% if action.is_overdue %}

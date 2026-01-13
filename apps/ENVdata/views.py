@@ -3,8 +3,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from apps.organizations.models import Plant
 from .models import MonthlyIndicatorData
-from .constants import QUESTIONS, MONTHS
-
+from .constants import ENVIRONMENTAL_QUESTIONS, MONTHS
 
 class PlantMonthlyEntryView(LoginRequiredMixin, View):
     template_name = "data_collection/data_env.html"
@@ -20,12 +19,20 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
         if not plant:
             return render(request, "no_plant_assigned.html")
 
+        # Fetch saved data
         saved_data = MonthlyIndicatorData.objects.filter(plant=plant)
-        data_dict = {(d.question, d.month): d.value for d in saved_data}
+        
+        # Build nested dictionary structure for template
+        # Format: {question_text: {month: value}}
+        data_dict = {}
+        for d in saved_data:
+            if d.indicator not in data_dict:
+                data_dict[d.indicator] = {}
+            data_dict[d.indicator][d.month.capitalize()] = d.value
 
         context = {
             "plant": plant,
-            "questions": QUESTIONS,
+            "questions": ENVIRONMENTAL_QUESTIONS,  # Now passing list of dicts
             "months": MONTHS,
             "data": data_dict,
         }
@@ -36,21 +43,30 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
         if not plant:
             return redirect("plant-entry")
 
-        for question in QUESTIONS:
+        # Iterate through structured questions
+        for item in ENVIRONMENTAL_QUESTIONS:
+            question_text = item['question']
+            
             for month in MONTHS:
-                field_name = f"{question}_{month}".lower() \
-                    .replace(" ", "_") \
+                # Generate field name using slugify logic
+                field_name = f"{question_text}_{month}".lower() \
+                    .replace(" ", "-") \
+                    .replace("/", "-") \
                     .replace("(", "") \
                     .replace(")", "") \
-                    .replace("+", "")
+                    .replace("+", "") \
+                    .replace(",", "") \
+                    .replace(".", "") \
+                    .replace(";", "") \
+                    .replace("'", "")
 
-                value = request.POST.get(field_name)
+                value = request.POST.get(field_name, "").strip()
 
                 if value:
                     MonthlyIndicatorData.objects.update_or_create(
                         plant=plant,
-                        indicator=question,  # Changed from 'question' to 'indicator'
-                        month=month.lower()[:3],  # Ensure it's lowercase 3-letter format
+                        indicator=question_text,
+                        month=month.lower()[:3],  # Store as 'jan', 'feb', etc.
                         defaults={
                             "value": value,
                             "created_by": request.user

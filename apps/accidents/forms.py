@@ -415,14 +415,12 @@ class IncidentInvestigationReportForm(forms.ModelForm):
 
 ####
 class IncidentActionItemForm(forms.ModelForm):
-    """Form for action items"""
+    """Form for action items with email validation."""
 
     responsible_person_emails = forms.CharField(
         label="Responsible Person (Email Addresses)",
         required=True,
         widget=forms.TextInput(attrs={
-           
-            'class': 'email-tags-input',
             'placeholder': 'Type email and press Enter or comma...'
         })
     )
@@ -437,23 +435,47 @@ class IncidentActionItemForm(forms.ModelForm):
         ]
 
         widgets = {
-            'action_description': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 2
-            }),
-            'target_date': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'form-control'
-            }),
-            'status': forms.Select(attrs={
-                'class': 'form-control'
-            }),
-            'completion_date': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'form-control'
-            }),
+            'action_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'target_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
+            'completion_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
 
+    def clean_responsible_person_emails(self):
+        """
+        Custom validation to ensure all provided emails belong to existing users.
+        """
+        emails_string = self.cleaned_data.get('responsible_person_emails', '')
+        if not emails_string:
+            return '' # required=True will handle the empty case
+
+        # Split emails, strip whitespace, and convert to lowercase for case-insensitive check
+        email_list = [email.strip().lower() for email in emails_string.split(',') if email.strip()]
+        
+        # Remove duplicates
+        unique_emails = list(set(email_list))
+        
+        if not unique_emails:
+            raise forms.ValidationError("Please provide at least one valid email address.")
+
+        # Query the database for users with these emails
+        found_users = User.objects.filter(email__in=unique_emails)
+        
+        # Create a list of emails that were found in the database
+        found_emails = [user.email.lower() for user in found_users]
+        
+        # Find which emails from the input were not found in the database
+        missing_emails = [email for email in unique_emails if email not in found_emails]
+
+        if missing_emails:
+            # If any email is not found, raise a validation error with a clear message
+            raise forms.ValidationError(
+                f"The following users could not be found: {', '.join(missing_emails)}. "
+                "Please ensure all email addresses are correct and belong to registered users."
+            )
+        
+        # Return the original, cleaned string of emails for the view to process
+        return emails_string
 class IncidentPhotoForm(forms.ModelForm):
     """Form for incident photos"""
     
