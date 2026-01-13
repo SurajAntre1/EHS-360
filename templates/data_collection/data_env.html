@@ -73,8 +73,8 @@
         left: 0;
         z-index: 11;
         text-align: left;
-        min-width: 350px;
-        max-width: 350px;
+        min-width: 450px;
+        max-width: 450px;
         border-right: 2px solid #2c3e50;
     }
     
@@ -104,11 +104,78 @@
         text-align: left;
         font-weight: 500;
         color: #2c3e50;
-        min-width: 350px;
-        max-width: 350px;
+        min-width: 450px;
+        max-width: 450px;
         border-right: 2px solid #dee2e6;
         font-size: 13px;
         padding-left: 12px;
+        padding-right: 12px;
+    }
+    
+    .indicator-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+    }
+    
+    .indicator-text {
+        flex: 1;
+        padding-right: 10px;
+    }
+    
+    .row-unit-selector {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 4px 10px;
+        font-size: 11px;
+        cursor: pointer;
+        border-radius: 3px;
+        min-width: 60px;
+        font-weight: 600;
+        transition: background-color 0.2s;
+    }
+    
+    .row-unit-selector:hover {
+        background-color: #2980b9;
+    }
+    
+    .unit-modal {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background-color: white;
+        border: 1px solid #ccc;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        min-width: 180px;
+        border-radius: 4px;
+        margin-top: 5px;
+    }
+    
+    .unit-option {
+        padding: 10px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        text-align: left;
+        font-size: 12px;
+        transition: background-color 0.2s;
+    }
+    
+    .unit-option:last-child {
+        border-bottom: none;
+    }
+    
+    .unit-option:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .unit-option.active {
+        background-color: #e8f4fc;
+        color: #2980b9;
+        font-weight: bold;
     }
     
     .data-table tbody tr:hover td:first-child {
@@ -195,6 +262,15 @@
         display: inline-block;
     }
     
+    .row-highlight {
+        background-color: #fffde7 !important;
+    }
+    
+    .highlight {
+        background-color: #e8f4fc !important;
+        transition: background-color 0.5s ease;
+    }
+    
     /* Loading state */
     .loading-overlay {
         display: none;
@@ -226,6 +302,13 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+    
+    .unit-note {
+        font-size: 11px;
+        color: #666;
+        display: block;
+        margin-top: 3px;
+    }
 </style>
 {% endblock %}
 
@@ -247,25 +330,45 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Environmental Indicators</th>
+                            <th>
+                                Environmental Indicators
+                                <span class="unit-note">Click unit button to change measurement unit for entire row</span>
+                            </th>
                             {% for month in months %}
                                 <th>{{ month }}</th>
                             {% endfor %}
                         </tr>
                     </thead>
                     <tbody>
-                        {% for question in questions %}
-                        <tr>
-                            <td>{{ forloop.counter }}. {{ question }}</td>
+                        {% for item in questions %}
+                        <tr data-row="{{ forloop.counter }}">
+                            <td>
+                                <div class="indicator-content">
+                                    <span class="indicator-text">{{ forloop.counter }}. {{ item.question }}</span>
+                                    <button type="button" class="row-unit-selector" data-row="{{ forloop.counter }}">
+                                        {{ item.default_unit }}
+                                    </button>
+                                    <div class="unit-modal" id="modal-row-{{ forloop.counter }}">
+                                        {% for unit_opt in item.unit_options %}
+                                        <div class="unit-option {% if unit_opt == item.default_unit %}active{% endif %}" 
+                                             data-unit="{{ unit_opt }}">
+                                            {{ unit_opt }}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <input type="hidden" name="unit_{{ item.question|slugify }}" value="{{ item.default_unit }}" class="unit-input" data-row="{{ forloop.counter }}">
+                            </td>
                             {% for month in months %}
                             <td>
                                 <input 
                                     type="text" 
-                                    name="{{ question|slugify }}_{{ month|lower }}" 
-                                    value="{% if data|get_item:question %}{{ data|get_item:question|get_item:month|default:'' }}{% endif %}" 
+                                    name="{{ item.question|slugify }}_{{ month|lower }}" 
+                                    value="{% if data|get_item:item.question %}{{ data|get_item:item.question|get_item:month|default:'' }}{% endif %}" 
                                     class="data-input"
                                     placeholder="0"
                                     autocomplete="off"
+                                    data-original="{% if data|get_item:item.question %}{{ data|get_item:item.question|get_item:month|default:'0' }}{% else %}0{% endif %}"
                                 >
                             </td>
                             {% endfor %}
@@ -295,6 +398,99 @@
 </div>
 
 <script>
+    // Store row units
+    const rowUnits = {};
+    
+    // Initialize row units from buttons
+    document.querySelectorAll('.row-unit-selector').forEach(button => {
+        const rowId = button.getAttribute('data-row');
+        rowUnits[rowId] = button.textContent.trim();
+    });
+    
+    // Handle row unit selector clicks
+    document.querySelectorAll('.row-unit-selector').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const rowId = this.getAttribute('data-row');
+            const modal = document.getElementById(`modal-row-${rowId}`);
+            
+            // Close all other modals
+            document.querySelectorAll('.unit-modal').forEach(m => {
+                if (m !== modal) m.style.display = 'none';
+            });
+            
+            // Toggle current modal
+            if (modal.style.display === 'block') {
+                modal.style.display = 'none';
+            } else {
+                modal.style.display = 'block';
+            }
+        });
+    });
+    
+    // Handle unit selection for rows
+    document.querySelectorAll('.unit-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const modal = this.closest('.unit-modal');
+            const rowId = modal.id.replace('modal-row-', '');
+            const newUnit = this.getAttribute('data-unit');
+            
+            // Update active option in modal
+            modal.querySelectorAll('.unit-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // Update button text
+            const button = document.querySelector(`.row-unit-selector[data-row="${rowId}"]`);
+            button.textContent = newUnit;
+            
+            // Update hidden input for unit
+            const unitInput = document.querySelector(`.unit-input[data-row="${rowId}"]`);
+            if (unitInput) {
+                unitInput.value = newUnit;
+            }
+            
+            // Store the new unit for this row
+            rowUnits[rowId] = newUnit;
+            
+            // Highlight the entire row briefly
+            const row = document.querySelector(`tr[data-row="${rowId}"]`);
+            row.classList.add('row-highlight');
+            
+            // Get all data cells in this row
+            const dataCells = row.querySelectorAll('td:not(:first-child)');
+            dataCells.forEach(cell => {
+                cell.classList.add('highlight');
+            });
+            
+            // Remove highlights after animation
+            setTimeout(() => {
+                row.classList.remove('row-highlight');
+                dataCells.forEach(cell => {
+                    cell.classList.remove('highlight');
+                });
+            }, 1500);
+            
+            // Close modal
+            modal.style.display = 'none';
+        });
+    });
+    
+    // Close modals when clicking outside
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.unit-modal').forEach(modal => {
+            modal.style.display = 'none';
+        });
+    });
+    
+    // Prevent modal from closing when clicking inside
+    document.querySelectorAll('.unit-modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+    
     // Show loading on form submit
     document.getElementById('dataEntryForm').addEventListener('submit', function() {
         document.getElementById('loadingOverlay').classList.add('show');
@@ -306,15 +502,5 @@
             location.reload();
         }
     }
-    
-    // Auto-save indicator (optional)
-    let saveTimeout;
-    document.querySelectorAll('.data-input').forEach(input => {
-        input.addEventListener('input', function() {
-            clearTimeout(saveTimeout);
-            const indicator = document.getElementById('saveIndicator');
-            indicator.classList.remove('show');
-        });
-    });
 </script>
 {% endblock %}
