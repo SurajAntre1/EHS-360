@@ -143,20 +143,13 @@
     
     .unit-modal {
         display: none;
-        
         position: fixed; 
         background-color: white;
         border: 1px solid #ccc;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-       
         z-index: 9999; 
         min-width: 120px; 
         border-radius: 4px;
-    }
-
-    .data-table tbody tr.row-active {
-        position: relative;
-        z-index: 20;
     }
     
     .unit-option {
@@ -275,7 +268,6 @@
         transition: background-color 0.5s ease;
     }
     
-    /* Loading state */
     .loading-overlay {
         display: none;
         position: fixed;
@@ -336,7 +328,7 @@
                         <tr>
                             <th>
                                 Environmental Indicators
-                                <span class="unit-note">Click unit button to change measurement unit for entire row</span>
+                                <span class="unit-note">Select unit from dropdown (values will be saved and converted)</span>
                             </th>
                             {% for month in months %}
                                 <th>{{ month }}</th>
@@ -350,22 +342,31 @@
                                 <div class="indicator-content">
                                     <span class="indicator-text">{{ forloop.counter }}. {{ item.question }}</span>
                                     
-                                  
+                                    {% comment %} Show saved unit if available, otherwise default unit {% endcomment %}
                                     <button type="button" class="row-unit-selector" data-row="{{ forloop.counter }}">
-                                        {{ item.default_unit }}
+                                        {% if unit_dict|get_item:item.question %}
+                                            {{ unit_dict|get_item:item.question }}
+                                        {% else %}
+                                            {{ item.default_unit }}
+                                        {% endif %}
                                     </button>
-                                    
                                     
                                     <div class="unit-modal" id="modal-row-{{ forloop.counter }}">
                                         {% for unit_opt in item.unit_options %}
-                                        <div class="unit-option {% if unit_opt == item.default_unit %}active{% endif %}" 
+                                        <div class="unit-option {% if unit_dict|get_item:item.question == unit_opt %}active{% elif not unit_dict|get_item:item.question and unit_opt == item.default_unit %}active{% endif %}" 
                                             data-unit="{{ unit_opt }}">
                                             {{ unit_opt }}
                                         </div>
                                         {% endfor %}
                                     </div>
                                 </div>
-                                <input type="hidden" name="unit_{{ item.question|slugify }}" value="{{ item.default_unit }}" class="unit-input" data-row="{{ forloop.counter }}">
+                                
+                                {% comment %} Hidden input stores the selected unit {% endcomment %}
+                                <input type="hidden" 
+                                       name="unit_{{ item.question|slugify }}" 
+                                       value="{% if unit_dict|get_item:item.question %}{{ unit_dict|get_item:item.question }}{% else %}{{ item.default_unit }}{% endif %}" 
+                                       class="unit-input" 
+                                       data-row="{{ forloop.counter }}">
                             </td>                     
                             {% for month in months %}
                             <td>
@@ -376,7 +377,6 @@
                                     class="data-input"
                                     placeholder="0"
                                     autocomplete="off"
-                                    data-original="{% if data|get_item:item.question %}{{ data|get_item:item.question|get_item:month|default:'0' }}{% else %}0{% endif %}"
                                 >
                             </td>
                             {% endfor %}
@@ -407,15 +407,74 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-   
     let activeModal = null;
+    const rowUnits = {}; // Track current unit for each row
+    
+    // Conversion factors (same as backend)
+    const conversionFactors = {
+        'MT': {'MT': 1, 'kg': 1000, 'lbs': 2204.62, 'cubic-m': 0.45},
+        'kg': {'MT': 0.001, 'kg': 1, 'lbs': 2.20462, 'cubic-m': 0.00045},
+        'lbs': {'MT': 0.000453592, 'kg': 0.453592, 'lbs': 1, 'cubic-m': 0.000204},
+        'cubic-m': {'MT': 2.22, 'kg': 2222.22, 'lbs': 4900, 'cubic-m': 1},
+        'KL': {'KL': 1, 'm³': 1, 'Liters': 1000},
+        'm³': {'KL': 1, 'm³': 1, 'Liters': 1000},
+        'Liters': {'KL': 0.001, 'm³': 0.001, 'Liters': 1},
+        'kWh': {'kWh': 1, 'MWh': 0.001, 'GJ': 0.0036},
+        'MWh': {'kWh': 1000, 'MWh': 1, 'GJ': 3.6},
+        'GJ': {'kWh': 277.778, 'MWh': 0.277778, 'GJ': 1},
+        'Days': {'Days': 1, 'Hours': 24},
+        'Hours': {'Days': 0.0416667, 'Hours': 1},
+        'mg/m³': {'mg/m³': 1, 'µg/m³': 1000},
+        'µg/m³': {'mg/m³': 0.001, 'µg/m³': 1},
+        '%': {'%': 1, 'PPM': 10000},
+        'PPM': {'%': 0.0001, 'PPM': 1},
+        'mg/L': {'mg/L': 1, 'ppm': 1},
+        'ppm': {'mg/L': 1, 'ppm': 1},
+        'Count': {'Count': 1, 'Rate': 1, 'Percentage': 1},
+        'Rate': {'Count': 1, 'Rate': 1, 'Percentage': 1},
+        'Percentage': {'Count': 1, 'Rate': 1, 'Percentage': 1},
+        'Yes/No': {'Yes/No': 1}
+    };
+    
+    // Initialize row units from buttons
+    document.querySelectorAll('.row-unit-selector').forEach(button => {
+        const rowId = button.getAttribute('data-row');
+        rowUnits[rowId] = button.textContent.trim();
+    });
+    
+    // Conversion function
+    function convertValue(value, fromUnit, toUnit) {
+        if (fromUnit === toUnit) return value;
+        
+        if (fromUnit === 'Count' || fromUnit === 'Rate' || fromUnit === 'Percentage' || 
+            fromUnit === 'Yes/No' || toUnit === 'Yes/No') {
+            return value;
+        }
+        
+        if (conversionFactors[fromUnit] && conversionFactors[fromUnit][toUnit]) {
+            return value * conversionFactors[fromUnit][toUnit];
+        }
+        
+        return value;
+    }
+    
+    // Format function
+    function formatValue(value) {
+        if (value === 0) return '0';
+        const absValue = Math.abs(value);
+        if (absValue < 0.001) return value.toFixed(6);
+        if (absValue < 0.01) return value.toFixed(4);
+        if (absValue < 1) return value.toFixed(3);
+        if (absValue < 100) return value.toFixed(2);
+        if (absValue < 1000) return value.toFixed(1);
+        return Math.round(value).toString();
+    }
 
-
+    // Handle unit button clicks
     document.querySelectorAll('.row-unit-selector').forEach(button => {
         button.addEventListener('click', function(e) {
             e.stopPropagation();
             
-           
             if (activeModal) {
                 hideAndResetModal();
             }
@@ -423,25 +482,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const rowId = this.getAttribute('data-row');
             const modal = document.getElementById(`modal-row-${rowId}`);
             
-            
             if (modal.parentNode !== document.body) {
-                
                 modal.originalParent = modal.parentNode;
                 document.body.appendChild(modal);
             }
 
-            
             const rect = this.getBoundingClientRect();
             modal.style.top = `${rect.bottom + 5}px`; 
             modal.style.left = `${rect.left}px`;     
             modal.style.display = 'block';
 
-           
             activeModal = modal;
         });
     });
 
-    
+    // Handle unit selection WITH CONVERSION
     document.querySelectorAll('.unit-option').forEach(option => {
         option.addEventListener('click', function() {
             if (!activeModal) return;
@@ -449,57 +504,81 @@ document.addEventListener('DOMContentLoaded', function() {
             const modal = this.closest('.unit-modal');
             const rowId = modal.id.replace('modal-row-', '');
             const newUnit = this.getAttribute('data-unit');
+            const oldUnit = rowUnits[rowId]; // Get OLD unit
 
-           
+            console.log(`Converting row ${rowId} from ${oldUnit} to ${newUnit}`);
+
+            // Update active option
             modal.querySelectorAll('.unit-option').forEach(opt => opt.classList.remove('active'));
             this.classList.add('active');
 
-           
+            // Update button text
             const button = document.querySelector(`.row-unit-selector[data-row="${rowId}"]`);
             button.textContent = newUnit;
 
-            
+            // Update hidden input
             const unitInput = document.querySelector(`.unit-input[data-row="${rowId}"]`);
             if (unitInput) unitInput.value = newUnit;
             
-          
+            // CONVERT ALL VALUES IN THE ROW
             const row = document.querySelector(`tr[data-row="${rowId}"]`);
+            const inputs = row.querySelectorAll('.data-input');
+            
+            inputs.forEach(input => {
+                const currentValue = parseFloat(input.value);
+                
+                if (!isNaN(currentValue) && currentValue !== 0) {
+                    // Convert from OLD unit to NEW unit
+                    const convertedValue = convertValue(currentValue, oldUnit, newUnit);
+                    const formattedValue = formatValue(convertedValue);
+                    
+                    console.log(`  ${currentValue} ${oldUnit} → ${formattedValue} ${newUnit}`);
+                    
+                    // Update input value
+                    input.value = formattedValue;
+                }
+            });
+            
+            // Update stored unit
+            rowUnits[rowId] = newUnit;
+            
+            // Visual feedback
             if(row) {
                 row.classList.add('row-highlight');
-                setTimeout(() => row.classList.remove('row-highlight'), 1500);
+                const dataCells = row.querySelectorAll('td:not(:first-child)');
+                dataCells.forEach(cell => cell.classList.add('highlight'));
+                
+                setTimeout(() => {
+                    row.classList.remove('row-highlight');
+                    dataCells.forEach(cell => cell.classList.remove('highlight'));
+                }, 1500);
             }
-            
             
             hideAndResetModal();
         });
     });
 
-  
     function hideAndResetModal() {
         if (!activeModal) return;
         
         activeModal.style.display = 'none';
         
-       
         if (activeModal.originalParent) {
             activeModal.originalParent.appendChild(activeModal);
         }
         activeModal = null;
     }
 
-   
     document.addEventListener('click', function() {
         if (activeModal) {
             hideAndResetModal();
         }
     });
 
-   
     document.getElementById('dataEntryForm').addEventListener('submit', function() {
         document.getElementById('loadingOverlay').classList.add('show');
     });
 });
-
 
 function resetForm() {
     if (confirm('Are you sure you want to reset all changes? This will reload the saved data.')) {
