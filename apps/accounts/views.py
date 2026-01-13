@@ -10,6 +10,7 @@ from django.db.models import Q
 from .models import User,Role,Permissions
 from .forms import UserCreationFormCustom, UserUpdateForm
 from apps.organizations.models import *
+from apps.accidents.utils import get_incidents_for_user
 
 
 class CustomLoginView(LoginView):
@@ -292,6 +293,11 @@ class UserUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
         messages.error(self.request, 'Please correct the errors below.')
         print("Form errors:", form.errors)
         return super().form_invalid(form)
+    
+    def get_queryset(self):
+        queryset = get_incidents_for_user(self.request.user)
+        queryset = queryset.select_related('plant','zone','location','reported_by')
+        return queryset()
 
 class UserDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
     """Delete user - Only accessible by Admin"""
@@ -526,6 +532,19 @@ class RolePermission(LoginRequiredMixin, TemplateView):
         context['roles'] = Role.objects.all()
         return context
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        search = self.request.GET.get('search', '')
+        roles = Role.objects.all()
+        if search:
+            roles = roles.filter(
+                Q(name__icontains=search) |
+                Q(description__icontains=search)
+            )
+        context['roles'] = roles
+        context['search_query'] = search
+        return context
+    
 class RoleCreateView(LoginRequiredMixin, TemplateView):
     """Assigning user roles"""
     template_name = 'roles/roles_permission.html'
@@ -561,5 +580,3 @@ class RoleCreateView(LoginRequiredMixin, TemplateView):
 
         messages.success(request, "Role created successfully")
         return redirect('accounts:permissions_only')
-
-        

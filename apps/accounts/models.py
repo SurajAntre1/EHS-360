@@ -380,7 +380,7 @@ class User(AbstractUser):
     @property
     def is_admin_user(self):
         """Check if user is admin - employee with full EHS-360 access"""
-        return self.role == 'Admin' and self.role.name == 'ADMIN'
+        return self.role and self.role.name == 'ADMIN'
     
     @property
     def is_employee_account(self):
@@ -389,19 +389,23 @@ class User(AbstractUser):
     
     @property
     def is_safety_manager(self):
-        return self.role == 'SAFETY_MANAGER' and self.role.name == 'SAFETY MANAGER'
+        return self.role and self.role.name == 'SAFETY MANAGER'
     
     @property
     def is_location_head(self):
-        return self.role == 'LOCATION_HEAD' and self.role.name == 'LOCATION HEAD'
+        return self.role and self.role.name == 'LOCATION HEAD'
     
     @property
     def is_plant_head(self):
-        return self.role == 'PLANT_HEAD' and self.role.name == 'PLANT HEAD'
+        return self.role and self.role.name == 'PLANT HEAD'
     
     @property
     def is_hod(self):
-        return self.role == 'HOD'
+        return self.role.name == 'HOD'
+    
+    @property
+    def is_employee(self):
+        return self.role.name == 'EMPLOYEE'
     
     @property
     def can_approve(self):
@@ -452,6 +456,15 @@ class User(AbstractUser):
             count += hazards_query.count()
         
         return count
+    
+    @property
+    def role_display(self):
+        if self.is_superuser:
+            return "Super Admin"
+        if self.role:
+            return self.role.name
+        return "Employee"
+
 class Permissions(models.Model):
     permission_id = models.IntegerField(unique=True)
     permission_name = models.CharField(max_length=20)

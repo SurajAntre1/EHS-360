@@ -3,7 +3,7 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from .models import Incident
+from .models import Hazard, HazardNotification
 from .models import *
 import logging
 
@@ -11,26 +11,26 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-def get_incident_stakeholders(incident):
-    """Get all stakeholders who should be notified about this incident"""
+def get_hazard_stakeholders(hazard):
+    """Get all stakeholders who should be notified about this hazard"""
     print("\n" + "=" * 70)
     print("STEP 1: FINDING STAKEHOLDERS")
     print("=" * 70)
-    print(f"Incident: {incident.report_number}")
-    print(f"Plant: {incident.plant} (ID: {incident.plant.id if incident.plant else None})")
-    print(f"Location: {incident.location} (ID: {incident.location.id if incident.location else None})")
+    print(f"hazard: {hazard.report_number}")
+    print(f"Plant: {hazard.plant} (ID: {hazard.plant.id if hazard.plant else None})")
+    print(f"Location: {hazard.location} (ID: {hazard.location.id if hazard.location else None})")
     
     stakeholders = []
     
     # 1. Safety Managers
     print("\n--- Looking for SAFETY_MANAGER ---")
-    if incident.plant:
+    if hazard.plant:
         safety_managers = User.objects.filter(
-            plant=incident.plant,
+            plant=hazard.plant,
             role__name='SAFETY MANAGER',
             is_active=True
         )
-        print(f"Query: User.objects.filter(plant={incident.plant.id}, role='SAFETY MANAGER', is_active=True)")
+        print(f"Query: User.objects.filter(plant={hazard.plant.id}, role='SAFETY MANAGER', is_active=True)")
         print(f"Found: {safety_managers.count()} Safety Managers")
         for sm in safety_managers:
             print(f"  - {sm.username} | {sm.get_full_name()} | {sm.email}")
@@ -38,13 +38,13 @@ def get_incident_stakeholders(incident):
     
     # 2. Location Heads
     print("\n--- Looking for LOCATION_HEAD ---")
-    if incident.location:
+    if hazard.location:
         location_heads = User.objects.filter(
-            location=incident.location,
+            location=hazard.location,
             role__name='LOCATION HEAD',
             is_active=True
         )
-        print(f"Query: User.objects.filter(location={incident.location.id}, role='LOCATION_HEAD', is_active=True)")
+        print(f"Query: User.objects.filter(location={hazard.location.id}, role='LOCATION_HEAD', is_active=True)")
         print(f"Found: {location_heads.count()} Location Heads")
         for lh in location_heads:
             print(f"  - {lh.username} | {lh.get_full_name()} | {lh.email}")
@@ -54,13 +54,13 @@ def get_incident_stakeholders(incident):
     
     # 3. Plant Heads
     print("\n--- Looking for PLANT_HEAD ---")
-    if incident.plant:
+    if hazard.plant:
         plant_heads = User.objects.filter(
-            plant=incident.plant,
+            plant=hazard.plant,
             role__name='PLANT HEAD',
             is_active=True
         )
-        print(f"Query: User.objects.filter(plant={incident.plant.id}, role='PLANT_HEAD', is_active=True)")
+        print(f"Query: User.objects.filter(plant={hazard.plant.id}, role='PLANT_HEAD', is_active=True)")
         print(f"Found: {plant_heads.count()} Plant Heads")
         for ph in plant_heads:
             print(f"  - {ph.username} | {ph.get_full_name()} | {ph.email}")
@@ -68,13 +68,13 @@ def get_incident_stakeholders(incident):
     
     # 4. Admins of same plant
     print("\n--- Looking for ADMIN ---")
-    if incident.plant:
+    if hazard.plant:
         admins = User.objects.filter(
-            plant=incident.plant,
+            plant=hazard.plant,
             role__name='ADMIN',
             is_active=True
         )
-        print(f"Query: User.objects.filter(plant={incident.plant.id}, role='ADMIN', is_active=True)")
+        print(f"Query: User.objects.filter(plant={hazard.plant.id}, role='ADMIN', is_active=True)")
         print(f"Found: {admins.count()} Admins")
         for admin in admins:
             print(f"  - {admin.username} | {admin.get_full_name()} | {admin.email}")
@@ -98,25 +98,25 @@ def get_incident_stakeholders(incident):
     return unique_stakeholders
 
 
-def create_notification_in_db(recipient, incident, notification_type, title, message):
+def create_notification_in_db(recipient, hazard, notification_type, title, message):
     """Create notification with detailed logging"""
     print(f"\n--- CREATING NOTIFICATION IN DATABASE ---")
     print(f"Recipient: {recipient.username} (ID: {recipient.id})")
-    print(f"Incident: {incident.report_number} (ID: {incident.id})")
+    print(f"hazard: {hazard.report_number} (ID: {hazard.id})")
     print(f"Type: {notification_type}")
     print(f"Title: {title[:50]}...")
     
     try:
-        # Check if IncidentNotification model is available
-        print("Checking IncidentNotification model...")
-        from apps.accidents.notification_models import IncidentNotification as NotifModel
+        # Check if hazardNotification model is available
+        print("Checking hazardNotification model...")
+        from apps.hazards.notification_models import hazardNotification as NotifModel
         print(f"  ✅ Model imported: {NotifModel}")
         
         # Create the notification
         print("Creating notification object...")
         notification = NotifModel(
             recipient=recipient,
-            incident=incident,
+            hazard=hazard,
             notification_type=notification_type,
             title=title,
             message=message,
@@ -146,7 +146,7 @@ def create_notification_in_db(recipient, incident, notification_type, title, mes
         return None
 
 
-def send_email_to_stakeholder(recipient, incident, message):
+def send_email_to_stakeholder(recipient, hazard, message):
     """Send email notification"""
     print(f"\n--- SENDING EMAIL ---")
     print(f"To: {recipient.email}")
@@ -159,20 +159,20 @@ def send_email_to_stakeholder(recipient, incident, message):
         return False
     
     try:
-        subject = f"⚠️ New Incident Reported - {incident.report_number}"
+        subject = f"⚠️ New hazard Reported - {hazard.report_number}"
         
         # Sending email
         email = {
-            "incident" : incident,
-            "incident_type"  : incident.get_incident_type_display(),
-            "location" : incident.location.name if incident.location else "N/A",
-             "description": incident.description[:300] + (
-                "..." if len(incident.description) > 300 else ""
+            "hazard" : hazard,
+            "hazard_type"  : hazard.get_hazard_type_display(),
+            "location" : hazard.location.name if hazard.location else "N/A",
+             "description": hazard.description[:300] + (
+                "..." if len(hazard.description) > 300 else ""
             ),
         }
 
         html_content = render_to_string(
-            "emails/incident_notification.html",
+            "emails/hazard_notification.html",
             email
         )
         email = EmailMultiAlternatives(
@@ -195,20 +195,20 @@ def send_email_to_stakeholder(recipient, incident, message):
         return False
 
 
-def notify_incident_reported(incident):
-    """Notify stakeholders when incident is reported"""
+def notify_hazard_reported(hazard):
+    """Notify stakeholders when hazard is reported"""
     print("\n\n")
     print("*" * 70)
     print("*" + " " * 68 + "*")
     print("*" + " " * 20 + "NOTIFICATION SYSTEM" + " " * 29 + "*")
     print("*" + " " * 68 + "*")
     print("*" * 70)
-    print(f"\nIncident: {incident.report_number}")
-    print(f"Created at: {incident.created_at}")
-    print(f"Reported by: {incident.reported_by.get_full_name()}")
+    print(f"\nhazard: {hazard.report_number}")
+    print(f"Created at: {hazard.created_at}")
+    print(f"Reported by: {hazard.reported_by.get_full_name()}")
     
     # STEP 1: Find stakeholders
-    stakeholders = get_incident_stakeholders(incident)
+    stakeholders = get_hazard_stakeholders(hazard)
     
     if not stakeholders:
         print("\n❌ ERROR: No stakeholders found!")
@@ -229,30 +229,30 @@ def notify_incident_reported(incident):
         print(f"STAKEHOLDER {idx}/{len(stakeholders)}: {stakeholder.username}")
         print(f"{'=' * 70}")
         
-        title = f"New Incident Reported | {incident.report_number}"
+        title = f"New hazard Reported | {hazard.report_number}"
         message = message = f"""
 Hello,
-A new {incident.get_incident_type_display()} has been reported. Please find the details below:
+A new {hazard.get_hazard_type_display()} has been reported. Please find the details below:
 
 --------------------------------------------------
-INCIDENT DETAILS
+hazard DETAILS
 --------------------------------------------------
-Incident Number      : {incident.report_number}
-Date & Time          : {incident.incident_date} {incident.incident_time}
-Plant                : {incident.plant.name}
-Location             : {incident.location.name if incident.location else 'N/A'}
-Reported By          : {incident.reported_by.get_full_name()}
-Investigation Deadline: {incident.investigation_deadline}
+hazard Number      : {hazard.report_number}
+Date & Time          : {hazard.hazard_date} {hazard.hazard_time}
+Plant                : {hazard.plant.name}
+Location             : {hazard.location.name if hazard.location else 'N/A'}
+Reported By          : {hazard.reported_by.get_full_name()}
+Investigation Deadline: {hazard.investigation_deadline}
 
 --------------------------------------------------
 DESCRIPTION           
 --------------------------------------------------
-{incident.description[:300]}{'...' if len(incident.description) > 300 else ''}
+{hazard.description[:300]}{'...' if len(hazard.description) > 300 else ''}
 
 --------------------------------------------------
 ACTION REQUIRED
 --------------------------------------------------
-Please review this incident and take necessary action.
+Please review this hazard and take necessary action.
 
 Regards,
 EHS Management System
@@ -261,8 +261,8 @@ EHS Management System
         # Create in-app notification
         notification = create_notification_in_db(
             recipient=stakeholder,
-            incident=incident,
-            notification_type='INCIDENT_REPORTED',
+            hazard=hazard,
+            notification_type='HAZARD_REPORTED',
             title=title,
             message=message
         )
@@ -273,7 +273,7 @@ EHS Management System
         # Send email
         email_sent = send_email_to_stakeholder(
             recipient=stakeholder,
-            incident=incident,
+            hazard=hazard,
             message=message
         )
         
@@ -294,12 +294,12 @@ EHS Management System
     print("=" * 70)
     print("DATABASE VERIFICATION")
     print("=" * 70)
-    total_notifications = IncidentNotification.objects.filter(incident=incident).count()
-    print(f"Notifications in database for this incident: {total_notifications}")
+    total_notifications = HazardNotification.objects.filter(hazard=hazard).count()
+    print(f"Notifications in database for this hazard: {total_notifications}")
     
     if total_notifications > 0:
         print("\nNotifications found:")
-        for notif in IncidentNotification.objects.filter(incident=incident):
+        for notif in HazardNotification.objects.filter(hazard=hazard):
             print(f"  - ID: {notif.id} | Recipient: {notif.recipient.username} | Read: {notif.is_read}")
     else:
         print("⚠️ NO NOTIFICATIONS FOUND IN DATABASE!")

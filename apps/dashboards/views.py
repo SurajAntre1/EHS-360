@@ -4,8 +4,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 from apps.hazards.models import Hazard
 from apps.accidents.models import Incident
+from apps.inspections.models import Inspection
 from django.shortcuts import redirect
 from django.contrib import messages
+from apps.organizations.models import *
 
 
 
@@ -13,14 +15,16 @@ class HomeView(LoginRequiredMixin, TemplateView):
     """Main Dashboard View"""
     template_name = 'dashboards/home.html'
     login_url = 'accounts:login'
-    
     def get_context_data(self, **kwargs):
+        hazards = Hazard.objects.all()
+        incident = Incident.objects.all()
+        inspection = Inspection.objects.all()
         context = super().get_context_data(**kwargs)
         # Add your dashboard data here
-        context['total_hazards'] = 0
-        context['total_incidents'] = 0
+        context['total_hazards'] = hazards.count()
+        context['total_incidents'] = incident.count()
         context['total_environmental'] = 0
-        context['total_inspections'] = 0
+        context['total_inspections'] = inspection.count()
         context['pending_inspections'] = 0
         return context
 
