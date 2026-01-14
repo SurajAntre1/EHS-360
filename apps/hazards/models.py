@@ -314,6 +314,48 @@ class Hazard(models.Model):
             self.report_number = f'HAZ-{plant_code}-{date_str}-{count + 1:03d}'
         
         super().save(*args, **kwargs)
+        
+    def update_status_from_action_items(self):
+        """
+        Updates the hazard's status based on the state of its action items.
+        This logic respects final states (CLOSED, REJECTED) and the approval workflow.
+        """
+        # Do not automatically change the status if it's in a final state.
+        if self.status in ['CLOSED', 'REJECTED']:
+            return
+
+        action_items = self.action_items.all()
+        total_items = action_items.count()
+        new_status = self.status  # Default to the current status
+
+        if total_items == 0:
+            # If all action items have been removed, revert the status.
+            # Revert to 'APPROVED' if the hazard has passed the approval stage.
+            # Otherwise, revert to its initial 'REPORTED' state.
+            if self.status in ['ACTION_ASSIGNED', 'IN_PROGRESS', 'RESOLVED']:
+                new_status = 'APPROVED' if self.approval_status == 'APPROVED' else 'REPORTED'
+        else:
+            # Action items exist, so determine the status based on their progress.
+            completed_items = action_items.filter(status='COMPLETED').count()
+            in_progress_items = action_items.filter(status='IN_PROGRESS').count()
+            overdue_items = action_items.filter(status='OVERDUE').count()
+
+            if completed_items == total_items:
+                # All action items are completed, so the hazard is resolved.
+                new_status = 'RESOLVED'
+            elif in_progress_items > 0 or overdue_items > 0:
+                # If any action item is 'In Progress' or 'Overdue', the hazard is 'In Progress'.
+                new_status = 'IN_PROGRESS'
+            else:
+                # If items exist but none are 'In Progress' (i.e., they are all 'PENDING'),
+                # the status is 'Action Assigned'.
+                new_status = 'ACTION_ASSIGNED'
+        
+        # To prevent recursion and unnecessary database writes, only save if the status has changed.
+        if self.status != new_status:
+            self.status = new_status
+            self.save(update_fields=['status'])
+          
     
     @property
     def is_action_overdue(self):
@@ -340,14 +382,18 @@ class Hazard(models.Model):
     
     @property
     def status_badge_class(self):
-        """Return Bootstrap badge class based on status"""
+        # --- SUGGESTED UPDATE ---
+        # Added 'ACTION_ASSIGNED' for better visual feedback in the UI.
         status_classes = {
             'REPORTED': 'badge-info',
             'UNDER_REVIEW': 'badge-primary',
-            'ACTION_ASSIGNED': 'badge-warning',
+            'ACTION_ASSIGNED': 'badge-warning', # <-- Updated
             'IN_PROGRESS': 'badge-info',
             'RESOLVED': 'badge-success',
             'CLOSED': 'badge-secondary',
+            'REJECTED': 'badge-danger',
+            'PENDING_APPROVAL': 'badge-light',
+            'APPROVED': 'badge-primary'
         }
         return status_classes.get(self.status, 'badge-secondary')
     
