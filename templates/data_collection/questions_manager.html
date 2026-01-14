@@ -1,0 +1,238 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .questions-manager {
+        padding: 20px;
+        background: #f8f9fa;
+        min-height: 100vh;
+    }
+    
+    .header {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .questions-list {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .question-item {
+        border: 1px solid #dee2e6;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 6px;
+        background: #fafbfc;
+    }
+    
+    .question-item:hover {
+        background: #f0f0f0;
+    }
+    
+    .question-row {
+        display: grid;
+        grid-template-columns: 50px 1fr 150px 250px 150px;
+        gap: 15px;
+        align-items: center;
+    }
+    
+    .drag-handle {
+        cursor: move;
+        font-size: 20px;
+        color: #95a5a6;
+    }
+    
+    .form-control {
+        padding: 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #2980b9;
+    }
+    
+    .btn-success {
+        background: #27ae60;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background: #229954;
+    }
+    
+    .btn-danger {
+        background: #e74c3c;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background: #c0392b;
+    }
+    
+    .btn-secondary {
+        background: #95a5a6;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: #7f8c8d;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .add-question-form {
+        background: #e8f4fc;
+        padding: 20px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="questions-manager">
+    <div class="header">
+        <h2>Environmental Questions Manager</h2>
+        <p>Add, edit, delete, or reorder environmental indicators</p>
+    </div>
+    
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+    
+    <div class="questions-list">
+        <!-- Add New Question Form -->
+        <div class="add-question-form">
+            <h3>Add New Question</h3>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add">
+                
+                <div class="form-group">
+                    <label>Question Text:</label>
+                    <input type="text" name="question_text" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Default Unit:</label>
+                    <input type="text" name="default_unit" class="form-control" value="Count" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Unit Options (comma-separated):</label>
+                    <input type="text" name="unit_options" class="form-control" placeholder="e.g., MT,kg,lbs" required>
+                </div>
+                
+                <button type="submit" class="btn btn-success">Add Question</button>
+            </form>
+        </div>
+        
+        <!-- Edit Existing Questions -->
+        <h3>Existing Questions</h3>
+        <form method="post" id="editQuestionsForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_all">
+            <input type="hidden" name="question_count" value="{{ questions|length }}">
+            
+            <div id="questionsList">
+                {% for item in questions %}
+                <div class="question-item" data-id="{{ item.id|default:forloop.counter }}">
+                    <div class="question-row">
+                        <div class="drag-handle">☰</div>
+                        
+                        <div>
+                            <input type="hidden" name="question_id_{{ forloop.counter0 }}" value="{{ item.id }}">
+                            <input type="text" 
+                                   name="question_text_{{ forloop.counter0 }}" 
+                                   value="{{ item.question }}" 
+                                   class="form-control" 
+                                   required>
+                        </div>
+                        
+                        <div>
+                            <input type="text" 
+                                   name="default_unit_{{ forloop.counter0 }}" 
+                                   value="{{ item.default_unit }}" 
+                                   class="form-control" 
+                                   required>
+                        </div>
+                        
+                        <div>
+                            <input type="text" 
+                                   name="unit_options_{{ forloop.counter0 }}" 
+                                   value="{{ item.unit_options|join:',' }}" 
+                                   class="form-control" 
+                                   placeholder="MT,kg,lbs">
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button type="button" class="btn btn-danger btn-delete" data-id="{{ item.id }}">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button type="submit" class="btn btn-success">Save All Changes</button>
+                <a href="{% url 'plant-entry' %}" class="btn btn-secondary">Back to Data Entry</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Delete question
+document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', function() {
+        if (confirm('Are you sure you want to delete this question?')) {
+            const questionItem = this.closest('.question-item');
+            questionItem.remove();
+        }
+    });
+});
+
+// Drag and drop for reordering (you can use a library like Sortable.js for better UX)
+</script>
+{% endblock %}

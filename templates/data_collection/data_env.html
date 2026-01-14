@@ -18,7 +18,15 @@
         margin-bottom: 20px;
     }
     
-    .header-section h2 {
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .header-info h2 {
         margin: 0;
         color: #2c3e50;
         font-size: 24px;
@@ -29,6 +37,70 @@
         color: #7f8c8d;
         margin-top: 5px;
         font-size: 14px;
+    }
+    
+    .btn-manage-questions {
+        background: #3498db;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+    
+    .btn-manage-questions:hover {
+        background: #2980b9;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        color: white;
+    }
+    
+    .no-questions-alert {
+        background: white;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+        margin-top: 20px;
+    }
+    
+    .no-questions-alert h3 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+    }
+    
+    .no-questions-alert p {
+        color: #7f8c8d;
+        margin-bottom: 20px;
+        font-size: 16px;
+    }
+    
+    .btn-primary {
+        background: #3498db;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s;
+    }
+    
+    .btn-primary:hover {
+        background: #2980b9;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        color: white;
     }
     
     .data-table-container {
@@ -301,9 +373,33 @@
     
     .unit-note {
         font-size: 11px;
-        color: #666;
+        color: #95a5a6;
         display: block;
         margin-top: 3px;
+        font-weight: normal;
+    }
+    
+    /* Responsive adjustments */
+    @media screen and (max-width: 768px) {
+        .header-content {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .btn-manage-questions {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .data-table tbody td:first-child {
+            min-width: 300px;
+            max-width: 300px;
+        }
+        
+        .data-table thead th:first-child {
+            min-width: 300px;
+            max-width: 300px;
+        }
     }
 </style>
 {% endblock %}
@@ -311,14 +407,34 @@
 {% block content %}
 <div class="env-data-container">
     <div class="header-section">
-        <h2>Environmental Data Collection</h2>
-        <div class="plant-info">
-            <strong>Plant:</strong> {{ plant.name }} | 
-            <strong>Year:</strong> 2025 |
-            <strong>Last Updated:</strong> {% now "F d, Y - H:i" %}
+        <div class="header-content">
+            <div class="header-info">
+                <h2>Environmental Data Collection</h2>
+                <div class="plant-info">
+                    <strong>Plant:</strong> {{ plant.name }} | 
+                    <strong>Year:</strong> {% now "Y" %} |
+                    <strong>Last Updated:</strong> {% now "F d, Y - H:i" %}
+                </div>
+            </div>
+            
+            <div>
+                <a href="{% url 'questions-manager' %}" class="btn-manage-questions">
+                    <i class="fas fa-cog"></i> Manage Questions
+                </a>
+            </div>
         </div>
     </div>
 
+    {% if no_questions %}
+    <div class="no-questions-alert">
+        <h3>No Environmental Questions Configured</h3>
+        <p>Please add environmental questions first using the Manage Questions page.</p>
+        <p><strong>Note:</strong> You need to have at least one question configured to enter data.</p>
+        <a href="{% url 'questions-manager' %}" class="btn-primary">
+            <i class="fas fa-plus-circle"></i> Go to Questions Manager
+        </a>
+    </div>
+    {% else %}
     <form method="post" id="dataEntryForm">
         {% csrf_token %}
         <div class="data-table-container">
@@ -328,7 +444,7 @@
                         <tr>
                             <th>
                                 Environmental Indicators
-                                <span class="unit-note">Select unit from dropdown (values will be saved and converted)</span>
+                                <span class="unit-note">Select unit from dropdown - values convert automatically</span>
                             </th>
                             {% for month in months %}
                                 <th>{{ month }}</th>
@@ -337,12 +453,11 @@
                     </thead>
                     <tbody>
                         {% for item in questions %}
-                        <tr data-row="{{ forloop.counter }}">
+                        <tr data-row="{{ forloop.counter }}" data-question="{{ item.question|slugify }}">
                             <td>
                                 <div class="indicator-content">
                                     <span class="indicator-text">{{ forloop.counter }}. {{ item.question }}</span>
                                     
-                                    {% comment %} Show saved unit if available, otherwise default unit {% endcomment %}
                                     <button type="button" class="row-unit-selector" data-row="{{ forloop.counter }}">
                                         {% if unit_dict|get_item:item.question %}
                                             {{ unit_dict|get_item:item.question }}
@@ -361,12 +476,12 @@
                                     </div>
                                 </div>
                                 
-                                {% comment %} Hidden input stores the selected unit {% endcomment %}
                                 <input type="hidden" 
                                        name="unit_{{ item.question|slugify }}" 
                                        value="{% if unit_dict|get_item:item.question %}{{ unit_dict|get_item:item.question }}{% else %}{{ item.default_unit }}{% endif %}" 
                                        class="unit-input" 
-                                       data-row="{{ forloop.counter }}">
+                                       data-row="{{ forloop.counter }}"
+                                       data-default-unit="{{ item.default_unit }}">
                             </td>                     
                             {% for month in months %}
                             <td>
@@ -377,6 +492,7 @@
                                     class="data-input"
                                     placeholder="0"
                                     autocomplete="off"
+                                    data-month="{{ month|lower }}"
                                 >
                             </td>
                             {% endfor %}
@@ -388,17 +504,20 @@
             
             <div class="action-buttons">
                 <div>
-                    <button type="button" class="btn-reset" onclick="resetForm()">Reset</button>
+                    <button type="button" class="btn-reset" onclick="resetForm()">
+                        <i class="fas fa-redo"></i> Reset
+                    </button>
                     <span class="save-indicator" id="saveIndicator">
                         <i class="fas fa-check-circle"></i> Saved successfully!
                     </span>
                 </div>
                 <button type="submit" class="btn-save">
-                    <i class="fas fa-save"></i> Save Data
+                    <i class="fas fa-save"></i> Save All Data
                 </button>
             </div>
         </div>
     </form>
+    {% endif %}
 </div>
 
 <div class="loading-overlay" id="loadingOverlay">
@@ -409,6 +528,19 @@
 document.addEventListener('DOMContentLoaded', function() {
     let activeModal = null;
     const rowUnits = {}; // Track current unit for each row
+    const rowDefaultUnits = {}; // Track default unit for each row
+    
+    // Initialize row units and default units
+    document.querySelectorAll('.row-unit-selector').forEach(button => {
+        const rowId = button.getAttribute('data-row');
+        rowUnits[rowId] = button.textContent.trim();
+        
+        // Get default unit from hidden input
+        const unitInput = document.querySelector(`.unit-input[data-row="${rowId}"]`);
+        if (unitInput) {
+            rowDefaultUnits[rowId] = unitInput.getAttribute('data-default-unit');
+        }
+    });
     
     // Conversion factors (same as backend)
     const conversionFactors = {
@@ -436,12 +568,6 @@ document.addEventListener('DOMContentLoaded', function() {
         'Yes/No': {'Yes/No': 1}
     };
     
-    // Initialize row units from buttons
-    document.querySelectorAll('.row-unit-selector').forEach(button => {
-        const rowId = button.getAttribute('data-row');
-        rowUnits[rowId] = button.textContent.trim();
-    });
-    
     // Conversion function
     function convertValue(value, fromUnit, toUnit) {
         if (fromUnit === toUnit) return value;
@@ -458,16 +584,50 @@ document.addEventListener('DOMContentLoaded', function() {
         return value;
     }
     
-    // Format function
+    // Format function for display
     function formatValue(value) {
-        if (value === 0) return '0';
-        const absValue = Math.abs(value);
-        if (absValue < 0.001) return value.toFixed(6);
-        if (absValue < 0.01) return value.toFixed(4);
-        if (absValue < 1) return value.toFixed(3);
-        if (absValue < 100) return value.toFixed(2);
-        if (absValue < 1000) return value.toFixed(1);
-        return Math.round(value).toString();
+        if (value === 0 || value === '0') return '0';
+        
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) return value;
+        
+        const absValue = Math.abs(numValue);
+        
+        // Special formatting for very small numbers
+        if (absValue < 0.000001) {
+            return numValue.toExponential(4);
+        }
+        if (absValue < 0.001) {
+            return numValue.toFixed(6);
+        }
+        if (absValue < 0.01) {
+            return numValue.toFixed(4);
+        }
+        if (absValue < 1) {
+            return numValue.toFixed(3);
+        }
+        if (absValue < 10) {
+            return numValue.toFixed(2);
+        }
+        if (absValue < 1000) {
+            return numValue.toFixed(1);
+        }
+        
+        // For large numbers, remove decimal points
+        const rounded = Math.round(numValue * 10) / 10;
+        return rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+    
+    // Parse input value
+    function parseInputValue(value) {
+        if (!value || value.trim() === '') return 0;
+        
+        // Remove commas for parsing
+        const cleanValue = value.replace(/,/g, '');
+        
+        // Try to parse as float
+        const num = parseFloat(cleanValue);
+        return isNaN(num) ? 0 : num;
     }
 
     // Handle unit button clicks
@@ -504,9 +664,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const modal = this.closest('.unit-modal');
             const rowId = modal.id.replace('modal-row-', '');
             const newUnit = this.getAttribute('data-unit');
-            const oldUnit = rowUnits[rowId]; // Get OLD unit
+            const oldUnit = rowUnits[rowId];
 
-            console.log(`Converting row ${rowId} from ${oldUnit} to ${newUnit}`);
+            // Don't do anything if same unit selected
+            if (newUnit === oldUnit) {
+                hideAndResetModal();
+                return;
+            }
 
             // Update active option
             modal.querySelectorAll('.unit-option').forEach(opt => opt.classList.remove('active'));
@@ -524,17 +688,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const row = document.querySelector(`tr[data-row="${rowId}"]`);
             const inputs = row.querySelectorAll('.data-input');
             
+            let hasValues = false;
             inputs.forEach(input => {
-                const currentValue = parseFloat(input.value);
+                const currentValue = parseInputValue(input.value);
                 
-                if (!isNaN(currentValue) && currentValue !== 0) {
-                    // Convert from OLD unit to NEW unit
+                if (currentValue !== 0) {
+                    hasValues = true;
                     const convertedValue = convertValue(currentValue, oldUnit, newUnit);
                     const formattedValue = formatValue(convertedValue);
-                    
-                    console.log(`  ${currentValue} ${oldUnit} → ${formattedValue} ${newUnit}`);
-                    
-                    // Update input value
                     input.value = formattedValue;
                 }
             });
@@ -542,11 +703,18 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update stored unit
             rowUnits[rowId] = newUnit;
             
-            // Visual feedback
-            if(row) {
+            // Visual feedback only if values were converted
+            if (hasValues && row) {
                 row.classList.add('row-highlight');
                 const dataCells = row.querySelectorAll('td:not(:first-child)');
                 dataCells.forEach(cell => cell.classList.add('highlight'));
+                
+                // Show conversion message
+                const indicatorText = row.querySelector('.indicator-text').textContent;
+                const questionNumber = indicatorText.split('.')[0];
+                const questionText = indicatorText.substring(indicatorText.indexOf('.') + 2);
+                
+                showNotification(`Converted values in row ${questionNumber} from ${oldUnit} to ${newUnit}`, 'info');
                 
                 setTimeout(() => {
                     row.classList.remove('row-highlight');
@@ -569,21 +737,203 @@ document.addEventListener('DOMContentLoaded', function() {
         activeModal = null;
     }
 
-    document.addEventListener('click', function() {
-        if (activeModal) {
+    // Close modal when clicking outside
+    document.addEventListener('click', function(e) {
+        if (activeModal && !activeModal.contains(e.target) && 
+            !e.target.classList.contains('row-unit-selector')) {
             hideAndResetModal();
         }
     });
+    
+    // Show save indicator after successful save
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('saved') === 'true') {
+        const saveIndicator = document.getElementById('saveIndicator');
+        saveIndicator.classList.add('show');
+        
+        setTimeout(() => {
+            saveIndicator.classList.remove('show');
+        }, 3000);
+    }
 
-    document.getElementById('dataEntryForm').addEventListener('submit', function() {
+    // Handle form submission
+    document.getElementById('dataEntryForm')?.addEventListener('submit', function(e) {
+        // Validate all inputs are numbers
+        const inputs = this.querySelectorAll('.data-input[type="text"]');
+        let hasInvalidInput = false;
+        
+        inputs.forEach(input => {
+            const value = input.value.trim();
+            if (value && isNaN(parseFloat(value.replace(/,/g, '')))) {
+                input.style.borderColor = '#e74c3c';
+                hasInvalidInput = true;
+                
+                // Highlight the row
+                const row = input.closest('tr');
+                if (row) {
+                    row.classList.add('row-highlight');
+                    setTimeout(() => row.classList.remove('row-highlight'), 2000);
+                }
+            } else {
+                input.style.borderColor = '';
+            }
+        });
+        
+        if (hasInvalidInput) {
+            e.preventDefault();
+            showNotification('Please enter valid numbers in all fields', 'error');
+            return;
+        }
+        
+        // Show loading overlay
         document.getElementById('loadingOverlay').classList.add('show');
     });
+    
+    // Real-time validation on input
+    document.querySelectorAll('.data-input').forEach(input => {
+        input.addEventListener('input', function() {
+            const value = this.value.trim();
+            if (value && isNaN(parseFloat(value.replace(/,/g, '')))) {
+                this.style.borderColor = '#e74c3c';
+                this.style.backgroundColor = '#ffeaea';
+            } else {
+                this.style.borderColor = '';
+                this.style.backgroundColor = '';
+            }
+        });
+        
+        // Format on blur
+        input.addEventListener('blur', function() {
+            const value = this.value.trim();
+            if (value) {
+                const num = parseFloat(value.replace(/,/g, ''));
+                if (!isNaN(num)) {
+                    this.value = formatValue(num);
+                }
+            }
+        });
+    });
+    
+    // Show notification function
+    function showNotification(message, type = 'info') {
+        // Remove existing notifications
+        const existingNotifications = document.querySelectorAll('.custom-notification');
+        existingNotifications.forEach(notification => notification.remove());
+        
+        // Create notification
+        const notification = document.createElement('div');
+        notification.className = `custom-notification notification-${type}`;
+        notification.innerHTML = `
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()">&times;</button>
+        `;
+        
+        // Add styles
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: ${type === 'error' ? '#e74c3c' : type === 'success' ? '#27ae60' : '#3498db'};
+            color: white;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 300px;
+            max-width: 400px;
+            animation: slideIn 0.3s ease;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+    
+    // Add CSS for slide-in animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .custom-notification button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            margin-left: 15px;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .custom-notification button:hover {
+            opacity: 0.8;
+        }
+    `;
+    document.head.appendChild(style);
 });
 
 function resetForm() {
-    if (confirm('Are you sure you want to reset all changes? This will reload the saved data.')) {
-        location.reload();
+    if (confirm('Are you sure you want to reset all changes? This will clear all unsaved data.')) {
+        document.getElementById('dataEntryForm').reset();
+        
+        // Reset unit selectors to default units
+        document.querySelectorAll('.unit-input').forEach(input => {
+            const rowId = input.getAttribute('data-row');
+            const defaultUnit = input.getAttribute('data-default-unit');
+            const button = document.querySelector(`.row-unit-selector[data-row="${rowId}"]`);
+            
+            if (button) {
+                button.textContent = defaultUnit;
+            }
+            
+            // Update unit modal active state
+            const modal = document.getElementById(`modal-row-${rowId}`);
+            if (modal) {
+                modal.querySelectorAll('.unit-option').forEach(option => {
+                    option.classList.remove('active');
+                    if (option.getAttribute('data-unit') === defaultUnit) {
+                        option.classList.add('active');
+                    }
+                });
+            }
+        });
+        
+        showNotification('Form has been reset', 'info');
     }
 }
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl + S to save
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        document.querySelector('.btn-save').click();
+    }
+    
+    // Escape to close modal
+    if (e.key === 'Escape') {
+        const activeModal = document.querySelector('.unit-modal[style*="display: block"]');
+        if (activeModal) {
+            activeModal.style.display = 'none';
+        }
+    }
+});
 </script>
 {% endblock %}
