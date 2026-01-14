@@ -699,6 +699,7 @@
 <!-- Chart.js Library -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     
@@ -885,25 +886,61 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Status Distribution Horizontal Bar Chart
     const statusCtx = document.getElementById('statusChart')?.getContext('2d');
-    if (statusCtx) {
-        new Chart(statusCtx, {
-            type: 'bar',
-            data: {
-                labels: {{ status_labels|safe }},
-                datasets: [{
-                    label: 'Incidents',
-                    data: {{ status_data|safe }},
-                    backgroundColor: colors.primary
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
-            }
-        });
-    }
+        if (statusCtx) {
+            // We get the data from the context, which now includes URLs
+            const statusData = {{ status_data|safe }};
+
+            new Chart(statusCtx, {
+                type: 'bar',
+                data: {
+                    labels: {{ status_labels|safe }},
+                    datasets: [{
+                        label: 'Incidents',
+                        // The chart will use the 'count' from each object for the bar length
+                        data: statusData.map(item => item.count), 
+                        backgroundColor: colors.primary
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        // Add a tooltip to show users it's clickable
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.x !== null) {
+                                        label += context.parsed.x;
+                                    }
+                                    return label + ' (Click to view)';
+                                }
+                            }
+                        }
+                    },
+                    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                    // This is the main part that makes the chart clickable
+                    onClick: (event, elements, chart) => {
+                        if (elements.length > 0) {
+                            const clickedElementIndex = elements[0].index;
+                            // Get the corresponding URL from our data
+                            const url = statusData[clickedElementIndex].url;
+                            // Redirect the user to the filtered incident list
+                            window.location.href = url;
+                        }
+                    },
+                    // Change cursor to a pointer on hover to indicate it's clickable
+                    onHover: (event, chartElement) => {
+                        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+                    }
+                }
+            });
+        }
 });
 </script>
 {% endblock %}

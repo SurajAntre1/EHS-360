@@ -1,3 +1,4 @@
+from urllib.parse import urlencode
 from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, TemplateView
 from django.urls import reverse, reverse_lazy
@@ -903,20 +904,34 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
         # STATUS DISTRIBUTION
         # ==================================================
         # ... (status distribution logic remains the same)
+
         status_distribution = incidents.values('status').annotate(
             count=Count('id')
         ).order_by('-count')
 
         status_labels = []
         status_data = []
+        
+        # Create a dictionary to hold status display names
+        status_choices_dict = dict(Incident.STATUS_CHOICES)
 
         for item in status_distribution:
-            status_labels.append(
-                dict(Incident.STATUS_CHOICES).get(item['status'], item['status'])
-            )
-            status_data.append(item['count'])
+            # Append the display name for the label (e.g., "In Progress")
+            status_labels.append(status_choices_dict.get(item['status'], item['status']))
+            
+            # Create the filter URL for the incident list page
+            # This will generate a URL like: /accidents/incidents/?status=IN_PROGRESS
+            filter_params = {'status': item['status']}
+            list_url = reverse('accidents:incident_list') + '?' + urlencode(filter_params)
+            
+            # Store both the count and the URL for the JavaScript
+            status_data.append({
+                'count': item['count'],
+                'url': list_url
+            })
 
         context['status_labels'] = json.dumps(status_labels)
+        # We now pass the more detailed list of objects to the template
         context['status_data'] = json.dumps(status_data)
 
         # ==================================================

@@ -19,6 +19,14 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from .utils import generate_hazard_pdf
 from django.views import View
 
+import json
+from django.db.models import Count
+from django.db.models.functions import TruncMonth
+
+# Make sure all models are imported
+from apps.organizations.models import Plant, Zone, Location, SubLocation
+
+
 
 User = get_user_model()
 
@@ -690,21 +698,6 @@ class GetLocationsForZoneAjaxView(LoginRequiredMixin, TemplateView):
     
     
     
-    
-import datetime
-import json
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import JsonResponse
-from django.views.generic import TemplateView
-from django.db.models import Count
-from django.db.models.functions import TruncMonth
-
-# Make sure all models are imported
-from .models import Hazard
-from apps.organizations.models import Plant, Zone, Location, SubLocation
-
-from .models import Hazard
-from apps.organizations.models import Plant, Zone, Location, SubLocation
 
 
 class HazardDashboardViews(LoginRequiredMixin, TemplateView):
@@ -718,7 +711,7 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
         user = self.request.user
         today = datetime.date.today()
 
-        # 1. URL se saare filter parameters get karo
+        # 1. Get all filter parameters from the URL
         selected_plant = self.request.GET.get('plant', '')
         selected_zone = self.request.GET.get('zone', '')
         selected_location = self.request.GET.get('location', '')
@@ -727,7 +720,7 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
         selected_severity = self.request.GET.get('severity', '')
         selected_status = self.request.GET.get('status', '')
 
-        # 2. User ke role ke hisaab se base query banao
+        # 2. Build the base queryset based on user role
         if user.is_superuser or getattr(user, 'role', None) == 'ADMIN':
             base_hazards = Hazard.objects.all()
             all_plants = Plant.objects.filter(is_active=True).order_by('name')
@@ -738,7 +731,7 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
             base_hazards = Hazard.objects.filter(reported_by=user)
             all_plants = Plant.objects.none()
 
-        # 3. Base query par filters apply karo
+        # 3. Apply filters to the base queryset
         hazards = base_hazards
         if selected_plant:
             hazards = hazards.filter(plant_id=selected_plant)
@@ -750,8 +743,15 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
             hazards = hazards.filter(sublocation_id=selected_sublocation)
         if selected_severity:
             hazards = hazards.filter(severity=selected_severity)
-        if selected_status == 'open':
-             hazards = hazards.exclude(status__in=['RESOLVED', 'CLOSED'])
+        
+        # --- MODIFIED SECTION: Improved Status Filtering ---
+        # This now handles both 'open' and specific statuses like 'REPORTED', 'CLOSED' etc.
+        if selected_status:
+            if selected_status == 'open':
+                hazards = hazards.exclude(status__in=['RESOLVED', 'CLOSED'])
+            else:
+                hazards = hazards.filter(status=selected_status)
+        
         if selected_month:
             try:
                 year, month = map(int, selected_month.split('-'))
@@ -764,11 +764,10 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
 
         if date_from:
             hazards = hazards.filter(incident_datetime__date__gte=date_from)
-
         if date_to:
             hazards = hazards.filter(incident_datetime__date__lte=date_to)
 
-        # 4. Dropdown options ko populate karo (filtered)
+        # 4. Prepare filter dropdown options
         context['plants'] = all_plants
         
         zone_qs = Zone.objects.filter(is_active=True)
@@ -779,14 +778,14 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
         location_qs = Location.objects.filter(is_active=True)
         if selected_zone:
             location_qs = location_qs.filter(zone_id=selected_zone)
-        elif selected_plant and not selected_zone: # Agar sirf plant selected hai
+        elif selected_plant and not selected_zone:
              location_qs = location_qs.filter(zone__plant_id=selected_plant)
         context['locations'] = location_qs.order_by('name')
 
         sublocation_qs = SubLocation.objects.filter(is_active=True)
         if selected_location:
             sublocation_qs = sublocation_qs.filter(location_id=selected_location)
-        elif selected_zone and not selected_location: # Agar sirf zone selected hai
+        elif selected_zone and not selected_location:
              sublocation_qs = sublocation_qs.filter(location__zone_id=selected_zone)
         context['sublocations'] = sublocation_qs.order_by('name')
         
@@ -795,14 +794,13 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
             'label': (today - datetime.timedelta(days=i*30)).strftime('%B %Y')
         } for i in range(12)]
 
-        # 5. Selected values ko template mein wapas bhejo
         context.update({
             'selected_plant': selected_plant, 'selected_zone': selected_zone,
             'selected_location': selected_location, 'selected_sublocation': selected_sublocation,
             'selected_month': selected_month, 'selected_severity': selected_severity,
             'selected_status': selected_status,
             'date_from': date_from,
-            'date_to': date_to,         #for filter with date 
+            'date_to': date_to,
         })
         try:
             if selected_plant: context['selected_plant_name'] = Plant.objects.get(id=selected_plant).name
@@ -816,14 +814,12 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
              pass
         context['has_active_filters'] = any(context.get(key) for key in ['selected_plant', 'selected_zone', 'selected_location', 'selected_sublocation', 'selected_month', 'selected_severity', 'selected_status'])
 
-        # 6. Statistics calculate karo (filtered data par)
         context['total_hazards'] = hazards.count()
         context['open_hazards'] = hazards.exclude(status__in=['RESOLVED', 'CLOSED']).count()
         context['this_month_hazards'] = hazards.count() if selected_month else hazards.filter(incident_datetime__year=today.year, incident_datetime__month=today.month).count()
         context['overdue_hazards_count'] = hazards.filter(action_deadline__lt=today).exclude(status__in=['RESOLVED', 'CLOSED']).count()
         context['recent_hazards'] = hazards.select_related('plant', 'location').order_by('-incident_datetime')[:10]
 
-        # 7. NEW: Top 3 Hazard Categories
         top_categories_query = hazards.values('hazard_category').annotate(count=Count('hazard_category')).order_by('-count')[:3]
         category_display_map = dict(Hazard.HAZARD_CATEGORIES)
         top_categories_list = []
@@ -852,11 +848,20 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
 
         # Status Distribution
         status_distribution = hazards.values('status').annotate(count=Count('id')).order_by('-count')
-        status_labels = [dict(Hazard.STATUS_CHOICES).get(item['status'], item['status']) for item in status_distribution]
-        status_data = [item['count'] for item in status_distribution]
-        context['status_labels'] = json.dumps(status_labels)
-        context['status_data'] = json.dumps(status_data)
+        
+        status_labels = []
+        status_keys = []
+        status_data = []
+        status_choices_dict = dict(Hazard.STATUS_CHOICES)
 
+        for item in status_distribution:
+            status_labels.append(status_choices_dict.get(item['status'], item['status']))
+            status_keys.append(item['status'])  # Store the key e.g. 'REPORTED'
+            status_data.append(item['count'])
+
+        context['status_labels'] = json.dumps(status_labels)
+        context['status_keys'] = json.dumps(status_keys) # NEW: Pass keys to template for JS
+        context['status_data'] = json.dumps(status_data)
 
         return context
     

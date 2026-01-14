@@ -289,7 +289,6 @@
 </div>
 
 {% endblock %}
-
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
@@ -305,12 +304,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     plantSelect.addEventListener('change', function() {
         const plantId = this.value;
-        
-        // Zone, Location, aur Sub-Location ko clear karo
         zoneSelect.innerHTML = '<option value="">All Zones</option>';
         locationSelect.innerHTML = '<option value="">All Locations</option>';
         sublocationSelect.innerHTML = '<option value="">All Sub-Locations</option>';
-        
         if (plantId) {
             fetch(`{% url 'hazards:ajax_get_zones' %}?plant_id=${plantId}`)
                 .then(response => response.json())
@@ -331,11 +327,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('zone_filter').addEventListener('change', function() {
         const zoneId = this.value;
-
-        // Location aur Sub-Location ko clear karo
         locationSelect.innerHTML = '<option value="">All Locations</option>';
         sublocationSelect.innerHTML = '<option value="">All Sub-Locations</option>';
-        
         if (zoneId) {
             fetch(`{% url 'hazards:ajax_get_locations' %}?zone_id=${zoneId}`)
                 .then(response => response.json())
@@ -357,7 +350,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Sub-Location ko clear karo
         sublocationSelect.innerHTML = '<option value="">All Sub-Locations</option>';
-        
         if (locationId) {
             fetch(`{% url 'hazards:ajax_get_sublocations' %}?location_id=${locationId}`)
                 .then(response => response.json())
@@ -369,22 +361,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- EXPORT BUTTON LOGIC ---
+    // --- EXPORT BUTTON LOGIC (No changes here) ---
     document.getElementById('exportReportBtn').addEventListener('click', function(e) {
         e.preventDefault();
-        // Current filters ko URL se le lo
         const currentParams = window.location.search;
-        // Export URL banao
         const exportUrl = "{% url 'hazards:export_hazards' %}" + currentParams;
-        // Redirect kardo
         window.location.href = exportUrl;
     });
 
     // --- CHART INITIALIZATION ---
-    // (Aapka chart ka code yahan aayega aur woh bilkul sahi hai)
     const colors = {danger: '#dc3545', warning: '#ffc107', info: '#17a2b8', success: '#28a745', primary: '#007bff'};
     
-    // Severity Chart
+    // Severity Chart (No changes here)
     const severityCtx = document.getElementById('severityChart').getContext('2d');
     const severityChart = new Chart(severityCtx, {
         type: 'doughnut',
@@ -402,34 +390,61 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Monthly Trend & Status Charts
+    // Monthly Trend Chart (No changes here)
     new Chart(document.getElementById('monthlyTrendChart').getContext('2d'), { type: 'line', data: { labels: {{ monthly_labels|safe }}, datasets: [{ label: 'Hazards', data: {{ monthly_data|safe }}, borderColor: colors.primary, backgroundColor: 'rgba(0,123,255,0.1)', tension: 0.4, fill: true }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
-    new Chart(document.getElementById('statusChart').getContext('2d'), { 
+    
+    // --- UPDATED: Status Chart with onClick event ---
+    const statusChartCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusChartCtx, { 
         type: 'bar', 
         data: { 
             labels: {{ status_labels|safe }}, 
             datasets: [{ 
                 label: 'Hazards', 
                 data: {{ status_data|safe }}, 
-                backgroundColor: colors.primary,
-                barPercentage: 0.2 // <-- UPDATE: Bar width ko control karta hai
+                backgroundColor: '#563d7c', // Changed color for better distinction
+                barPercentage: 0.4
             }] 
         }, 
         options: { 
             responsive: true, 
             maintainAspectRatio: false, 
-            plugins: { legend: { display: false } }, 
-            scales: { y: { beginAtZero: true } } 
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ` Count: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            }, 
+            scales: { y: { beginAtZero: true } },
+            // NEW: This makes the chart bars clickable
+            onClick: (e, elements) => {
+                if (elements.length > 0) {
+                    // Get the internal status keys passed from the view
+                    const statusKeys = {{ status_keys|safe }};
+                    // Find the key corresponding to the clicked bar using its index
+                    const clickedStatusKey = statusKeys[elements[0].index];
+                    
+                    // Build the new URL with the status filter
+                    const currentParams = new URLSearchParams(window.location.search);
+                    currentParams.set('status', clickedStatusKey);
+                    
+                    // Redirect to the new filtered URL
+                    window.location.href = window.location.pathname + '?' + currentParams.toString();
+                }
+            }
         } 
     });
 });
 
-// --- REMOVE FILTER FUNCTION ---
+// --- REMOVE FILTER FUNCTION (No changes here) ---
 function removeFilter(filterName) {
     const urlParams = new URLSearchParams(window.location.search);
     urlParams.delete(filterName);
     
-    // Agar Plant remove ho, toh uske child filters (Zone, Location, Sub-Location) bhi remove ho
     if (filterName === 'plant') {
         urlParams.delete('zone');
         urlParams.delete('location'); 
@@ -443,7 +458,6 @@ function removeFilter(filterName) {
         urlParams.delete('sublocation');
     }
     
-    // Naye URL par redirect karo
     window.location.href = window.location.pathname + '?' + urlParams.toString();
 }
 </script>
