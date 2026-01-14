@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import User
+from .models import User,Role,Permissions
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -61,3 +61,6 @@ class CustomUserAdmin(UserAdmin):
             obj.is_superuser = False
         
         super().save_model(request, obj, form, change)
+        
+admin.site.register(Role)
+admin.site.register(Permissions)

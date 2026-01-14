@@ -297,7 +297,7 @@ class UserUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
     def get_queryset(self):
         queryset = get_incidents_for_user(self.request.user)
         queryset = queryset.select_related('plant','zone','location','reported_by')
-        return queryset()
+        return User.objects.filter(is_superuser=False)
 
 class UserDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
     """Delete user - Only accessible by Admin"""

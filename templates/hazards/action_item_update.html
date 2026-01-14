@@ -76,7 +76,8 @@
                     <h3 class="card-title text-white">Edit Action Item</h3>
                 </div>
                 <div class="card-body">
-                    <form method="POST" id="actionItemForm">
+                    <!-- 🔹 enctype added for file upload -->
+                    <form method="POST" id="actionItemForm" enctype="multipart/form-data">
                         {% csrf_token %}
 
                         <!-- Action Description -->
@@ -85,21 +86,20 @@
                             <textarea name="action_description" class="form-control" rows="4" required>{{ object.action_description }}</textarea>
                         </div>
 
-                        <!-- Check if self-assigned (only 1 email and it's current user) -->
+                        <!-- Self Assigned Check -->
                         {% if object.get_emails_count == 1 and user.email in object.responsible_emails %}
                         <div class="self-assigned-badge">
-                            <i class="fas fa-user-check"></i> <strong>Self-Assigned Action</strong>
-                            <br>
+                            <i class="fas fa-user-check"></i> <strong>Self-Assigned Action</strong><br>
                             <small>Assigned to: {{ user.email }}</small>
                         </div>
                         <input type="hidden" name="responsible_emails" value="{{ object.responsible_emails }}">
                         <input type="hidden" name="is_self_assigned" value="true">
                         {% else %}
-                        <!-- Responsible Emails (Editable) -->
                         <div class="form-group">
                             <label><i class="fas fa-envelope"></i> Assigned To (Emails) *</label>
                             <div class="email-tags-input" id="emailTagsContainer">
-                                <input type="text" class="email-input-field" id="emailInput" placeholder="Type email and press Enter...">
+                                <input type="text" class="email-input-field" id="emailInput"
+                                       placeholder="Type email and press Enter...">
                             </div>
                             <div class="email-count" id="emailCount"></div>
                             <input type="hidden" name="responsible_emails" id="responsibleEmails">
@@ -110,7 +110,8 @@
                         <!-- Target Date -->
                         <div class="form-group">
                             <label>Target Date *</label>
-                            <input type="date" name="target_date" class="form-control" value="{{ object.target_date|date:'Y-m-d' }}" required>
+                            <input type="date" name="target_date" class="form-control"
+                                   value="{{ object.target_date|date:'Y-m-d' }}" required>
                         </div>
 
                         <!-- Status -->
@@ -118,35 +119,62 @@
                             <label>Status *</label>
                             <select name="status" id="statusSelect" class="form-control">
                                 {% for value, label in object.STATUS_CHOICES %}
-                                <option value="{{ value }}" {% if object.status == value %}selected{% endif %}>{{ label }}</option>
+                                <option value="{{ value }}" {% if object.status == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
                                 {% endfor %}
                             </select>
-                            {% if object.get_emails_count == 1 and user.email in object.responsible_emails %}
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle"></i> When you change status to <strong>Completed</strong>, the action will automatically close!
+                        </div>
+
+                        <!-- Completion Date -->
+                        <div class="form-group" id="completionDateGroup" style="display:none;">
+                            <label>Completion Date</label>
+                            <input type="date" name="completion_date" class="form-control"
+                                   value="{{ object.completion_date|date:'Y-m-d' }}">
+                        </div>
+
+                        <!-- 📎 Attachment Section -->
+                        <div class="form-group">
+                            <label><i class="fas fa-paperclip"></i> Attachment</label>
+
+                            {% if object.attachment %}
+                            <div id="currentAttachment" class="mb-2">
+                                <strong>Current File:</strong>
+                                <a href="{{ object.attachment.url }}" target="_blank">
+                                    <i class="fas fa-file-alt"></i> {{ object.get_attachment_name }}
+                                </a>
+                                ({{ object.get_attachment_size }})
+                                <button type="button" id="removeAttachmentBtn"
+                                        class="btn btn-xs btn-danger ml-2">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
+                                <input type="hidden" name="remove_attachment"
+                                       id="removeAttachmentInput" value="false">
+                            </div>
+                            <small id="replaceHelpText" class="form-text text-muted">
+                                To replace, choose a new file below.
                             </small>
                             {% endif %}
+
+                            <div class="custom-file">
+                                <input type="file" class="custom-file-input"
+                                       id="attachment" name="attachment">
+                                <label class="custom-file-label" for="attachment">
+                                    {% if object.attachment %}
+                                        Choose new file to replace
+                                    {% else %}
+                                        Choose file to attach
+                                    {% endif %}
+                                </label>
+                            </div>
                         </div>
-
-                        <!-- Completion Date (if status is COMPLETED) -->
-                        <div class="form-group" id="completionDateGroup" style="display: none;">
-                            <label>Completion Date</label>
-                            <input type="date" name="completion_date" class="form-control" value="{{ object.completion_date|date:'Y-m-d' }}">
-                        </div>
-
-
-                        <!-- Completion Remarks (shown only if COMPLETED) -->
-                        <!-- <div class="form-group" id="completion_remarks_group" style="display: none;">
-                            <label for="id_completion_remarks">Completion Remarks</label>
-                            <textarea name="completion_remarks" id="id_completion_remarks" 
-                                      class="form-control" rows="3">{{ object.completion_remarks|default:'' }}</textarea>
-                        </div> -->
 
                         <hr>
                         <button type="submit" class="btn btn-warning btn-lg">
                             <i class="fas fa-save"></i> Update
                         </button>
-                        <a href="{% url 'hazards:hazard_detail' object.hazard.pk %}" class="btn btn-secondary btn-lg">Cancel</a>
+                        <a href="{% url 'hazards:hazard_detail' object.hazard.pk %}"
+                           class="btn btn-secondary btn-lg">Cancel</a>
                     </form>
                 </div>
             </div>
@@ -158,96 +186,96 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+
     const isSelfAssigned = document.querySelector('input[name="is_self_assigned"]').value === 'true';
-    
-    // Only initialize email editor if not self-assigned
+
+    /* ================= EMAIL TAG HANDLING ================= */
     if (!isSelfAssigned) {
         const emailInput = document.getElementById('emailInput');
         const emailTagsContainer = document.getElementById('emailTagsContainer');
         const responsibleEmails = document.getElementById('responsibleEmails');
         const emailCount = document.getElementById('emailCount');
-        
         let emails = [];
-        
-        // Load existing emails
+
         const existingEmails = '{{ object.responsible_emails|escapejs }}';
         if (existingEmails) {
-            emails = existingEmails.split(',').map(e => e.trim()).filter(e => e);
+            emails = existingEmails.split(',').map(e => e.trim()).filter(Boolean);
             updateUI();
         }
-        
+
         function isValidEmail(email) {
-            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return re.test(email);
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
         }
-        
+
         function addEmail(email) {
             email = email.trim().toLowerCase();
-            if (!email) return;
-            if (!isValidEmail(email)) {
-                alert('⚠️ Invalid email: ' + email);
-                return;
-            }
-            if (emails.includes(email)) {
-                alert('ℹ️ Already added: ' + email);
-                return;
-            }
+            if (!email || !isValidEmail(email) || emails.includes(email)) return;
             emails.push(email);
             updateUI();
         }
-        
-        function removeEmail(email) {
-            emails = emails.filter(e => e !== email);
-            updateUI();
-        }
-        
+
         function updateUI() {
-            const existingTags = emailTagsContainer.querySelectorAll('.email-tag');
-            existingTags.forEach(tag => tag.remove());
-            
+            emailTagsContainer.querySelectorAll('.email-tag').forEach(e => e.remove());
             emails.forEach(email => {
                 const tag = document.createElement('span');
                 tag.className = 'email-tag';
                 tag.innerHTML = `${email} <span class="remove-tag" data-email="${email}">×</span>`;
                 emailTagsContainer.insertBefore(tag, emailInput);
             });
-            
             responsibleEmails.value = emails.join(', ');
             emailCount.textContent = `${emails.length} email(s) added`;
             emailInput.value = '';
         }
-        
-        emailInput.addEventListener('keydown', function(e) {
+
+        emailInput.addEventListener('keydown', e => {
             if (e.key === 'Enter' || e.key === ',') {
                 e.preventDefault();
                 addEmail(emailInput.value);
             }
         });
-        
-        emailTagsContainer.addEventListener('click', function(e) {
+
+        emailTagsContainer.addEventListener('click', e => {
             if (e.target.classList.contains('remove-tag')) {
-                removeEmail(e.target.getAttribute('data-email'));
+                emails = emails.filter(em => em !== e.target.dataset.email);
+                updateUI();
             }
         });
     }
-    
-    // Show/hide completion fields based on status
+
+    /* ================= STATUS HANDLING ================= */
     const statusSelect = document.getElementById('statusSelect');
     const completionDateGroup = document.getElementById('completionDateGroup');
-    const completionRemarksGroup = document.getElementById('completionRemarksGroup');
-    
+
     function toggleCompletionFields() {
-        if (statusSelect.value === 'COMPLETED') {
-            completionDateGroup.style.display = 'block';
-            completionRemarksGroup.style.display = 'block';
-        } else {
-            completionDateGroup.style.display = 'none';
-            completionRemarksGroup.style.display = 'none';
-        }
+        completionDateGroup.style.display =
+            statusSelect.value === 'COMPLETED' ? 'block' : 'none';
     }
-    
+
     statusSelect.addEventListener('change', toggleCompletionFields);
     toggleCompletionFields();
+
+    /* ================= ATTACHMENT HANDLING ================= */
+    const removeBtn = document.getElementById('removeAttachmentBtn');
+    if (removeBtn) {
+        removeBtn.addEventListener('click', function () {
+            if (confirm('Remove current attachment?')) {
+                document.getElementById('removeAttachmentInput').value = 'true';
+                document.getElementById('currentAttachment').style.display = 'none';
+                if (document.getElementById('replaceHelpText')) {
+                    document.getElementById('replaceHelpText').style.display = 'none';
+                }
+                document.querySelector('.custom-file-label').textContent =
+                    'Attachment removed. Choose a new file if needed.';
+            }
+        });
+    }
+
+    document.querySelectorAll('.custom-file-input').forEach(input => {
+        input.addEventListener('change', function () {
+            this.nextElementSibling.textContent =
+                this.files.length ? this.files[0].name : 'Choose file';
+        });
+    });
 });
 </script>
 {% endblock %}

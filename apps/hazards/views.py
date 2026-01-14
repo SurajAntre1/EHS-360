@@ -504,61 +504,74 @@ class HazardUpdateView(LoginRequiredMixin, UpdateView):
             messages.error(request, f'An unexpected error occurred while updating the hazard: {str(e)}')
             return redirect('hazards:hazard_update', pk=self.object.pk)
             
-
 class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
-    """Create action item for hazard"""
+    """
+    Create an action item for a specific hazard.
+    Handles form submission for creating a new HazardActionItem,
+    including file attachments.
+    """
     model = HazardActionItem
     template_name = 'hazards/action_item_create.html'
-    fields = []
-    
+    fields = []  # We are handling fields manually in the post method.
+
     def dispatch(self, request, *args, **kwargs):
+        """
+        Ensure the hazard exists before proceeding.
+        """
         self.hazard = get_object_or_404(Hazard, pk=self.kwargs['hazard_pk'])
         return super().dispatch(request, *args, **kwargs)
-    
+
     def get_context_data(self, **kwargs):
+        """
+        Add the hazard object to the template context.
+        """
         context = super().get_context_data(**kwargs)
         context['hazard'] = self.hazard
         if self.hazard.action_deadline:
             context['action_deadline_date'] = self.hazard.action_deadline.strftime('%Y-%m-%d')
         return context
-    
+
     def post(self, request, *args, **kwargs):
+        """
+        Handle the POST request to create a new action item.
+        """
         try:
             action_item = HazardActionItem()
             action_item.hazard = self.hazard
             action_item.action_description = request.POST.get('action_description', '').strip()
-            
-            # Check assignment type
+
+            # Handle assignment type (self or others)
             assignment_type = request.POST.get('assignment_type', 'self')
             
             if assignment_type == 'self':
-                # Assign to current user (store their email)
                 action_item.responsible_emails = request.user.email
                 is_self_assigned = True
             else:
-                # Assign to others (get comma-separated emails)
                 responsible_emails = request.POST.get('responsible_emails', '').strip()
                 action_item.responsible_emails = responsible_emails
                 is_self_assigned = False
-            
-            # Target Date
+
+            # Handle target date
             target_date_str = request.POST.get('target_date')
             if target_date_str:
-                from datetime import datetime
-                action_item.target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
-            
-            # Force status to PENDING on creation
+                action_item.target_date = datetime.datetime.strptime(target_date_str, '%Y-%m-%d').date()
+
+            # Set the initial status to 'PENDING'
             action_item.status = 'PENDING'
-            
+
+            # *** FIX: Handle file attachment ***
+            # Check if an attachment file is present in the request
+            if 'attachment' in request.FILES:
+                action_item.attachment = request.FILES['attachment']
+
             action_item.save()
-            
+
+            # Prepare success message
             email_count = action_item.get_emails_count()
-            
             if is_self_assigned:
                 message = mark_safe(
                     f'✅ <strong>Action item created successfully!</strong><br>'
-                    f'Assigned to: <strong>You ({request.user.email})</strong><br>'
-                    f'<em>💡 When you mark this complete, it will automatically close!</em>'
+                    f'Assigned to: <strong>You ({request.user.email})</strong>'
                 )
             else:
                 message = mark_safe(
@@ -569,59 +582,78 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             messages.success(request, message)
             
             return redirect('hazards:hazard_detail', pk=self.hazard.pk)
-            
+
         except Exception as e:
-            import traceback
-            print("ERROR:", traceback.format_exc())
+            # Log the error for debugging purposes
+            print(f"Error creating action item: {e}")
             messages.error(request, f'Error creating action item: {str(e)}')
             return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
-    
+
     def get_success_url(self):
+        """
+        Redirect to the hazard detail page on successful creation.
+        """
         return reverse_lazy('hazards:hazard_detail', kwargs={'pk': self.hazard.pk})
 
 
 class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
-    """Update action item"""
+    """
+    Update an existing action item.
+    Handles form submission for updating an action item,
+    including replacing or removing file attachments.
+    """
     model = HazardActionItem
     template_name = 'hazards/action_item_update.html'
-    fields = []
-    
+    fields = []  # We handle fields manually in the post method.
+
     def get_success_url(self):
+        """
+        Redirect to the hazard detail page after a successful update.
+        """
         return reverse_lazy('hazards:hazard_detail', kwargs={'pk': self.object.hazard.pk})
-    
+
     def post(self, request, *args, **kwargs):
+        """
+        Handle the POST request to update the action item.
+        """
         self.object = self.get_object()
         
         try:
-            # Update fields
+            # Update standard fields from POST data
             self.object.action_description = request.POST.get('action_description', '').strip()
+            self.object.responsible_emails = request.POST.get('responsible_emails', '').strip()
             
-            # Update emails
-            responsible_emails = request.POST.get('responsible_emails', '').strip()
-            self.object.responsible_emails = responsible_emails
-            
-            # Target Date
+            # Update target date
             target_date_str = request.POST.get('target_date')
             if target_date_str:
-                from datetime import datetime
-                self.object.target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+                self.object.target_date = datetime.datetime.strptime(target_date_str, '%Y-%m-%d').date()
             
             # Update status
-            self.object.status = request.POST.get('status', 'PENDING')
-            
-            # If completed, save completion details
+            self.object.status = request.POST.get('status', self.object.status)
+
+            # Handle completion details if status is 'COMPLETED'
             if self.object.status == 'COMPLETED':
                 completion_date_str = request.POST.get('completion_date')
                 if completion_date_str:
-                    from datetime import datetime
-                    self.object.completion_date = datetime.strptime(completion_date_str, '%Y-%m-%d').date()
+                    self.object.completion_date = datetime.datetime.strptime(completion_date_str, '%Y-%m-%d').date()
+                else:
+                    self.object.completion_date = datetime.date.today() # Default to today if not provided
                 
                 self.object.completion_remarks = request.POST.get('completion_remarks', '').strip()
+
+            # *** FIX: Handle file attachment update ***
+            # Check if a new file has been uploaded
+            if 'attachment' in request.FILES:
+                self.object.attachment = request.FILES['attachment']
+            # Check if the user wants to remove the existing attachment
+            elif request.POST.get('remove_attachment') == 'true':
+                self.object.attachment.delete(save=False) # Delete file from storage
+                self.object.attachment = None
             
             self.object.save()
             
+            # Prepare success message
             email_count = self.object.get_emails_count()
-            
             messages.success(
                 request, 
                 mark_safe(
@@ -633,8 +665,8 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
             return redirect(self.get_success_url())
             
         except Exception as e:
-            import traceback
-            print("ERROR:", traceback.format_exc())
+            # Log the error for debugging purposes
+            print(f"Error updating action item: {e}")
             messages.error(request, f'Error updating action item: {str(e)}')
             return redirect('hazards:action_item_update', pk=self.object.pk)
 
