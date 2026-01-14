@@ -1,61 +1,95 @@
 from django.views import View
 from django.shortcuts import render, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
+from django.db import models
+import json
+
 from apps.organizations.models import Plant
 from .models import *
 from .constants import MONTHS
 
-from django.contrib import messages
-import json
 
-
+# =========================================================
+# UNIT MANAGER
+# =========================================================
 
 class UnitManagerView(LoginRequiredMixin, View):
     template_name = "data_collection/unit_manager.html"
 
     def get(self, request):
         categories = UnitCategory.objects.filter(is_active=True)
-        units = Unit.objects.filter(is_active=True).select_related('category')
+        units = Unit.objects.filter(is_active=True).select_related("category")
+
         return render(request, self.template_name, {
             "categories": categories,
-            "units": units
+            "units": units,
         })
 
     def post(self, request):
         action = request.POST.get("action")
 
-        if action == "add_category":
-            name = request.POST.get("category_name").strip()
-            description = request.POST.get("category_description", "").strip()
-            if name:
-                UnitCategory.objects.get_or_create(name=name, defaults={"description": description})
-                messages.success(request, "Category added successfully")
-            else:
+        # ---------- CREATE CATEGORY ----------
+        if action == "create_category":
+            name = (request.POST.get("category_name") or "").strip()
+            description = (request.POST.get("category_description") or "").strip()
+            is_active = request.POST.get("category_is_active") == "on"
+
+            if not name:
                 messages.error(request, "Category name is required")
-        
-        elif action == "add_unit":
-            category_id = request.POST.get("category")
-            name = request.POST.get("unit_name").strip()
-            base_unit = request.POST.get("base_unit").strip()
-            conversion_rate = request.POST.get("conversion_rate", "1").strip()
+                return redirect("environmental:unit-manager")
+
+            UnitCategory.objects.get_or_create(
+                name=name,
+                defaults={
+                    "description": description,
+                    "is_active": is_active,
+                    "created_by": request.user,
+                }
+            )
+
+            messages.success(request, "Category added successfully")
+            return redirect("environmental:unit-manager")
+
+        # ---------- CREATE UNIT ----------
+        elif action == "create_unit":
+            category_id = request.POST.get("unit_category")
+            name = (request.POST.get("unit_name") or "").strip()
+            base_unit = (request.POST.get("unit_base_unit") or "").strip()
+            conversion_rate = request.POST.get("unit_conversion_rate")
+            is_active = request.POST.get("unit_is_active") == "on"
+
+            if not all([category_id, name, base_unit, conversion_rate]):
+                messages.error(request, "All unit fields are required")
+                return redirect("environmental:unit-manager")
 
             try:
                 category = UnitCategory.objects.get(id=category_id)
                 conversion_rate = float(conversion_rate)
+
+                if conversion_rate <= 0:
+                    raise ValueError
+
                 Unit.objects.create(
                     category=category,
                     name=name,
                     base_unit=base_unit,
                     conversion_rate=conversion_rate,
-                    created_by=request.user
+                    is_active=is_active,
+                    created_by=request.user,
                 )
+
                 messages.success(request, "Unit added successfully")
+
             except UnitCategory.DoesNotExist:
                 messages.error(request, "Invalid category selected")
             except ValueError:
-                messages.error(request, "Conversion rate must be a number")
+                messages.error(request, "Conversion rate must be a number greater than 0")
 
-        return redirect("unit-manager")
+            return redirect("environmental:unit-manager")
+
+        return redirect("environmental:unit-manager")
+
 
 class PlantMonthlyEntryView(LoginRequiredMixin, View):
     template_name = "data_collection/data_env.html"
@@ -93,7 +127,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
     def get_questions(self):
         return EnvironmentalQuestion.objects.filter(
             is_active=True
-        ).order_by('order')
+        ).order_by("order")
 
     def slugify_field(self, text):
         return (
@@ -113,12 +147,10 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
         if from_unit == to_unit:
             return value
 
-        if from_unit in ['Count', 'Rate', 'Percentage', 'Yes/No'] or to_unit == 'Yes/No':
+        if from_unit in ["Count", "Rate", "Percentage", "Yes/No"] or to_unit == "Yes/No":
             return value
 
-        return (
-            value * self.CONVERSION_FACTORS.get(from_unit, {}).get(to_unit, 1)
-        )
+        return value * self.CONVERSION_FACTORS.get(from_unit, {}).get(to_unit, 1)
 
     # ---------- GET ----------
 
@@ -131,7 +163,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
         if not questions.exists():
             return render(request, self.template_name, {
                 "plant": plant,
-                "no_questions": True
+                "no_questions": True,
             })
 
         saved_data = MonthlyIndicatorData.objects.filter(plant=plant)
@@ -140,8 +172,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
         unit_dict = {}
 
         for d in saved_data:
-            if d.indicator not in data_dict:
-                data_dict[d.indicator] = {}
+            data_dict.setdefault(d.indicator, {})
 
             if d.indicator not in unit_dict and d.unit:
                 unit_dict[d.indicator] = d.unit
@@ -150,19 +181,14 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 question_text=d.indicator
             ).default_unit
 
-            stored_value = float(d.value)
             display_value = self.convert_value(
-                stored_value,
-                base_unit,
-                unit_dict[d.indicator]
+                float(d.value), base_unit, unit_dict[d.indicator]
             )
 
             data_dict[d.indicator][d.month.capitalize()] = display_value
 
-        # fallback default unit
         for q in questions:
-            if q.question_text not in unit_dict:
-                unit_dict[q.question_text] = q.default_unit
+            unit_dict.setdefault(q.question_text, q.default_unit)
 
         context = {
             "plant": plant,
@@ -186,7 +212,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
     def post(self, request):
         plant = self.get_plant(request)
         if not plant:
-            return redirect("plant-entry")
+            return redirect("environmental:plant-entry")
 
         questions = self.get_questions()
 
@@ -199,9 +225,9 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
 
             for month in MONTHS:
                 field_name = f"{self.slugify_field(question_text)}_{month.lower()}"
-                value = request.POST.get(field_name, "").strip()
+                value = (request.POST.get(field_name) or "").strip()
 
-                if value=="":
+                if not value:
                     continue
 
                 try:
@@ -223,25 +249,20 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 except ValueError:
                     continue
 
-        return redirect("plant-entry")
-
-    
+        return redirect("environmental:plant-entry")
 
 
+# =========================================================
+# QUESTIONS MANAGER
+# =========================================================
 
 class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
-    """
-    View to manage environmental questions - Add, Edit, Delete, Reorder
-    """
     template_name = "data_collection/questions_manager.html"
 
-    # ---------- GET ----------
-
     def get(self, request):
-        questions = self.load_questions()
-        return render(request, self.template_name, {"questions": questions})
-
-    # ---------- POST ROUTER ----------
+        return render(request, self.template_name, {
+            "questions": self.load_questions()
+        })
 
     def post(self, request):
         action = request.POST.get("action")
@@ -253,17 +274,11 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
             "save_all": self.save_all_questions,
         }
 
-        if action in actions:
-            return actions[action](request)
-
-        return redirect("questions-manager")
-
-    # ---------- HELPERS ----------
+        return actions.get(action, lambda r: redirect(
+            "environmental:questions-manager"
+        ))(request)
 
     def load_questions(self):
-        """
-        Load questions ONLY from database
-        """
         return [
             {
                 "id": q.id,
@@ -277,31 +292,25 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
             ).order_by("order")
         ]
 
-    # ---------- ACTIONS ----------
-
     def add_question(self, request):
-        question_text = request.POST.get("question_text", "").strip()
-        default_unit = request.POST.get("default_unit", "Count").strip()
-        unit_options = request.POST.get("unit_options", default_unit).strip()
+        question_text = (request.POST.get("question_text") or "").strip()
+        default_unit = (request.POST.get("default_unit") or "Count").strip()
+        unit_options = (request.POST.get("unit_options") or default_unit).strip()
 
         if not question_text:
             messages.error(request, "Question text is required")
-            return redirect("questions-manager")
+            return redirect("environmental:questions-manager")
 
-        # Prevent duplicates
         if EnvironmentalQuestion.objects.filter(
             question_text__iexact=question_text,
             is_active=True
         ).exists():
             messages.error(request, "This question already exists")
-            return redirect("questions-manager")
+            return redirect("environmental:questions-manager")
 
-        max_order = (
-            EnvironmentalQuestion.objects.aggregate(
-                max_order=models.Max("order")
-            )["max_order"]
-            or 0
-        )
+        max_order = EnvironmentalQuestion.objects.aggregate(
+            max=models.Max("order")
+        )["max"] or 0
 
         EnvironmentalQuestion.objects.create(
             question_text=question_text,
@@ -313,34 +322,21 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
         )
 
         messages.success(request, "Question added successfully")
-        return redirect("questions-manager")
+        return redirect("environmental:questions-manager")
 
     def delete_question(self, request):
         question_id = request.POST.get("question_id")
 
-        try:
-            question = EnvironmentalQuestion.objects.get(id=question_id)
-            question.is_active = False
-            question.save(update_fields=["is_active"])
+        EnvironmentalQuestion.objects.filter(
+            id=question_id
+        ).update(is_active=False)
 
-            messages.success(request, "Question deleted successfully")
-        except EnvironmentalQuestion.DoesNotExist:
-            messages.error(request, "Question not found")
-
-        return redirect("questions-manager")
+        messages.success(request, "Question deleted successfully")
+        return redirect("environmental:questions-manager")
 
     def reorder_questions(self, request):
-        """
-        Expected JSON:
-        [
-            {"id": 1, "order": 1},
-            {"id": 2, "order": 2}
-        ]
-        """
-        order_data = request.POST.get("order_data")
-
         try:
-            orders = json.loads(order_data)
+            orders = json.loads(request.POST.get("order_data", "[]"))
             for item in orders:
                 EnvironmentalQuestion.objects.filter(
                     id=item["id"]
@@ -350,41 +346,36 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
         except Exception:
             messages.error(request, "Failed to reorder questions")
 
-        return redirect("questions-manager")
+        return redirect("environmental:questions-manager")
 
     def save_all_questions(self, request):
-        """
-        Save all questions from editable list
-        """
-        question_count = int(request.POST.get("question_count", 0))
+        count = int(request.POST.get("question_count", 0))
 
-        for i in range(question_count):
-            question_id = request.POST.get(f"question_id_{i}")
-            question_text = request.POST.get(f"question_text_{i}", "").strip()
-            default_unit = request.POST.get(f"default_unit_{i}", "Count").strip()
-            unit_options = request.POST.get(
-                f"unit_options_{i}", default_unit
-            ).strip()
+        for i in range(count):
+            qid = request.POST.get(f"question_id_{i}")
+            text = (request.POST.get(f"question_text_{i}") or "").strip()
+            unit = (request.POST.get(f"default_unit_{i}") or "Count").strip()
+            opts = (request.POST.get(f"unit_options_{i}") or unit).strip()
 
-            if not question_text:
+            if not text:
                 continue
 
-            if question_id:
-                EnvironmentalQuestion.objects.filter(id=question_id).update(
-                    question_text=question_text,
-                    default_unit=default_unit,
-                    unit_options=unit_options,
+            if qid:
+                EnvironmentalQuestion.objects.filter(id=qid).update(
+                    question_text=text,
+                    default_unit=unit,
+                    unit_options=opts,
                     order=i + 1,
                 )
             else:
                 EnvironmentalQuestion.objects.create(
-                    question_text=question_text,
-                    default_unit=default_unit,
-                    unit_options=unit_options,
+                    question_text=text,
+                    default_unit=unit,
+                    unit_options=opts,
                     order=i + 1,
                     created_by=request.user,
                     is_active=True,
                 )
 
         messages.success(request, "All questions saved successfully")
-        return redirect("questions-manager")
+        return redirect("environmental:questions-manager")

@@ -168,10 +168,11 @@
 {% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'environmental:unit-manager' %}">Home</a></li>
 <li class="breadcrumb-item"><a href="#">Environmental Management</a></li>
 <li class="breadcrumb-item active">Unit Management</li>
 {% endblock %}
+
 
 {% block content %}
 <div class="row">
@@ -489,14 +490,16 @@
                     </span>
                   </div>
                   <div class="action-buttons">
-                    <a href="{% url 'environmental:edit_category' category.id %}" class="btn btn-sm btn-outline-primary">
-                      <i class="fas fa-edit"></i> Edit
-                    </a>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDelete('category', {{ category.id }})">
-                      <i class="fas fa-trash"></i> Delete
-                    </button>
-                  </div>
+                  <button class="btn btn-sm btn-outline-secondary" disabled>
+                    <i class="fas fa-edit"></i> Edit
+                  </button>
+                  <button type="button"
+                          class="btn btn-sm btn-outline-danger"
+                          onclick="confirmDelete('category', {{ category.id }})">
+                    <i class="fas fa-trash"></i> Delete
+                  </button>
                 </div>
+
 
                 {% if category.description %}
                 <div class="category-description">
@@ -510,20 +513,24 @@
                     <div class="unit-badges-container">
                       {% for unit in category.units.all %}
                         <span class="unit-badge">
-                          <strong>{{ unit.name }}</strong> 
-                          <span class="conversion-rate">
-                            (1 {{ unit.name }} = {{ unit.conversion_rate }} {{ unit.base_unit }})
-                          </span>
-                          {% if not unit.is_active %}
-                            <span class="badge badge-danger ml-1">Inactive</span>
-                          {% endif %}
-                          <a href="{% url 'environmental:edit_unit' unit.id %}" class="ml-2" title="Edit">
-                            <i class="fas fa-edit text-primary"></i>
-                          </a>
-                          <a href="#" onclick="confirmDelete('unit', {{ unit.id }}); return false;" class="ml-1" title="Delete">
-                            <i class="fas fa-trash text-danger"></i>
-                          </a>
+                        <strong>{{ unit.name }}</strong>
+                        <span class="conversion-rate">
+                          (1 {{ unit.name }} = {{ unit.conversion_rate }} {{ unit.base_unit }})
                         </span>
+
+                        {% if not unit.is_active %}
+                          <span class="badge badge-danger ml-1">Inactive</span>
+                        {% endif %}
+
+                        <!-- FIX: Edit disabled -->
+                        <i class="fas fa-edit text-muted ml-2" title="Edit (Not implemented)"></i>
+
+                        <!-- FIX: Delete via modal -->
+                        <a href="#" onclick="confirmDelete('unit', {{ unit.id }}); return false;"
+                          class="ml-1" title="Delete">
+                          <i class="fas fa-trash text-danger"></i>
+                        </a>
+                      </span>
                       {% endfor %}
                     </div>
                   {% else %}
@@ -544,8 +551,8 @@
       </div>
 
       <div class="card-footer">
-        <a href="#" class="btn btn-secondary btn-lg">
-          <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        <a href="{% url 'environmental:unit-manager' %}" class="btn btn-secondary btn-lg">
+          <i class="fas fa-arrow-left mr-2"></i>Back
         </a>
       </div>
     </div>
@@ -586,129 +593,23 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Form elements
-    const unitForm = document.getElementById('unitManagementForm');
-    const categorySelect = document.getElementById('id_unit_category');
-    const unitNameInput = document.getElementById('id_unit_name');
-    const baseUnitInput = document.getElementById('id_unit_base_unit');
-    const conversionRateInput = document.getElementById('id_unit_conversion_rate');
-    const conversionInfo = document.getElementById('conversionInfo');
-    const conversionText = document.getElementById('conversionText');
-
-    // Show conversion preview
-    function updateConversionPreview() {
-        const unitName = unitNameInput.value.trim();
-        const baseUnit = baseUnitInput.value.trim();
-        const conversionRate = parseFloat(conversionRateInput.value);
-
-        if (unitName && baseUnit && conversionRate && !isNaN(conversionRate)) {
-            conversionInfo.style.display = 'block';
-            conversionText.innerHTML = `
-                <strong>1 ${unitName} = ${conversionRate} ${baseUnit}</strong><br>
-                <small>Example: 5 ${unitName} = ${5 * conversionRate} ${baseUnit}</small>
-            `;
-        } else {
-            conversionInfo.style.display = 'none';
-        }
-    }
-
-    // Event listeners for conversion preview
-    if (unitNameInput && baseUnitInput && conversionRateInput) {
-        unitNameInput.addEventListener('input', updateConversionPreview);
-        baseUnitInput.addEventListener('input', updateConversionPreview);
-        conversionRateInput.addEventListener('input', updateConversionPreview);
-    }
-
-    // Category change handler - could load base unit from server
-    if (categorySelect) {
-        categorySelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            // You can add AJAX call here to fetch category's common base unit
-            // For now, just clear the base unit field
-            if (baseUnitInput && this.value) {
-                // Optional: Pre-fill base unit based on category
-                baseUnitInput.focus();
-            }
-        });
-    }
-
-    // Form validation
-    if (unitForm) {
-        unitForm.addEventListener('submit', function(e) {
-            const actionValue = e.submitter ? e.submitter.value : document.activeElement.value;
-            
-            if (actionValue === 'create_category') {
-                // Validate category form
-                const categoryName = document.getElementById('id_category_name').value.trim();
-                if (!categoryName) {
-                    e.preventDefault();
-                    alert('Please enter a category name.');
-                    document.getElementById('id_category_name').focus();
-                    return false;
-                }
-            }
-            
-            if (actionValue === 'create_unit') {
-                // Validate unit form
-                if (!categorySelect.value) {
-                    e.preventDefault();
-                    alert('Please select a category before adding a unit.');
-                    categorySelect.focus();
-                    return false;
-                }
-
-                if (!unitNameInput.value.trim()) {
-                    e.preventDefault();
-                    alert('Please enter a unit name.');
-                    unitNameInput.focus();
-                    return false;
-                }
-
-                if (!baseUnitInput.value.trim()) {
-                    e.preventDefault();
-                    alert('Please enter a base unit.');
-                    baseUnitInput.focus();
-                    return false;
-                }
-
-                const conversionRate = parseFloat(conversionRateInput.value);
-                if (!conversionRate || isNaN(conversionRate) || conversionRate <= 0) {
-                    e.preventDefault();
-                    alert('Please enter a valid conversion rate greater than 0.');
-                    conversionRateInput.focus();
-                    return false;
-                }
-            }
-        });
-    }
-
-    // Auto-dismiss alerts after 5 seconds
-    setTimeout(function() {
-        const alerts = document.querySelectorAll('.alert:not(.alert-info):not(.alert-warning)');
-        alerts.forEach(function(alert) {
-            $(alert).fadeOut('slow', function() {
-                $(this).remove();
-            });
-        });
-    }, 5000);
-});
-
-// Delete confirmation function
 function confirmDelete(type, id) {
     const modal = $('#deleteModal');
     const deleteForm = document.getElementById('deleteForm');
     const deleteMessage = document.getElementById('deleteMessage');
-    
+
+    deleteForm.action = ""; // FIX: prevent NoReverseMatch
+
     if (type === 'category') {
-        deleteMessage.innerHTML = 'Are you sure you want to delete this category?<br><strong class="text-danger">All units in this category will also be deleted!</strong>';
-        deleteForm.action = `/environmental/units/category/${id}/delete/`;
-    } else if (type === 'unit') {
+        deleteMessage.innerHTML =
+            'Are you sure you want to delete this category?<br>' +
+            '<strong class="text-danger">All units in this category will also be deleted!</strong>';
+    } else {
         deleteMessage.textContent = 'Are you sure you want to delete this unit?';
-        deleteForm.action = `/environmental/units/unit/${id}/delete/`;
     }
-    
+
     modal.modal('show');
 }
 </script>
+
 {% endblock %}
