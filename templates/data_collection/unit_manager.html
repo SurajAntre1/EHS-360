@@ -1,0 +1,714 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Unit Management{% endblock %}
+{% block page_title %}Unit Management{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Unit Management Sections */
+.unit-section {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    margin-bottom: 20px;
+}
+
+.unit-section h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.category-card {
+    background-color: #ffffff;
+    border: 2px solid #e3f2fd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.category-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-color: #2196f3;
+}
+
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.category-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1976d2;
+}
+
+.category-description {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.unit-badge {
+    display: inline-block;
+    padding: 5px 12px;
+    margin: 5px;
+    background-color: #e3f2fd;
+    border: 1px solid #2196f3;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    color: #1565c0;
+}
+
+.unit-badge .conversion-rate {
+    font-weight: 600;
+    color: #0d47a1;
+}
+
+.readonly-field {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+.base-unit-display {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-weight: 500;
+    color: #856404;
+}
+
+.conversion-info {
+    background-color: #d1ecf1;
+    border: 1px solid #17a2b8;
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table thead th {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    font-weight: 600;
+}
+
+.table tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-active {
+    background-color: #c8e6c9;
+    color: #2e7d32;
+}
+
+.status-inactive {
+    background-color: #ffcdd2;
+    color: #c62828;
+}
+
+.form-section-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.form-section-header h5 {
+    margin: 0;
+    font-weight: 600;
+}
+
+.unit-form-section {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 15px;
+    opacity: 0.3;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="#">Environmental Management</a></li>
+<li class="breadcrumb-item active">Unit Management</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="ehs-card">
+      <div class="card-header bg-primary text-white">
+        <h3 class="card-title mb-0">
+          <i class="fas fa-balance-scale mr-2"></i>Unit Management System
+        </h3>
+      </div>
+
+      <!-- Tab Navigation -->
+      <ul class="nav nav-tabs mt-3 ml-3" id="unitTabs" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" id="create-tab" data-toggle="tab" href="#create" role="tab">
+            <i class="fas fa-plus-circle mr-1"></i>Create Units
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="list-tab" data-toggle="tab" href="#list" role="tab">
+            <i class="fas fa-list mr-1"></i>View All Units
+          </a>
+        </li>
+      </ul>
+
+      <div class="tab-content p-3">
+        <!-- CREATE TAB -->
+        <div class="tab-pane fade show active" id="create" role="tabpanel">
+          <form method="POST" id="unitManagementForm">
+            {% csrf_token %}
+            
+            <div class="card-body">
+              <!-- Alert Info -->
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle mr-2"></i>
+                <strong>Note:</strong> Create unit categories first, then add individual units with their conversion rates.
+                All fields marked with <span class="text-danger">*</span> are mandatory.
+              </div>
+
+              <!-- Form Errors Display -->
+              {% if form.errors or category_form.errors or form.non_field_errors %}
+              <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <h5 class="alert-heading"><i class="fas fa-exclamation-triangle mr-2"></i>Please Correct the Following Errors:</h5>
+                
+                {% if form.non_field_errors %}
+                  <ul class="mb-2">
+                    {% for error in form.non_field_errors %}
+                      <li><strong>{{ error }}</strong></li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+                
+                {% if category_form.errors %}
+                  <ul class="mb-2">
+                    <li><strong>Unit Category Errors:</strong></li>
+                    {% for field in category_form %}
+                      {% if field.errors %}
+                        {% for error in field.errors %}
+                          <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                        {% endfor %}
+                      {% endif %}
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+
+                {% if form.errors %}
+                  <ul class="mb-0">
+                    <li><strong>Unit Errors:</strong></li>
+                    {% for field in form %}
+                      {% if field.errors %}
+                        {% for error in field.errors %}
+                          <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                        {% endfor %}
+                      {% endif %}
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+                
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              {% endif %}
+
+              <!-- Success Messages -->
+              {% if messages %}
+                {% for message in messages %}
+                  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle mr-2"></i>{{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+
+              <!-- SECTION 1: UNIT CATEGORY FORM -->
+              <div class="form-section-header">
+                <h5><i class="fas fa-folder-plus mr-2"></i>Step 1: Create Unit Category</h5>
+              </div>
+
+              <div class="unit-form-section">
+                <div class="alert alert-warning">
+                  <i class="fas fa-lightbulb mr-2"></i>
+                  <strong>Tip:</strong> A Unit Category groups related units together (e.g., Weight, Volume, Energy).
+                  Create categories before adding individual units.
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="id_category_name">Category Name <span class="text-danger">*</span></label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="id_category_name" 
+                           name="category_name" 
+                           placeholder="Enter category name (e.g., Weight, Volume, Energy)"
+                           maxlength="100"
+                           value="{{ category_form.name.value|default:'' }}">
+                    <small class="form-text text-muted">e.g., Weight, Volume, Energy, Time, Distance</small>
+                    {% if category_form.name.errors %}
+                      <div class="text-danger mt-1">
+                        {% for error in category_form.name.errors %}
+                          <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="id_category_is_active">Status</label>
+                    <div class="form-check mt-2">
+                      <input type="checkbox" 
+                             class="form-check-input" 
+                             id="id_category_is_active" 
+                             name="category_is_active"
+                             {% if category_form.is_active.value %}checked{% endif %}>
+                      <label class="form-check-label" for="id_category_is_active">
+                        Active
+                      </label>
+                    </div>
+                    <small class="form-text text-muted">Inactive categories won't appear in selections</small>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-12 mb-3">
+                    <label for="id_category_description">Description</label>
+                    <textarea class="form-control" 
+                              id="id_category_description" 
+                              name="category_description" 
+                              rows="3" 
+                              placeholder="Brief description of what this category represents">{{ category_form.description.value|default:'' }}</textarea>
+                    <small class="form-text text-muted">Optional: Brief description of what this category represents</small>
+                    {% if category_form.description.errors %}
+                      <div class="text-danger mt-1">
+                        {% for error in category_form.description.errors %}
+                          <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="text-right">
+                  <button type="submit" name="action" value="create_category" class="btn btn-primary">
+                    <i class="fas fa-save mr-2"></i>Save Category
+                  </button>
+                </div>
+              </div>
+
+              <hr class="my-4">
+
+              <!-- SECTION 2: UNIT FORM -->
+              <div class="form-section-header">
+                <h5><i class="fas fa-ruler-combined mr-2"></i>Step 2: Add Individual Units</h5>
+              </div>
+
+              <div class="unit-form-section">
+                <div class="alert alert-warning">
+                  <i class="fas fa-lightbulb mr-2"></i>
+                  <strong>Tip:</strong> Select a category, then add units with their conversion rates relative to the base unit.
+                  Example: If base unit is 'kg', then 'MT' would have conversion rate 1000 (1 MT = 1000 kg).
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="id_unit_category">Select Category <span class="text-danger">*</span></label>
+                    <select class="form-control" id="id_unit_category" name="unit_category">
+                      <option value="">-- Select Category --</option>
+                      {% for category in categories %}
+                        <option value="{{ category.id }}" {% if form.category.value == category.id %}selected{% endif %}>
+                          {{ category.name }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">Choose the category this unit belongs to</small>
+                    {% if form.category.errors %}
+                      <div class="text-danger mt-1">
+                        {% for error in form.category.errors %}
+                          <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="id_unit_name">Unit Name <span class="text-danger">*</span></label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="id_unit_name" 
+                           name="unit_name" 
+                           placeholder="e.g., kg, MT, m³, kWh, liters"
+                           maxlength="50"
+                           value="{{ form.name.value|default:'' }}">
+                    <small class="form-text text-muted">e.g., kg, MT, m³, kWh, liters</small>
+                    {% if form.name.errors %}
+                      <div class="text-danger mt-1">
+                        {% for error in form.name.errors %}
+                          <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="id_unit_base_unit">Base Unit <span class="text-danger">*</span></label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="id_unit_base_unit" 
+                           name="unit_base_unit" 
+                           placeholder="e.g., kg, liters, meters"
+                           maxlength="50"
+                           value="{{ form.base_unit.value|default:'' }}">
+                    <small class="form-text text-muted">The reference unit for this category (e.g., kg for Weight)</small>
+                    {% if form.base_unit.errors %}
+                      <div class="text-danger mt-1">
+                        {% for error in form.base_unit.errors %}
+                          <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label for="id_unit_conversion_rate">Conversion Rate <span class="text-danger">*</span></label>
+                    <input type="number" 
+                           class="form-control" 
+                           id="id_unit_conversion_rate" 
+                           name="unit_conversion_rate" 
+                           placeholder="e.g., 1000 (for MT to kg)"
+                           step="0.0001"
+                           min="0"
+                           value="{{ form.conversion_rate.value|default:'' }}">
+                    <small class="form-text text-muted">How many base units equal 1 of this unit</small>
+                    {% if form.conversion_rate.errors %}
+                      <div class="text-danger mt-1">
+                        {% for error in form.conversion_rate.errors %}
+                          <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Conversion Rate Explanation -->
+                <div class="conversion-info" id="conversionInfo" style="display: none;">
+                  <h6><i class="fas fa-calculator mr-2"></i>Conversion Preview:</h6>
+                  <p id="conversionText" class="mb-0"></p>
+                </div>
+
+                <div class="row mt-3">
+                  <div class="col-md-6 mb-3">
+                    <label for="id_unit_is_active">Status</label>
+                    <div class="form-check mt-2">
+                      <input type="checkbox" 
+                             class="form-check-input" 
+                             id="id_unit_is_active" 
+                             name="unit_is_active"
+                             {% if form.is_active.value %}checked{% endif %}>
+                      <label class="form-check-label" for="id_unit_is_active">
+                        Active
+                      </label>
+                    </div>
+                    <small class="form-text text-muted">Inactive units won't appear in selections</small>
+                  </div>
+                </div>
+
+                <div class="text-right">
+                  <button type="submit" name="action" value="create_unit" class="btn btn-success">
+                    <i class="fas fa-plus-circle mr-2"></i>Add Unit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- LIST TAB -->
+        <div class="tab-pane fade" id="list" role="tabpanel">
+          <div class="card-body">
+            <h5 class="mb-4"><i class="fas fa-list-alt mr-2"></i>All Unit Categories & Units</h5>
+
+            {% if categories %}
+              {% for category in categories %}
+              <div class="category-card">
+                <div class="category-header">
+                  <div>
+                    <span class="category-name">
+                      <i class="fas fa-folder-open mr-2"></i>{{ category.name }}
+                    </span>
+                    <span class="status-badge {% if category.is_active %}status-active{% else %}status-inactive{% endif %} ml-2">
+                      {% if category.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                  </div>
+                  <div class="action-buttons">
+                    <a href="{% url 'environmental:edit_category' category.id %}" class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDelete('category', {{ category.id }})">
+                      <i class="fas fa-trash"></i> Delete
+                    </button>
+                  </div>
+                </div>
+
+                {% if category.description %}
+                <div class="category-description">
+                  <i class="fas fa-info-circle mr-1"></i>{{ category.description }}
+                </div>
+                {% endif %}
+
+                <div class="mt-3">
+                  <strong class="d-block mb-2"><i class="fas fa-ruler mr-2"></i>Units in this category:</strong>
+                  {% if category.units.all %}
+                    <div class="unit-badges-container">
+                      {% for unit in category.units.all %}
+                        <span class="unit-badge">
+                          <strong>{{ unit.name }}</strong> 
+                          <span class="conversion-rate">
+                            (1 {{ unit.name }} = {{ unit.conversion_rate }} {{ unit.base_unit }})
+                          </span>
+                          {% if not unit.is_active %}
+                            <span class="badge badge-danger ml-1">Inactive</span>
+                          {% endif %}
+                          <a href="{% url 'environmental:edit_unit' unit.id %}" class="ml-2" title="Edit">
+                            <i class="fas fa-edit text-primary"></i>
+                          </a>
+                          <a href="#" onclick="confirmDelete('unit', {{ unit.id }}); return false;" class="ml-1" title="Delete">
+                            <i class="fas fa-trash text-danger"></i>
+                          </a>
+                        </span>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <p class="text-muted mb-0"><i>No units added yet for this category</i></p>
+                  {% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <h5>No Categories Found</h5>
+                <p class="text-muted">Start by creating a unit category in the "Create Units" tab.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <a href="#" class="btn btn-secondary btn-lg">
+          <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="deleteModalLabel">
+          <i class="fas fa-exclamation-triangle mr-2"></i>Confirm Deletion
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="deleteMessage">Are you sure you want to delete this item?</p>
+        <p class="text-danger"><strong>Warning:</strong> This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <i class="fas fa-times mr-2"></i>Cancel
+        </button>
+        <form id="deleteForm" method="POST" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash mr-2"></i>Delete
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form elements
+    const unitForm = document.getElementById('unitManagementForm');
+    const categorySelect = document.getElementById('id_unit_category');
+    const unitNameInput = document.getElementById('id_unit_name');
+    const baseUnitInput = document.getElementById('id_unit_base_unit');
+    const conversionRateInput = document.getElementById('id_unit_conversion_rate');
+    const conversionInfo = document.getElementById('conversionInfo');
+    const conversionText = document.getElementById('conversionText');
+
+    // Show conversion preview
+    function updateConversionPreview() {
+        const unitName = unitNameInput.value.trim();
+        const baseUnit = baseUnitInput.value.trim();
+        const conversionRate = parseFloat(conversionRateInput.value);
+
+        if (unitName && baseUnit && conversionRate && !isNaN(conversionRate)) {
+            conversionInfo.style.display = 'block';
+            conversionText.innerHTML = `
+                <strong>1 ${unitName} = ${conversionRate} ${baseUnit}</strong><br>
+                <small>Example: 5 ${unitName} = ${5 * conversionRate} ${baseUnit}</small>
+            `;
+        } else {
+            conversionInfo.style.display = 'none';
+        }
+    }
+
+    // Event listeners for conversion preview
+    if (unitNameInput && baseUnitInput && conversionRateInput) {
+        unitNameInput.addEventListener('input', updateConversionPreview);
+        baseUnitInput.addEventListener('input', updateConversionPreview);
+        conversionRateInput.addEventListener('input', updateConversionPreview);
+    }
+
+    // Category change handler - could load base unit from server
+    if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            // You can add AJAX call here to fetch category's common base unit
+            // For now, just clear the base unit field
+            if (baseUnitInput && this.value) {
+                // Optional: Pre-fill base unit based on category
+                baseUnitInput.focus();
+            }
+        });
+    }
+
+    // Form validation
+    if (unitForm) {
+        unitForm.addEventListener('submit', function(e) {
+            const actionValue = e.submitter ? e.submitter.value : document.activeElement.value;
+            
+            if (actionValue === 'create_category') {
+                // Validate category form
+                const categoryName = document.getElementById('id_category_name').value.trim();
+                if (!categoryName) {
+                    e.preventDefault();
+                    alert('Please enter a category name.');
+                    document.getElementById('id_category_name').focus();
+                    return false;
+                }
+            }
+            
+            if (actionValue === 'create_unit') {
+                // Validate unit form
+                if (!categorySelect.value) {
+                    e.preventDefault();
+                    alert('Please select a category before adding a unit.');
+                    categorySelect.focus();
+                    return false;
+                }
+
+                if (!unitNameInput.value.trim()) {
+                    e.preventDefault();
+                    alert('Please enter a unit name.');
+                    unitNameInput.focus();
+                    return false;
+                }
+
+                if (!baseUnitInput.value.trim()) {
+                    e.preventDefault();
+                    alert('Please enter a base unit.');
+                    baseUnitInput.focus();
+                    return false;
+                }
+
+                const conversionRate = parseFloat(conversionRateInput.value);
+                if (!conversionRate || isNaN(conversionRate) || conversionRate <= 0) {
+                    e.preventDefault();
+                    alert('Please enter a valid conversion rate greater than 0.');
+                    conversionRateInput.focus();
+                    return false;
+                }
+            }
+        });
+    }
+
+    // Auto-dismiss alerts after 5 seconds
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert:not(.alert-info):not(.alert-warning)');
+        alerts.forEach(function(alert) {
+            $(alert).fadeOut('slow', function() {
+                $(this).remove();
+            });
+        });
+    }, 5000);
+});
+
+// Delete confirmation function
+function confirmDelete(type, id) {
+    const modal = $('#deleteModal');
+    const deleteForm = document.getElementById('deleteForm');
+    const deleteMessage = document.getElementById('deleteMessage');
+    
+    if (type === 'category') {
+        deleteMessage.innerHTML = 'Are you sure you want to delete this category?<br><strong class="text-danger">All units in this category will also be deleted!</strong>';
+        deleteForm.action = `/environmental/units/category/${id}/delete/`;
+    } else if (type === 'unit') {
+        deleteMessage.textContent = 'Are you sure you want to delete this unit?';
+        deleteForm.action = `/environmental/units/unit/${id}/delete/`;
+    }
+    
+    modal.modal('show');
+}
+</script>
+{% endblock %}
