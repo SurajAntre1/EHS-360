@@ -7,7 +7,7 @@ from .models import (
     InspectionSchedule, Inspection, InspectionResponse, InspectionFinding
 )
 from apps.organizations.models import Plant, Zone, Location, Department
-from apps.accounts.models import User
+from apps.accounts.models import User,Role
 
 
 class InspectionScheduleForm(forms.ModelForm):
@@ -76,7 +76,7 @@ class InspectionScheduleForm(forms.ModelForm):
             # Filter assigned_to to HODs in the same plant
             self.fields['assigned_to'].queryset = User.objects.filter(
                 plant=self.user.plant,
-                role='HOD',
+                role__name='HOD',
                 is_active=True
             )
         else:
@@ -84,7 +84,7 @@ class InspectionScheduleForm(forms.ModelForm):
             self.fields['plant'].queryset = Plant.objects.filter(is_active=True)
             self.fields['zone'].queryset = Zone.objects.filter(is_active=True)
             self.fields['location'].queryset = Location.objects.filter(is_active=True)
-            self.fields['assigned_to'].queryset = User.objects.filter(role='HOD', is_active=True)
+            self.fields['assigned_to'].queryset = User.objects.filter(role__name='HOD', is_active=True)
     
     def clean(self):
         cleaned_data = super().clean()
@@ -197,11 +197,11 @@ class FindingAssignmentForm(forms.ModelForm):
             self.fields['assigned_to'].queryset = User.objects.filter(
                 plant=self.user.plant,
                 is_active=True
-            ).exclude(role='EMPLOYEE')
+            ).exclude(role__name='EMPLOYEE')
         else:
             self.fields['assigned_to'].queryset = User.objects.filter(
                 is_active=True
-            ).exclude(role='EMPLOYEE')
+            ).exclude(role__name='EMPLOYEE')
 
 
 class FindingActionForm(forms.ModelForm):

@@ -219,7 +219,7 @@
           </ul>
         </li>
 
-        {% if user.is_staff or user.role == 'ADMIN' or user.is_plant_head %}
+        {% if user.is_staff or user.role.name == 'ADMIN' or user.is_plant_head %}
         <!-- Administration Section -->
         <li class="nav-header">ADMINISTRATION</li>
         

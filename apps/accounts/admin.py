@@ -48,10 +48,10 @@ class CustomUserAdmin(UserAdmin):
         # If is_superuser is checked, it's a superadmin (though should use createsuperuser)
         if obj.is_superuser:
             obj.is_staff = True
-            obj.role = 'ADMIN'  # Set default role to avoid null
+            obj.role.name = 'ADMIN'  # Set default role to avoid null
         
         # ADMIN role - Only EHS-360 web app access, NO Django admin
-        elif obj.role == 'ADMIN':
+        elif obj.role.name == 'ADMIN':
             obj.is_staff = False
             obj.is_superuser = False
         
