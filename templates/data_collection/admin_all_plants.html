@@ -1,0 +1,294 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .admin-data-container {
+        padding: 20px;
+        background: #f8f9fa;
+        min-height: 100vh;
+    }
+    
+    .header-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .header-info h2 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 24px;
+        font-weight: 600;
+    }
+    
+    .no-questions-alert {
+        background: white;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .data-table-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+    
+    .table-wrapper {
+        overflow-x: auto;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .data-table thead th {
+        background: #34495e;
+        color: white;
+        padding: 12px 8px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 13px;
+        border-right: 1px solid #2c3e50;
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .data-table thead th:first-child,
+    .data-table thead th:nth-child(2) {
+        text-align: left;
+        position: sticky;
+        left: 0;
+        z-index: 11;
+    }
+    
+    .data-table thead th:first-child {
+        min-width: 200px;
+    }
+    
+    .data-table thead th:nth-child(2) {
+        left: 200px;
+        min-width: 350px;
+    }
+    
+    .data-table tbody td {
+        padding: 10px 8px;
+        border: 1px solid #dee2e6;
+        text-align: center;
+        font-size: 13px;
+    }
+    
+    .data-table tbody td:first-child,
+    .data-table tbody td:nth-child(2) {
+        text-align: left;
+        font-weight: 500;
+        background: white;
+        position: sticky;
+        left: 0;
+    }
+    
+    .data-table tbody td:nth-child(2) {
+        left: 200px;
+    }
+    
+    .plant-row {
+        background: #e8f4fc;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .plant-row td {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .plant-row:hover {
+        background: #d4ebf7;
+    }
+    
+    .plant-name {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .expand-icon {
+        transition: transform 0.3s;
+        font-size: 14px;
+    }
+    
+    .expand-icon.expanded {
+        transform: rotate(90deg);
+    }
+    
+    .question-row {
+        display: none;
+    }
+    
+    .question-row.show {
+        display: table-row;
+    }
+    
+    .question-row:hover {
+        background: #f8f9fa;
+    }
+    
+    .question-text {
+        padding-left: 30px;
+        color: #2c3e50;
+    }
+    
+    .unit-badge {
+        background: #3498db;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+    
+    .value-cell {
+        color: #2c3e50;
+    }
+    
+    .value-cell.has-value {
+        font-weight: 600;
+        color: #27ae60;
+    }
+    
+    .annual-cell {
+        background: #fff3cd;
+        font-weight: 600;
+        color: #856404;
+    }
+    
+    .btn-back {
+        background: #95a5a6;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s;
+    }
+    
+    .btn-back:hover {
+        background: #7f8c8d;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-data-container">
+    <div class="header-section">
+        <div class="header-content">
+            <div class="header-info">
+                <h2><i class="fas fa-chart-bar"></i> All Plants Environmental Data</h2>
+            </div>
+            <div>
+                <a href="{% url 'environmental:questions-manager' %}" class="btn-back">
+                    <i class="fas fa-cog"></i> Manage Questions
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if no_questions %}
+    <div class="no-questions-alert">
+        <h3>No Environmental Questions Configured</h3>
+        <p>Please add environmental questions first.</p>
+        <a href="{% url 'environmental:questions-manager' %}" class="btn-primary">
+            Go to Questions Manager
+        </a>
+    </div>
+    {% else %}
+    <div class="data-table-container">
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>BUSINESS UNIT</th>
+                        <th>ASSIGNED QUESTION</th>
+                        <th>ANNUAL</th>
+                        {% for month in months %}
+                        <th>{{ month|upper }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plant_data in plants_data %}
+                    <!-- Plant Header Row -->
+                    <tr class="plant-row" data-plant-id="{{ plant_data.plant.id }}" onclick="togglePlant({{ plant_data.plant.id }})">
+                        <td colspan="2">
+                            <div class="plant-name">
+                                <span class="expand-icon" id="icon-{{ plant_data.plant.id }}">▶</span>
+                                <strong>{{ plant_data.plant.name }}</strong>
+                            </div>
+                        </td>
+                        <td colspan="{{ months|length|add:1 }}"></td>
+                    </tr>
+                    
+                    <!-- Question Rows for this Plant -->
+                    {% for q_data in plant_data.questions_data %}
+                    <tr class="question-row plant-{{ plant_data.plant.id }}-questions">
+                        <td></td>
+                        <td class="question-text">
+                            {{ q_data.question }}
+                            <span class="unit-badge">{{ q_data.unit }}</span>
+                        </td>
+                        <td class="annual-cell">{{ q_data.annual }}</td>
+                        {% for month in months %}
+                        <td class="value-cell {% if q_data.month_data|get_item:month %}has-value{% endif %}">
+                            {{ q_data.month_data|get_item:month|default:"0%" }}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function togglePlant(plantId) {
+    const icon = document.getElementById(`icon-${plantId}`);
+    const questions = document.querySelectorAll(`.plant-${plantId}-questions`);
+    
+    icon.classList.toggle('expanded');
+    
+    questions.forEach(row => {
+        row.classList.toggle('show');
+    });
+}
+
+// Expand all plants by default
+document.addEventListener('DOMContentLoaded', function() {
+    const plantRows = document.querySelectorAll('.plant-row');
+    plantRows.forEach(row => {
+        const plantId = row.getAttribute('data-plant-id');
+        togglePlant(plantId);
+    });
+});
+</script>
+{% endblock %}
