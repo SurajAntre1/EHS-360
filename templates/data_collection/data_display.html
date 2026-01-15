@@ -1,0 +1,551 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load custom_tags %}
+
+{% block extra_css %}
+<style>
+    .data-display-container {
+        padding: 20px;
+        background: #f8f9fa;
+        min-height: 100vh;
+    }
+    
+    .header-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .header-info h2 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 24px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .plant-info {
+        color: #7f8c8d;
+        margin-top: 8px;
+        font-size: 14px;
+    }
+    
+    .plant-info strong {
+        color: #2c3e50;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #2980b9;
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+    }
+    
+    .btn-success {
+        background: #27ae60;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background: #229954;
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
+    }
+    
+    .btn-secondary {
+        background: #95a5a6;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: #7f8c8d;
+        color: white;
+    }
+    
+    .no-questions-alert {
+        background: white;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+        margin-top: 20px;
+    }
+    
+    .no-questions-alert h3 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+        font-size: 22px;
+    }
+    
+    .no-questions-alert p {
+        color: #7f8c8d;
+        margin-bottom: 20px;
+        font-size: 16px;
+    }
+    
+    .no-questions-alert i {
+        font-size: 64px;
+        color: #bdc3c7;
+        margin-bottom: 20px;
+    }
+    
+    .data-table-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .table-header {
+        background: #ecf0f1;
+        padding: 15px 20px;
+        border-bottom: 2px solid #bdc3c7;
+    }
+    
+    .table-header h3 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 18px;
+        font-weight: 600;
+    }
+    
+    .table-wrapper {
+        overflow-x: auto;
+        max-height: calc(100vh - 250px);
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .data-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .data-table thead th {
+        background: #34495e;
+        color: white;
+        padding: 12px 10px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 13px;
+        border-right: 1px solid #2c3e50;
+        white-space: nowrap;
+    }
+    
+    .data-table thead th:first-child {
+        text-align: left;
+        min-width: 400px;
+        position: sticky;
+        left: 0;
+        z-index: 11;
+    }
+    
+    .data-table thead th:nth-child(2) {
+        background: #f39c12;
+        min-width: 100px;
+    }
+    
+    .data-table tbody tr {
+        border-bottom: 1px solid #e9ecef;
+        transition: background-color 0.2s;
+    }
+    
+    .data-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .data-table tbody tr:nth-child(even) {
+        background-color: #fafbfc;
+    }
+    
+    .data-table tbody td {
+        padding: 12px 10px;
+        border-right: 1px solid #e9ecef;
+        text-align: center;
+        font-size: 13px;
+    }
+    
+    .data-table tbody td:first-child {
+        text-align: left;
+        font-weight: 500;
+        color: #2c3e50;
+        background: inherit;
+        position: sticky;
+        left: 0;
+        z-index: 9;
+        border-right: 2px solid #dee2e6;
+    }
+    
+    .data-table tbody tr:hover td:first-child {
+        background-color: #f8f9fa;
+    }
+    
+    .data-table tbody tr:nth-child(even) td:first-child {
+        background-color: #fafbfc;
+    }
+    
+    .question-number {
+        display: inline-block;
+        background: #3498db;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-right: 8px;
+    }
+    
+    .unit-badge {
+        background: #27ae60;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+    
+    .value-cell {
+        color: #7f8c8d;
+        font-weight: 500;
+    }
+    
+    .value-cell.has-value {
+        color: #2c3e50;
+        font-weight: 600;
+    }
+    
+    .value-cell.zero-value {
+        color: #e74c3c;
+    }
+    
+    .annual-cell {
+        background: #fff3cd !important;
+        font-weight: 700;
+        color: #856404;
+        font-size: 14px;
+    }
+    
+    .empty-data-message {
+        text-align: center;
+        padding: 40px;
+        color: #7f8c8d;
+    }
+    
+    .empty-data-message i {
+        font-size: 48px;
+        color: #bdc3c7;
+        margin-bottom: 15px;
+    }
+    
+    .empty-data-message p {
+        font-size: 16px;
+        margin: 10px 0;
+    }
+    
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .stat-card i {
+        font-size: 32px;
+        margin-bottom: 10px;
+    }
+    
+    .stat-card.primary {
+        border-left: 4px solid #3498db;
+    }
+    
+    .stat-card.primary i {
+        color: #3498db;
+    }
+    
+    .stat-card.success {
+        border-left: 4px solid #27ae60;
+    }
+    
+    .stat-card.success i {
+        color: #27ae60;
+    }
+    
+    .stat-card.warning {
+        border-left: 4px solid #f39c12;
+    }
+    
+    .stat-card.warning i {
+        color: #f39c12;
+    }
+    
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin: 5px 0;
+    }
+    
+    .stat-label {
+        font-size: 13px;
+        color: #7f8c8d;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+    
+    @media screen and (max-width: 768px) {
+        .header-content {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .action-buttons {
+            width: 100%;
+        }
+        
+        .btn {
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .data-table thead th:first-child {
+            min-width: 300px;
+        }
+        
+        .stats-container {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    @media print {
+        .header-section,
+        .action-buttons,
+        .btn {
+            display: none;
+        }
+        
+        .data-table-container {
+            box-shadow: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="data-display-container">
+    <!-- Header Section -->
+    <div class="header-section">
+        <div class="header-content">
+            <div class="header-info">
+                <h2>
+                    <i class="fas fa-chart-line"></i>
+                    Environmental Data Summary
+                </h2>
+                <div class="plant-info">
+                    <strong>Plant:</strong> {{ plant.name }} | 
+                    <strong>Year:</strong> {% now "Y" %} | 
+                    <strong>Last Updated:</strong> {% now "F d, Y - H:i" %}
+                </div>
+            </div>
+            <div class="action-buttons">
+                <a href="{% url 'environmental:plant-entry' %}" class="btn btn-success">
+                    <i class="fas fa-edit"></i> Edit Data
+                </a>
+                <button onclick="window.print()" class="btn btn-secondary">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                {% if user.is_superuser or user.is_staff %}
+                <a href="{% url 'environmental:admin-all-plants' %}" class="btn btn-primary">
+                    <i class="fas fa-building"></i> All Plants
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if no_questions %}
+    <!-- No Questions Alert -->
+    <div class="no-questions-alert">
+        <i class="fas fa-inbox"></i>
+        <h3>No Environmental Questions Configured</h3>
+        <p>There are no questions set up yet. Please contact your administrator to add environmental indicators.</p>
+        {% if user.is_superuser or user.is_staff %}
+        <a href="{% url 'environmental:questions-manager' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> Add Questions
+        </a>
+        {% endif %}
+    </div>
+    
+    {% else %}
+    
+    <!-- Statistics Cards -->
+    <div class="stats-container">
+        <div class="stat-card primary">
+            <i class="fas fa-question-circle"></i>
+            <div class="stat-value">{{ questions_data|length }}</div>
+            <div class="stat-label">Total Indicators</div>
+        </div>
+        
+        <div class="stat-card success">
+            <i class="fas fa-check-circle"></i>
+            <div class="stat-value">
+                {% widthratio questions_data|length 1 12 %}
+            </div>
+            <div class="stat-label">Data Points/Indicator</div>
+        </div>
+        
+        <div class="stat-card warning">
+            <i class="fas fa-calendar-alt"></i>
+            <div class="stat-value">{% now "Y" %}</div>
+            <div class="stat-label">Reporting Year</div>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="data-table-container">
+        <div class="table-header">
+            <h3><i class="fas fa-table"></i> Monthly Environmental Data</h3>
+        </div>
+        
+        {% if questions_data %}
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ASSIGNED QUESTION</th>
+                        <th>ANNUAL</th>
+                        {% for month in months %}
+                        <th>{{ month|upper }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q_data in questions_data %}
+                    <tr>
+                        <td>
+                            <span class="question-number">{{ forloop.counter }}</span>
+                            {{ q_data.question }}
+                            <span class="unit-badge">{{ q_data.unit }}</span>
+                        </td>
+                        <td class="annual-cell">
+                            {{ q_data.annual|default:"0" }}
+                        </td>
+                        {% for month in months %}
+                        {% with value=q_data.month_data|get_item:month %}
+                        <td class="value-cell {% if value %}has-value{% endif %} {% if value == '0' or value == '0.00' %}zero-value{% endif %}">
+                            {% if value %}
+                                {{ value }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        {% endwith %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-data-message">
+            <i class="fas fa-database"></i>
+            <p><strong>No data has been entered yet</strong></p>
+            <p>Click "Edit Data" above to start entering your environmental data.</p>
+            <br>
+            <a href="{% url 'environmental:plant-entry' %}" class="btn btn-success">
+                <i class="fas fa-plus-circle"></i> Start Entering Data
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Highlight cells with NaN or invalid values
+    const cells = document.querySelectorAll('.value-cell');
+    cells.forEach(cell => {
+        const value = cell.textContent.trim();
+        if (value === 'NaN' || value === 'NaN%' || value === 'Infinity') {
+            cell.textContent = '-';
+            cell.classList.remove('has-value');
+        }
+    });
+    
+    // Calculate completion percentage
+    const totalCells = document.querySelectorAll('.value-cell').length;
+    const filledCells = document.querySelectorAll('.value-cell.has-value').length;
+    const completionPercentage = totalCells > 0 ? Math.round((filledCells / totalCells) * 100) : 0;
+    
+    console.log(`Data Completion: ${completionPercentage}% (${filledCells}/${totalCells} cells filled)`);
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + P to print
+    if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        window.print();
+    }
+    
+    // Ctrl/Cmd + E to edit
+    if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        window.location.href = "{% url 'environmental:plant-entry' %}";
+    }
+});
+</script>
+{% endblock %}
