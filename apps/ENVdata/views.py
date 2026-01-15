@@ -100,8 +100,33 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
 
     # ---------- HELPERS ----------
 
-    def get_plant(self, request):
-        return Plant.objects.filter(users=request.user, is_active=True).first()
+    def get_user_plants(self, request):
+        """Get all plants assigned to the user"""
+        user = request.user
+        
+        # Admin/Superuser can access all plants
+        if user.is_superuser or user.is_staff or user.is_admin_user:
+            return Plant.objects.filter(is_active=True).order_by('name')
+        
+        # Get user's assigned plants (using ManyToMany field)
+        assigned = user.assigned_plants.filter(is_active=True)
+        
+        # If no assigned plants, check primary plant
+        if not assigned.exists() and user.plant:
+            return Plant.objects.filter(id=user.plant.id, is_active=True)
+        
+        return assigned.order_by('name')
+
+    def get_selected_plant(self, request):
+        """Get the currently selected plant"""
+        plant_id = request.GET.get('plant_id') or request.POST.get('selected_plant_id')
+        
+        if plant_id:
+            user_plants = self.get_user_plants(request)
+            return user_plants.filter(id=plant_id).first()
+        
+        # Return first assigned plant by default
+        return self.get_user_plants(request).first()
 
     def get_questions(self):
         return EnvironmentalQuestion.objects.filter(
@@ -125,48 +150,122 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
     # ---------- GET ----------
 
     def get(self, request):
-        plant = self.get_plant(request)
-        if not plant:
+        user_plants = self.get_user_plants(request)
+        
+        # Check if user has any plants assigned
+        if not user_plants.exists():
+            return render(request, "no_plant_assigned.html")
+        
+        # Get the selected plant
+        selected_plant = self.get_selected_plant(request)
+        
+        if not selected_plant:
             return render(request, "no_plant_assigned.html")
 
+        # Get all questions
         questions = self.get_questions()
+        
         if not questions.exists():
             return render(request, self.template_name, {
-                "plant": plant,
+                "selected_plant": selected_plant,
+                "user_plants": user_plants,
                 "no_questions": True,
             })
 
-        saved_data = MonthlyIndicatorData.objects.filter(plant=plant)
+        # Get saved data for the SELECTED plant only
+        saved_data = MonthlyIndicatorData.objects.filter(plant=selected_plant)
 
+        # Organize data by question and month
         data_dict = {}
-        unit_dict = {}
-
         for d in saved_data:
-            data_dict.setdefault(d.indicator, {})
-            if d.indicator not in unit_dict and d.unit:
-                unit_dict[d.indicator] = d.unit
-            data_dict[d.indicator][d.month.capitalize()] = d.value
+            if d.indicator not in data_dict:
+                data_dict[d.indicator] = {}
+            data_dict[d.indicator][d.month.lower()] = d.value
 
-        # Build questions list with unit information
-        questions_list = []
+        # Build questions list with their data for the selected plant
+        questions_with_data = []
         for q in questions:
             default_unit_name = q.default_unit.name if q.default_unit else "Count"
             
-            questions_list.append({
+            # Get data for each month for this question
+            month_data = {}
+            for month in MONTHS:
+                month_key = month.lower()[:3]
+                value = data_dict.get(q.question_text, {}).get(month_key, '')
+                month_data[month] = value
+            
+            questions_with_data.append({
                 "question": q.question_text,
                 "default_unit": default_unit_name,
                 "default_unit_name": default_unit_name,
+                "month_data": month_data,
+                "slugified": self.slugify_field(q.question_text),
             })
 
         context = {
-            "plant": plant,
-            "questions": questions_list,
+            "selected_plant": selected_plant,
+            "user_plants": user_plants,
+            "questions_with_data": questions_with_data,
             "months": MONTHS,
-            "data": data_dict,
-            "unit_dict": unit_dict,
         }
 
         return render(request, self.template_name, context)
+
+    # ---------- POST ----------
+
+    def post(self, request):
+        # Get the selected plant from the form
+        selected_plant_id = request.POST.get('selected_plant_id')
+        
+        if not selected_plant_id:
+            messages.error(request, "Please select a plant")
+            return redirect("environmental:plant-entry")
+        
+        user_plants = self.get_user_plants(request)
+        selected_plant = user_plants.filter(id=selected_plant_id).first()
+        
+        if not selected_plant:
+            messages.error(request, "Invalid plant selected")
+            return redirect("environmental:plant-entry")
+
+        questions = self.get_questions()
+
+        # Save data for the selected plant
+        for q in questions:
+            question_text = q.question_text
+            default_unit = q.default_unit.name if q.default_unit else "Count"
+
+            for month in MONTHS:
+                field_name = f"{self.slugify_field(question_text)}_{month.lower()}"
+                value = (request.POST.get(field_name) or "").strip()
+
+                if not value:
+                    # Delete if exists and now empty
+                    MonthlyIndicatorData.objects.filter(
+                        plant=selected_plant,
+                        indicator=question_text,
+                        month=month.lower()[:3]
+                    ).delete()
+                    continue
+
+                try:
+                    numeric_value = float(value.replace(",", ""))
+
+                    MonthlyIndicatorData.objects.update_or_create(
+                        plant=selected_plant,
+                        indicator=question_text,
+                        month=month.lower()[:3],
+                        defaults={
+                            "value": str(numeric_value),
+                            "unit": default_unit,
+                            "created_by": request.user,
+                        }
+                    )
+                except ValueError:
+                    messages.warning(request, f"Invalid value for {question_text} in {month}")
+                    continue
+
+        messages.success(request, f"Data saved successfully for {selected_plant.name}!")
 
     # ---------- POST ----------
 
@@ -186,6 +285,12 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 value = (request.POST.get(field_name) or "").strip()
 
                 if not value:
+                    # Delete if exists and now empty
+                    MonthlyIndicatorData.objects.filter(
+                        plant=plant,
+                        indicator=question_text,
+                        month=month.lower()[:3]
+                    ).delete()
                     continue
 
                 try:
@@ -204,8 +309,8 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 except ValueError:
                     continue
 
-        messages.success(request, "Data saved successfully!")
-        return redirect("environmental:plant-entry")
+        messages.success(request, f"Data saved successfully for {plant.name}!")
+        return redirect(f"{request.path}?plant_id={plant.id}")
 
 
 # =========================================================
@@ -365,8 +470,28 @@ class GetCategoryUnitsAPIView(LoginRequiredMixin, View):
 class PlantDataDisplayView(LoginRequiredMixin, View):
     template_name = "data_collection/data_display.html"
 
+    def get_user_plants(self, request):
+        """Get all plants assigned to the user"""
+        user = request.user
+        
+        if user.is_superuser or user.is_staff or user.is_admin_user:
+            return Plant.objects.filter(is_active=True)
+        
+        assigned = user.assigned_plants.filter(is_active=True)
+        
+        if not assigned.exists() and user.plant:
+            return Plant.objects.filter(id=user.plant.id, is_active=True)
+        
+        return assigned
+
     def get(self, request):
-        plant = Plant.objects.filter(users=request.user, is_active=True).first()
+        plant_id = request.GET.get('plant_id')
+        user_plants = self.get_user_plants(request)
+        
+        if plant_id:
+            plant = user_plants.filter(id=plant_id).first()
+        else:
+            plant = user_plants.first()
         
         if not plant:
             return render(request, "no_plant_assigned.html")
@@ -378,6 +503,7 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
         if not questions.exists():
             return render(request, self.template_name, {
                 "plant": plant,
+                "user_plants": user_plants,
                 "no_questions": True,
             })
 
@@ -421,6 +547,7 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
 
         context = {
             "plant": plant,
+            "user_plants": user_plants,
             "questions_data": questions_data,
             "months": MONTHS,
         }
@@ -437,14 +564,19 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
 
     def get(self, request):
         # Check if user is admin/superuser
-        if not (request.user.is_superuser or request.user.is_staff):
+        if not (request.user.is_superuser or request.user.is_staff or request.user.is_admin_user):
             messages.error(request, "You don't have permission to access this page")
             return redirect("environmental:plant-entry")
 
-        # Get all active plants
-        plants = Plant.objects.filter(is_active=True).order_by('name')
+        # Get ALL active plants (no user filtering)
+        all_plants = Plant.objects.filter(is_active=True).order_by('name')
 
-        # Get all questions
+        if not all_plants.exists():
+            return render(request, self.template_name, {
+                "no_plants": True,
+            })
+
+        # Get all questions (ordered)
         questions = EnvironmentalQuestion.objects.filter(
             is_active=True
         ).select_related('unit_category', 'default_unit').order_by("order")
@@ -454,58 +586,80 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
                 "no_questions": True,
             })
 
-        # Get all saved data
-        all_data = MonthlyIndicatorData.objects.filter(
-            plant__in=plants
-        ).select_related('plant')
+        # Get ALL saved data efficiently
+        all_data = MonthlyIndicatorData.objects.select_related('plant').all()
 
-        # Organize data by plant and question
+        # Build data structure: list of plants with their question data
         plants_data = []
-        for plant in plants:
+        plants_with_data_count = 0
+        
+        for plant in all_plants:
             plant_questions_data = []
+            plant_has_any_data = False
             
+            # For each question, get this plant's data
             for q in questions:
                 default_unit_name = q.default_unit.name if q.default_unit else "Count"
                 
+                # Collect monthly data for this plant + question
                 month_data = {}
                 total = 0
                 has_values = False
                 
                 for month in MONTHS:
-                    month_key = month.lower()[:3]
+                    month_key = month.lower()[:3]  # jan, feb, mar
                     
-                    # Find data for this plant, question, and month
+                    # Find the specific data entry
                     data_entry = all_data.filter(
                         plant=plant,
                         indicator=q.question_text,
                         month=month_key
                     ).first()
                     
-                    value = data_entry.value if data_entry else ''
-                    month_data[month] = value
-                    
-                    if value:
+                    if data_entry and data_entry.value:
+                        value = data_entry.value
+                        plant_has_any_data = True
+                        month_data[month] = value
+                        
+                        # Calculate total for annual
                         try:
-                            total += float(str(value).replace(',', ''))
+                            numeric_value = float(str(value).replace(',', ''))
+                            total += numeric_value
                             has_values = True
                         except (ValueError, TypeError):
                             pass
+                    else:
+                        month_data[month] = ''
                 
+                # Format annual total
+                annual_display = f"{total:,.2f}" if has_values else "0%"
+                
+                # Add question data for this plant
                 plant_questions_data.append({
                     "question": q.question_text,
                     "unit": default_unit_name,
                     "month_data": month_data,
-                    "annual": f"{total:,.2f}" if has_values else '',
+                    "annual": annual_display,
+                    "has_data": has_values,
                 })
             
+            # Count plants with data
+            if plant_has_any_data:
+                plants_with_data_count += 1
+            
+            # Add this plant's complete data
             plants_data.append({
                 "plant": plant,
                 "questions_data": plant_questions_data,
+                "has_data": plant_has_any_data,
             })
 
         context = {
             "plants_data": plants_data,
             "months": MONTHS,
+            "total_plants": all_plants.count(),
+            "plants_with_data": plants_with_data_count,
+            "total_questions": questions.count(),
         }
 
         return render(request, self.template_name, context)

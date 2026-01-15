@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load custom_tags %}
 
 {% block extra_css %}
 <style>
@@ -21,6 +22,8 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
     }
     
     .header-info h2 {
@@ -28,6 +31,56 @@
         color: #2c3e50;
         font-size: 24px;
         font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .stats-info {
+        color: #7f8c8d;
+        margin-top: 8px;
+        font-size: 14px;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #2980b9;
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+    }
+    
+    .btn-success {
+        background: #27ae60;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background: #229954;
+        color: white;
     }
     
     .no-questions-alert {
@@ -36,6 +89,18 @@
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         text-align: center;
+        margin-top: 20px;
+    }
+    
+    .no-questions-alert h3 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+    }
+    
+    .no-questions-alert p {
+        color: #7f8c8d;
+        margin-bottom: 20px;
+        font-size: 16px;
     }
     
     .data-table-container {
@@ -58,7 +123,7 @@
     .data-table thead th {
         background: #34495e;
         color: white;
-        padding: 12px 8px;
+        padding: 12px 10px;
         text-align: center;
         font-weight: 600;
         font-size: 13px;
@@ -69,56 +134,75 @@
         z-index: 10;
     }
     
-    .data-table thead th:first-child,
-    .data-table thead th:nth-child(2) {
+    .data-table thead th:first-child {
         text-align: left;
+        min-width: 200px;
         position: sticky;
         left: 0;
         z-index: 11;
     }
     
-    .data-table thead th:first-child {
-        min-width: 200px;
+    .data-table thead th:nth-child(2) {
+        text-align: left;
+        min-width: 350px;
+        position: sticky;
+        left: 200px;
+        z-index: 11;
+        background: #34495e;
     }
     
-    .data-table thead th:nth-child(2) {
-        left: 200px;
-        min-width: 350px;
+    .data-table thead th:nth-child(3) {
+        background: #f39c12;
+        min-width: 100px;
+    }
+    
+    .data-table tbody tr {
+        border-bottom: 1px solid #e9ecef;
+        transition: background-color 0.2s;
     }
     
     .data-table tbody td {
         padding: 10px 8px;
-        border: 1px solid #dee2e6;
+        border-right: 1px solid #e9ecef;
         text-align: center;
         font-size: 13px;
     }
     
-    .data-table tbody td:first-child,
-    .data-table tbody td:nth-child(2) {
+    .data-table tbody td:first-child {
         text-align: left;
         font-weight: 500;
-        background: white;
+        background: inherit;
         position: sticky;
         left: 0;
+        z-index: 9;
+        border-right: 2px solid #dee2e6;
     }
     
     .data-table tbody td:nth-child(2) {
+        text-align: left;
+        position: sticky;
         left: 200px;
+        z-index: 9;
+        background: inherit;
+        border-right: 2px solid #dee2e6;
     }
     
+    /* Plant row styling */
     .plant-row {
-        background: #e8f4fc;
-        font-weight: 600;
-        color: #2c3e50;
-    }
-    
-    .plant-row td {
+        background: linear-gradient(135deg, #e8f4fc 0%, #d4ebf7 100%);
         cursor: pointer;
         user-select: none;
     }
     
+    .plant-row td {
+        font-weight: 700;
+        color: #2c3e50;
+        padding: 12px 10px !important;
+        border-bottom: 2px solid #3498db !important;
+    }
+    
     .plant-row:hover {
-        background: #d4ebf7;
+        background: linear-gradient(135deg, #d4ebf7 0%, #c0e3f0 100%);
     }
     
     .plant-name {
@@ -128,14 +212,27 @@
     }
     
     .expand-icon {
-        transition: transform 0.3s;
+        display: inline-block;
+        transition: transform 0.3s ease;
         font-size: 14px;
+        color: #3498db;
+        font-weight: bold;
     }
     
     .expand-icon.expanded {
         transform: rotate(90deg);
     }
     
+    .plant-badge {
+        background: #3498db;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    /* Question row styling */
     .question-row {
         display: none;
     }
@@ -148,13 +245,22 @@
         background: #f8f9fa;
     }
     
+    .question-row:nth-child(even) {
+        background: #fafbfc;
+    }
+    
+    .question-row:nth-child(even):hover {
+        background: #f0f0f0;
+    }
+    
     .question-text {
-        padding-left: 30px;
+        padding-left: 30px !important;
         color: #2c3e50;
+        font-weight: 500;
     }
     
     .unit-badge {
-        background: #3498db;
+        background: #27ae60;
         color: white;
         padding: 2px 8px;
         border-radius: 3px;
@@ -164,47 +270,133 @@
     }
     
     .value-cell {
-        color: #2c3e50;
+        color: #7f8c8d;
     }
     
     .value-cell.has-value {
         font-weight: 600;
-        color: #27ae60;
+        color: #2c3e50;
+    }
+    
+    .value-cell.zero-value {
+        color: #e74c3c;
     }
     
     .annual-cell {
-        background: #fff3cd;
-        font-weight: 600;
+        background: #fff3cd !important;
+        font-weight: 700;
         color: #856404;
+        font-size: 14px;
     }
     
-    .btn-back {
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #7f8c8d;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        color: #bdc3c7;
+        margin-bottom: 20px;
+    }
+    
+    .empty-state h3 {
+        color: #2c3e50;
+        margin: 20px 0 10px 0;
+    }
+    
+    .controls-bar {
+        background: #ecf0f1;
+        padding: 15px 20px;
+        border-bottom: 1px solid #bdc3c7;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .controls-bar button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-expand-all {
+        background: #3498db;
+        color: white;
+    }
+    
+    .btn-expand-all:hover {
+        background: #2980b9;
+    }
+    
+    .btn-collapse-all {
         background: #95a5a6;
         color: white;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 6px;
-        text-decoration: none;
-        display: inline-block;
-        transition: all 0.3s;
     }
     
-    .btn-back:hover {
+    .btn-collapse-all:hover {
         background: #7f8c8d;
-        color: white;
     }
+    
+    @media screen and (max-width: 768px) {
+        .data-table thead th:first-child,
+        .data-table tbody td:first-child {
+            min-width: 150px;
+        }
+        
+        .data-table thead th:nth-child(2),
+        .data-table tbody td:nth-child(2) {
+            min-width: 250px;
+            left: 150px;
+        }
+    }
+.plant-row.no-data {
+    background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+}
+
+.plant-row.no-data td {
+    color: #636e72;
+}
+
+.no-data-badge {
+    background: #e17055;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 10px;
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="admin-data-container">
+    <!-- Header Section -->
     <div class="header-section">
         <div class="header-content">
             <div class="header-info">
-                <h2><i class="fas fa-chart-bar"></i> All Plants Environmental Data</h2>
+                <h2>
+                    <i class="fas fa-building"></i>
+                    All Plants Environmental Data
+                </h2>
+            <div class="stats-info">
+                <strong>Total Plants:</strong> {{ total_plants }} | 
+                <strong>Plants with Data:</strong> {{ plants_with_data }} | 
+                <strong>Year:</strong> {% now "Y" %} | 
+                <strong>Last Updated:</strong> {% now "F d, Y - H:i" %}
             </div>
-            <div>
-                <a href="{% url 'environmental:questions-manager' %}" class="btn-back">
+            </div>
+            <div class="action-buttons">
+                <button onclick="window.print()" class="btn btn-primary">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <a href="{% url 'environmental:questions-manager' %}" class="btn btn-success">
                     <i class="fas fa-cog"></i> Manage Questions
                 </a>
             </div>
@@ -212,15 +404,45 @@
     </div>
 
     {% if no_questions %}
+    <!-- No Questions Alert -->
     <div class="no-questions-alert">
+        <i class="fas fa-inbox"></i>
         <h3>No Environmental Questions Configured</h3>
         <p>Please add environmental questions first.</p>
-        <a href="{% url 'environmental:questions-manager' %}" class="btn-primary">
-            Go to Questions Manager
+        <a href="{% url 'environmental:questions-manager' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> Add Questions
         </a>
     </div>
-    {% else %}
+    
+    {% elif not plants_data %}
+    <!-- No Data Alert -->
     <div class="data-table-container">
+        <div class="empty-state">
+            <i class="fas fa-database"></i>
+            <h3>No Data Available</h3>
+            <p>No plants have entered environmental data yet.</p>
+            <p>Please ensure plants are assigned to users and data has been entered.</p>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- Data Table -->
+    <div class="data-table-container">
+        <!-- Controls Bar -->
+        <div class="controls-bar">
+            <div>
+                <strong>{{ plants_data|length }}</strong> plant(s) with data
+            </div>
+            <div>
+                <button onclick="expandAll()" class="btn-expand-all">
+                    <i class="fas fa-expand-alt"></i> Expand All
+                </button>
+                <button onclick="collapseAll()" class="btn-collapse-all">
+                    <i class="fas fa-compress-alt"></i> Collapse All
+                </button>
+            </div>
+        </div>
+        
         <div class="table-wrapper">
             <table class="data-table">
                 <thead>
@@ -240,7 +462,7 @@
                         <td colspan="2">
                             <div class="plant-name">
                                 <span class="expand-icon" id="icon-{{ plant_data.plant.id }}">▶</span>
-                                <strong>{{ plant_data.plant.name }}</strong>
+                                <span class="plant-badge">{{ plant_data.plant.name }}</span>
                             </div>
                         </td>
                         <td colspan="{{ months|length|add:1 }}"></td>
@@ -251,14 +473,20 @@
                     <tr class="question-row plant-{{ plant_data.plant.id }}-questions">
                         <td></td>
                         <td class="question-text">
-                            {{ q_data.question }}
+                            {{ forloop.counter }}. {{ q_data.question }}
                             <span class="unit-badge">{{ q_data.unit }}</span>
                         </td>
                         <td class="annual-cell">{{ q_data.annual }}</td>
                         {% for month in months %}
-                        <td class="value-cell {% if q_data.month_data|get_item:month %}has-value{% endif %}">
-                            {{ q_data.month_data|get_item:month|default:"0%" }}
+                        {% with value=q_data.month_data|get_item:month %}
+                        <td class="value-cell {% if value %}has-value{% endif %} {% if value == '0' or value == '0.00' %}zero-value{% endif %}">
+                            {% if value %}
+                                {{ value }}
+                            {% else %}
+                                0%
+                            {% endif %}
                         </td>
+                        {% endwith %}
                         {% endfor %}
                     </tr>
                     {% endfor %}
@@ -271,6 +499,7 @@
 </div>
 
 <script>
+// Toggle individual plant
 function togglePlant(plantId) {
     const icon = document.getElementById(`icon-${plantId}`);
     const questions = document.querySelectorAll(`.plant-${plantId}-questions`);
@@ -282,13 +511,67 @@ function togglePlant(plantId) {
     });
 }
 
-// Expand all plants by default
-document.addEventListener('DOMContentLoaded', function() {
+// Expand all plants
+function expandAll() {
     const plantRows = document.querySelectorAll('.plant-row');
     plantRows.forEach(row => {
         const plantId = row.getAttribute('data-plant-id');
-        togglePlant(plantId);
+        const icon = document.getElementById(`icon-${plantId}`);
+        const questions = document.querySelectorAll(`.plant-${plantId}-questions`);
+        
+        icon.classList.add('expanded');
+        questions.forEach(q => q.classList.add('show'));
     });
+}
+
+// Collapse all plants
+function collapseAll() {
+    const plantRows = document.querySelectorAll('.plant-row');
+    plantRows.forEach(row => {
+        const plantId = row.getAttribute('data-plant-id');
+        const icon = document.getElementById(`icon-${plantId}`);
+        const questions = document.querySelectorAll(`.plant-${plantId}-questions`);
+        
+        icon.classList.remove('expanded');
+        questions.forEach(q => q.classList.remove('show'));
+    });
+}
+
+// Expand all by default on page load
+document.addEventListener('DOMContentLoaded', function() {
+    expandAll();
+    
+    // Clean up NaN values
+    const cells = document.querySelectorAll('.value-cell');
+    cells.forEach(cell => {
+        const value = cell.textContent.trim();
+        if (value === 'NaN' || value === 'NaN%' || value === 'Infinity') {
+            cell.textContent = '0%';
+            cell.classList.remove('has-value');
+            cell.classList.add('zero-value');
+        }
+    });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl + E to expand all
+    if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        expandAll();
+    }
+    
+    // Ctrl + C to collapse all
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        collapseAll();
+    }
+    
+    // Ctrl + P to print
+    if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        window.print();
+    }
 });
 </script>
 {% endblock %}
