@@ -135,6 +135,7 @@ class UnitAdmin(admin.ModelAdmin):
 @admin.register(EnvironmentalQuestion)
 class EnvironmentalQuestionAdmin(admin.ModelAdmin):
     list_display = [
+        'id',  # Add ID as first column
         'order',
         'question_preview',
         'category_badge',
@@ -147,7 +148,8 @@ class EnvironmentalQuestionAdmin(admin.ModelAdmin):
     search_fields = ['question_text', 'unit_category__name']
     list_per_page = 25
     ordering = ['order', 'id']
-    list_editable = ['order']
+    list_editable = ['order']  # Now this works because 'id' is first
+    list_display_links = ['id', 'question_preview']  # Make ID and question clickable
     
     fieldsets = (
         ('Question Information', {
@@ -198,7 +200,7 @@ class EnvironmentalQuestionAdmin(admin.ModelAdmin):
     
     def selected_units_display(self, obj):
         """Show selected units as badges"""
-        units = obj.selected_units.all()[:5]  # Show first 5
+        units = obj.selected_units.all()[:5]
         if not units:
             return '-'
         
@@ -234,7 +236,6 @@ class EnvironmentalQuestionAdmin(admin.ModelAdmin):
             'created_by'
         ).prefetch_related('selected_units')
         return queryset
-
 
 # =========================================================
 # MONTHLY INDICATOR DATA ADMIN
