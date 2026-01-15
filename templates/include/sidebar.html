@@ -214,8 +214,6 @@
 
         <!-- Administration Section -->
         {% if user.is_employee or user.role.name == 'ADMIN' or user.role.name == 'PLANT HEAD' %}
-        <li class="nav-header">ADMINISTRATION</li>
-
         <li class="nav-item">
           <a href="{% url 'organizations:dashboard' %}" class="nav-link">
             <i class="nav-icon fas fa-sitemap"></i>

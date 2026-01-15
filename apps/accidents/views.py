@@ -30,7 +30,7 @@ class IncidentDashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         
         # Get incidents based on user role
-        if self.request.user.is_superuser or self.request.user.role == 'ADMIN':
+        if self.request.user.is_superuser or self.request.user.role.name == 'ADMIN':
             incidents = Incident.objects.all()
         elif self.request.user.plant:
             incidents = Incident.objects.filter(plant=self.request.user.plant)
@@ -77,7 +77,7 @@ class IncidentListView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         # Base queryset based on user role
-        if self.request.user.is_superuser or self.request.user.role == 'ADMIN':
+        if self.request.user.is_superuser or self.request.user.role.name == 'ADMIN':
             queryset = Incident.objects.all()
         elif self.request.user.plant:
             queryset = Incident.objects.filter(plant=self.request.user.plant)
@@ -643,7 +643,7 @@ class IncidentPDFDownloadView(LoginRequiredMixin, View):
         # Check permissions
         if not (request.user.is_superuser or 
                 request.user == incident.reported_by or
-                request.user.role in ['ADMIN', 'SAFETY_MANAGER', 'PLANT_HEAD']):
+                request.user.role.name in ['ADMIN', 'SAFETY MANAGER', 'PLANT HEAD']):
             messages.error(request, "You don't have permission to view this report")
             return redirect('accidents:incident_list')
         
@@ -975,7 +975,7 @@ class IncidentClosureCheckView(LoginRequiredMixin, UserPassesTestMixin, View):
         return (
             self.request.user.is_superuser or
             # self.request.user.can_close_incidents or # Uncomment if you have this on your user model
-            self.request.user.role in ['ADMIN', 'SAFETY_MANAGER', 'PLANT_HEAD']
+            self.request.user.role.name in ['ADMIN', 'SAFETY MANAGER', 'PLANT HEAD']
         )
     
     def get_context_data(self, **kwargs):
@@ -1045,7 +1045,7 @@ class IncidentClosureView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return (
             self.request.user.is_superuser or
             self.request.user.can_close_incidents or
-            self.request.user.role in ['ADMIN', 'SAFETY_MANAGER', 'PLANT_HEAD']
+            self.request.user.role.name in ['ADMIN', 'SAFETY MANAGER', 'PLANT HEAD']
         )
     
     def get_context_data(self, **kwargs):
@@ -1097,7 +1097,7 @@ class IncidentReopenView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
         return (
             self.request.user.is_superuser or
-            self.request.user.role in ['ADMIN', 'SAFETY_MANAGER']
+            self.request.user.role.name in ['ADMIN', 'SAFETY MANAGER']
         )
     
     def post(self, request, pk):
