@@ -235,23 +235,27 @@
     <!-- Content Wrapper -->
     <div class="content-wrapper">
       <!-- Content Header (Page header) -->
-      <div class="content-header">
-        <div class="container-fluid">
-          <div class="row mb-2">
-            <div class="col-sm-6">
-              <h1 class="m-0">{% block page_title %}Dashboard{% endblock %}</h1>
-            </div>
-            <div class="col-sm-6">
-              <ol class="breadcrumb float-sm-right">
-                {% block breadcrumb %}
-                <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
-                <li class="breadcrumb-item active">Dashboard</li>
-                {% endblock %}
-              </ol>
+        {% block content_header %}
+        <div class="content-header">
+          <div class="container-fluid">
+            <div class="row mb-2">
+              <div class="col-sm-6">
+                <h1 class="m-0">{% block page_title %}Dashboard{% endblock %}</h1>
+              </div>
+              <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                  {% block breadcrumb %}
+                  <li class="breadcrumb-item">
+                    <a href="{% url 'dashboards:home' %}">Home</a>
+                  </li>
+                  <li class="breadcrumb-item active">Dashboard</li>
+                  {% endblock %}
+                </ol>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+        {% endblock %}
 
       <!-- Main content -->
       <section class="content">

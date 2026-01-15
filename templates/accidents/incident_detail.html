@@ -860,9 +860,10 @@
                         </p>
                     </div>
                 </div>
-                <a href="#investigation" class="btn btn-sm btn-info">
-                    <i class="fas fa-eye mr-1"></i>View Investigation Report
-                </a>
+              <a href="{% url 'accidents:investigation_detail' investigation_report.pk %}" 
+                class="btn btn-sm btn-info">
+                  <i class="fas fa-eye mr-1"></i>View Investigation Report
+              </a>
             {% else %}
                 <div class="alert alert-warning">
                     <i class="fas fa-exclamation-triangle mr-2"></i>
