@@ -62,6 +62,62 @@
         color: white;
     }
     
+    /* Plant Selector Styles */
+    .plant-selector-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        margin-bottom: 20px;
+    }
+    
+    .plant-selector-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .plant-selector-container label {
+        font-weight: 600;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        font-size: 16px;
+    }
+    
+    .plant-selector-container select {
+        flex: 1;
+        min-width: 300px;
+        max-width: 500px;
+        padding: 10px 15px;
+        border: 2px solid white;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: 600;
+        background: white;
+        color: #2c3e50;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .plant-selector-container select:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+    }
+    
+    .plant-count-badge {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    
     .no-questions-alert {
         background: white;
         padding: 40px;
@@ -339,53 +395,6 @@
         font-weight: normal;
     }
     
-    .custom-notification {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        color: white;
-        border-radius: 4px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 99999;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        min-width: 300px;
-        max-width: 400px;
-        animation: slideIn 0.3s ease;
-    }
-    
-    .notification-error { background: #e74c3c; }
-    .notification-success { background: #27ae60; }
-    .notification-info { background: #3498db; }
-    
-    .custom-notification button {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 20px;
-        cursor: pointer;
-        margin-left: 15px;
-        padding: 0;
-        line-height: 1;
-    }
-    
-    .custom-notification button:hover {
-        opacity: 0.8;
-    }
-    
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
     @media screen and (max-width: 768px) {
         .header-content {
             flex-direction: column;
@@ -402,6 +411,15 @@
             min-width: 300px;
             max-width: 300px;
         }
+        
+        .plant-selector-container {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .plant-selector-container select {
+            min-width: 100%;
+        }
     }
 </style>
 {% endblock %}
@@ -412,9 +430,9 @@
     <div class="header-section">
         <div class="header-content">
             <div class="header-info">
-                <h2>Environmental Data Collection</h2>
+                <h2>Environmental Data Entry</h2>
                 <div class="plant-info">
-                    <strong>Plant:</strong> {{ plant.name }} | 
+                    <strong>Currently Editing:</strong> {{ selected_plant.name }} | 
                     <strong>Year:</strong> {% now "Y" %} |
                     <strong>Last Updated:</strong> {% now "F d, Y - H:i" %}
                 </div>
@@ -427,9 +445,31 @@
         </div>
     </div>
 
-    <!-- No Questions Alert -->
+    <!-- Plant Selector (Only show if user has multiple plants) -->
+    {% if user_plants.count > 1 %}
+    <div class="plant-selector-section">
+        <div class="plant-selector-container">
+            <label for="plantSelector">
+                <i class="fas fa-building"></i> Select Plant:
+            </label>
+            <select id="plantSelector" class="form-control" onchange="switchPlant(this.value)">
+                {% for p in user_plants %}
+                <option value="{{ p.id }}" {% if p.id == selected_plant.id %}selected{% endif %}>
+                    {{ p.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <span class="plant-count-badge">
+                <i class="fas fa-check-circle"></i> {{ user_plants.count }} plant(s) assigned
+            </span>
+        </div>
+    </div>
+    {% endif %}
+
     {% if no_questions %}
+    <!-- No Questions Alert -->
     <div class="no-questions-alert">
+        <i class="fas fa-inbox" style="font-size: 48px; color: #bdc3c7; margin-bottom: 15px;"></i>
         <h3>No Environmental Questions Configured</h3>
         <p>Please add environmental questions first using the Manage Questions page.</p>
         <p><strong>Note:</strong> You need to have at least one question configured to enter data.</p>
@@ -438,10 +478,12 @@
         </a>
     </div>
     
-    <!-- Data Entry Form -->
     {% else %}
+    <!-- Data Entry Form -->
     <form method="post" id="dataEntryForm">
         {% csrf_token %}
+        <input type="hidden" name="selected_plant_id" value="{{ selected_plant.id }}">
+        
         <div class="data-table-container">
             <div class="table-wrapper">
                 <table class="data-table">
@@ -449,7 +491,7 @@
                         <tr>
                             <th>
                                 Environmental Indicators
-                                <span class="unit-note">Units are displayed based on question configuration</span>
+                                <span class="unit-note">Enter numeric values for {{ selected_plant.name }}</span>
                             </th>
                             {% for month in months %}
                             <th>{{ month }}</th>
@@ -457,33 +499,28 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in questions %}
-                        <tr data-row="{{ forloop.counter }}" data-question="{{ item.question|slugify }}">
+                        {% for item in questions_with_data %}
+                        <tr data-row="{{ forloop.counter }}" data-question="{{ item.slugified }}">
                             <td>
                                 <div class="indicator-content">
                                     <span class="indicator-text">
                                         {{ forloop.counter }}. {{ item.question }}
                                     </span>
-                                    <span class="unit-badge">{{ item.default_unit_name|default:item.default_unit }}</span>
+                                    <span class="unit-badge">{{ item.default_unit_name }}</span>
                                 </div>
-                                
-                                <input type="hidden" 
-                                       name="unit_{{ item.question|slugify }}" 
-                                       value="{{ item.default_unit_name|default:item.default_unit }}" 
-                                       data-row="{{ forloop.counter }}">
                             </td>
                             
                             {% for month in months %}
                             <td>
                                 <input 
                                     type="text" 
-                                    name="{{ item.question|slugify }}_{{ month|lower }}" 
-                                    value="{% if data|get_item:item.question %}{{ data|get_item:item.question|get_item:month|default:'' }}{% endif %}" 
+                                    name="{{ item.slugified }}_{{ month|lower }}" 
+                                    value="{{ item.month_data|get_item:month|default:'' }}" 
                                     class="data-input"
                                     placeholder="0"
                                     autocomplete="off"
                                     data-month="{{ month|lower }}"
-                                    data-row="{{ forloop.counter }}"
+                                    data-row="{{ forloop.parentloop.counter }}"
                                 >
                             </td>
                             {% endfor %}
@@ -504,7 +541,7 @@
                     </span>
                 </div>
                 <button type="submit" class="btn-save">
-                    <i class="fas fa-save"></i> Save All Data
+                    <i class="fas fa-save"></i> Save Data for {{ selected_plant.name }}
                 </button>
             </div>
         </div>
@@ -518,73 +555,23 @@
 </div>
 
 <script>
+// Switch plant function
+function switchPlant(plantId) {
+    if (confirm('Switch plant? Any unsaved data will be lost.')) {
+        window.location.href = `?plant_id=${plantId}`;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    
-    // ==================== UTILITY FUNCTIONS ====================
-    
-    function parseInputValue(value) {
-        if (!value || value.trim() === '') return 0;
-        const cleanValue = value.replace(/,/g, '');
-        const num = parseFloat(cleanValue);
-        return isNaN(num) ? 0 : num;
-    }
-    
-    function formatValue(value) {
-        if (value === 0 || value === '0') return '0';
-        
-        const numValue = parseFloat(value);
-        if (isNaN(numValue)) return value;
-        
-        const absValue = Math.abs(numValue);
-        
-        if (absValue < 0.000001) return numValue.toExponential(4);
-        if (absValue < 0.001) return numValue.toFixed(6);
-        if (absValue < 0.01) return numValue.toFixed(4);
-        if (absValue < 1) return numValue.toFixed(3);
-        if (absValue < 10) return numValue.toFixed(2);
-        if (absValue < 1000) return numValue.toFixed(1);
-        
-        const rounded = Math.round(numValue * 10) / 10;
-        return rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    }
-    
-    function showNotification(message, type = 'info') {
-        const existingNotifications = document.querySelectorAll('.custom-notification');
-        existingNotifications.forEach(notification => notification.remove());
-        
-        const notification = document.createElement('div');
-        notification.className = `custom-notification notification-${type}`;
-        notification.innerHTML = `
-            <span>${message}</span>
-            <button onclick="this.parentElement.remove()">&times;</button>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            if (notification.parentElement) {
-                notification.remove();
-            }
-        }, 5000);
-    }
-    
-    // ==================== FORM VALIDATION ====================
-    
-    function validateInput(input) {
-        const value = input.value.trim();
-        if (value && isNaN(parseFloat(value.replace(/,/g, '')))) {
-            input.classList.add('error');
-            return false;
-        } else {
-            input.classList.remove('error');
-            return true;
-        }
-    }
-    
     // Real-time validation
     document.querySelectorAll('.data-input').forEach(input => {
         input.addEventListener('input', function() {
-            validateInput(this);
+            const value = this.value.trim();
+            if (value && isNaN(parseFloat(value.replace(/,/g, '')))) {
+                this.classList.add('error');
+            } else {
+                this.classList.remove('error');
+            }
         });
         
         // Format on blur
@@ -593,14 +580,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (value) {
                 const num = parseFloat(value.replace(/,/g, ''));
                 if (!isNaN(num)) {
-                    this.value = formatValue(num);
+                    this.value = num; // Store raw number
                 }
             }
         });
     });
     
-    // ==================== FORM SUBMISSION ====================
-    
+    // Form submission
     const form = document.getElementById('dataEntryForm');
     if (form) {
         form.addEventListener('submit', function(e) {
@@ -608,19 +594,16 @@ document.addEventListener('DOMContentLoaded', function() {
             let hasInvalidInput = false;
             
             inputs.forEach(input => {
-                if (!validateInput(input)) {
+                const value = input.value.trim();
+                if (value && isNaN(parseFloat(value.replace(/,/g, '')))) {
+                    input.classList.add('error');
                     hasInvalidInput = true;
-                    const row = input.closest('tr');
-                    if (row) {
-                        row.style.backgroundColor = '#fffde7';
-                        setTimeout(() => row.style.backgroundColor = '', 2000);
-                    }
                 }
             });
             
             if (hasInvalidInput) {
                 e.preventDefault();
-                showNotification('Please enter valid numbers in all fields', 'error');
+                alert('Please enter valid numbers in all fields');
                 return;
             }
             
@@ -628,61 +611,32 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // ==================== SUCCESS INDICATOR ====================
-    
+    // Show success message if redirected after save
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('saved') === 'true') {
+    if (urlParams.has('saved')) {
         const saveIndicator = document.getElementById('saveIndicator');
         saveIndicator.classList.add('show');
         setTimeout(() => saveIndicator.classList.remove('show'), 3000);
     }
-    
-    // ==================== KEYBOARD SHORTCUTS ====================
-    
-    document.addEventListener('keydown', function(e) {
-        // Ctrl + S to save
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            e.preventDefault();
-            const saveBtn = document.querySelector('.btn-save');
-            if (saveBtn) saveBtn.click();
-        }
-    });
 });
 
-// ==================== RESET FORM ====================
-
+// Reset form function
 function resetForm() {
     if (confirm('Are you sure you want to reset all changes? This will clear all unsaved data.')) {
         document.getElementById('dataEntryForm').reset();
-        
-        // Remove error states
         document.querySelectorAll('.data-input').forEach(input => {
             input.classList.remove('error');
         });
-        
-        showNotification('Form has been reset', 'info');
     }
 }
 
-// Show notification function (moved to global scope for inline onclick)
-function showNotification(message, type = 'info') {
-    const existingNotifications = document.querySelectorAll('.custom-notification');
-    existingNotifications.forEach(notification => notification.remove());
-    
-    const notification = document.createElement('div');
-    notification.className = `custom-notification notification-${type}`;
-    notification.innerHTML = `
-        <span>${message}</span>
-        <button onclick="this.parentElement.remove()">&times;</button>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
-        }
-    }, 5000);
-}
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl + S to save
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        document.querySelector('.btn-save')?.click();
+    }
+});
 </script>
 {% endblock %}
