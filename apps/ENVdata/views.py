@@ -355,3 +355,157 @@ class GetCategoryUnitsAPIView(LoginRequiredMixin, View):
                 'success': False,
                 'error': str(e)
             }, status=500)
+        
+
+
+# =========================================================
+# VIEW SUBMITTED DATA - USER VIEW (Read-only)
+# =========================================================
+
+class PlantDataDisplayView(LoginRequiredMixin, View):
+    template_name = "data_collection/data_display.html"
+
+    def get(self, request):
+        plant = Plant.objects.filter(users=request.user, is_active=True).first()
+        
+        if not plant:
+            return render(request, "no_plant_assigned.html")
+
+        questions = EnvironmentalQuestion.objects.filter(
+            is_active=True
+        ).select_related('unit_category', 'default_unit').order_by("order")
+
+        if not questions.exists():
+            return render(request, self.template_name, {
+                "plant": plant,
+                "no_questions": True,
+            })
+
+        # Get saved data for this plant
+        saved_data = MonthlyIndicatorData.objects.filter(plant=plant)
+
+        # Organize data
+        data_dict = {}
+        for d in saved_data:
+            if d.indicator not in data_dict:
+                data_dict[d.indicator] = {}
+            data_dict[d.indicator][d.month.lower()] = d.value
+
+        # Build display structure
+        questions_data = []
+        for q in questions:
+            default_unit_name = q.default_unit.name if q.default_unit else "Count"
+            
+            month_data = {}
+            total = 0
+            has_values = False
+            
+            for month in MONTHS:
+                month_key = month.lower()[:3]
+                value = data_dict.get(q.question_text, {}).get(month_key, '')
+                month_data[month] = value
+                
+                if value:
+                    try:
+                        total += float(str(value).replace(',', ''))
+                        has_values = True
+                    except (ValueError, TypeError):
+                        pass
+            
+            questions_data.append({
+                "question": q.question_text,
+                "unit": default_unit_name,
+                "month_data": month_data,
+                "annual": f"{total:,.2f}" if has_values else '',
+            })
+
+        context = {
+            "plant": plant,
+            "questions_data": questions_data,
+            "months": MONTHS,
+        }
+
+        return render(request, self.template_name, context)
+
+
+# =========================================================
+# ADMIN VIEW - ALL PLANTS DATA
+# =========================================================
+
+class AdminAllPlantsDataView(LoginRequiredMixin, View):
+    template_name = "data_collection/admin_all_plants.html"
+
+    def get(self, request):
+        # Check if user is admin/superuser
+        if not (request.user.is_superuser or request.user.is_staff):
+            messages.error(request, "You don't have permission to access this page")
+            return redirect("environmental:plant-entry")
+
+        # Get all active plants
+        plants = Plant.objects.filter(is_active=True).order_by('name')
+
+        # Get all questions
+        questions = EnvironmentalQuestion.objects.filter(
+            is_active=True
+        ).select_related('unit_category', 'default_unit').order_by("order")
+
+        if not questions.exists():
+            return render(request, self.template_name, {
+                "no_questions": True,
+            })
+
+        # Get all saved data
+        all_data = MonthlyIndicatorData.objects.filter(
+            plant__in=plants
+        ).select_related('plant')
+
+        # Organize data by plant and question
+        plants_data = []
+        for plant in plants:
+            plant_questions_data = []
+            
+            for q in questions:
+                default_unit_name = q.default_unit.name if q.default_unit else "Count"
+                
+                month_data = {}
+                total = 0
+                has_values = False
+                
+                for month in MONTHS:
+                    month_key = month.lower()[:3]
+                    
+                    # Find data for this plant, question, and month
+                    data_entry = all_data.filter(
+                        plant=plant,
+                        indicator=q.question_text,
+                        month=month_key
+                    ).first()
+                    
+                    value = data_entry.value if data_entry else ''
+                    month_data[month] = value
+                    
+                    if value:
+                        try:
+                            total += float(str(value).replace(',', ''))
+                            has_values = True
+                        except (ValueError, TypeError):
+                            pass
+                
+                plant_questions_data.append({
+                    "question": q.question_text,
+                    "unit": default_unit_name,
+                    "month_data": month_data,
+                    "annual": f"{total:,.2f}" if has_values else '',
+                })
+            
+            plants_data.append({
+                "plant": plant,
+                "questions_data": plant_questions_data,
+            })
+
+        context = {
+            "plants_data": plants_data,
+            "months": MONTHS,
+        }
+
+        return render(request, self.template_name, context)
