@@ -247,35 +247,45 @@ def generate_hazard_pdf(hazard):
         story.append(action_table)
 
     # --- Section 6: Attached Photos ---
-    photos = hazard.photos.all()
-    if photos.exists():
-        story.append(PageBreak())
-        photo_flowables = [Paragraph("<b>6. ATTACHED PHOTOS</b>", styles['SectionHeader'])]
-        
-        photo_table_data = []
-        photo_row = []
-        for photo in photos:
-            try:
-                img = Image(photo.photo.path, width=3*inch, height=3*inch, kind='proportional')
-                img.hAlign = 'CENTER'
-                photo_row.append(img)
+        photos = hazard.photos.all()
+        if photos.exists():
+            story.append(PageBreak())
+            photo_flowables = [Paragraph("<b>6. ATTACHED PHOTOS</b>", styles['SectionHeader'])]
+            
+            photo_table_data = []
+            photo_row = []
+            for photo in photos:
+                # Pehle check karein ki photo object aur uska path maujood hai ya nahi
+                if photo.photo and hasattr(photo.photo, 'path') and os.path.exists(photo.photo.path):
+                    # Agar file exist karti hai, to use process karne ki koshish karein
+                    try:
+                        img = Image(photo.photo.path, width=3*inch, height=3*inch, kind='proportional')
+                        img.hAlign = 'CENTER'
+                        photo_row.append(img)
+                    except Exception as e:
+                        # Agar file exist karti hai lekin corrupt hai, to error dikhayein
+                        error_text = Paragraph(f"<i>Error reading image:<br/>{os.path.basename(photo.photo.name)}</i>", styles['Value'])
+                        photo_row.append(error_text)
+                else:
+                    # Agar file exist nahi karti, to placeholder text dikhayein
+                    error_text = Paragraph(f"<i>Image not found:<br/>{os.path.basename(photo.photo.name)}</i>", styles['Value'])
+                    photo_row.append(error_text)
+
+                # Har do photo ke baad table mein ek nayi row banayein
                 if len(photo_row) == 2:
                     photo_table_data.append(photo_row)
                     photo_row = []
-            except Exception as e:
-                error_text = Paragraph(f"<i>Image not available:<br/>{os.path.basename(photo.photo.name)}</i>", styles['Value'])
-                photo_row.append(error_text)
-        
-        if photo_row:
-            photo_table_data.append(photo_row)
             
-        if photo_table_data:
-            photo_table = Table(photo_table_data, colWidths=[drawable_width / 2] * 2, rowHeights=3.2*inch)
-            photo_table.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('GRID', (0, 0), (-1, -1), 1, border_color),
-            ]))
-            photo_flowables.append(photo_table)
-            story.append(KeepTogether(photo_flowables))
+            if photo_row:
+                photo_table_data.append(photo_row)
+                
+            if photo_table_data:
+                photo_table = Table(photo_table_data, colWidths=[drawable_width / 2] * 2, rowHeights=3.2*inch)
+                photo_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('GRID', (0, 0), (-1, -1), 1, border_color),
+                ]))
+                photo_flowables.append(photo_table)
+                story.append(KeepTogether(photo_flowables))
 
     # --- Footer ---
     story.append(Spacer(1, 10*mm))
