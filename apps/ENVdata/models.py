@@ -40,29 +40,19 @@ class Unit(models.Model):
         return f"{self.name} ({self.category.name})"
 
 
+# Add this field to EnvironmentalQuestion model
 class EnvironmentalQuestion(models.Model):
-    """
-    Store environmental questions with their units dynamically
-    """
     question_text = models.CharField(max_length=500)
-    default_unit = models.CharField(max_length=50, default='Count')
-    unit_options = models.CharField(max_length=200, help_text="Comma-separated units, e.g., MT,kg,lbs")
+    unit_category = models.ForeignKey(UnitCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='questions')  # ADD THIS
+    default_unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True, related_name='default_for_questions')  # CHANGE THIS
+    selected_units = models.ManyToManyField(Unit, blank=True, related_name='available_for_questions')  # ADD THIS
+    # Remove or keep unit_options as backup
+    unit_options = models.CharField(max_length=200, blank=True, help_text="Legacy field")
     order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        ordering = ['order', 'id']
-    
-    def __str__(self):
-        return f"{self.order}. {self.question_text}"
-    
-    def get_unit_options_list(self):
-        """Return unit options as a list"""
-        return [u.strip() for u in self.unit_options.split(',') if u.strip()]
-
 
 class MonthlyIndicatorData(models.Model):
     plant = models.ForeignKey('organizations.Plant', on_delete=models.CASCADE)

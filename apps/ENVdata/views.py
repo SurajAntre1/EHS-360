@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db import models
-import json
+from django.http import JsonResponse
 
 from apps.organizations.models import Plant
 from .models import *
@@ -91,33 +91,12 @@ class UnitManagerView(LoginRequiredMixin, View):
         return redirect("environmental:unit-manager")
 
 
+# =========================================================
+# PLANT MONTHLY ENTRY
+# =========================================================
+
 class PlantMonthlyEntryView(LoginRequiredMixin, View):
     template_name = "data_collection/data_env.html"
-
-    CONVERSION_FACTORS = {
-        'MT': {'MT': 1, 'kg': 1000, 'lbs': 2204.62, 'cubic-m': 0.45},
-        'kg': {'MT': 0.001, 'kg': 1, 'lbs': 2.20462, 'cubic-m': 0.00045},
-        'lbs': {'MT': 0.000453592, 'kg': 0.453592, 'lbs': 1, 'cubic-m': 0.000204},
-        'cubic-m': {'MT': 2.22, 'kg': 2222.22, 'lbs': 4900, 'cubic-m': 1},
-        'KL': {'KL': 1, 'm³': 1, 'Liters': 1000},
-        'm³': {'KL': 1, 'm³': 1, 'Liters': 1000},
-        'Liters': {'KL': 0.001, 'm³': 0.001, 'Liters': 1},
-        'kWh': {'kWh': 1, 'MWh': 0.001, 'GJ': 0.0036},
-        'MWh': {'kWh': 1000, 'MWh': 1, 'GJ': 3.6},
-        'GJ': {'kWh': 277.778, 'MWh': 0.277778, 'GJ': 1},
-        'Days': {'Days': 1, 'Hours': 24},
-        'Hours': {'Days': 0.0416667, 'Hours': 1},
-        'mg/m³': {'mg/m³': 1, 'µg/m³': 1000},
-        'µg/m³': {'mg/m³': 0.001, 'µg/m³': 1},
-        '%': {'%': 1, 'PPM': 10000},
-        'PPM': {'%': 0.0001, 'PPM': 1},
-        'mg/L': {'mg/L': 1, 'ppm': 1},
-        'ppm': {'mg/L': 1, 'ppm': 1},
-        'Count': {'Count': 1, 'Rate': 1, 'Percentage': 1},
-        'Rate': {'Count': 1, 'Rate': 1, 'Percentage': 1},
-        'Percentage': {'Count': 1, 'Rate': 1, 'Percentage': 1},
-        'Yes/No': {'Yes/No': 1},
-    }
 
     # ---------- HELPERS ----------
 
@@ -127,7 +106,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
     def get_questions(self):
         return EnvironmentalQuestion.objects.filter(
             is_active=True
-        ).order_by("order")
+        ).select_related('unit_category', 'default_unit').prefetch_related('selected_units').order_by("order")
 
     def slugify_field(self, text):
         return (
@@ -142,15 +121,6 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
             .replace(";", "")
             .replace("'", "")
         )
-
-    def convert_value(self, value, from_unit, to_unit):
-        if from_unit == to_unit:
-            return value
-
-        if from_unit in ["Count", "Rate", "Percentage", "Yes/No"] or to_unit == "Yes/No":
-            return value
-
-        return value * self.CONVERSION_FACTORS.get(from_unit, {}).get(to_unit, 1)
 
     # ---------- GET ----------
 
@@ -173,33 +143,24 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
 
         for d in saved_data:
             data_dict.setdefault(d.indicator, {})
-
             if d.indicator not in unit_dict and d.unit:
                 unit_dict[d.indicator] = d.unit
+            data_dict[d.indicator][d.month.capitalize()] = d.value
 
-            base_unit = EnvironmentalQuestion.objects.get(
-                question_text=d.indicator
-            ).default_unit
-
-            display_value = self.convert_value(
-                float(d.value), base_unit, unit_dict[d.indicator]
-            )
-
-            data_dict[d.indicator][d.month.capitalize()] = display_value
-
+        # Build questions list with unit information
+        questions_list = []
         for q in questions:
-            unit_dict.setdefault(q.question_text, q.default_unit)
+            default_unit_name = q.default_unit.name if q.default_unit else "Count"
+            
+            questions_list.append({
+                "question": q.question_text,
+                "default_unit": default_unit_name,
+                "default_unit_name": default_unit_name,
+            })
 
         context = {
             "plant": plant,
-            "questions": [
-                {
-                    "question": q.question_text,
-                    "default_unit": q.default_unit,
-                    "unit_options": q.get_unit_options_list(),
-                }
-                for q in questions
-            ],
+            "questions": questions_list,
             "months": MONTHS,
             "data": data_dict,
             "unit_dict": unit_dict,
@@ -218,10 +179,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
 
         for q in questions:
             question_text = q.question_text
-            base_unit = q.default_unit
-
-            unit_field = f"unit_{self.slugify_field(question_text)}"
-            selected_unit = request.POST.get(unit_field, base_unit)
+            default_unit = q.default_unit.name if q.default_unit else "Count"
 
             for month in MONTHS:
                 field_name = f"{self.slugify_field(question_text)}_{month.lower()}"
@@ -232,23 +190,21 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
 
                 try:
                     numeric_value = float(value.replace(",", ""))
-                    stored_value = self.convert_value(
-                        numeric_value, selected_unit, base_unit
-                    )
 
                     MonthlyIndicatorData.objects.update_or_create(
                         plant=plant,
                         indicator=question_text,
                         month=month.lower()[:3],
                         defaults={
-                            "value": str(stored_value),
-                            "unit": selected_unit,
+                            "value": str(numeric_value),
+                            "unit": default_unit,
                             "created_by": request.user,
                         }
                     )
                 except ValueError:
                     continue
 
+        messages.success(request, "Data saved successfully!")
         return redirect("environmental:plant-entry")
 
 
@@ -260,8 +216,11 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
     template_name = "data_collection/questions_manager.html"
 
     def get(self, request):
+        categories = UnitCategory.objects.filter(is_active=True)
+        
         return render(request, self.template_name, {
-            "questions": self.load_questions()
+            "questions": self.load_questions(),
+            "categories": categories
         })
 
     def post(self, request):
@@ -270,8 +229,6 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
         actions = {
             "add": self.add_question,
             "delete": self.delete_question,
-            "reorder": self.reorder_questions,
-            "save_all": self.save_all_questions,
         }
 
         return actions.get(action, lambda r: redirect(
@@ -279,26 +236,31 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
         ))(request)
 
     def load_questions(self):
-        return [
-            {
+        questions_list = []
+        for q in EnvironmentalQuestion.objects.filter(is_active=True).order_by("order"):
+            selected_units = q.selected_units.all()
+            questions_list.append({
                 "id": q.id,
                 "question": q.question_text,
-                "default_unit": q.default_unit,
-                "unit_options": q.get_unit_options_list(),
+                "category_id": q.unit_category.id if q.unit_category else None,
+                "category_name": q.unit_category.name if q.unit_category else "Not Set",
+                "default_unit_id": q.default_unit.id if q.default_unit else None,
+                "default_unit_name": q.default_unit.name if q.default_unit else "Not Set",
+                "selected_unit_ids": [u.id for u in selected_units],
+                "selected_unit_names": [u.name for u in selected_units],
                 "order": q.order,
-            }
-            for q in EnvironmentalQuestion.objects.filter(
-                is_active=True
-            ).order_by("order")
-        ]
+            })
+        return questions_list
 
     def add_question(self, request):
         question_text = (request.POST.get("question_text") or "").strip()
-        default_unit = (request.POST.get("default_unit") or "Count").strip()
-        unit_options = (request.POST.get("unit_options") or default_unit).strip()
+        category_id = request.POST.get("category_id")
+        default_unit_id = request.POST.get("default_unit_id")
+        selected_unit_ids = request.POST.getlist("selected_unit_ids[]")
 
-        if not question_text:
-            messages.error(request, "Question text is required")
+        # Validation
+        if not question_text or not category_id:
+            messages.error(request, "Question text and category are required")
             return redirect("environmental:questions-manager")
 
         if EnvironmentalQuestion.objects.filter(
@@ -308,18 +270,34 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
             messages.error(request, "This question already exists")
             return redirect("environmental:questions-manager")
 
+        if not selected_unit_ids:
+            messages.error(request, "Please select at least one unit")
+            return redirect("environmental:questions-manager")
+
+        if not default_unit_id:
+            messages.error(request, "Please select a default unit")
+            return redirect("environmental:questions-manager")
+
+        if default_unit_id not in selected_unit_ids:
+            messages.error(request, "Default unit must be one of the selected units")
+            return redirect("environmental:questions-manager")
+
+        # Create question
         max_order = EnvironmentalQuestion.objects.aggregate(
             max=models.Max("order")
         )["max"] or 0
 
-        EnvironmentalQuestion.objects.create(
+        question = EnvironmentalQuestion.objects.create(
             question_text=question_text,
-            default_unit=default_unit,
-            unit_options=unit_options,
+            unit_category_id=category_id,
+            default_unit_id=default_unit_id,
             order=max_order + 1,
             created_by=request.user,
             is_active=True,
         )
+        
+        # Add selected units
+        question.selected_units.set(selected_unit_ids)
 
         messages.success(request, "Question added successfully")
         return redirect("environmental:questions-manager")
@@ -327,55 +305,53 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
     def delete_question(self, request):
         question_id = request.POST.get("question_id")
 
-        EnvironmentalQuestion.objects.filter(
+        if not question_id:
+            messages.error(request, "Question ID is required")
+            return redirect("environmental:questions-manager")
+
+        deleted_count = EnvironmentalQuestion.objects.filter(
             id=question_id
         ).update(is_active=False)
 
-        messages.success(request, "Question deleted successfully")
+        if deleted_count > 0:
+            messages.success(request, "Question deleted successfully")
+        else:
+            messages.error(request, "Question not found")
+
         return redirect("environmental:questions-manager")
 
-    def reorder_questions(self, request):
+
+# =========================================================
+# API ENDPOINT FOR FETCHING UNITS BY CATEGORY
+# =========================================================
+
+class GetCategoryUnitsAPIView(LoginRequiredMixin, View):
+    """
+    API endpoint to fetch units for a selected category
+    """
+    def get(self, request):
+        category_id = request.GET.get('category_id')
+        
+        if not category_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Category ID is required'
+            }, status=400)
+        
         try:
-            orders = json.loads(request.POST.get("order_data", "[]"))
-            for item in orders:
-                EnvironmentalQuestion.objects.filter(
-                    id=item["id"]
-                ).update(order=item["order"])
-
-            messages.success(request, "Questions reordered successfully")
-        except Exception:
-            messages.error(request, "Failed to reorder questions")
-
-        return redirect("environmental:questions-manager")
-
-    def save_all_questions(self, request):
-        count = int(request.POST.get("question_count", 0))
-
-        for i in range(count):
-            qid = request.POST.get(f"question_id_{i}")
-            text = (request.POST.get(f"question_text_{i}") or "").strip()
-            unit = (request.POST.get(f"default_unit_{i}") or "Count").strip()
-            opts = (request.POST.get(f"unit_options_{i}") or unit).strip()
-
-            if not text:
-                continue
-
-            if qid:
-                EnvironmentalQuestion.objects.filter(id=qid).update(
-                    question_text=text,
-                    default_unit=unit,
-                    unit_options=opts,
-                    order=i + 1,
-                )
-            else:
-                EnvironmentalQuestion.objects.create(
-                    question_text=text,
-                    default_unit=unit,
-                    unit_options=opts,
-                    order=i + 1,
-                    created_by=request.user,
-                    is_active=True,
-                )
-
-        messages.success(request, "All questions saved successfully")
-        return redirect("environmental:questions-manager")
+            # Fetch units for the category
+            units = Unit.objects.filter(
+                category_id=category_id,
+                is_active=True
+            ).values('id', 'name', 'base_unit', 'conversion_rate').order_by('name')
+            
+            return JsonResponse({
+                'success': True,
+                'units': list(units)
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
