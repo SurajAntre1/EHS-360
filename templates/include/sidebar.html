@@ -347,12 +347,57 @@
         </li>
 
         <!-- Data Collection -->
-        <li class="nav-item {% if 'data_collection' in request.path %}menu-open{% endif %}">
-          <a href="#" class="nav-link {% if 'data_collection' in request.path %}active{% endif %}">
+        <li class="nav-item {% if 'env-data' in request.path or 'data_collection' in request.path %}menu-open{% endif %}">
+          <a href="#" class="nav-link {% if 'env-data' in request.path or 'data_collection' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-chart-line"></i>
-            <p>Data Collection <i class="right fas fa-angle-left"></i></p>
+            <p>Environmental Data <i class="right fas fa-angle-left"></i></p>
           </a>
-          <ul class="nav nav-treeview"></ul>
+          <ul class="nav nav-treeview">
+            <!-- For All Users - Data Entry -->
+            <li class="nav-item">
+              <a href="{% url 'environmental:plant-entry' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'plant-entry' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p class="menu-title-small">Enter Data</p>
+              </a>
+            </li>
+            
+            <!-- For All Users - View Their Data -->
+            <li class="nav-item">
+              <a href="{% url 'environmental:plant-data-view' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'plant-data-view' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p class="menu-title-small">View My Data</p>
+              </a>
+            </li>
+            
+            <!-- Admin/Staff Only Options -->
+            {% if user.is_superuser or user.is_staff or user.is_admin_user %}
+            <li class="nav-item">
+              <a href="{% url 'environmental:admin-all-plants' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'admin-all-plants' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p class="menu-title-small">All Plants Data</p>
+              </a>
+            </li>
+            
+            <li class="nav-item">
+              <a href="{% url 'environmental:questions-manager' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'questions-manager' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p class="menu-title-small">Manage Questions</p>
+              </a>
+            </li>
+            
+            <li class="nav-item">
+              <a href="{% url 'environmental:unit-manager' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'unit-manager' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p class="menu-title-small">Manage Units</p>
+              </a>
+            </li>
+            {% endif %}
+          </ul>
         </li>
 
         <!-- Inspection Module -->
