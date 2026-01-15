@@ -39,7 +39,7 @@ class HazardDashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         
         # Get hazards based on user role (This part is already correct)
-        if self.request.user.is_superuser or self.request.user.role == 'ADMIN': 
+        if self.request.user.is_superuser or self.request.user.role.name == 'ADMIN': 
             hazards = Hazard.objects.all()
         elif self.request.user.plant: 
             hazards = Hazard.objects.filter(plant=self.request.user.plant)
@@ -77,7 +77,7 @@ class HazardListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         # La lógica base del queryset es correcta
-        if self.request.user.is_superuser or self.request.user.role == 'ADMIN':
+        if self.request.user.is_superuser or self.request.user.role.name == 'ADMIN':
             queryset = Hazard.objects.all()
         elif self.request.user.plant:
             queryset = Hazard.objects.filter(plant=self.request.user.plant)

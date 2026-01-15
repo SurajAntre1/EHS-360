@@ -232,8 +232,8 @@
                             <strong>Reported By:</strong>
                             <p>
                                 {{ hazard.reported_by.get_full_name|default:hazard.reported_by.username }}
-                                {% if hazard.reported_by.role %}
-                                    <span class="badge badge-secondary">{{ hazard.reported_by.get_role_display }}</span>
+                                {% if hazard.reported_by.role.name %}
+                                    <span class="badge badge-secondary">{{ hazard.reported_by.role.name }}</span>
                                 {% endif %}
                             </p>
                         </div>
@@ -270,7 +270,7 @@
                                     <div class="col-md-3">
                                         <strong>Role:</strong><br>
                                         <span class="text-dark">
-                                            {% if hazard.behalf_person.role %}
+                                            {% if hazard.behalf_person.role.name %}
                                                 {{ hazard.behalf_person.get_role_display }}
                                             {% else %}
                                                 N/A

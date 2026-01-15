@@ -379,7 +379,7 @@ class UserPermissionsOnlyView(LoginRequiredMixin, AdminRequiredMixin, ListView):
         # Role filter
         role = self.request.GET.get('role')
         if role:
-            queryset = queryset.filter(role=role)
+            queryset = queryset.filter(role__name=role)
         
         # Plant filter
         plant_id = self.request.GET.get('plant')
@@ -410,7 +410,7 @@ def update_user_permission(request, user_id):
     """
     AJAX endpoint to update a single permission for a user
     """
-    if not (request.user.is_superuser or request.user.role == 'ADMIN' and request.user.role.name == 'ADMIN'):
+    if not (request.user.is_superuser or request.user.role.name == 'ADMIN' and request.user.role.name == 'ADMIN'):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     
     if request.method == 'POST':
@@ -459,7 +459,7 @@ def bulk_update_permissions(request):
     """
     Bulk update permissions for multiple users
     """
-    if not (request.user.is_superuser or request.user.role == 'ADMIN'):
+    if not (request.user.is_superuser or request.user.role.name == 'ADMIN'):
         messages.error(request, "You don't have permission to perform this action.")
         return redirect('accounts:permissions_only')
     

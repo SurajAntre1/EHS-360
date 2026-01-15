@@ -33,7 +33,7 @@ def inspection_dashboard(request):
     """Main inspection dashboard with statistics and charts"""
     
     # Base queryset based on user role
-    if request.user.is_superuser or request.user.role == 'ADMIN':
+    if request.user.is_superuser or request.user.role.name == 'ADMIN':
         schedules = InspectionSchedule.objects.all()
         inspections = Inspection.objects.all()
         findings = InspectionFinding.objects.all()
@@ -73,7 +73,7 @@ def inspection_dashboard(request):
     
     # My assigned inspections (for HOD)
     my_assigned_inspections = []
-    if request.user.role == 'HOD':
+    if request.user.role.name == 'HOD':
         my_assigned_inspections = schedules.filter(
             assigned_to=request.user,
             status__in=['SCHEDULED', 'IN_PROGRESS', 'OVERDUE']
@@ -115,7 +115,7 @@ def schedule_list(request):
     """List all inspection schedules"""
     
     # Base queryset
-    if request.user.is_superuser or request.user.role == 'ADMIN':
+    if request.user.is_superuser or request.user.role.name == 'ADMIN':
         schedules = InspectionSchedule.objects.all()
     elif request.user.plant:
         schedules = InspectionSchedule.objects.filter(plant=request.user.plant)
@@ -128,7 +128,7 @@ def schedule_list(request):
         schedules = schedules.filter(status=status_filter)
     
     # Filter for user's assigned schedules
-    if request.user.role == 'HOD':
+    if request.user.role.name == 'HOD':
         schedules = schedules.filter(assigned_to=request.user)
     
     schedules = schedules.select_related(
@@ -148,7 +148,7 @@ def schedule_create(request):
     """Create new inspection schedule (Safety Officer only)"""
     
     # Check permission
-    if not (request.user.is_superuser or request.user.role in ['ADMIN', 'SAFETY_MANAGER']):
+    if not (request.user.is_superuser or request.user.role.name in ['ADMIN', 'SAFETY MANAGER']):
         messages.error(request, 'You do not have permission to schedule inspections.')
         return redirect('inspections:dashboard')
     
@@ -291,7 +291,7 @@ def inspection_list(request):
     """List all inspections with filters"""
     
     # Base queryset
-    if request.user.is_superuser or request.user.role == 'ADMIN':
+    if request.user.is_superuser or request.user.role.name == 'ADMIN':
         inspections = Inspection.objects.all()
     elif request.user.plant:
         inspections = Inspection.objects.filter(plant=request.user.plant)
@@ -371,7 +371,7 @@ def findings_list(request):
     """List all inspection findings"""
     
     # Base queryset
-    if request.user.is_superuser or request.user.role == 'ADMIN':
+    if request.user.is_superuser or request.user.role.name == 'ADMIN':
         findings = InspectionFinding.objects.all()
     elif request.user.plant:
         findings = InspectionFinding.objects.filter(inspection__plant=request.user.plant)
@@ -454,7 +454,7 @@ def finding_assign(request, pk):
     """Assign finding to responsible person (Safety Officer only)"""
     
     # Check permission
-    if not (request.user.is_superuser or request.user.role in ['ADMIN', 'SAFETY_MANAGER']):
+    if not (request.user.is_superuser or request.user.role.name in ['ADMIN', 'SAFETY MANAGER']):
         messages.error(request, 'You do not have permission to assign findings.')
         return redirect('inspections:findings_list')
     
@@ -489,7 +489,7 @@ def finding_close(request, pk):
     """Close finding (Safety Officer only)"""
     
     # Check permission
-    if not (request.user.is_superuser or request.user.role in ['ADMIN', 'SAFETY_MANAGER']):
+    if not (request.user.is_superuser or request.user.role.name in ['ADMIN', 'SAFETY MANAGER']):
         messages.error(request, 'You do not have permission to close findings.')
         return redirect('inspections:findings_list')
     
@@ -525,7 +525,7 @@ def finding_close(request, pk):
 def template_list(request):
     """List all inspection templates"""
     
-    if not (request.user.is_superuser or request.user.role == 'ADMIN'):
+    if not (request.user.is_superuser or request.user.role.name == 'ADMIN'):
         messages.error(request, 'You do not have permission to manage templates.')
         return redirect('inspections:dashboard')
     

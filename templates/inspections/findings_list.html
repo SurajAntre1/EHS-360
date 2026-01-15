@@ -205,7 +205,7 @@
                                     <i class="fas fa-eye"></i>
                                 </a>
                                 
-                                {% if user.role == 'SAFETY_MANAGER' or user.is_superuser %}
+                                {% if user.role.name == 'SAFETY MANAGER' or user.is_superuser %}
                                     {% if finding.status == 'OPEN' %}
                                     <a href="{% url 'inspections:finding_assign' finding.id %}" 
                                        class="btn btn-sm btn-warning" 

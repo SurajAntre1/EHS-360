@@ -286,7 +286,7 @@
 </div>
 
 <!-- My Assigned Inspections -->
-{% if user.role == 'HOD' or user.role == 'SAFETY_MANAGER' %}
+{% if user.role.name == 'HOD' or user.role.name == 'SAFETY MANAGER' %}
 <div class="row">
     <div class="col-12">
         <div class="card ehs-card">

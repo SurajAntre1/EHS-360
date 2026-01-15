@@ -105,7 +105,7 @@
       <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
         <div class="dropdown-item dropdown-header">
           <strong>{{ user.get_full_name|default:user.username }}</strong>
-          <p class="text-sm text-muted mb-0">{{ user.role_display }}</p>
+          <p class="text-sm text-muted mb-0">{{ user.role.name }}</p>
           {% if user.plant %}
           <p class="text-sm text-muted mb-0">{{ user.plant.name }}</p>
           {% endif %}
