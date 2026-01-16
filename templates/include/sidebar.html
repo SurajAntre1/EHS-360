@@ -212,42 +212,32 @@
           </a>
         </li> -->
 
-          <li class="nav-item {% if 'accounts' in request.path %}menu-open{% endif %}">
-          <a href="#" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
+        <li class="nav-item has-treeview {% if url in 'home IncidentAccidentDashboardView hazard_dashboard' %}menu-open{% endif %}">
+          <a href="#" class="nav-link {% if url in 'home IncidentAccidentDashboardView hazard_dashboard' %}active{% endif %}">
             <i class="nav-icon fas fa-tachometer-alt"></i>
-            <p>
-              Dashboards
-              <i class="right fas fa-angle-left"></i>
-            </p>
+            <p>Dashboards<i class="right fas fa-angle-left"></i></p>
           </a>
 
           <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="{% url 'dashboards:home' %}"
-                 class="nav-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i>
-                <p>EHS-360 Dashboard</p>
+              <a href="{% url 'dashboards:home' %}" class="nav-link {% if url == 'home' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i><p>EHS-360 Dashboard</p>
               </a>
             </li>
 
             <li class="nav-item">
-              <a href="{% url 'accidents:IncidentAccidentDashboardView' %}"
-                 class="nav-link {% if request.resolver_match.url_name == 'IncidentAccidentDashboardView' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Incident Dashboard</p>
+              <a href="{% url 'accidents:IncidentAccidentDashboardView' %}" class="nav-link {% if url == 'IncidentAccidentDashboardView' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i><p>Incident Dashboard</p>
               </a>
             </li>
-            
+
             <li class="nav-item">
-              <a href="{% url 'hazards:hazard_dashboard' %}"
-                 class="nav-link {% if request.resolver_match.url_name == 'hazard_dashboard' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Hazard Dashboard</p>
+              <a href="{% url 'hazards:hazard_dashboard' %}" class="nav-link {% if url == 'hazard_dashboard' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i><p>Hazard Dashboard</p>
               </a>
             </li>
           </ul>
         </li>
-
 
         <!-- Administration Section -->
         {% if user.is_employee or user.role.name == 'ADMIN' or user.role.name == 'PLANT HEAD' %}

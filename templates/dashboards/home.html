@@ -109,46 +109,55 @@
 </div>
 
 <!-- Quick Actions -->
-<div class="row mt-4">
+<div class="row mt-4 align-items-stretch">
+  
   <div class="col-md-3">
-    <div class="card text-center" style="border-top: 3px solid #ff9800;">
-      <div class="card-body">
-        <i class="fas fa-exclamation-triangle fa-3x mb-3" style="color: #ff9800;"></i>
-        <h5>Report Hazard</h5>
-        <p class="text-muted">Report hazards & near misses</p>
-        <a href="/hazards/hazards/create/" class="btn btn-primary btn-sm">Report Now</a>
+    <div class="card text-center h-100" style="border-top: 3px solid #ff9800;">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <div>
+          <i class="fas fa-exclamation-triangle fa-3x mb-3" style="color: #ff9800;"></i>
+          <h5>Report Hazard</h5>
+          <p class="text-muted">Report hazards & near misses</p>
+        </div>
+        <a href="{% url 'hazards:hazard_create' %}" class="btn btn-primary btn-sm">Report Now</a>
       </div>
     </div>
   </div>
 
   <div class="col-md-3">
-    <div class="card text-center" style="border-top: 3px solid #dc3545;">
-      <div class="card-body">
-        <i class="fas fa-file-medical fa-3x mb-3" style="color: #dc3545;"></i>
-        <h5>Report Incident</h5>
-        <p class="text-muted">Report accidents and incidents</p>  
-        <a href="/accidents/incidents/create/" class="btn btn-primary btn-sm">Report Now</a>
+    <div class="card text-center h-100" style="border-top: 3px solid #dc3545;">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <div>
+          <i class="fas fa-file-medical fa-3x mb-3" style="color: #dc3545;"></i>
+          <h5>Report Incident</h5>
+          <p class="text-muted">Report accidents and incidents</p>
+        </div>
+        <a href="{% url 'accidents:incident_create' %}" class="btn btn-primary btn-sm">Report Now</a>
       </div>
     </div>
   </div>
 
   <div class="col-md-3">
-    <div class="card text-center" style="border-top: 3px solid #28a745;">
-      <div class="card-body">
-        <i class="fas fa-leaf fa-3x mb-3" style="color: #28a745;"></i>
-        <h5>Environmental Data</h5>
-        <p class="text-muted">Enter environmental data</p>
-        <a href="#" class="btn btn-primary btn-sm">Enter Data</a>
+    <div class="card text-center h-100" style="border-top: 3px solid #28a745;">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <div>
+          <i class="fas fa-leaf fa-3x mb-3" style="color: #28a745;"></i>
+          <h5>Environmental Data</h5>
+          <p class="text-muted">Enter environmental data</p>
+        </div>
+        <a href="{% url 'environmental:admin-all-plants' %}" class="btn btn-primary btn-sm">Enter Data</a>
       </div>
     </div>
   </div>
 
   <div class="col-md-3">
-    <div class="card text-center" style="border-top: 3px solid #1E90FF;">
-      <div class="card-body">
-        <i class="fas fa-clipboard-check fa-3x mb-3" style="color: #1E90FF;"></i>
-        <h5>Inspections</h5>
-        <p class="text-muted">Create and manage inspections</p>
+    <div class="card text-center h-100" style="border-top: 3px solid #1E90FF;">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <div>
+          <i class="fas fa-clipboard-check fa-3x mb-3" style="color: #1E90FF;"></i>
+          <h5>Inspections</h5>
+          <p class="text-muted">Create and manage inspections</p>
+        </div>
         <a href="/accidents/incidents/" class="btn btn-primary btn-sm">View All</a>
       </div>
     </div>

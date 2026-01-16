@@ -5,6 +5,7 @@ from django.views.generic import TemplateView
 from apps.hazards.models import Hazard
 from apps.accidents.models import Incident
 from apps.inspections.models import Inspection
+from apps.ENVdata.models import MonthlyIndicatorData
 from django.shortcuts import redirect
 from django.contrib import messages
 from apps.organizations.models import *
@@ -23,7 +24,7 @@ class HomeView(LoginRequiredMixin, TemplateView):
         # Add your dashboard data here
         context['total_hazards'] = hazards.count()
         context['total_incidents'] = incident.count()
-        context['total_environmental'] = 0
+        context['total_environmental'] = MonthlyIndicatorData.objects.values("indicator").distinct().count()
         context['total_inspections'] = inspection.count()
         context['pending_inspections'] = 0
         return context

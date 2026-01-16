@@ -270,8 +270,17 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
     # ---------- POST ----------
 
     def post(self, request):
-        plant = self.get_plant(request)
-        if not plant:
+        selected_plant_id = request.POST.get('selected_plant_id')
+
+        if not selected_plant_id:
+            messages.error(request, "Please select a plant")
+            return redirect("environmental:plant-entry")
+
+        user_plants = self.get_user_plants(request)
+        selected_plant = user_plants.filter(id=selected_plant_id).first()
+
+        if not selected_plant:
+            messages.error(request, "Invalid plant selected")
             return redirect("environmental:plant-entry")
 
         questions = self.get_questions()
@@ -285,19 +294,13 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 value = (request.POST.get(field_name) or "").strip()
 
                 if not value:
-                    # Delete if exists and now empty
-                    MonthlyIndicatorData.objects.filter(
-                        plant=plant,
-                        indicator=question_text,
-                        month=month.lower()[:3]
-                    ).delete()
+                    MonthlyIndicatorData.objects.filter(plant=selected_plant,indicator=question_text,month=month.lower()[:3]).delete()
                     continue
 
                 try:
                     numeric_value = float(value.replace(",", ""))
-
                     MonthlyIndicatorData.objects.update_or_create(
-                        plant=plant,
+                        plant=selected_plant,
                         indicator=question_text,
                         month=month.lower()[:3],
                         defaults={
@@ -307,10 +310,10 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                         }
                     )
                 except ValueError:
-                    continue
+                    messages.warning(request,f"Invalid value for {question_text} in {month}")
 
-        messages.success(request, f"Data saved successfully for {plant.name}!")
-        return redirect(f"{request.path}?plant_id={plant.id}")
+        messages.success(request,f"Data saved successfully for {selected_plant.name}!")
+        return redirect(f"{request.path}?plant_id={selected_plant.id}&saved=1")
 
 
 # =========================================================

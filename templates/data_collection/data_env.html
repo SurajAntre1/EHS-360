@@ -1,5 +1,7 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% block title %}Enviromental Data{% endblock %}
+{% block page_title %}Enviromental Data Entry{% endblock %}
 {% load custom_tags %}
 
 {% block extra_css %}
@@ -420,6 +422,12 @@
         .plant-selector-container select {
             min-width: 100%;
         }
+    }
+
+    #plantSelector {
+        color: #2c3e50 !important;
+        background-color: #ffffff !important;
+        padding: 7px 15px !important;
     }
 </style>
 {% endblock %}
