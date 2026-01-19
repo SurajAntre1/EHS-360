@@ -169,9 +169,10 @@ th.bg-danger{
                             <label>Role</label>
                             <select name="role" class="form-control">
                                 <option value="">All Roles</option>
-                                {% for value, label in roles %}
-                                <option value="{{ value }}" {% if request.GET.role == value %}selected{% endif %}>
-                                    {{ label }}
+                                {% for role in roles %}
+                                <option value="{{ role.id }}"
+                                    {% if request.GET.role == role.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ role.name }}
                                 </option>
                                 {% endfor %}
                             </select>
