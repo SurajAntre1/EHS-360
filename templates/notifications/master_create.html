@@ -1,0 +1,502 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Configure Notifications for Role{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .form-section h5 {
+        margin-bottom: 15px;
+        color: #495057;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+    }
+    .module-group {
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 15px;
+        background: white;
+    }
+    .module-header {
+        background: #007bff;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 5px 5px 0 0;
+        margin: -15px -15px 15px -15px;
+        cursor: pointer;
+    }
+    .module-header:hover {
+        background: #0056b3;
+    }
+    .module-body {
+        padding-top: 15px;
+    }
+    .event-checkbox {
+        margin-bottom: 10px;
+        padding: 8px;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+    .event-checkbox:hover {
+        background: #f8f9fa;
+    }
+    .select-all-btn {
+        font-size: 0.85rem;
+        padding: 2px 8px;
+    }
+    .module-checkbox {
+        margin-right: 10px;
+    }
+    .selection-summary {
+        position: sticky;
+        top: 20px;
+        background: white;
+        border: 2px solid #007bff;
+        border-radius: 8px;
+        padding: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-9">
+            <!-- Header -->
+            <div class="mb-4">
+                <h2>
+                    <i class="fas fa-bell"></i> Configure Notifications for Role
+                </h2>
+                <p class="text-muted">Select a role and choose which notifications they should receive</p>
+            </div>
+
+            <!-- Form -->
+            <form method="POST" id="bulkNotificationForm">
+                {% csrf_token %}
+                
+                <!-- Step 1: Select Role -->
+                <div class="form-section">
+                    <h5><i class="fas fa-user-tag"></i> Step 1: Select Role</h5>
+                    
+                    <div class="form-group">
+                        <label for="role">Role *</label>
+                        <select class="form-control form-control-lg" 
+                                id="role" 
+                                name="role" 
+                                required
+                                onchange="updateSummary()">
+                            <option value="">-- Select Role --</option>
+                            {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Step 2: Select Modules and Events -->
+                <div class="form-section">
+                    <h5><i class="fas fa-list-check"></i> Step 2: Select Modules & Notification Events</h5>
+                    <p class="text-muted">Check the modules and select specific events within each module</p>
+                    
+                    <!-- Incident Module -->
+                    <div class="module-group">
+                        <div class="module-header" onclick="toggleModule('incident')">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <input type="checkbox" 
+                                           class="module-checkbox" 
+                                           id="module_incident" 
+                                           onclick="event.stopPropagation(); toggleModuleSelection('INCIDENT', this.checked)">
+                                    <label for="module_incident" class="mb-0" style="cursor: pointer;" onclick="event.stopPropagation();">
+                                        <i class="fas fa-exclamation-triangle"></i> <strong>Incident Management</strong>
+                                    </label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light select-all-btn" 
+                                        onclick="event.stopPropagation(); selectAllInModule('INCIDENT', this)">
+                                    Select All
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="module-body" id="body_incident" style="display: none;">
+                            {% for code, name in NOTIFICATION_EVENT_CHOICES %}
+                            {% if code|slice:":8" == "INCIDENT" %}
+                            <div class="event-checkbox">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" 
+                                           class="custom-control-input event-INCIDENT" 
+                                           id="event_{{ code }}" 
+                                           name="events" 
+                                           value="{{ code }}"
+                                           onchange="updateSummary(); updateModuleCheckbox('INCIDENT')">
+                                    <label class="custom-control-label" for="event_{{ code }}">
+                                        {{ name }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Hazard Module -->
+                    <div class="module-group">
+                        <div class="module-header" onclick="toggleModule('hazard')">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <input type="checkbox" 
+                                           class="module-checkbox" 
+                                           id="module_hazard" 
+                                           onclick="event.stopPropagation(); toggleModuleSelection('HAZARD', this.checked)">
+                                    <label for="module_hazard" class="mb-0" style="cursor: pointer;" onclick="event.stopPropagation();">
+                                        <i class="fas fa-warning"></i> <strong>Hazard/Near Miss</strong>
+                                    </label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light select-all-btn" 
+                                        onclick="event.stopPropagation(); selectAllInModule('HAZARD', this)">
+                                    Select All
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="module-body" id="body_hazard" style="display: none;">
+                            {% for code, name in NOTIFICATION_EVENT_CHOICES %}
+                            {% if code|slice:":6" == "HAZARD" %}
+                            <div class="event-checkbox">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" 
+                                           class="custom-control-input event-HAZARD" 
+                                           id="event_{{ code }}" 
+                                           name="events" 
+                                           value="{{ code }}"
+                                           onchange="updateSummary(); updateModuleCheckbox('HAZARD')">
+                                    <label class="custom-control-label" for="event_{{ code }}">
+                                        {{ name }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Environmental Module -->
+                    <div class="module-group">
+                        <div class="module-header" onclick="toggleModule('environmental')">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <input type="checkbox" 
+                                           class="module-checkbox" 
+                                           id="module_environmental" 
+                                           onclick="event.stopPropagation(); toggleModuleSelection('ENV', this.checked)">
+                                    <label for="module_environmental" class="mb-0" style="cursor: pointer;" onclick="event.stopPropagation();">
+                                        <i class="fas fa-leaf"></i> <strong>Environmental Data</strong>
+                                    </label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light select-all-btn" 
+                                        onclick="event.stopPropagation(); selectAllInModule('ENV', this)">
+                                    Select All
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="module-body" id="body_environmental" style="display: none;">
+                            {% for code, name in NOTIFICATION_EVENT_CHOICES %}
+                            {% if code|slice:":3" == "ENV" %}
+                            <div class="event-checkbox">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" 
+                                           class="custom-control-input event-ENV" 
+                                           id="event_{{ code }}" 
+                                           name="events" 
+                                           value="{{ code }}"
+                                           onchange="updateSummary(); updateModuleCheckbox('ENV')">
+                                    <label class="custom-control-label" for="event_{{ code }}">
+                                        {{ name }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Inspection Module -->
+                    <div class="module-group">
+                        <div class="module-header" onclick="toggleModule('inspection')">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <input type="checkbox" 
+                                           class="module-checkbox" 
+                                           id="module_inspection" 
+                                           onclick="event.stopPropagation(); toggleModuleSelection('INSPECTION', this.checked)">
+                                    <label for="module_inspection" class="mb-0" style="cursor: pointer;" onclick="event.stopPropagation();">
+                                        <i class="fas fa-clipboard-check"></i> <strong>Inspection Management</strong>
+                                    </label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light select-all-btn" 
+                                        onclick="event.stopPropagation(); selectAllInModule('INSPECTION', this)">
+                                    Select All
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="module-body" id="body_inspection" style="display: none;">
+                            {% for code, name in NOTIFICATION_EVENT_CHOICES %}
+                            {% if code|slice:":10" == "INSPECTION" %}
+                            <div class="event-checkbox">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" 
+                                           class="custom-control-input event-INSPECTION" 
+                                           id="event_{{ code }}" 
+                                           name="events" 
+                                           value="{{ code }}"
+                                           onchange="updateSummary(); updateModuleCheckbox('INSPECTION')">
+                                    <label class="custom-control-label" for="event_{{ code }}">
+                                        {{ name }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Common Settings -->
+                <div class="form-section">
+                    <h5><i class="fas fa-cog"></i> Step 3: Common Settings</h5>
+                    <p class="text-muted">These settings will apply to all selected events</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="reminder_type">Reminder Type</label>
+                                <select class="form-control" id="reminder_type" name="reminder_type">
+                                    {% for code, name in REMINDER_TYPE_CHOICES %}
+                                    <option value="{{ code }}">{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="days_before_deadline">Days Before Deadline</label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="days_before_deadline" 
+                                       name="days_before_deadline" 
+                                       min="0" 
+                                       value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="days_after_deadline">Days After Deadline</label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="days_after_deadline" 
+                                       name="days_after_deadline" 
+                                       min="0" 
+                                       value="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" 
+                                       class="custom-control-input" 
+                                       id="filter_by_plant" 
+                                       name="filter_by_plant"
+                                       checked>
+                                <label class="custom-control-label" for="filter_by_plant">
+                                    Filter by Plant
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" 
+                                       class="custom-control-input" 
+                                       id="filter_by_location" 
+                                       name="filter_by_location">
+                                <label class="custom-control-label" for="filter_by_location">
+                                    Filter by Location
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" 
+                                       class="custom-control-input" 
+                                       id="filter_by_zone" 
+                                       name="filter_by_zone">
+                                <label class="custom-control-label" for="filter_by_zone">
+                                    Filter by Zone
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" 
+                                       class="custom-control-input" 
+                                       id="is_active" 
+                                       name="is_active"
+                                       checked>
+                                <label class="custom-control-label" for="is_active">
+                                    <strong>Active</strong>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" 
+                                       class="custom-control-input" 
+                                       id="email_enabled" 
+                                       name="email_enabled"
+                                       checked>
+                                <label class="custom-control-label" for="email_enabled">
+                                    <strong>Email Notifications</strong>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="form-group text-right">
+                    <a href="{% url 'notifications:notification_master_list' %}" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+                        <i class="fas fa-save"></i> Create Configurations
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Selection Summary Sidebar -->
+        <div class="col-md-3">
+            <div class="selection-summary">
+                <h5><i class="fas fa-info-circle"></i> Selection Summary</h5>
+                <hr>
+                <div id="summary-content">
+                    <p class="text-muted">Please select a role and events to see summary</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Toggle module body visibility
+function toggleModule(moduleId) {
+    const body = document.getElementById('body_' + moduleId);
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+    } else {
+        body.style.display = 'none';
+    }
+}
+
+// Toggle all events in a module when module checkbox is clicked
+function toggleModuleSelection(modulePrefix, checked) {
+    const checkboxes = document.querySelectorAll('.event-' + modulePrefix);
+    checkboxes.forEach(cb => {
+        cb.checked = checked;
+    });
+    updateSummary();
+}
+
+// Select/Deselect all events in a module
+function selectAllInModule(modulePrefix, button) {
+    const checkboxes = document.querySelectorAll('.event-' + modulePrefix);
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+    });
+    
+    button.textContent = allChecked ? 'Select All' : 'Deselect All';
+    updateModuleCheckbox(modulePrefix);
+    updateSummary();
+}
+
+// Update module checkbox based on its events
+function updateModuleCheckbox(modulePrefix) {
+    const checkboxes = document.querySelectorAll('.event-' + modulePrefix);
+    const moduleCheckbox = document.getElementById('module_' + modulePrefix.toLowerCase());
+    
+    if (moduleCheckbox) {
+        const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        
+        moduleCheckbox.checked = anyChecked;
+        moduleCheckbox.indeterminate = anyChecked && !allChecked;
+    }
+}
+
+// Update summary and enable/disable submit button
+function updateSummary() {
+    const roleSelect = document.getElementById('role');
+    const selectedRole = roleSelect.options[roleSelect.selectedIndex]?.text || 'None';
+    
+    const checkedEvents = document.querySelectorAll('input[name="events"]:checked');
+    const eventCount = checkedEvents.length;
+    
+    // Count by module
+    const incidentCount = document.querySelectorAll('.event-INCIDENT:checked').length;
+    const hazardCount = document.querySelectorAll('.event-HAZARD:checked').length;
+    const envCount = document.querySelectorAll('.event-ENV:checked').length;
+    const inspectionCount = document.querySelectorAll('.event-INSPECTION:checked').length;
+    
+    let summaryHTML = `
+        <div class="mb-3">
+            <strong>Role:</strong><br>
+            <span class="badge badge-primary">${selectedRole}</span>
+        </div>
+        <div class="mb-3">
+            <strong>Total Events Selected:</strong><br>
+            <h3 class="mb-0">${eventCount}</h3>
+        </div>
+    `;
+    
+    if (eventCount > 0) {
+        summaryHTML += '<div><strong>By Module:</strong><ul class="mb-0">';
+        if (incidentCount > 0) summaryHTML += `<li>Incident: ${incidentCount}</li>`;
+        if (hazardCount > 0) summaryHTML += `<li>Hazard: ${hazardCount}</li>`;
+        if (envCount > 0) summaryHTML += `<li>Environmental: ${envCount}</li>`;
+        if (inspectionCount > 0) summaryHTML += `<li>Inspection: ${inspectionCount}</li>`;
+        summaryHTML += '</ul></div>';
+    }
+    
+    document.getElementById('summary-content').innerHTML = summaryHTML;
+    
+    // Enable/disable submit button
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = !(roleSelect.value && eventCount > 0);
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateSummary();
+});
+</script>
+{% endblock %}

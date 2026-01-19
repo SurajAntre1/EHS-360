@@ -1,0 +1,411 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Notification Master Configuration{% endblock %}
+
+{% block extra_css %}
+<style>
+    .role-section {
+        margin-bottom: 30px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .role-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .role-header h4 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+    .module-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-right: 5px;
+    }
+    .badge-incident { background: #dc3545; color: white; }
+    .badge-hazard { background: #fd7e14; color: white; }
+    .badge-environmental { background: #28a745; color: white; }
+    .badge-inspection { background: #17a2b8; color: white; }
+    
+    .config-table {
+        width: 100%;
+        margin-bottom: 0;
+    }
+    .config-table th {
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        color: #495057;
+        padding: 12px;
+    }
+    .config-table td {
+        padding: 12px;
+        vertical-align: middle;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .config-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 24px;
+    }
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 24px;
+    }
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    input:checked + .slider {
+        background-color: #28a745;
+    }
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+    .action-buttons .btn {
+        padding: 4px 8px;
+        font-size: 0.85rem;
+    }
+    .summary-card {
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-bell"></i> Notification Master Configuration
+            </h2>
+            <p class="text-muted">Configure which roles receive which notifications and when</p>
+        </div>
+        <div class="col-md-4 text-right">
+            <a href="{% url 'notifications:notification_master_create' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus"></i> Add New Configuration
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card summary-card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Total Configurations</h6>
+                            <h2 class="mb-0">{{ total_configs }}</h2>
+                        </div>
+                        <i class="fas fa-cog fa-3x" style="opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Active Roles</h6>
+                            <h2 class="mb-0">{{ roles_with_configs|length }}</h2>
+                        </div>
+                        <i class="fas fa-users fa-3x" style="opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Active Configs</h6>
+                            <h2 class="mb-0">{{ active_configs_count }}</h2>
+                        </div>
+                        <i class="fas fa-check-circle fa-3x" style="opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Inactive Configs</h6>
+                            <h2 class="mb-0">{{ inactive_configs_count }}</h2>
+                        </div>
+                        <i class="fas fa-pause-circle fa-3x" style="opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configurations Grouped by Role -->
+    {% if roles_with_configs %}
+        {% for role, configs in roles_with_configs.items %}
+        <div class="role-section">
+            <!-- Role Header -->
+            <div class="role-header">
+                <div>
+                    <h4>
+                        <i class="fas fa-user-shield"></i> {{ role }}
+                    </h4>
+                    <small>{{ configs|length }} notification(s) configured</small>
+                </div>
+                <div>
+                    <a href="{% url 'notifications:notification_master_create' %}?role={{ role }}" 
+                       class="btn btn-light btn-sm">
+                        <i class="fas fa-plus"></i> Add More
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Configuration Table -->
+            <table class="config-table table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Module</th>
+                        <th style="width: 30%;">Notification Event</th>
+                        <th style="width: 15%;">Reminder Type</th>
+                        <th style="width: 10%;">Days Before</th>
+                        <th style="width: 10%;">Days After</th>
+                        <th style="width: 10%;">Status</th>
+                        <th style="width: 10%;" class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for config in configs %}
+                    <tr>
+                        <!-- Module -->
+                        <td>
+                            {% if config.module == 'INCIDENT' %}
+                                <span class="module-badge badge-incident">
+                                    <i class="fas fa-exclamation-triangle"></i> Incident
+                                </span>
+                            {% elif config.module == 'HAZARD' %}
+                                <span class="module-badge badge-hazard">
+                                    <i class="fas fa-warning"></i> Hazard
+                                </span>
+                            {% elif config.module == 'ENVIRONMENTAL' %}
+                                <span class="module-badge badge-environmental">
+                                    <i class="fas fa-leaf"></i> Environmental
+                                </span>
+                            {% elif config.module == 'INSPECTION' %}
+                                <span class="module-badge badge-inspection">
+                                    <i class="fas fa-clipboard-check"></i> Inspection
+                                </span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Event -->
+                        <td>
+                            <strong>{{ config.get_notification_event_display }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                {% if config.filter_by_plant %}
+                                    <span class="badge badge-secondary badge-sm">Plant Filter</span>
+                                {% endif %}
+                                {% if config.filter_by_location %}
+                                    <span class="badge badge-secondary badge-sm">Location Filter</span>
+                                {% endif %}
+                                {% if config.filter_by_zone %}
+                                    <span class="badge badge-secondary badge-sm">Zone Filter</span>
+                                {% endif %}
+                                {% if config.email_enabled %}
+                                    <span class="badge badge-success badge-sm">
+                                        <i class="fas fa-envelope"></i> Email
+                                    </span>
+                                {% endif %}
+                            </small>
+                        </td>
+                        
+                        <!-- Reminder Type -->
+                        <td>
+                            <span class="badge badge-info">
+                                {{ config.get_reminder_type_display }}
+                            </span>
+                        </td>
+                        
+                        <!-- Days Before -->
+                        <td>
+                            {% if config.days_before_deadline > 0 %}
+                                <span class="text-warning">
+                                    <i class="fas fa-clock"></i> {{ config.days_before_deadline }} days
+                                </span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Days After -->
+                        <td>
+                            {% if config.days_after_deadline > 0 %}
+                                <span class="text-danger">
+                                    <i class="fas fa-exclamation-triangle"></i> {{ config.days_after_deadline }} days
+                                </span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Status Toggle -->
+                        <td>
+                            <label class="toggle-switch mb-0">
+                                <input type="checkbox" 
+                                       {% if config.is_active %}checked{% endif %}
+                                       onchange="toggleStatus({{ config.id }}, this)">
+                                <span class="slider"></span>
+                            </label>
+                        </td>
+                        
+                        <!-- Actions -->
+                        <td class="text-center">
+                            <div class="action-buttons">
+                                <a href="{% url 'notifications:notification_master_edit' config.id %}" 
+                                   class="btn btn-sm btn-outline-primary"
+                                   data-toggle="tooltip"
+                                   title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-danger" 
+                                        data-toggle="modal" 
+                                        data-target="#deleteModal{{ config.id }}"
+                                        title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Delete Modal for this config -->
+                    <div class="modal fade" id="deleteModal{{ config.id }}" tabindex="-1" role="dialog">
+                        <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-exclamation-triangle"></i> Confirm Delete
+                                    </h5>
+                                    <button type="button" class="close text-white" data-dismiss="modal">
+                                        <span>&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Are you sure you want to delete this notification configuration?</p>
+                                    <div class="alert alert-warning">
+                                        <strong>Configuration:</strong><br>
+                                        <strong>Role:</strong> {{ role }}<br>
+                                        <strong>Module:</strong> {{ config.get_module_display }}<br>
+                                        <strong>Event:</strong> {{ config.get_notification_event_display }}
+                                    </div>
+                                    <p class="text-danger mb-0">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        <strong>This action cannot be undone!</strong>
+                                    </p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                        Cancel
+                                    </button>
+                                    <form method="POST" action="{% url 'notifications:notification_master_delete' config.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            No notification configurations found. Click "Add New Configuration" to create one.
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleStatus(configId, checkbox) {
+    fetch(`/notifications/master/${configId}/toggle/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const message = data.is_active ? 'enabled' : 'disabled';
+            // Optional: Show a nicer notification instead of alert
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Status Updated!',
+                    text: `Notification ${message} successfully!`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                alert(`Notification ${message} successfully!`);
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        checkbox.checked = !checkbox.checked;
+        alert('Error updating status. Please try again.');
+    });
+}
+
+// Initialize tooltips
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+</script>
+{% endblock %}
