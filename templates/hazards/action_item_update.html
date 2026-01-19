@@ -1,3 +1,5 @@
+<!-- templates/hazards/action_item_update.html -->
+
 {% extends 'base/base.html' %}
 {% load static %}
 
@@ -135,7 +137,8 @@
 
                         <!-- 📎 Attachment Section -->
                         <div class="form-group">
-                            <label><i class="fas fa-paperclip"></i> Attachment</label>
+                            <!-- *** MODIFIED: Label now indicates requirement *** -->
+                            <label><i class="fas fa-paperclip"></i> Attachment *</label>
 
                             {% if object.attachment %}
                             <div id="currentAttachment" class="mb-2">
@@ -143,22 +146,18 @@
                                 <a href="{{ object.attachment.url }}" target="_blank">
                                     <i class="fas fa-file-alt"></i> {{ object.get_attachment_name }}
                                 </a>
-                                ({{ object.get_attachment_size }})
-                                <button type="button" id="removeAttachmentBtn"
-                                        class="btn btn-xs btn-danger ml-2">
-                                    <i class="fas fa-trash"></i> Remove
-                                </button>
-                                <input type="hidden" name="remove_attachment"
-                                       id="removeAttachmentInput" value="false">
+                          
+                                <!-- *** MODIFIED: "Remove" button and hidden input are removed *** -->
                             </div>
                             <small id="replaceHelpText" class="form-text text-muted">
-                                To replace, choose a new file below.
+                                To replace, choose a new file below. The current file will be overwritten.
                             </small>
                             {% endif %}
 
                             <div class="custom-file">
+                                <!-- *** MODIFIED: Input is only required if no attachment exists *** -->
                                 <input type="file" class="custom-file-input"
-                                       id="attachment" name="attachment">
+                                       id="attachment" name="attachment" {% if not object.attachment %}required{% endif %}>
                                 <label class="custom-file-label" for="attachment">
                                     {% if object.attachment %}
                                         Choose new file to replace
@@ -187,6 +186,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
+    // ... (email and status handling JavaScript remains the same) ...
     const isSelfAssigned = document.querySelector('input[name="is_self_assigned"]').value === 'true';
 
     /* ================= EMAIL TAG HANDLING ================= */

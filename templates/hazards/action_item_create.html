@@ -231,15 +231,18 @@
 
                         <!-- File Attachment -->
                         <div class="form-group">
-                            <label>
-                                <i class="fas fa-paperclip"></i> Attachment (Optional)
+                            <!-- *** MODIFIED: Changed label to indicate requirement *** -->
+                            <label for="attachmentInput">
+                                <i class="fas fa-paperclip"></i> Attachment *
                             </label>
                             <div class="file-upload-wrapper">
+                                <!-- *** MODIFIED: Added 'required' attribute *** -->
                                 <input type="file" 
-                                       name="attachment" 
-                                       id="attachmentInput" 
-                                       class="file-upload-input"
-                                       accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt">
+                                    name="attachment" 
+                                    id="attachmentInput" 
+                                    class="file-upload-input"
+                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
+                                    required>
                                 <label for="attachmentInput" class="file-upload-label" id="attachmentLabel">
                                     <i class="fas fa-cloud-upload-alt"></i> 
                                     <span id="attachmentText">Click to upload file or drag and drop</span>

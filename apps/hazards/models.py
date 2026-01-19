@@ -504,9 +504,7 @@ class HazardActionItem(models.Model):
     # NEW: Attachment field
     attachment = models.FileField(
         upload_to='action_item_attachments/%Y/%m/',
-        blank=True,
-        null=True,
-        help_text="Optional file attachment (documents, images, etc.)"
+        help_text="Required file attachment (documents, images, etc.)"
     )
     
     target_date = models.DateField(
