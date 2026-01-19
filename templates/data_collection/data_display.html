@@ -381,6 +381,34 @@
             box-shadow: none;
         }
     }
+    .btn-export {
+    background: #1d6f42; 
+    color: #ffffff;
+    }
+    .btn-export:hover {
+        background: #145a32;
+        color: #ffffff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(29, 111, 66, 0.3);
+    }
+    .btn-export i {
+        font-size: 11px;
+    }
+    .btn-export:disabled {
+        background: #95a5a6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+    }
+    .table-header {
+        background: #ecf0f1;
+        padding: 15px 20px;
+        border-bottom: 2px solid #bdc3c7;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
 </style>
 {% endblock %}
 
@@ -458,8 +486,10 @@
     <div class="data-table-container">
         <div class="table-header">
             <h3><i class="fas fa-table"></i> Monthly Environmental Data</h3>
+            <a href="{% url 'environmental:export_excel' %}" class="btn btn-export">
+                <i class="fa-solid fa-file-excel"></i> Export to Excel
+            </a>
         </div>
-        
         {% if questions_data %}
         <div class="table-wrapper">
             <table class="data-table">
