@@ -20,6 +20,9 @@ from django.db.models import Q
 import json
 import openpyxl
 from django.shortcuts import render
+from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.utils import get_column_letter
+from openpyxl.formatting.rule import CellIsRule
 
 from .forms import IncidentAttachmentForm # <-- Import the new form
 class IncidentDashboardView(LoginRequiredMixin, TemplateView):
@@ -1235,20 +1238,38 @@ class IncidentFilterMixin:
         
         return incidents.order_by('-incident_date', '-incident_time')
     
+
 class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
     """
-    Handles the export of filtered incident data to an Excel file.
+    Handles the export of filtered incident data to an attractive and well-formatted Excel file.
     """
     def get(self, request, *args, **kwargs):
-        # Use the mixin to get the same filtered data as the dashboard
         queryset = self.get_filtered_queryset()
         
-        # Create an in-memory Excel workbook
         workbook = openpyxl.Workbook()
         sheet = workbook.active
         sheet.title = 'Incident Report'
 
-        # Define headers
+        # --- Define Styles ---
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+        header_alignment = Alignment(horizontal='center', vertical='center')
+        
+        row_fills = [
+            PatternFill(start_color="DCE6F1", end_color="DCE6F1", fill_type="solid"),
+            PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+        ]
+
+        status_fills = {
+            'Open': PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"),
+            'In Progress': PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid"),
+            'Closed': PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"),
+        }
+
+        # New style for wrapping text in specific columns
+        wrap_alignment = Alignment(wrap_text=True, vertical='top', horizontal='left')
+
+        # --- Headers ---
         headers = [
             'Report Number', 'Incident Type', 'Status', 'Incident Date', 'Incident Time',
             'Plant', 'Zone', 'Location', 'Sub-Location', 'Description', 'Affected Person',
@@ -1259,12 +1280,17 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
 
         # Style the header row
         for cell in sheet[1]:
-            cell.font = openpyxl.styles.Font(bold=True)
-            cell.fill = openpyxl.styles.PatternFill(start_color="DDDDDD", end_color="DDDDDD", fill_type="solid")
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
 
-        # Populate the sheet with data from the queryset
-        for incident in queryset:
-            row = [
+        # --- Data Population and Styling ---
+        # Get column index for text wrapping before the loop
+        desc_col_idx = headers.index('Description') + 1
+        injury_col_idx = headers.index('Nature of Injury') + 1
+        
+        for row_index, incident in enumerate(queryset, start=2):
+            row_data = [
                 incident.report_number,
                 incident.get_incident_type_display(),
                 incident.get_status_display(),
@@ -1283,17 +1309,48 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
                 incident.closure_date.strftime("%Y-%m-%d %H:%M") if incident.closure_date else None,
                 incident.closed_by.get_full_name() if incident.closed_by else 'N/A'
             ]
-            sheet.append(row)
+            sheet.append(row_data)
 
-        # Set up the HTTP response to return the Excel file
+            # Apply alternating row color (zebra striping)
+            current_fill = row_fills[(row_index - 2) % 2]
+            for cell in sheet[row_index]:
+                cell.fill = current_fill
+            
+            # Apply wrap text alignment to specific cells
+            sheet.cell(row=row_index, column=desc_col_idx).alignment = wrap_alignment
+            sheet.cell(row=row_index, column=injury_col_idx).alignment = wrap_alignment
+
+        # --- Conditional Formatting for Status ---
+        status_column_letter = get_column_letter(headers.index('Status') + 1)
+        for status, fill in status_fills.items():
+            rule = CellIsRule(operator='equal', formula=[f'"{status}"'], fill=fill)
+            sheet.conditional_formatting.add(f'{status_column_letter}2:{status_column_letter}{sheet.max_row}', rule)
+
+        # --- Adjust Column Widths ---
+        column_widths = {}
+        for row in sheet.iter_rows():
+            for cell in row:
+                if cell.value:
+                    column_widths[cell.column_letter] = max(
+                        (column_widths.get(cell.column_letter, 0), len(str(cell.value)))
+                    )
+
+        for col_letter, width in column_widths.items():
+            header_name = sheet[f'{col_letter}1'].value
+            # Set a fixed width for columns that need text wrapping
+            if header_name in ['Description', 'Nature of Injury']:
+                sheet.column_dimensions[col_letter].width = 50
+            else:
+                # Auto-size other columns with a little padding
+                sheet.column_dimensions[col_letter].width = width + 2
+
+        # --- HTTP Response ---
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         )
-        # Create a filename with the current date
         filename = f"Incident_Report_{timezone.now().strftime('%Y-%m-%d')}.xlsx"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
-        # Save the workbook to the response
         workbook.save(response)
 
         return response
