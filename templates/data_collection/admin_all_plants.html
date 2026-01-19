@@ -486,12 +486,16 @@
                     {% for plant_data in plants_data %}
                     <!-- Plant Header Row -->
                     <tr class="plant-row" data-plant-id="{{ plant_data.plant.id }}" onclick="togglePlant({{ plant_data.plant.id }})">
-                        <td colspan="2">
+                        <!-- This cell aligns with the "BUSINESS UNIT" sticky column -->
+                        <td>
                             <div class="plant-name">
                                 <span class="expand-icon" id="icon-{{ plant_data.plant.id }}">▶</span>
                                 <span class="plant-badge">{{ plant_data.plant.name }}</span>
                             </div>
                         </td>
+                        <!-- This empty cell aligns with the "ASSIGNED QUESTION" sticky column -->
+                        <td></td> 
+                        <!-- This cell spans the rest of the non-sticky columns -->
                         <td colspan="{{ months|length|add:1 }}"></td>
                     </tr>
                     
