@@ -227,8 +227,6 @@ class Incident(models.Model):
     ) 
     attachment = models.FileField(
         upload_to='action_item_attachments/%Y/%m/',
-        blank=True,
-        null=True,
         help_text="Optional file attachment (documents, images, etc.)"
     )   
     closure_remarks = models.TextField(blank=True)
@@ -279,6 +277,7 @@ class Incident(models.Model):
     
     @property
     def can_be_closed(self):
+       
         if self.investigation_required and not self.investigation_completed_date:
             return False, "Investigation not completed"
         
@@ -288,6 +287,10 @@ class Incident(models.Model):
         
         if self.status == 'CLOSED':
             return False, "Incident is already closed"
+            
+     
+        if not self.attachment:
+            return False, "A final closure attachment is required before proceeding."
         
         return True, "Ready for closure"
     
