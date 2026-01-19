@@ -293,21 +293,30 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
         print("\nVIEW: Calling notify_incident_reported()...")
 
         try:
-            from .notifications import notify_incident_reported
-            notify_incident_reported(self.object)
-            print("\nVIEW: ✅ notify_incident_reported() completed")
+            # ✅ NEW: Use NotificationService instead of old notification_utils
+            from apps.notifications.services import NotificationService
+            
+            NotificationService.notify(
+                content_object=self.object,
+                notification_type='INCIDENT_REPORTED',
+                module='INCIDENT'
+            )
+            
+            print("\nVIEW: ✅ Notifications sent successfully")
         except Exception as e:
-            print(f"\nVIEW: ❌ ERROR in notify_incident_reported(): {e}")
+            print(f"\nVIEW: ❌ ERROR in notification system: {e}")
             import traceback
             traceback.print_exc()
     
-        print("\n" + "#" * 70 + "\n\n")            
+        print("\n" + "#" * 70 + "\n\n")
+        
         messages.success(
             self.request,
             f'Incident {self.object.report_number} reported successfully! Investigation required within 7 days.'
         )
         
         return redirect(self.get_success_url())
+
 
     
     def form_invalid(self, form):
@@ -544,6 +553,24 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         self.incident.status = 'ACTION_IN_PROGRESS'
         self.incident.investigation_completed_date = investigation.completed_date
         self.incident.save()
+        # ===== ADD NOTIFICATION: Investigation Completed =====
+        try:
+            from apps.notifications.services import NotificationService
+            
+            # Notify that investigation was completed
+            # You'll need to add 'INCIDENT_INVESTIGATION_COMPLETED' to your NotificationMaster
+            NotificationService.notify(
+                content_object=self.incident,
+                notification_type='INCIDENT_INVESTIGATION_COMPLETED',
+                module='INCIDENT'
+            )
+            
+            print("✅ Investigation completion notifications sent")
+        except Exception as e:
+            print(f"❌ Error sending investigation notifications: {e}")
+
+        messages.success(self.request, "Investigation report and action items have been created successfully.")
+        return redirect(self.get_success_url())
 
         messages.success(self.request, "Investigation report and action items have been created successfully.")
         return redirect(self.get_success_url())
@@ -598,8 +625,24 @@ class ActionItemCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.incident = self.incident
         messages.success(self.request, 'Action item created successfully!')
+        action_item = form.save()
+         # ===== ADD NOTIFICATION: Action Item Assigned =====
+        try:
+            from apps.notifications.services import NotificationService
+            
+            # Notify responsible persons about the action item
+            NotificationService.notify(
+                content_object=self.incident,
+                notification_type='INCIDENT_ACTION_ASSIGNED',
+                module='INCIDENT'
+            )
+            
+            print("✅ Action assignment notifications sent")
+        except Exception as e:
+            print(f"❌ Error sending action assignment notifications: {e}")
+        
+        messages.success(self.request, 'Action item created successfully!')
         return super().form_valid(form)
-    
     def get_success_url(self):
         return reverse_lazy('accidents:incident_detail', kwargs={'pk': self.incident.pk})
 
@@ -1354,3 +1397,34 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
         workbook.save(response)
 
         return response
+    
+
+class IncidentCloseView(LoginRequiredMixin, UpdateView):
+    """Close an incident"""
+    model = Incident
+    template_name = 'accidents/incident_close.html'
+    fields = ['closure_remarks', 'lessons_learned', 'preventive_measures']
+    
+    def form_valid(self, form):
+        incident = form.save(commit=False)
+        incident.status = 'CLOSED'
+        incident.closure_date = timezone.now()
+        incident.closed_by = self.request.user
+        incident.save()
+        
+        # ===== ADD NOTIFICATION: Incident Closed =====
+        try:
+            from apps.notifications.services import NotificationService
+            
+            NotificationService.notify(
+                content_object=incident,
+                notification_type='INCIDENT_CLOSED',
+                module='INCIDENT'
+            )
+            
+            print("✅ Incident closure notifications sent")
+        except Exception as e:
+            print(f"❌ Error sending closure notifications: {e}")
+        
+        messages.success(self.request, f'Incident {incident.report_number} has been closed successfully.')
+        return redirect('accidents:incident_detail', pk=incident.pk)
