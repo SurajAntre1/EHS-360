@@ -375,6 +375,28 @@
     font-weight: 600;
     margin-left: 10px;
 }
+.btn-export {
+    background: #1d6f42; /* Excel green */
+    color: #ffffff;
+}
+
+.btn-export:hover {
+    background: #145a32;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(29, 111, 66, 0.3);
+}
+
+.btn-export i {
+    font-size: 11px;
+}
+
+.btn-export:disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
 </style>
 {% endblock %}
 
@@ -437,6 +459,8 @@
                 <strong>{{ plants_data|length }}</strong> plant(s) with data
             </div>
             <div>
+                <a href="{% url 'environmental:export_excel' %}" class="btn btn-success">
+                    <i class="fa-solid fa-file-excel"></i> Export to Excel</a>
                 <button onclick="expandAll()" class="btn-expand-all">
                     <i class="fas fa-expand-alt"></i> Expand All
                 </button>

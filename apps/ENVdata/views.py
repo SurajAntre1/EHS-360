@@ -4,7 +4,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db import models
 from django.http import JsonResponse
-
+from django.http import HttpResponse
+from datetime import datetime
+from .utils import generate_environmental_excel, get_all_plants_environmental_data
+from apps.accounts.models import User
 from apps.organizations.models import Plant
 from .models import *
 from .constants import MONTHS
@@ -666,3 +669,24 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
         }
 
         return render(request, self.template_name, context)
+class ExportExcelView(LoginRequiredMixin, View):
+    def get(self, request):
+        months = MONTHS  
+        if request.user.is_superuser or request.user.is_staff or request.user.is_admin_user:
+            plants = Plant.objects.filter(is_active=True)
+        else:
+            plants = request.user.get_all_plants()
+            if not plants:
+                messages.error(request, "No plant is assigned to your account")
+                return redirect("enviromental:plant-detail-view")
+            
+        plants_data = get_all_plants_environmental_data(plants) 
+        
+        workbook = generate_environmental_excel(plants_data, months)
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        filename = f"Environmental_Data_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        workbook.save(response)
+        return response
