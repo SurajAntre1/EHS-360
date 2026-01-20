@@ -506,11 +506,13 @@
                     <strong>Last Updated:</strong> {% now "F d, Y - H:i" %}
                 </div>
             </div>
+            {% if user.is_admin_user %}
             <div>
                 <a href="{% url 'environmental:questions-manager' %}" class="btn-manage-questions">
                     <i class="fas fa-cog"></i> Manage Questions
                 </a>
             </div>
+            {% endif %}
         </div>
     </div>
 

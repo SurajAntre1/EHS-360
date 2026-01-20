@@ -13,20 +13,39 @@ from apps.organizations.models import *
 
 
 class HomeView(LoginRequiredMixin, TemplateView):
-    """Main Dashboard View"""
     template_name = 'dashboards/home.html'
     login_url = 'accounts:login'
+
     def get_context_data(self, **kwargs):
-        hazards = Hazard.objects.all()
-        incident = Incident.objects.all()
-        inspection = Inspection.objects.all()
         context = super().get_context_data(**kwargs)
-        # Add your dashboard data here
+        user = self.request.user
+
+        incidents = Incident.objects.select_related('plant','location','reported_by')
+        hazards = Hazard.objects.select_related('plant', 'location', 'reported_by')
+
+        if user.is_superuser or getattr(user.role, 'name', None) == 'ADMIN':
+            pass
+
+        elif getattr(user.role, 'name', None) == 'EMPLOYEE':
+            hazards = hazards.filter(reported_by=user)
+            incidents = incidents.filter(reported_by=user)
+
+        elif user.plant:
+            hazards = hazards.filter(plant=user.plant)
+            incidents = incidents.filter(plant=user.plant)
+
+        else:
+            hazards = hazards.filter(reported_by=user)
+            incidents = incidents.filter(reported_by=user)
+
         context['total_hazards'] = hazards.count()
-        context['total_incidents'] = incident.count()
-        context['total_environmental'] = MonthlyIndicatorData.objects.values("indicator").distinct().count()
-        context['total_inspections'] = inspection.count()
+        context['total_incidents'] = incidents.count()
+        context['total_inspections'] = 0
+        context['total_environmental'] = (MonthlyIndicatorData.objects.values("indicator").distinct().count())
         context['pending_inspections'] = 0
+        context['recent_incidents'] = incidents.order_by()[:5]
+        context['recent_hazards'] = hazards.order_by()[:5]
+
         return context
 
 
