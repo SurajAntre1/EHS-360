@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #dc3545; color: white; padding: 20px; text-align: center; }
+        .content { background: #f8f9fa; padding: 20px; margin: 20px 0; }
+        .details { background: white; padding: 15px; border-left: 4px solid #dc3545; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+        table { width: 100%; }
+        table td { padding: 8px; }
+        .label { font-weight: bold; color: #495057; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>⚠️ New Incident Reported</h2>
+        </div>
+        
+        <div class="content">
+            <p>Hello {{ recipient.get_full_name }},</p>
+            <p>A new incident has been reported and requires your attention.</p>
+            
+            <div class="details">
+                <h3>Incident Details</h3>
+                <table>
+                    <tr>
+                        <td class="label">Incident Number:</td>
+                        <td>{{ incident.report_number }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Type:</td>
+                        <td>{{ incident.get_incident_type_display }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Date & Time:</td>
+                        <td>{{ incident.incident_date }} {{ incident.incident_time }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Plant:</td>
+                        <td>{{ incident.plant.name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Location:</td>
+                        <td>{{ incident.location.name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Reported By:</td>
+                        <td>{{ incident.reported_by.get_full_name }}</td>
+                    </tr>
+                </table>
+                
+                <h4>Description:</h4>
+                <p>{{ incident.description|truncatewords:50 }}</p>
+            </div>
+            
+            <p style="margin-top: 20px;">
+                <a href="{{ request.scheme }}://{{ request.get_host }}/incidents/{{ incident.id }}/" 
+                   style="background: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+                    View Incident Details
+                </a>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated notification from EHS Management System</p>
+            <p>&copy; {{ current_year }} EHS-360. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

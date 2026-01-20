@@ -55,7 +55,7 @@ INSTALLED_APPS = [
     'apps.inspections',
     'apps.dashboards',
     'apps.notifications',
-    'apps.ENVdata',
+    'apps.ENVdata.apps.EnvdataConfig',
 ]
 
 MIDDLEWARE = [

@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from datetime import datetime
 from .utils import generate_environmental_excel, get_all_plants_environmental_data
 from apps.accounts.models import User
+from apps.accidents.models import Incident
 from apps.organizations.models import Plant
 from .models import *
 from .constants import MONTHS
@@ -123,7 +124,8 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
     def get_selected_plant(self, request):
         """Get the currently selected plant"""
         plant_id = request.GET.get('plant_id') or request.POST.get('selected_plant_id')
-        
+        # Fetch incidents/hazards for this plant
+
         if plant_id:
             user_plants = self.get_user_plants(request)
             return user_plants.filter(id=plant_id).first()
@@ -134,7 +136,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
     def get_questions(self):
         return EnvironmentalQuestion.objects.filter(
             is_active=True
-        ).select_related('unit_category', 'default_unit').prefetch_related('selected_units').order_by("order")
+        ).order_by("is_system", "order", "id")
 
     def slugify_field(self, text):
         return (
@@ -153,19 +155,19 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
     # ---------- GET ----------
 
     def get(self, request):
+        from datetime import datetime
+        from .utils import EnvironmentalDataFetcher
+        
         user_plants = self.get_user_plants(request)
         
-        # Check if user has any plants assigned
         if not user_plants.exists():
             return render(request, "no_plant_assigned.html")
         
-        # Get the selected plant
         selected_plant = self.get_selected_plant(request)
         
         if not selected_plant:
             return render(request, "no_plant_assigned.html")
 
-        # Get all questions
         questions = self.get_questions()
         
         if not questions.exists():
@@ -175,7 +177,16 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 "no_questions": True,
             })
 
-        # Get saved data for the SELECTED plant only
+        # Get current year
+        current_year = datetime.now().year
+        
+        # Get auto-populated data from Incident/Hazard modules
+        auto_populated_data = EnvironmentalDataFetcher.get_auto_populated_data(
+            selected_plant, 
+            current_year
+        )
+        
+        # Get manually saved data
         saved_data = MonthlyIndicatorData.objects.filter(plant=selected_plant)
 
         # Organize data by question and month
@@ -185,17 +196,26 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 data_dict[d.indicator] = {}
             data_dict[d.indicator][d.month.lower()] = d.value
 
-        # Build questions list with their data for the selected plant
+        # Build questions list with their data
         questions_with_data = []
         for q in questions:
             default_unit_name = q.default_unit.name if q.default_unit else "Count"
             
-            # Get data for each month for this question
             month_data = {}
             for month in MONTHS:
                 month_key = month.lower()[:3]
-                value = data_dict.get(q.question_text, {}).get(month_key, '')
+                
+                # Priority: 1) Manually saved data, 2) Auto-populated data, 3) Empty
+                if q.question_text in data_dict and month_key in data_dict[q.question_text]:
+                    value = data_dict[q.question_text][month_key]
+                elif q.question_text in auto_populated_data and month in auto_populated_data[q.question_text]:
+                    value = auto_populated_data[q.question_text][month]
+                else:
+                    value = ''
+                
                 month_data[month] = value
+            
+            is_auto_populated = q.question_text in auto_populated_data
             
             questions_with_data.append({
                 "question": q.question_text,
@@ -203,6 +223,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 "default_unit_name": default_unit_name,
                 "month_data": month_data,
                 "slugified": self.slugify_field(q.question_text),
+                "is_auto_populated": is_auto_populated,
             })
 
         context = {
@@ -210,6 +231,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
             "user_plants": user_plants,
             "questions_with_data": questions_with_data,
             "months": MONTHS,
+            "current_year": current_year,
         }
 
         return render(request, self.template_name, context)
@@ -348,7 +370,7 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
 
     def load_questions(self):
         questions_list = []
-        for q in EnvironmentalQuestion.objects.filter(is_active=True).order_by("order"):
+        for q in EnvironmentalQuestion.objects.filter(is_active=True).order_by("is_system", "order", "id"):
             selected_units = q.selected_units.all()
             questions_list.append({
                 "id": q.id,
@@ -405,6 +427,7 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
             order=max_order + 1,
             created_by=request.user,
             is_active=True,
+            is_system=False,
         )
         
         # Add selected units
@@ -416,19 +439,20 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
     def delete_question(self, request):
         question_id = request.POST.get("question_id")
 
-        if not question_id:
-            messages.error(request, "Question ID is required")
+        question = EnvironmentalQuestion.objects.filter(id=question_id).first()
+
+        if not question:
+            messages.error(request, "Question not found")
             return redirect("environmental:questions-manager")
 
-        deleted_count = EnvironmentalQuestion.objects.filter(
-            id=question_id
-        ).update(is_active=False)
+        if question.is_system:
+            messages.error(request, "Predefined questions cannot be deleted")
+            return redirect("environmental:questions-manager")
 
-        if deleted_count > 0:
-            messages.success(request, "Question deleted successfully")
-        else:
-            messages.error(request, "Question not found")
+        question.is_active = False
+        question.save()
 
+        messages.success(request, "Question deleted successfully")
         return redirect("environmental:questions-manager")
 
 
@@ -504,7 +528,7 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
 
         questions = EnvironmentalQuestion.objects.filter(
             is_active=True
-        ).select_related('unit_category', 'default_unit').order_by("order")
+        ).select_related('unit_category', 'default_unit').order_by("is_system", "order", "id")
 
         if not questions.exists():
             return render(request, self.template_name, {
@@ -585,7 +609,7 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
         # Get all questions (ordered)
         questions = EnvironmentalQuestion.objects.filter(
             is_active=True
-        ).select_related('unit_category', 'default_unit').order_by("order")
+        ).select_related('unit_category', 'default_unit').order_by("is_system", "order", "id")
 
         if not questions.exists():
             return render(request, self.template_name, {

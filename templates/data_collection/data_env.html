@@ -1,7 +1,7 @@
 {% extends 'base/base.html' %}
 {% load static %}
-{% block title %}Enviromental Data{% endblock %}
-{% block page_title %}Enviromental Data Entry{% endblock %}
+{% block title %}Environmental Data{% endblock %}
+{% block page_title %}Environmental Data Entry{% endblock %}
 {% load custom_tags %}
 
 {% block extra_css %}
@@ -298,6 +298,28 @@
         background-color: #ffeaea;
     }
     
+    /* Auto-populated input styles */
+    .data-input.auto-populated {
+        background-color: #e8f5e9 !important;
+        border-left: 3px solid #4caf50 !important;
+        font-weight: 600;
+    }
+    
+    .data-input.auto-populated:focus {
+        background-color: #c8e6c9 !important;
+    }
+    
+    .auto-indicator {
+        font-size: 10px;
+        color: #4caf50;
+        display: inline-block;
+        margin-left: 8px;
+        font-weight: 600;
+        background: #e8f5e9;
+        padding: 2px 6px;
+        border-radius: 3px;
+    }
+    
     .action-buttons {
         padding: 20px;
         background: white;
@@ -397,6 +419,40 @@
         font-weight: normal;
     }
     
+    /* Legend for auto-populated data */
+    .data-legend {
+        background: #f8f9fa;
+        padding: 12px 20px;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        font-size: 13px;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .legend-box {
+        width: 20px;
+        height: 20px;
+        border-radius: 3px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .legend-box.auto {
+        background-color: #e8f5e9;
+        border-left: 3px solid #4caf50;
+    }
+    
+    .legend-box.manual {
+        background-color: white;
+        border: 1px solid #ced4da;
+    }
+    
     @media screen and (max-width: 768px) {
         .header-content {
             flex-direction: column;
@@ -422,6 +478,11 @@
         .plant-selector-container select {
             min-width: 100%;
         }
+        
+        .data-legend {
+            flex-direction: column;
+            align-items: flex-start;
+        }
     }
 
     #plantSelector {
@@ -441,7 +502,7 @@
                 <h2>Environmental Data Entry</h2>
                 <div class="plant-info">
                     <strong>Currently Editing:</strong> {{ selected_plant.name }} | 
-                    <strong>Year:</strong> {% now "Y" %} |
+                    <strong>Year:</strong> {{ current_year|default:"2025" }} |
                     <strong>Last Updated:</strong> {% now "F d, Y - H:i" %}
                 </div>
             </div>
@@ -493,6 +554,22 @@
         <input type="hidden" name="selected_plant_id" value="{{ selected_plant.id }}">
         
         <div class="data-table-container">
+            <!-- Legend -->
+            <div class="data-legend">
+                <div class="legend-item">
+                    <div class="legend-box auto"></div>
+                    <span><i class="fas fa-calculator"></i> Auto-populated from system data</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box manual"></div>
+                    <span><i class="fas fa-edit"></i> Manual entry required</span>
+                </div>
+                <div>
+                    <i class="fas fa-info-circle" style="color: #3498db;"></i>
+                    <small style="color: #7f8c8d;">Auto-populated values can be edited if needed</small>
+                </div>
+            </div>
+            
             <div class="table-wrapper">
                 <table class="data-table">
                     <thead>
@@ -513,6 +590,11 @@
                                 <div class="indicator-content">
                                     <span class="indicator-text">
                                         {{ forloop.counter }}. {{ item.question }}
+                                        {% if item.is_auto_populated %}
+                                        <span class="auto-indicator" title="Auto-calculated from Incident/Hazard records">
+                                            <i class="fas fa-calculator"></i> Auto
+                                        </span>
+                                        {% endif %}
                                     </span>
                                     <span class="unit-badge">{{ item.default_unit_name }}</span>
                                 </div>
@@ -524,11 +606,14 @@
                                     type="text" 
                                     name="{{ item.slugified }}_{{ month|lower }}" 
                                     value="{{ item.month_data|get_item:month|default:'' }}" 
-                                    class="data-input"
+                                    class="data-input {% if item.is_auto_populated %}auto-populated{% endif %}"
                                     placeholder="0"
                                     autocomplete="off"
                                     data-month="{{ month|lower }}"
                                     data-row="{{ forloop.parentloop.counter }}"
+                                    {% if item.is_auto_populated %}
+                                    title="Auto-populated from {{ selected_plant.name }} records. You can edit this value if needed."
+                                    {% endif %}
                                 >
                             </td>
                             {% endfor %}
@@ -625,16 +710,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const saveIndicator = document.getElementById('saveIndicator');
         saveIndicator.classList.add('show');
         setTimeout(() => saveIndicator.classList.remove('show'), 3000);
+        
+        // Remove 'saved' parameter from URL without reload
+        window.history.replaceState({}, document.title, window.location.pathname + '?plant_id=' + urlParams.get('plant_id'));
+    }
+    
+    // Highlight auto-populated fields on page load
+    const autoPopulatedInputs = document.querySelectorAll('.data-input.auto-populated');
+    if (autoPopulatedInputs.length > 0) {
+        console.log(`${autoPopulatedInputs.length} fields auto-populated from Incident/Hazard data`);
     }
 });
 
 // Reset form function
 function resetForm() {
-    if (confirm('Are you sure you want to reset all changes? This will clear all unsaved data.')) {
-        document.getElementById('dataEntryForm').reset();
-        document.querySelectorAll('.data-input').forEach(input => {
-            input.classList.remove('error');
-        });
+    if (confirm('Are you sure you want to reset all changes? This will reload the page and restore auto-populated values.')) {
+        window.location.reload();
     }
 }
 
@@ -645,6 +736,22 @@ document.addEventListener('keydown', function(e) {
         e.preventDefault();
         document.querySelector('.btn-save')?.click();
     }
+    
+    // Ctrl + R to reset
+    if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        resetForm();
+    }
+});
+
+// Add tooltip for auto-populated inputs
+document.querySelectorAll('.data-input.auto-populated').forEach(input => {
+    input.addEventListener('mouseenter', function() {
+        const tooltip = this.getAttribute('title');
+        if (tooltip) {
+            this.style.cursor = 'help';
+        }
+    });
 });
 </script>
 {% endblock %}
