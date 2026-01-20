@@ -6,7 +6,8 @@ from openpyxl.styles import Font, Alignment
 from django.db.models import Q, Count
 from apps.accidents.models import Incident
 from apps.hazards.models import Hazard
-from datetime import datetime
+from datetime import datetime, date
+import calendar
 
 def generate_environmental_excel(plants_data, months):
     wb = Workbook()
@@ -83,6 +84,7 @@ def get_all_plants_environmental_data(plants):
 
 
 ###automatically datafetch in the data collection from accident and hazard 
+
 class EnvironmentalDataFetcher:
     """
     Helper class to fetch environmental data from Incident and Hazard modules
@@ -99,13 +101,13 @@ class EnvironmentalDataFetcher:
         
         if not month_num:
             return None, None
-            
-        start_date = datetime(year, month_num, 1)
         
-        if month_num == 12:
-            end_date = datetime(year + 1, 1, 1)
-        else:
-            end_date = datetime(year, month_num + 1, 1)
+        # Get first day of the month
+        start_date = date(year, month_num, 1)
+        
+        # Get last day of the month
+        last_day = calendar.monthrange(year, month_num)[1]
+        end_date = date(year, month_num, last_day)
             
         return start_date, end_date
     
@@ -122,112 +124,145 @@ class EnvironmentalDataFetcher:
         
         question_lower = question_text.lower().strip()
         
-        # FATALITIES
-        if 'fatalities' in question_lower or 'fatality' in question_lower:
-            return Incident.objects.filter(
-                plant=plant,
-                incident_date__gte=start_date.date(),
-                incident_date__lt=end_date.date(),
-                incident_type='FATALITY'
-            ).count()
-        
-        # LOST TIME INJURIES (LTI)
-        elif 'lost time injuries' in question_lower or 'lti' in question_lower:
-            return Incident.objects.filter(
-                plant=plant,
-                incident_date__gte=start_date.date(),
-                incident_date__lt=end_date.date(),
-                incident_type='LTI'
-            ).count()
-        
-        # MEDICAL TREATMENT CASE (MTC)
-        elif 'mtc' in question_lower or 'medical treatment case' in question_lower:
-            return Incident.objects.filter(
-                plant=plant,
-                incident_date__gte=start_date.date(),
-                incident_date__lt=end_date.date(),
-                incident_type='MTC'
-            ).count()
-        
-        # FIRST AID CASES
-        elif 'first aid' in question_lower:
-            return Incident.objects.filter(
-                plant=plant,
-                incident_date__gte=start_date.date(),
-                incident_date__lt=end_date.date(),
-                incident_type='FA'
-            ).count()
-        
-        # FIRE INCIDENTS
-        elif 'fire incidents' in question_lower or 'fire incident' in question_lower:
-            return Hazard.objects.filter(
-                plant=plant,
-                incident_datetime__gte=start_date,
-                incident_datetime__lt=end_date,
-                hazard_category='fire'
-            ).count()
-        
-        # NEAR MISS REPORTED
-        elif 'near miss reported' in question_lower:
-            return Hazard.objects.filter(
-                plant=plant,
-                incident_datetime__gte=start_date,
-                incident_datetime__lt=end_date,
-                hazard_type='NM'
-            ).count()
-        
-        # NEAR MISS CLOSED
-        elif 'near miss closed' in question_lower:
-            return Hazard.objects.filter(
-                plant=plant,
-                incident_datetime__gte=start_date,
-                incident_datetime__lt=end_date,
-                hazard_type='NM',
-                status='CLOSED'
-            ).count()
-        
-        # OBSERVATIONS (UA/UC) REPORTED
-        elif 'observations' in question_lower and 'ua/uc' in question_lower and 'reported' in question_lower:
-            return Hazard.objects.filter(
-                plant=plant,
-                incident_datetime__gte=start_date,
-                incident_datetime__lt=end_date,
-                hazard_type__in=['UA', 'UC']
-            ).count()
-        
-        # OBSERVATIONS (UA/UC) CLOSED
-        elif 'observations' in question_lower and 'ua/uc' in question_lower and 'closed' in question_lower:
-            return Hazard.objects.filter(
-                plant=plant,
-                incident_datetime__gte=start_date,
-                incident_datetime__lt=end_date,
-                hazard_type__in=['UA', 'UC'],
-                status='CLOSED'
-            ).count()
-        
-        # OBSERVATIONS RELATED TO LSR/SIP REPORTED
-        elif 'lsr/sip' in question_lower and 'reported' in question_lower:
-            return Hazard.objects.filter(
-                plant=plant,
-                incident_datetime__gte=start_date,
-                incident_datetime__lt=end_date
-            ).filter(
-                Q(hazard_description__icontains='LSR') | Q(hazard_description__icontains='SIP')
-            ).count()
-        
-        # OBSERVATIONS RELATED TO LSR/SIP CLOSED
-        elif 'lsr/sip' in question_lower and 'closed' in question_lower:
-            return Hazard.objects.filter(
-                plant=plant,
-                incident_datetime__gte=start_date,
-                incident_datetime__lt=end_date,
-                status='CLOSED'
-            ).filter(
-                Q(hazard_description__icontains='LSR') | Q(hazard_description__icontains='SIP')
-            ).count()
-        
-        # SAFETY INSPECTIONS WITH LEADERSHIP TEAM
-        # Add custom logic if you have inspection module
+        try:
+            # FATALITIES
+            if 'fatality' in question_lower or 'fatalities' in question_lower:
+                count = Incident.objects.filter(
+                    plant=plant,
+                    incident_date__gte=start_date,
+                    incident_date__lte=end_date,
+                    incident_type='FATALITY'
+                ).count()
+                return count
+            
+            # LOST TIME INJURIES (LTI)
+            elif ('lost time injur' in question_lower or 
+                  'lti' in question_lower.replace('(', '').replace(')', '')):
+                count = Incident.objects.filter(
+                    plant=plant,
+                    incident_date__gte=start_date,
+                    incident_date__lte=end_date,
+                    incident_type='LTI'
+                ).count()
+                return count
+            
+            # MEDICAL TREATMENT CASE (MTC)
+            elif ('mtc' in question_lower.replace('(', '').replace(')', '') or 
+                  'medical treatment case' in question_lower):
+                count = Incident.objects.filter(
+                    plant=plant,
+                    incident_date__gte=start_date,
+                    incident_date__lte=end_date,
+                    incident_type='MTC'
+                ).count()
+                return count
+            
+            # FIRST AID CASES
+            elif 'first aid' in question_lower:
+                count = Incident.objects.filter(
+                    plant=plant,
+                    incident_date__gte=start_date,
+                    incident_date__lte=end_date,
+                    incident_type='FA'
+                ).count()
+                return count
+            
+            # FIRE INCIDENTS
+            elif 'fire incident' in question_lower:
+                count = Hazard.objects.filter(
+                    plant=plant,
+                    incident_datetime__date__gte=start_date,
+                    incident_datetime__date__lte=end_date,
+                    hazard_category='fire'
+                ).count()
+                return count
+            
+            # NEAR MISS REPORTED
+            elif 'near miss' in question_lower and 'reported' in question_lower:
+                count = Hazard.objects.filter(
+                    plant=plant,
+                    incident_datetime__date__gte=start_date,
+                    incident_datetime__date__lte=end_date,
+                    hazard_type='NM'
+                ).count()
+                return count
+            
+            # NEAR MISS CLOSED
+            elif 'near miss' in question_lower and 'closed' in question_lower:
+                count = Hazard.objects.filter(
+                    plant=plant,
+                    incident_datetime__date__gte=start_date,
+                    incident_datetime__date__lte=end_date,
+                    hazard_type='NM',
+                    status='CLOSED'
+                ).count()
+                return count
+            
+            # OBSERVATIONS (UA/UC) REPORTED
+            elif ('observation' in question_lower and 
+                  'reported' in question_lower and 
+                  ('ua/uc' in question_lower or 'ua' in question_lower or 'uc' in question_lower)):
+                count = Hazard.objects.filter(
+                    plant=plant,
+                    incident_datetime__date__gte=start_date,
+                    incident_datetime__date__lte=end_date,
+                    hazard_type__in=['UA', 'UC']
+                ).count()
+                return count
+            
+            # OBSERVATIONS (UA/UC) CLOSED
+            elif ('observation' in question_lower and 
+                  'closed' in question_lower and 
+                  ('ua/uc' in question_lower or 'ua' in question_lower or 'uc' in question_lower)):
+                count = Hazard.objects.filter(
+                    plant=plant,
+                    incident_datetime__date__gte=start_date,
+                    incident_datetime__date__lte=end_date,
+                    hazard_type__in=['UA', 'UC'],
+                    status='CLOSED'
+                ).count()
+                return count
+            
+            # OBSERVATIONS RELATED TO LSR/SIP REPORTED
+            elif ('lsr' in question_lower or 'sip' in question_lower) and 'reported' in question_lower:
+                count = Hazard.objects.filter(
+                    plant=plant,
+                    incident_datetime__date__gte=start_date,
+                    incident_datetime__date__lte=end_date
+                ).filter(
+                    Q(hazard_title__icontains='LSR') | 
+                    Q(hazard_title__icontains='SIP') |
+                    Q(hazard_description__icontains='LSR') | 
+                    Q(hazard_description__icontains='SIP')
+                ).count()
+                return count
+            
+            # OBSERVATIONS RELATED TO LSR/SIP CLOSED
+            elif ('lsr' in question_lower or 'sip' in question_lower) and 'closed' in question_lower:
+                count = Hazard.objects.filter(
+                    plant=plant,
+                    incident_datetime__date__gte=start_date,
+                    incident_datetime__date__lte=end_date,
+                    status='CLOSED'
+                ).filter(
+                    Q(hazard_title__icontains='LSR') | 
+                    Q(hazard_title__icontains='SIP') |
+                    Q(hazard_description__icontains='LSR') | 
+                    Q(hazard_description__icontains='SIP')
+                ).count()
+                return count
+            
+            # SAFETY INSPECTIONS WITH LEADERSHIP TEAM
+            # You can add this logic if you have an inspection module
+            
+            # Total inspections (if you have inspection model)
+            # elif 'total inspection' in question_lower:
+            #     return 0  # Replace with actual inspection count
+            
+        except Exception as e:
+            # Log the error for debugging
+            print(f"Error fetching data for '{question_text}': {str(e)}")
+            return None
         
         # Default: return None for manual entry
         return None
@@ -263,8 +298,7 @@ class EnvironmentalDataFetcher:
                 if count is not None:
                     month_data[month] = str(count)
             
-            if month_data:
+            if month_data:  # Only add if we have auto data
                 auto_data[question.question_text] = month_data
         
         return auto_data
-
