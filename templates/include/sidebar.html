@@ -320,7 +320,7 @@
                 <p>Dashboard</p>
               </a>
             </li>
-
+            {% endif %}
             <li class="nav-item">
               <a href="{% url 'accidents:incident_list' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'incident_list' %}active{% endif %}">
@@ -328,7 +328,7 @@
                 <p>All Incidents</p>
               </a>
             </li>
-            {% endif %}
+            
             <li class="nav-item">
               <a href="{% url 'accidents:incident_create' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'incident_create' %}active{% endif %}">
@@ -354,7 +354,7 @@
                 <p>Dashboard</p>
               </a>
             </li>
-
+            {% endif %}
             <li class="nav-item">
               <a href="{% url 'hazards:hazard_list' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'hazard_list' %}active{% endif %}">
@@ -362,7 +362,7 @@
                 <p>All Hazards</p>
               </a>
             </li>
-            {% endif %}
+            
             <li class="nav-item">
               <a href="{% url 'hazards:hazard_create' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'hazard_create' %}active{% endif %}">
