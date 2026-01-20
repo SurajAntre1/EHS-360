@@ -155,22 +155,19 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
     # ---------- GET ----------
 
     def get(self, request):
+        from datetime import datetime
+        from .utils import EnvironmentalDataFetcher
+        
         user_plants = self.get_user_plants(request)
         
-        # Check if user has any plants assigned
         if not user_plants.exists():
             return render(request, "no_plant_assigned.html")
         
-        # Get the selected plant
         selected_plant = self.get_selected_plant(request)
-        # Fetch incidents for this plant
-        incidents = Incident.objects.filter(plant=selected_plant).order_by('-incident_date', '-incident_time')
-
         
         if not selected_plant:
             return render(request, "no_plant_assigned.html")
 
-        # Get all questions
         questions = self.get_questions()
         
         if not questions.exists():
@@ -180,7 +177,16 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 "no_questions": True,
             })
 
-        # Get saved data for the SELECTED plant only
+        # Get current year
+        current_year = datetime.now().year
+        
+        # Get auto-populated data from Incident/Hazard modules
+        auto_populated_data = EnvironmentalDataFetcher.get_auto_populated_data(
+            selected_plant, 
+            current_year
+        )
+        
+        # Get manually saved data
         saved_data = MonthlyIndicatorData.objects.filter(plant=selected_plant)
 
         # Organize data by question and month
@@ -190,17 +196,26 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 data_dict[d.indicator] = {}
             data_dict[d.indicator][d.month.lower()] = d.value
 
-        # Build questions list with their data for the selected plant
+        # Build questions list with their data
         questions_with_data = []
         for q in questions:
             default_unit_name = q.default_unit.name if q.default_unit else "Count"
             
-            # Get data for each month for this question
             month_data = {}
             for month in MONTHS:
                 month_key = month.lower()[:3]
-                value = data_dict.get(q.question_text, {}).get(month_key, '')
+                
+                # Priority: 1) Manually saved data, 2) Auto-populated data, 3) Empty
+                if q.question_text in data_dict and month_key in data_dict[q.question_text]:
+                    value = data_dict[q.question_text][month_key]
+                elif q.question_text in auto_populated_data and month in auto_populated_data[q.question_text]:
+                    value = auto_populated_data[q.question_text][month]
+                else:
+                    value = ''
+                
                 month_data[month] = value
+            
+            is_auto_populated = q.question_text in auto_populated_data
             
             questions_with_data.append({
                 "question": q.question_text,
@@ -208,6 +223,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 "default_unit_name": default_unit_name,
                 "month_data": month_data,
                 "slugified": self.slugify_field(q.question_text),
+                "is_auto_populated": is_auto_populated,
             })
 
         context = {
@@ -215,6 +231,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
             "user_plants": user_plants,
             "questions_with_data": questions_with_data,
             "months": MONTHS,
+            "current_year": current_year,
         }
 
         return render(request, self.template_name, context)
