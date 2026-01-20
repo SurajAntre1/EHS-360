@@ -69,86 +69,85 @@ class HazardDashboardView(LoginRequiredMixin, TemplateView):
 
 
 class HazardListView(LoginRequiredMixin, ListView):
-    """List all hazards with filtering for category"""
+    """
+    List all hazards with filtering.
+    This view now includes specific logic to restrict data visibility based on user roles.
+    - ADMIN/Superuser can see all hazards.
+    - EMPLOYEE can only see hazards they have personally reported.
+    - Other roles (like PLANT HEAD) see hazards related to their assigned plant.
+    """
     model = Hazard
     template_name = 'hazards/hazard_list.html'
     context_object_name = 'hazards'
     paginate_by = 20
 
     def get_queryset(self):
-        # La lógica base del queryset es correcta
-        if self.request.user.is_superuser or self.request.user.role.name == 'ADMIN':
-            queryset = Hazard.objects.all()
-        elif self.request.user.plant:
-            queryset = Hazard.objects.filter(plant=self.request.user.plant)
+        # Get the current logged-in user
+        user = self.request.user
+        
+        # Start with the base queryset, fetching related objects to optimize queries
+        queryset = Hazard.objects.select_related('plant', 'location', 'reported_by').order_by('-incident_datetime')
+
+        # --- ROLE-BASED DATA FILTERING ---
+        # Check if the user is a superuser or has an ADMIN role
+        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
+            # No filtering needed; they can see all records
+            pass
+        # Check if the user has an EMPLOYEE role
+        elif hasattr(user, 'role') and user.role and user.role.name == 'EMPLOYEE':
+            # Filter the queryset to show only records reported by the current user
+            queryset = queryset.filter(reported_by=user)
+        # Check if the user is associated with a specific plant (for roles like PLANT HEAD, etc.)
+        elif user.plant:
+            queryset = queryset.filter(plant=user.plant)
         else:
-            queryset = Hazard.objects.filter(reported_by=self.request.user)
+            # As a fallback, if no specific role logic applies, show only self-reported records
+            queryset = queryset.filter(reported_by=user)
 
-        queryset = queryset.select_related('plant', 'location', 'reported_by').order_by('-incident_datetime')
+        # --- SEARCH AND FILTER LOGIC ---
+        # This part remains the same and applies on top of the role-filtered queryset
 
-        # --- SECCIÓN ACTUALIZADA ---
-        # Obtener todos los parámetros de filtro de la URL (solicitud GET)
         search = self.request.GET.get('search', '')
         hazard_type = self.request.GET.get('hazard_type', '')
-        risk_level = self.request.GET.get('risk_level', '') # Corresponde a 'severity' en el modelo
+        risk_level = self.request.GET.get('risk_level', '')
         status = self.request.GET.get('status', '')
         date_from = self.request.GET.get('date_from', '')
         date_to = self.request.GET.get('date_to', '')
 
-        # Aplicar filtro de búsqueda
         if search:
             queryset = queryset.filter(
                 Q(report_number__icontains=search) |
-                Q(hazard_title__icontains=search) |
-                Q(hazard_description__icontains=search)
+                Q(hazard_title__icontains=search)
             )
-
-        # Aplicar filtros de menú desplegable
         if hazard_type:
             queryset = queryset.filter(hazard_type=hazard_type)
-
         if risk_level:
-            queryset = queryset.filter(severity=risk_level) # Filtrar por el campo 'severity'
-
+            queryset = queryset.filter(severity=risk_level)
         if status:
             queryset = queryset.filter(status=status)
-
-        # Aplicar filtros de fecha
         if date_from:
             queryset = queryset.filter(incident_datetime__date__gte=date_from)
         if date_to:
             queryset = queryset.filter(incident_datetime__date__lte=date_to)
-    
-        # NEW: Category filter from dashboard click
-        category = self.request.GET.get('category')
-        if category:
-            queryset = queryset.filter(hazard_category=category)
         
         return queryset
 
     def get_context_data(self, **kwargs):
-        # --- NUEVA SECCIÓN AÑADIDA ---
-        # Este método envía datos adicionales a la plantilla
-
-        # Primero, obtén el contexto base de la implementación padre
+        # This method provides additional context to the template
         context = super().get_context_data(**kwargs)
-
-        # 1. Agrega las opciones del menú desplegable al contexto
-        #    Esto llenará tus menús <select> con datos del modelo Hazard
+        
+        # Add choices for dropdown filters
         context['hazard_types'] = Hazard.HAZARD_TYPE_CHOICES
         context['risk_levels'] = Hazard.SEVERITY_CHOICES
         context['status_choices'] = Hazard.STATUS_CHOICES
 
-        # 2. Mantén los valores de filtro seleccionados en el formulario después del envío
-        #    Esto asegura que después de hacer clic en "Filtrar", los menús desplegables
-        #    y los campos de texto muestren los filtros que acabas de aplicar.
+        # Retain filter values in the form after submission
         context['search_query'] = self.request.GET.get('search', '')
         context['selected_hazard_type'] = self.request.GET.get('hazard_type', '')
         context['selected_risk_level'] = self.request.GET.get('risk_level', '')
         context['selected_status'] = self.request.GET.get('status', '')
 
         return context
-
 class HazardCreateView(LoginRequiredMixin, CreateView):
     model = Hazard
     template_name = 'hazards/hazard_create.html'

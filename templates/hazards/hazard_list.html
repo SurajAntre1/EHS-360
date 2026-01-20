@@ -19,23 +19,28 @@
           <i class="fas fa-exclamation-triangle mr-2"></i>All Hazard Reports
         </h3>
       </div>
+
+      {% if user.role.name != 'EMPLOYEE' %}
       <div class="col-auto">
         <a href="{% url 'hazards:hazard_create' %}" class="btn btn-warning">
           <i class="fas fa-plus mr-1"></i> Report New Hazard
         </a>
       </div>
+      {% endif %}
     </div>
   </div>
-  
+
   <div class="card-body">
+
     <!-- Search and Filter -->
     <form method="GET" class="mb-4">
       <div class="row">
         <div class="col-md-3 mb-2">
-          <input type="text" name="search" class="form-control" 
-                 placeholder="Search report no, title..." 
+          <input type="text" name="search" class="form-control"
+                 placeholder="Search report no, title..."
                  value="{{ search_query }}">
         </div>
+
         <div class="col-md-2 mb-2">
           <select name="hazard_type" class="form-control">
             <option value="">All Types</option>
@@ -46,6 +51,7 @@
             {% endfor %}
           </select>
         </div>
+
         <div class="col-md-2 mb-2">
           <select name="risk_level" class="form-control">
             <option value="">All Risk Levels</option>
@@ -56,6 +62,7 @@
             {% endfor %}
           </select>
         </div>
+
         <div class="col-md-2 mb-2">
           <select name="status" class="form-control">
             <option value="">All Status</option>
@@ -66,6 +73,7 @@
             {% endfor %}
           </select>
         </div>
+
         <div class="col-md-3 mb-2">
           <button type="submit" class="btn btn-primary">
             <i class="fas fa-search"></i> Filter
@@ -75,17 +83,16 @@
           </a>
         </div>
       </div>
-      
-      <!-- Date Range Filter -->
+
       <div class="row mt-2">
         <div class="col-md-3">
           <label class="small">Date From:</label>
-          <input type="date" name="date_from" class="form-control form-control-sm" 
+          <input type="date" name="date_from" class="form-control form-control-sm"
                  value="{{ request.GET.date_from }}">
         </div>
         <div class="col-md-3">
           <label class="small">Date To:</label>
-          <input type="date" name="date_to" class="form-control form-control-sm" 
+          <input type="date" name="date_to" class="form-control form-control-sm"
                  value="{{ request.GET.date_to }}">
         </div>
       </div>
@@ -103,9 +110,12 @@
             <th>Plant / Location</th>
             <th>Risk Level</th>
             <th>Status</th>
+            {% if user.role.name != 'EMPLOYEE' %}
             <th>Actions</th>
+            {% endif %}
           </tr>
         </thead>
+
         <tbody>
           {% for hazard in hazards %}
           <tr>
@@ -115,64 +125,68 @@
               <span class="badge badge-danger badge-sm">Overdue</span>
               {% endif %}
             </td>
+
             <td>
-            <span class="badge 
+              <span class="badge 
                 {% if hazard.hazard_category == 'slip_trip_fall' %}badge-warning
                 {% elif hazard.hazard_category == 'chemical' %}badge-danger
                 {% else %}badge-info{% endif %}">
                 {{ hazard.get_hazard_category_display }}
-            </span>
+              </span>
             </td>
 
             <td>{{ hazard.hazard_title|truncatewords:10 }}</td>
+
             <td>
-            {{ hazard.incident_datetime|date:"d/m/Y" }}<br>
-            <small class="text-muted">{{ hazard.incident_datetime|time:"H:i" }}</small>
+              {{ hazard.incident_datetime|date:"d/m/Y" }}<br>
+              <small class="text-muted">{{ hazard.incident_datetime|time:"H:i" }}</small>
             </td>
 
             <td>
               <strong>{{ hazard.plant.code }}</strong><br>
               <small class="text-muted">{{ hazard.location.name }}</small>
             </td>
-           <td>
-            <span class="badge 
+
+            <td>
+              <span class="badge 
                 {% if hazard.severity == 'critical' %}badge-dark
                 {% elif hazard.severity == 'high' %}badge-danger
                 {% elif hazard.severity == 'medium' %}badge-warning
                 {% else %}badge-success{% endif %}">
                 {{ hazard.get_severity_display }}
-            </span>
+              </span>
             </td>
+
             <td>
               <span class="badge 
                 {% if hazard.status == 'CLOSED' or hazard.status == 'RESOLVED' %}badge-success
                 {% elif hazard.status == 'REPORTED' %}badge-secondary
-                {% elif hazard.status == 'IN_PROGRESS' %}badge-primary  
+                {% elif hazard.status == 'IN_PROGRESS' %}badge-primary
                 {% else %}badge-dark{% endif %}">
                 {{ hazard.get_status_display }}
               </span>
             </td>
+
+            {% if user.role.name != 'EMPLOYEE' %}
             <td>
               <div class="btn-group" role="group">
-                <a href="{% url 'hazards:hazard_detail' hazard.pk %}" 
-                   class="btn btn-sm btn-info" title="View">
+                <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-sm btn-info">
                   <i class="fas fa-eye"></i>
                 </a>
-                <a href="{% url 'hazards:hazard_update' hazard.pk %}" 
-                   class="btn btn-sm btn-primary" title="Edit">
+                <a href="{% url 'hazards:hazard_update' hazard.pk %}" class="btn btn-sm btn-primary">
                   <i class="fas fa-edit"></i>
                 </a>
-                <a href="{% url 'hazards:hazard_pdf' hazard.pk %}" 
-                    class="btn btn-sm btn-danger" title="Download PDF"
-                    target="_blank">
-                    <i class="fas fa-file-pdf"></i>
+                <a href="{% url 'hazards:hazard_pdf' hazard.pk %}" class="btn btn-sm btn-danger" target="_blank">
+                  <i class="fas fa-file-pdf"></i>
                 </a>
               </div>
             </td>
+            {% endif %}
           </tr>
+
           {% empty %}
           <tr>
-            <td colspan="8" class="text-center">
+            <td colspan="{% if user.role.name != 'EMPLOYEE' %}8{% else %}7{% endif %}" class="text-center">
               <div class="alert alert-info">
                 <i class="fas fa-info-circle mr-2"></i>No hazards found.
               </div>
@@ -192,11 +206,13 @@
           <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
         </li>
         {% endif %}
-        
+
         <li class="page-item active">
-          <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+          <span class="page-link">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+          </span>
         </li>
-        
+
         {% if page_obj.has_next %}
         <li class="page-item">
           <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
@@ -205,6 +221,7 @@
       </ul>
     </nav>
     {% endif %}
+
   </div>
 </div>
 {% endblock %}

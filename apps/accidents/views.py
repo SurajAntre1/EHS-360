@@ -79,45 +79,54 @@ class IncidentListView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        # Base queryset based on user role
-        if self.request.user.is_superuser or self.request.user.role.name == 'ADMIN':
-            queryset = Incident.objects.all()
-        elif self.request.user.plant:
-            queryset = Incident.objects.filter(plant=self.request.user.plant)
+        # Get the current logged-in user
+        user = self.request.user
+        
+        # Start with the base queryset, fetching related objects to optimize queries
+        queryset = Incident.objects.select_related('plant', 'location', 'reported_by').order_by('-incident_date', '-incident_time')
+        
+        # --- ROLE-BASED DATA FILTERING ---
+        # Check if the user is a superuser or has an ADMIN role
+        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
+            # No filtering needed; they can see all records
+            pass
+        # Check if the user has an EMPLOYEE role
+        elif hasattr(user, 'role') and user.role and user.role.name == 'EMPLOYEE':
+            # Filter the queryset to show only records reported by the current user
+            queryset = queryset.filter(reported_by=user)
+        # Check if the user is associated with a specific plant (for roles like PLANT HEAD, etc.)
+        elif user.plant:
+            queryset = queryset.filter(plant=user.plant)
         else:
-            queryset = Incident.objects.filter(reported_by=self.request.user)
+            # As a fallback, if no specific role logic applies, show only self-reported records
+            queryset = queryset.filter(reported_by=user)
         
-        queryset = queryset.select_related('plant', 'location', 'reported_by').order_by('-incident_date', '-incident_time')
-        
-        # Search
+        # --- SEARCH AND FILTER LOGIC ---
+        # This part remains the same and applies on top of the role-filtered queryset
         search = self.request.GET.get('search')
         if search:
             queryset = queryset.filter(
                 Q(report_number__icontains=search) |
-                Q(incident_type__icontains=search) |
                 Q(affected_person_name__icontains=search)
             )
         
-        # Filter by incident type
         incident_type = self.request.GET.get('incident_type')
         if incident_type:
             queryset = queryset.filter(incident_type=incident_type)
         
-        # Filter by status
         status = self.request.GET.get('status')
         if status:
             queryset = queryset.filter(status=status)
         
-        # Filter by plant
         plant = self.request.GET.get('plant')
         if plant:
             queryset = queryset.filter(plant_id=plant)
         
-        # Filter by date range
         date_from = self.request.GET.get('date_from')
-        date_to = self.request.GET.get('date_to')
         if date_from:
             queryset = queryset.filter(incident_date__gte=date_from)
+            
+        date_to = self.request.GET.get('date_to')
         if date_to:
             queryset = queryset.filter(incident_date__lte=date_to)
         

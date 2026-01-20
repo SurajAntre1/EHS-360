@@ -19,23 +19,27 @@
           <i class="fas fa-file-medical mr-2"></i>All Incident Reports
         </h3>
       </div>
+      {% if user.role.name != 'EMPLOYEE' %}
       <div class="col-auto">
         <a href="{% url 'accidents:incident_create' %}" class="btn btn-primary">
           <i class="fas fa-plus mr-1"></i> Report New Incident
         </a>
       </div>
+      {% endif %}
     </div>
   </div>
-  
+
   <div class="card-body">
+
     <!-- Search and Filter -->
     <form method="GET" class="mb-4">
       <div class="row">
         <div class="col-md-3 mb-2">
-          <input type="text" name="search" class="form-control" 
-                 placeholder="Search report no, title, person..." 
+          <input type="text" name="search" class="form-control"
+                 placeholder="Search report no, title, person..."
                  value="{{ search_query }}">
         </div>
+
         <div class="col-md-2 mb-2">
           <select name="incident_type" class="form-control">
             <option value="">All Types</option>
@@ -46,6 +50,7 @@
             {% endfor %}
           </select>
         </div>
+
         <div class="col-md-2 mb-2">
           <select name="status" class="form-control">
             <option value="">All Status</option>
@@ -56,6 +61,7 @@
             {% endfor %}
           </select>
         </div>
+
         <div class="col-md-2 mb-2">
           <select name="plant" class="form-control">
             <option value="">All Plants</option>
@@ -66,6 +72,7 @@
             {% endfor %}
           </select>
         </div>
+
         <div class="col-md-3 mb-2">
           <button type="submit" class="btn btn-primary">
             <i class="fas fa-search"></i> Filter
@@ -75,17 +82,16 @@
           </a>
         </div>
       </div>
-      
-      <!-- Date Range Filter -->
+
       <div class="row mt-2">
         <div class="col-md-3">
           <label class="small">Date From:</label>
-          <input type="date" name="date_from" class="form-control form-control-sm" 
+          <input type="date" name="date_from" class="form-control form-control-sm"
                  value="{{ request.GET.date_from }}">
         </div>
         <div class="col-md-3">
           <label class="small">Date To:</label>
-          <input type="date" name="date_to" class="form-control form-control-sm" 
+          <input type="date" name="date_to" class="form-control form-control-sm"
                  value="{{ request.GET.date_to }}">
         </div>
       </div>
@@ -98,15 +104,16 @@
           <tr>
             <th>Report No.</th>
             <th>Type</th>
-            <!-- <th>Incident Title</th> -->
             <th>Affected Person</th>
             <th>Date & Time</th>
             <th>Plant / Location</th>
-            <!-- <th>Severity</th> -->
             <th>Status</th>
+            {% if user.role.name != 'EMPLOYEE' %}
             <th>Actions</th>
+            {% endif %}
           </tr>
         </thead>
+
         <tbody>
           {% for incident in incidents %}
           <tr>
@@ -116,8 +123,9 @@
               <span class="badge badge-danger badge-sm">Overdue</span>
               {% endif %}
             </td>
+
             <td>
-              <span class="badge 
+              <span class="badge
                 {% if incident.incident_type == 'LTI' %}badge-danger
                 {% elif incident.incident_type == 'MTC' %}badge-warning
                 {% elif incident.incident_type == 'FA' %}badge-info
@@ -125,53 +133,48 @@
                 {{ incident.get_incident_type_display }}
               </span>
             </td>
-            <!-- <td>{{ incident.incident_title|truncatewords:10 }}</td> -->
+
             <td>{{ incident.affected_person_name }}</td>
+
             <td>
               {{ incident.incident_date|date:"d/m/Y" }}<br>
               <small class="text-muted">{{ incident.incident_time|time:"H:i" }}</small>
             </td>
+
             <td>
               <strong>{{ incident.plant.code }}</strong><br>
               <small class="text-muted">{{ incident.location.name }}</small>
             </td>
-            <!-- <td>
-              <span class="badge 
-                {% if incident.severity_level == 'Critical' or incident.severity_level == 'Fatal' %}badge-danger
-                {% elif incident.severity_level == 'Serious' %}badge-warning
-                {% else %}badge-info{% endif %}">
-                {{ incident.severity_level }}
-              </span>
-            </td> -->
+
             <td>
-              <span class="badge 
+              <span class="badge
                 {% if incident.status == 'CLOSED' %}badge-success
                 {% elif incident.status == 'REPORTED' %}badge-secondary
                 {% else %}badge-primary{% endif %}">
                 {{ incident.get_status_display }}
               </span>
             </td>
+
+            {% if user.role.name != 'EMPLOYEE' %}
             <td>
               <div class="btn-group" role="group">
-                <a href="{% url 'accidents:incident_detail' incident.pk %}" 
-                   class="btn btn-sm btn-info" title="View">
+                <a href="{% url 'accidents:incident_detail' incident.pk %}" class="btn btn-sm btn-info">
                   <i class="fas fa-eye"></i>
                 </a>
-                <a href="{% url 'accidents:incident_update' incident.pk %}" 
-                   class="btn btn-sm btn-primary" title="Edit">
+                <a href="{% url 'accidents:incident_update' incident.pk %}" class="btn btn-sm btn-primary">
                   <i class="fas fa-edit"></i>
                 </a>
-                <a href="{% url 'accidents:incident_pdf' incident.pk %}" 
-                    class="btn btn-sm btn-danger" title="Download PDF"
-                    target="_blank">
-                    <i class="fas fa-file-pdf"></i>
+                <a href="{% url 'accidents:incident_pdf' incident.pk %}" class="btn btn-sm btn-danger" target="_blank">
+                  <i class="fas fa-file-pdf"></i>
                 </a>
               </div>
             </td>
+            {% endif %}
           </tr>
+
           {% empty %}
           <tr>
-            <td colspan="9" class="text-center">
+            <td colspan="{% if user.role.name != 'EMPLOYEE' %}7{% else %}6{% endif %}" class="text-center">
               <div class="alert alert-info">
                 <i class="fas fa-info-circle mr-2"></i>No incidents found.
               </div>
@@ -191,11 +194,13 @@
           <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
         </li>
         {% endif %}
-        
+
         <li class="page-item active">
-          <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+          <span class="page-link">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+          </span>
         </li>
-        
+
         {% if page_obj.has_next %}
         <li class="page-item">
           <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
@@ -204,6 +209,7 @@
       </ul>
     </nav>
     {% endif %}
+
   </div>
 </div>
 {% endblock %}
