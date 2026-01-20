@@ -50,9 +50,32 @@ class EnvironmentalQuestion(models.Model):
     unit_options = models.CharField(max_length=200, blank=True, help_text="Legacy field")
     order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
+    is_system = models.BooleanField(default=False)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    PREDEFINED_ENV_QUESTIONS = [
+        "Fatalities",
+        "Lost Time Injuries (LTI)",
+        "MTC (Medical Treatment Case)",
+        "First aid cases",
+        "Fire Incidents",
+        "Near Miss Reported",
+        "Near Miss Closed",
+        "Observations (UA/UC) reported",
+        "Observations (UA/UC) Closed",
+        "Observations related to LSR/SIP reported",
+        "Observations related to LSR/SIP closed",
+        "Safety Inspections with Leadership Team",
+        "Points Identified in leadership team reported",
+        "Points Identified in leadership team closed",
+        "Asbestos walkthrough carried out by plant leadership",
+        "Asbestos walkthrough points reported",
+        "Asbestos walkthrough points closed",
+        "Total inspections carried out",
+    ]
+    class Meta:
+        ordering = ['order', 'id']
 
 class MonthlyIndicatorData(models.Model):
     plant = models.ForeignKey('organizations.Plant', on_delete=models.CASCADE)

@@ -544,6 +544,13 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
         Handle the POST request to create a new action item.
         """
         try:
+            # *** MODIFIED: Check for attachment first ***
+            if 'attachment' not in request.FILES:
+                messages.error(request, 'An attachment is required to create an action item.')
+                # Redirect back to the form, preserving other submitted data is complex
+                # without a Django Form, so we just show an error.
+                return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
+
             action_item = HazardActionItem()
             action_item.hazard = self.hazard
             action_item.action_description = request.POST.get('action_description', '').strip()
@@ -567,11 +574,8 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             # Set the initial status to 'PENDING'
             action_item.status = 'PENDING'
 
-            # *** FIX: Handle file attachment ***
-            # Check if an attachment file is present in the request
-            if 'attachment' in request.FILES:
-                action_item.attachment = request.FILES['attachment']
-
+            # Handle file attachment
+            action_item.attachment = request.FILES['attachment']
             action_item.save()
 
             # Prepare success message
@@ -602,13 +606,14 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
         Redirect to the hazard detail page on successful creation.
         """
         return reverse_lazy('hazards:hazard_detail', kwargs={'pk': self.hazard.pk})
+     
 
 
 class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
     """
     Update an existing action item.
     Handles form submission for updating an action item,
-    including replacing or removing file attachments.
+    including replacing file attachments. The attachment is always required.
     """
     model = HazardActionItem
     template_name = 'hazards/action_item_update.html'
@@ -627,6 +632,16 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
         self.object = self.get_object()
         
         try:
+            # *** MODIFIED: Validate that an attachment will exist after the update ***
+            # A new file is being uploaded, which is always acceptable.
+            if 'attachment' in request.FILES:
+                self.object.attachment = request.FILES['attachment']
+            # No new file is uploaded, AND the existing attachment is marked for removal.
+            # This logic prevents removing the file without replacing it.
+            elif not self.object.attachment:
+                messages.error(request, 'An attachment is required. Please upload a file.')
+                return redirect('hazards:action_item_update', pk=self.object.pk)
+
             # Update standard fields from POST data
             self.object.action_description = request.POST.get('action_description', '').strip()
             self.object.responsible_emails = request.POST.get('responsible_emails', '').strip()
@@ -648,15 +663,6 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
                     self.object.completion_date = datetime.date.today() # Default to today if not provided
                 
                 self.object.completion_remarks = request.POST.get('completion_remarks', '').strip()
-
-            # *** FIX: Handle file attachment update ***
-            # Check if a new file has been uploaded
-            if 'attachment' in request.FILES:
-                self.object.attachment = request.FILES['attachment']
-            # Check if the user wants to remove the existing attachment
-            elif request.POST.get('remove_attachment') == 'true':
-                self.object.attachment.delete(save=False) # Delete file from storage
-                self.object.attachment = None
             
             self.object.save()
             
@@ -675,7 +681,7 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
         except Exception as e:
             # Log the error for debugging purposes
             print(f"Error updating action item: {e}")
-            messages.error(request, f'Error updating action item: {str(e)}')
+            messages.error(request, f'Error updating action-item: {str(e)}')
             return redirect('hazards:action_item_update', pk=self.object.pk)
 
 # AJAX Views for cascading dropdowns

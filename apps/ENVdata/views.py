@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from datetime import datetime
 from .utils import generate_environmental_excel, get_all_plants_environmental_data
 from apps.accounts.models import User
+from apps.accidents.models import Incident
 from apps.organizations.models import Plant
 from .models import *
 from .constants import MONTHS
@@ -123,7 +124,8 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
     def get_selected_plant(self, request):
         """Get the currently selected plant"""
         plant_id = request.GET.get('plant_id') or request.POST.get('selected_plant_id')
-        
+        # Fetch incidents/hazards for this plant
+
         if plant_id:
             user_plants = self.get_user_plants(request)
             return user_plants.filter(id=plant_id).first()
@@ -134,7 +136,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
     def get_questions(self):
         return EnvironmentalQuestion.objects.filter(
             is_active=True
-        ).select_related('unit_category', 'default_unit').prefetch_related('selected_units').order_by("order")
+        ).order_by("is_system", "order", "id")
 
     def slugify_field(self, text):
         return (
@@ -161,6 +163,9 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
         
         # Get the selected plant
         selected_plant = self.get_selected_plant(request)
+        # Fetch incidents for this plant
+        incidents = Incident.objects.filter(plant=selected_plant).order_by('-incident_date', '-incident_time')
+
         
         if not selected_plant:
             return render(request, "no_plant_assigned.html")
@@ -348,7 +353,7 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
 
     def load_questions(self):
         questions_list = []
-        for q in EnvironmentalQuestion.objects.filter(is_active=True).order_by("order"):
+        for q in EnvironmentalQuestion.objects.filter(is_active=True).order_by("is_system", "order", "id"):
             selected_units = q.selected_units.all()
             questions_list.append({
                 "id": q.id,
@@ -405,6 +410,7 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
             order=max_order + 1,
             created_by=request.user,
             is_active=True,
+            is_system=False,
         )
         
         # Add selected units
@@ -416,19 +422,20 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
     def delete_question(self, request):
         question_id = request.POST.get("question_id")
 
-        if not question_id:
-            messages.error(request, "Question ID is required")
+        question = EnvironmentalQuestion.objects.filter(id=question_id).first()
+
+        if not question:
+            messages.error(request, "Question not found")
             return redirect("environmental:questions-manager")
 
-        deleted_count = EnvironmentalQuestion.objects.filter(
-            id=question_id
-        ).update(is_active=False)
+        if question.is_system:
+            messages.error(request, "Predefined questions cannot be deleted")
+            return redirect("environmental:questions-manager")
 
-        if deleted_count > 0:
-            messages.success(request, "Question deleted successfully")
-        else:
-            messages.error(request, "Question not found")
+        question.is_active = False
+        question.save()
 
+        messages.success(request, "Question deleted successfully")
         return redirect("environmental:questions-manager")
 
 
@@ -504,7 +511,7 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
 
         questions = EnvironmentalQuestion.objects.filter(
             is_active=True
-        ).select_related('unit_category', 'default_unit').order_by("order")
+        ).select_related('unit_category', 'default_unit').order_by("is_system", "order", "id")
 
         if not questions.exists():
             return render(request, self.template_name, {
@@ -585,7 +592,7 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
         # Get all questions (ordered)
         questions = EnvironmentalQuestion.objects.filter(
             is_active=True
-        ).select_related('unit_category', 'default_unit').order_by("order")
+        ).select_related('unit_category', 'default_unit').order_by("is_system", "order", "id")
 
         if not questions.exists():
             return render(request, self.template_name, {

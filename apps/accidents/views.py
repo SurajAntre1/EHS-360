@@ -1129,8 +1129,6 @@ class IncidentClosureView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             f'Incident {incident.report_number} has been successfully closed.'
         )
         
-        # TODO: Send email notification to stakeholders
-        
         return super().form_valid(form)
     
     def get_success_url(self):

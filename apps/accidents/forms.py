@@ -533,3 +533,8 @@ class IncidentAttachmentForm(forms.ModelForm):
         widgets = {
             'attachment': forms.FileInput(attrs={'class': 'form-control-file'})
         }
+        error_messages = {
+            'attachment': {
+                'required': 'Please select a file to upload. This field is required.'
+            }
+        }
