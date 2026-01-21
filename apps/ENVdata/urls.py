@@ -14,4 +14,6 @@ urlpatterns = [
     path('admin/all-plants-data/', AdminAllPlantsDataView.as_view(), name='admin-all-plants'),
     # Export to excel
     path("export_excel/", ExportExcelView.as_view(),name="export_excel"),
+    # path('debug-data/', DebugDataView.as_view(), name='debug-data'),
+
 ]

@@ -85,220 +85,362 @@ def get_all_plants_environmental_data(plants):
 
 ###automatically datafetch in the data collection from accident and hazard 
 
+# apps/ENVdata/utils.py
+
+from django.db.models import Count, Q
+from django.db.models.functions import ExtractMonth
+from apps.accidents.models import Incident
+from apps.hazards.models import Hazard
+import datetime
+
 class EnvironmentalDataFetcher:
     """
-    Helper class to fetch environmental data from Incident and Hazard modules
+    Fetches environmental data from Incident and Hazard modules
+    for auto-populating predefined environmental questions
     """
     
-    @staticmethod
-    def get_month_range(year, month):
-        """Get start and end date for a given month"""
-        month_num = {
-            'january': 1, 'february': 2, 'march': 3, 'april': 4,
-            'may': 5, 'june': 6, 'july': 7, 'august': 8,
-            'september': 9, 'october': 10, 'november': 11, 'december': 12
-        }.get(month.lower())
+    # Mapping of question text to data fetching methods
+    QUESTION_MAPPING = {
+        "Fatalities": "get_fatalities_data",
+        "Lost Time Injuries (LTI)": "get_lti_data",
+        "MTC (Medical Treatment Case)": "get_mtc_data",
+        "First aid cases": "get_first_aid_data",
+        "Fire Incidents": "get_fire_incidents_data",
+        "Near Miss Reported": "get_near_miss_reported_data",
+        "Near Miss Closed": "get_near_miss_closed_data",
+        "Observations (UA/UC) reported": "get_observations_reported_data",
+        "Observations (UA/UC) Closed": "get_observations_closed_data",
+        "Observations related to LSR/SIP reported": "get_lsr_sip_reported_data",
+        "Observations related to LSR/SIP closed": "get_lsr_sip_closed_data",
+        "Safety Inspections with Leadership Team": "get_safety_inspections_data",
+        "Points Identified in leadership team reported": "get_points_identified_reported_data",
+        "Points Identified in leadership team closed": "get_points_identified_closed_data",
+        "Asbestos walkthrough carried out by plant leadership": "get_asbestos_walkthrough_data",
+        "Asbestos walkthrough points reported": "get_asbestos_points_reported_data",
+        "Asbestos walkthrough points closed": "get_asbestos_points_closed_data",
+        "Total inspections carried out": "get_total_inspections_data",
+    }
+    
+    MONTH_NAMES = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ]
+    
+    @classmethod
+    def get_data_for_plant_year(cls, plant, year):
+        """
+        Main method to fetch all auto-populated data for a plant and year
         
-        if not month_num:
-            return None, None
-        
-        # Get first day of the month
-        start_date = date(year, month_num, 1)
-        
-        # Get last day of the month
-        last_day = calendar.monthrange(year, month_num)[1]
-        end_date = date(year, month_num, last_day)
+        Args:
+            plant: Plant object
+            year: Integer year (e.g., 2025)
             
-        return start_date, end_date
+        Returns:
+            Dictionary with question_text as key and month-wise data as value
+            Example: {
+                "Fatalities": {
+                    "January": 2,
+                    "February": 1,
+                    ...
+                },
+                ...
+            }
+        """
+        result = {}
+        
+        for question_text, method_name in cls.QUESTION_MAPPING.items():
+            method = getattr(cls, method_name)
+            result[question_text] = method(plant, year)
+        
+        return result
+    
+    # ==================== INCIDENT RELATED METHODS ====================
     
     @staticmethod
-    def fetch_data_for_question(question_text, plant, year, month):
-        """
-        Fetch count for a specific question from Incident/Hazard modules
-        Returns: integer count or None
-        """
-        start_date, end_date = EnvironmentalDataFetcher.get_month_range(year, month)
-        
-        if not start_date or not end_date:
-            return None
-        
-        question_lower = question_text.lower().strip()
-        
-        try:
-            # FATALITIES
-            if 'fatality' in question_lower or 'fatalities' in question_lower:
-                count = Incident.objects.filter(
-                    plant=plant,
-                    incident_date__gte=start_date,
-                    incident_date__lte=end_date,
-                    incident_type='FATALITY'
-                ).count()
-                return count
-            
-            # LOST TIME INJURIES (LTI)
-            elif ('lost time injur' in question_lower or 
-                  'lti' in question_lower.replace('(', '').replace(')', '')):
-                count = Incident.objects.filter(
-                    plant=plant,
-                    incident_date__gte=start_date,
-                    incident_date__lte=end_date,
-                    incident_type='LTI'
-                ).count()
-                return count
-            
-            # MEDICAL TREATMENT CASE (MTC)
-            elif ('mtc' in question_lower.replace('(', '').replace(')', '') or 
-                  'medical treatment case' in question_lower):
-                count = Incident.objects.filter(
-                    plant=plant,
-                    incident_date__gte=start_date,
-                    incident_date__lte=end_date,
-                    incident_type='MTC'
-                ).count()
-                return count
-            
-            # FIRST AID CASES
-            elif 'first aid' in question_lower:
-                count = Incident.objects.filter(
-                    plant=plant,
-                    incident_date__gte=start_date,
-                    incident_date__lte=end_date,
-                    incident_type='FA'
-                ).count()
-                return count
-            
-            # FIRE INCIDENTS
-            elif 'fire incident' in question_lower:
-                count = Hazard.objects.filter(
-                    plant=plant,
-                    incident_datetime__date__gte=start_date,
-                    incident_datetime__date__lte=end_date,
-                    hazard_category='fire'
-                ).count()
-                return count
-            
-            # NEAR MISS REPORTED
-            elif 'near miss' in question_lower and 'reported' in question_lower:
-                count = Hazard.objects.filter(
-                    plant=plant,
-                    incident_datetime__date__gte=start_date,
-                    incident_datetime__date__lte=end_date,
-                    hazard_type='NM'
-                ).count()
-                return count
-            
-            # NEAR MISS CLOSED
-            elif 'near miss' in question_lower and 'closed' in question_lower:
-                count = Hazard.objects.filter(
-                    plant=plant,
-                    incident_datetime__date__gte=start_date,
-                    incident_datetime__date__lte=end_date,
-                    hazard_type='NM',
-                    status='CLOSED'
-                ).count()
-                return count
-            
-            # OBSERVATIONS (UA/UC) REPORTED
-            elif ('observation' in question_lower and 
-                  'reported' in question_lower and 
-                  ('ua/uc' in question_lower or 'ua' in question_lower or 'uc' in question_lower)):
-                count = Hazard.objects.filter(
-                    plant=plant,
-                    incident_datetime__date__gte=start_date,
-                    incident_datetime__date__lte=end_date,
-                    hazard_type__in=['UA', 'UC']
-                ).count()
-                return count
-            
-            # OBSERVATIONS (UA/UC) CLOSED
-            elif ('observation' in question_lower and 
-                  'closed' in question_lower and 
-                  ('ua/uc' in question_lower or 'ua' in question_lower or 'uc' in question_lower)):
-                count = Hazard.objects.filter(
-                    plant=plant,
-                    incident_datetime__date__gte=start_date,
-                    incident_datetime__date__lte=end_date,
-                    hazard_type__in=['UA', 'UC'],
-                    status='CLOSED'
-                ).count()
-                return count
-            
-            # OBSERVATIONS RELATED TO LSR/SIP REPORTED
-            elif ('lsr' in question_lower or 'sip' in question_lower) and 'reported' in question_lower:
-                count = Hazard.objects.filter(
-                    plant=plant,
-                    incident_datetime__date__gte=start_date,
-                    incident_datetime__date__lte=end_date
-                ).filter(
-                    Q(hazard_title__icontains='LSR') | 
-                    Q(hazard_title__icontains='SIP') |
-                    Q(hazard_description__icontains='LSR') | 
-                    Q(hazard_description__icontains='SIP')
-                ).count()
-                return count
-            
-            # OBSERVATIONS RELATED TO LSR/SIP CLOSED
-            elif ('lsr' in question_lower or 'sip' in question_lower) and 'closed' in question_lower:
-                count = Hazard.objects.filter(
-                    plant=plant,
-                    incident_datetime__date__gte=start_date,
-                    incident_datetime__date__lte=end_date,
-                    status='CLOSED'
-                ).filter(
-                    Q(hazard_title__icontains='LSR') | 
-                    Q(hazard_title__icontains='SIP') |
-                    Q(hazard_description__icontains='LSR') | 
-                    Q(hazard_description__icontains='SIP')
-                ).count()
-                return count
-            
-            # SAFETY INSPECTIONS WITH LEADERSHIP TEAM
-            # You can add this logic if you have an inspection module
-            
-            # Total inspections (if you have inspection model)
-            # elif 'total inspection' in question_lower:
-            #     return 0  # Replace with actual inspection count
-            
-        except Exception as e:
-            # Log the error for debugging
-            print(f"Error fetching data for '{question_text}': {str(e)}")
-            return None
-        
-        # Default: return None for manual entry
-        return None
+    def get_fatalities_data(plant, year):
+        """Get Fatalities count by month"""
+        return EnvironmentalDataFetcher._get_incident_count_by_month(
+            plant, year, incident_type='FATALITY'
+        )
     
     @staticmethod
-    def get_auto_populated_data(plant, year):
-        """
-        Get all auto-populated data for a plant for the entire year
-        Returns: dict with question_text as key and month_data dict as value
-        """
-        from apps.ENVdata.models import EnvironmentalQuestion
+    def get_lti_data(plant, year):
+        """Get Lost Time Injuries count by month"""
+        return EnvironmentalDataFetcher._get_incident_count_by_month(
+            plant, year, incident_type='LTI'
+        )
+    
+    @staticmethod
+    def get_mtc_data(plant, year):
+        """Get Medical Treatment Cases count by month"""
+        return EnvironmentalDataFetcher._get_incident_count_by_month(
+            plant, year, incident_type='MTC'
+        )
+    
+    @staticmethod
+    def get_first_aid_data(plant, year):
+        """Get First Aid cases count by month"""
+        return EnvironmentalDataFetcher._get_incident_count_by_month(
+            plant, year, incident_type='FA'
+        )
+    
+    @staticmethod
+    def get_fire_incidents_data(plant, year):
+        """Get Fire Incidents count by month (from incidents with fire-related unsafe conditions)"""
+        months_data = {}
         
-        questions = EnvironmentalQuestion.objects.filter(
-            is_active=True
-        ).order_by("order", "id")
-        
-        months = [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-        ]
-        
-        auto_data = {}
-        
-        for question in questions:
-            month_data = {}
-            for month in months:
-                count = EnvironmentalDataFetcher.fetch_data_for_question(
-                    question.question_text,
-                    plant,
-                    year,
-                    month
-                )
-                if count is not None:
-                    month_data[month] = str(count)
+        for month_num, month_name in enumerate(EnvironmentalDataFetcher.MONTH_NAMES, start=1):
+            count = Incident.objects.filter(
+                plant=plant,
+                incident_date__year=year,
+                incident_date__month=month_num,
+                unsafe_conditions__icontains='fire'  # Adjust based on your actual data structure
+            ).count()
             
-            if month_data:  # Only add if we have auto data
-                auto_data[question.question_text] = month_data
+            months_data[month_name] = count if count > 0 else ''
         
-        return auto_data
+        return months_data
+    
+    # ==================== HAZARD RELATED METHODS ====================
+    
+    @staticmethod
+    def get_near_miss_reported_data(plant, year):
+        """Get Near Miss reported count by month"""
+        return EnvironmentalDataFetcher._get_hazard_count_by_month(
+            plant, year, hazard_type='NM'
+        )
+    
+    @staticmethod
+    def get_near_miss_closed_data(plant, year):
+        """Get Near Miss closed count by month"""
+        return EnvironmentalDataFetcher._get_hazard_count_by_month(
+            plant, year, hazard_type='NM', status='CLOSED'
+        )
+    
+    @staticmethod
+    def get_observations_reported_data(plant, year):
+        """Get Observations (UA/UC) reported count by month"""
+        months_data = {}
+        
+        for month_num, month_name in enumerate(EnvironmentalDataFetcher.MONTH_NAMES, start=1):
+            count = Hazard.objects.filter(
+                plant=plant,
+                incident_datetime__year=year,
+                incident_datetime__month=month_num,
+                hazard_type__in=['UA', 'UC']
+            ).count()
+            
+            months_data[month_name] = count if count > 0 else ''
+        
+        return months_data
+    
+    @staticmethod
+    def get_observations_closed_data(plant, year):
+        """Get Observations (UA/UC) closed count by month"""
+        months_data = {}
+        
+        for month_num, month_name in enumerate(EnvironmentalDataFetcher.MONTH_NAMES, start=1):
+            count = Hazard.objects.filter(
+                plant=plant,
+                incident_datetime__year=year,
+                incident_datetime__month=month_num,
+                hazard_type__in=['UA', 'UC'],
+                status='CLOSED'
+            ).count()
+            
+            months_data[month_name] = count if count > 0 else ''
+        
+        return months_data
+    
+    @staticmethod
+    def get_lsr_sip_reported_data(plant, year):
+        """Get LSR/SIP observations reported count by month"""
+        # This would depend on how you track LSR/SIP in your system
+        # Adjust the filter condition based on your actual implementation
+        months_data = {}
+        
+        for month_num, month_name in enumerate(EnvironmentalDataFetcher.MONTH_NAMES, start=1):
+            # Example: Assuming you have a category or tag for LSR/SIP
+            count = Hazard.objects.filter(
+                plant=plant,
+                incident_datetime__year=year,
+                incident_datetime__month=month_num,
+                # Add your LSR/SIP identification logic here
+                # For example: hazard_category__in=['lsr', 'sip']
+            ).count()
+            
+            months_data[month_name] = count if count > 0 else ''
+        
+        return months_data
+    
+    @staticmethod
+    def get_lsr_sip_closed_data(plant, year):
+        """Get LSR/SIP observations closed count by month"""
+        months_data = {}
+        
+        for month_num, month_name in enumerate(EnvironmentalDataFetcher.MONTH_NAMES, start=1):
+            count = Hazard.objects.filter(
+                plant=plant,
+                incident_datetime__year=year,
+                incident_datetime__month=month_num,
+                status='CLOSED'
+                # Add your LSR/SIP identification logic here
+            ).count()
+            
+            months_data[month_name] = count if count > 0 else ''
+        
+        return months_data
+    
+    # ==================== INSPECTION RELATED METHODS ====================
+    # Note: These require an Inspection model which I don't see in your provided code
+    # You'll need to adjust these based on your actual inspection tracking system
+    
+    @staticmethod
+    def get_safety_inspections_data(plant, year):
+        """Get Safety Inspections with Leadership Team count by month"""
+        # Placeholder - adjust based on your inspection model
+        months_data = {}
+        
+        for month_name in EnvironmentalDataFetcher.MONTH_NAMES:
+            # Add your inspection fetching logic here
+            # Example: from apps.inspections.models import Inspection
+            # count = Inspection.objects.filter(...)
+            months_data[month_name] = ''
+        
+        return months_data
+    
+    @staticmethod
+    def get_points_identified_reported_data(plant, year):
+        """Get Points identified in leadership team reported by month"""
+        months_data = {}
+        
+        for month_name in EnvironmentalDataFetcher.MONTH_NAMES:
+            # Add your logic here
+            months_data[month_name] = ''
+        
+        return months_data
+    
+    @staticmethod
+    def get_points_identified_closed_data(plant, year):
+        """Get Points identified in leadership team closed by month"""
+        months_data = {}
+        
+        for month_name in EnvironmentalDataFetcher.MONTH_NAMES:
+            # Add your logic here
+            months_data[month_name] = ''
+        
+        return months_data
+    
+    @staticmethod
+    def get_asbestos_walkthrough_data(plant, year):
+        """Get Asbestos walkthrough carried out by plant leadership by month"""
+        months_data = {}
+        
+        for month_name in EnvironmentalDataFetcher.MONTH_NAMES:
+            # Add your logic here
+            months_data[month_name] = ''
+        
+        return months_data
+    
+    @staticmethod
+    def get_asbestos_points_reported_data(plant, year):
+        """Get Asbestos walkthrough points reported by month"""
+        months_data = {}
+        
+        for month_name in EnvironmentalDataFetcher.MONTH_NAMES:
+            # Add your logic here
+            months_data[month_name] = ''
+        
+        return months_data
+    
+    @staticmethod
+    def get_asbestos_points_closed_data(plant, year):
+        """Get Asbestos walkthrough points closed by month"""
+        months_data = {}
+        
+        for month_name in EnvironmentalDataFetcher.MONTH_NAMES:
+            # Add your logic here
+            months_data[month_name] = ''
+        
+        return months_data
+    
+    @staticmethod
+    def get_total_inspections_data(plant, year):
+        """Get Total inspections carried out by month"""
+        months_data = {}
+        
+        for month_name in EnvironmentalDataFetcher.MONTH_NAMES:
+            # Add your logic here
+            months_data[month_name] = ''
+        
+        return months_data
+    
+    # ==================== HELPER METHODS ====================
+    
+    @staticmethod
+    def _get_incident_count_by_month(plant, year, incident_type=None):
+        """
+        Helper method to get incident count by month
+        
+        Args:
+            plant: Plant object
+            year: Integer year
+            incident_type: String incident type (e.g., 'LTI', 'MTC', 'FA', 'FATALITY')
+        
+        Returns:
+            Dictionary with month names as keys and counts as values
+        """
+        months_data = {}
+        
+        for month_num, month_name in enumerate(EnvironmentalDataFetcher.MONTH_NAMES, start=1):
+            query = Q(
+                plant=plant,
+                incident_date__year=year,
+                incident_date__month=month_num
+            )
+            
+            if incident_type:
+                query &= Q(incident_type=incident_type)
+            
+            count = Incident.objects.filter(query).count()
+            
+            # Only add non-zero values (or empty string for zero)
+            months_data[month_name] = count if count > 0 else ''
+        
+        return months_data
+    
+    @staticmethod
+    def _get_hazard_count_by_month(plant, year, hazard_type=None, status=None):
+        """
+        Helper method to get hazard count by month
+        
+        Args:
+            plant: Plant object
+            year: Integer year
+            hazard_type: String hazard type (e.g., 'UA', 'UC', 'NM')
+            status: String status (e.g., 'CLOSED', 'RESOLVED')
+        
+        Returns:
+            Dictionary with month names as keys and counts as values
+        """
+        months_data = {}
+        
+        for month_num, month_name in enumerate(EnvironmentalDataFetcher.MONTH_NAMES, start=1):
+            query = Q(
+                plant=plant,
+                incident_datetime__year=year,
+                incident_datetime__month=month_num
+            )
+            
+            if hazard_type:
+                query &= Q(hazard_type=hazard_type)
+            
+            if status:
+                query &= Q(status=status)
+            
+            count = Hazard.objects.filter(query).count()
+            
+            # Only add non-zero values (or empty string for zero)
+            months_data[month_name] = count if count > 0 else ''
+        
+        return months_data

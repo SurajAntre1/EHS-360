@@ -453,6 +453,38 @@
         border: 1px solid #ced4da;
     }
     
+    /* Stats Summary Section */
+    .stats-summary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        color: white;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .stat-item {
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        display: block;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        font-size: 12px;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
     @media screen and (max-width: 768px) {
         .header-content {
             flex-direction: column;
@@ -482,6 +514,10 @@
         .data-legend {
             flex-direction: column;
             align-items: flex-start;
+        }
+        
+        .stats-summary {
+            flex-direction: column;
         }
     }
 
@@ -550,6 +586,25 @@
     </div>
     
     {% else %}
+    
+    <!-- Stats Summary -->
+    {% if auto_populated_count %}
+    <div class="stats-summary">
+        <div class="stat-item">
+            <span class="stat-value">{{ total_questions }}</span>
+            <span class="stat-label">Total Questions</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value">{{ auto_populated_count }}</span>
+            <span class="stat-label">Auto-Populated</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value">{{ manual_entry_count }}</span>
+            <span class="stat-label">Manual Entry</span>
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Data Entry Form -->
     <form method="post" id="dataEntryForm">
         {% csrf_token %}
@@ -560,7 +615,7 @@
             <div class="data-legend">
                 <div class="legend-item">
                     <div class="legend-box auto"></div>
-                    <span><i class="fas fa-calculator"></i> Auto-populated from system data</span>
+                    <span><i class="fas fa-calculator"></i> Auto-populated from Incident/Hazard records</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-box manual"></div>
@@ -614,7 +669,7 @@
                                     data-month="{{ month|lower }}"
                                     data-row="{{ forloop.parentloop.counter }}"
                                     {% if item.is_auto_populated %}
-                                    title="Auto-populated from {{ selected_plant.name }} records. You can edit this value if needed."
+                                    title="Auto-populated from {{ selected_plant.name }} Incident/Hazard records. You can edit this value if needed."
                                     {% endif %}
                                 >
                             </td>
@@ -721,6 +776,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const autoPopulatedInputs = document.querySelectorAll('.data-input.auto-populated');
     if (autoPopulatedInputs.length > 0) {
         console.log(`${autoPopulatedInputs.length} fields auto-populated from Incident/Hazard data`);
+        
+        // Optional: Show a toast notification
+        const autoCount = autoPopulatedInputs.length;
+        const totalInputs = document.querySelectorAll('.data-input').length;
+        console.log(`📊 Data Summary: ${autoCount} of ${totalInputs} fields auto-populated (${Math.round((autoCount/totalInputs)*100)}%)`);
     }
 });
 
@@ -755,5 +815,33 @@ document.querySelectorAll('.data-input.auto-populated').forEach(input => {
         }
     });
 });
+
+// Optional: Add a visual pulse effect to auto-populated fields on first load
+window.addEventListener('load', function() {
+    const autoInputs = document.querySelectorAll('.data-input.auto-populated');
+    
+    // Only animate if there are auto-populated fields and this is the first visit
+    if (autoInputs.length > 0 && !sessionStorage.getItem('animationShown')) {
+        autoInputs.forEach((input, index) => {
+            setTimeout(() => {
+                input.style.animation = 'pulse 0.5s ease-in-out';
+            }, index * 50); // Stagger the animation
+        });
+        
+        // Mark that animation has been shown for this session
+        sessionStorage.setItem('animationShown', 'true');
+    }
+});
 </script>
+
+<style>
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+</style>
 {% endblock %}

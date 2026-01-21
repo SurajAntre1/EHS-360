@@ -12,6 +12,7 @@ from apps.accidents.models import Incident
 from apps.organizations.models import Plant
 from .models import *
 from .constants import MONTHS
+from apps.ENVdata.utils import EnvironmentalDataFetcher
 
 
 # =========================================================
@@ -156,7 +157,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
 
     def get(self, request):
         from datetime import datetime
-        from .utils import EnvironmentalDataFetcher
+        from apps.ENVdata.utils import EnvironmentalDataFetcher
         
         user_plants = self.get_user_plants(request)
         
@@ -180,51 +181,47 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
         # Get current year
         current_year = datetime.now().year
         
-        # Get auto-populated data from Incident/Hazard modules
-        auto_populated_data = EnvironmentalDataFetcher.get_auto_populated_data(
-            selected_plant, 
-            current_year
-        )
+        # Get auto-populated data
+        auto_data = EnvironmentalDataFetcher.get_data_for_plant_year(selected_plant, current_year)
         
-        # Get manually saved data
+        # Get saved data
         saved_data = MonthlyIndicatorData.objects.filter(plant=selected_plant)
-
-        # Organize data by question and month
-        data_dict = {}
+        saved_dict = {}
         for d in saved_data:
-            if d.indicator not in data_dict:
-                data_dict[d.indicator] = {}
-            data_dict[d.indicator][d.month.lower()] = d.value
+            if d.indicator not in saved_dict:
+                saved_dict[d.indicator] = {}
+            saved_dict[d.indicator][d.month.lower()] = d.value
 
-        # Build questions list with their data
+        # Build final data structure
         questions_with_data = []
+        
         for q in questions:
             default_unit_name = q.default_unit.name if q.default_unit else "Count"
             
+            # Get data for all months
             month_data = {}
+            is_auto = q.question_text in auto_data
+            
             for month in MONTHS:
                 month_key = month.lower()[:3]
                 
-                # Priority: 1) Manually saved data, 2) Auto-populated data, 3) Empty
-                if q.question_text in data_dict and month_key in data_dict[q.question_text]:
-                    value = data_dict[q.question_text][month_key]
-                elif q.question_text in auto_populated_data and month in auto_populated_data[q.question_text]:
-                    value = auto_populated_data[q.question_text][month]
+                # Check saved data first, then auto data
+                if q.question_text in saved_dict and month_key in saved_dict[q.question_text]:
+                    month_data[month] = saved_dict[q.question_text][month_key]
+                elif is_auto and month in auto_data[q.question_text]:
+                    month_data[month] = auto_data[q.question_text][month]
                 else:
-                    value = ''
-                
-                month_data[month] = value
-            
-            is_auto_populated = q.question_text in auto_populated_data
+                    month_data[month] = ''
             
             questions_with_data.append({
                 "question": q.question_text,
-                "default_unit": default_unit_name,
                 "default_unit_name": default_unit_name,
                 "month_data": month_data,
                 "slugified": self.slugify_field(q.question_text),
-                "is_auto_populated": is_auto_populated,
+                "is_auto_populated": is_auto,
             })
+        auto_populated_count = sum(1 for q in questions_with_data if q['is_auto_populated'])
+        manual_entry_count = len(questions_with_data) - auto_populated_count
 
         context = {
             "selected_plant": selected_plant,
@@ -232,6 +229,9 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
             "questions_with_data": questions_with_data,
             "months": MONTHS,
             "current_year": current_year,
+            "total_questions": len(questions_with_data),  # Add this
+            "auto_populated_count": auto_populated_count,  # Add this
+            "manual_entry_count": manual_entry_count,  # Add this
         }
 
         return render(request, self.template_name, context)
@@ -714,3 +714,82 @@ class ExportExcelView(LoginRequiredMixin, View):
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         workbook.save(response)
         return response
+    
+
+
+
+from django.http import JsonResponse
+from django.views import View
+from apps.hazards.models import Hazard
+from apps.organizations.models import Plant
+from datetime import datetime, date
+import calendar
+
+class DebugDataView(View):
+    """Temporary debug view to check data"""
+    
+    def get(self, request):
+        # Get plant
+        plant_id = request.GET.get('plant_id')
+        if not plant_id:
+            return JsonResponse({'error': 'Please provide plant_id'})
+        
+        plant = Plant.objects.filter(id=plant_id).first()
+        if not plant:
+            return JsonResponse({'error': 'Plant not found'})
+        
+        # Get current month range
+        year = datetime.now().year
+        month = datetime.now().month
+        
+        start_date = date(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        end_date = date(year, month, last_day)
+        
+        # Check Incidents
+        all_incidents = Incident.objects.filter(plant=plant)
+        current_month_incidents = Incident.objects.filter(
+            plant=plant,
+            incident_date__gte=start_date,
+            incident_date__lte=end_date
+        )
+        
+        # Check Hazards
+        all_hazards = Hazard.objects.filter(plant=plant)
+        current_month_hazards = Hazard.objects.filter(
+            plant=plant,
+            incident_datetime__date__gte=start_date,
+            incident_datetime__date__lte=end_date
+        )
+        
+        # Prepare response
+        response_data = {
+            'plant': plant.name,
+            'date_range': f'{start_date} to {end_date}',
+            'total_incidents_all_time': all_incidents.count(),
+            'total_hazards_all_time': all_hazards.count(),
+            'current_month_incidents': current_month_incidents.count(),
+            'current_month_hazards': current_month_hazards.count(),
+            'incidents_detail': [],
+            'hazards_detail': [],
+        }
+        
+        # Add incident details
+        for inc in current_month_incidents:
+            response_data['incidents_detail'].append({
+                'report_number': inc.report_number,
+                'type': inc.incident_type,
+                'date': str(inc.incident_date),
+                'plant': inc.plant.name,
+            })
+        
+        # Add hazard details
+        for haz in current_month_hazards:
+            response_data['hazards_detail'].append({
+                'report_number': haz.report_number,
+                'type': haz.hazard_type,
+                'datetime': str(haz.incident_datetime),
+                'plant': haz.plant.name,
+            })
+        
+        return JsonResponse(response_data, json_dumps_params={'indent': 2})
