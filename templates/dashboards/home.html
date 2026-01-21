@@ -9,6 +9,55 @@
 <li class="breadcrumb-item active">Dashboard</li>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+  .section-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    padding: 14px 20px;
+    font-weight: 600;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-header.incidents {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    color: #7f1d1d;
+  }
+
+  .section-header.hazards {
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+    color: #0c4a6e;
+  }
+
+  .section-header i {
+    font-size: 18px;
+  }
+
+  .section-body {
+    padding: 16px 18px;
+  }
+
+  .section-body table {
+    margin-bottom: 0;
+  }
+
+  .section-divider {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 24px 0;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Stats Cards Row -->
 <div class="row">
@@ -175,11 +224,126 @@
         </h3>
       </div>
       <div class="card-body">
-        <div class="alert alert-info">
-          <i class="fas fa-info-circle mr-2"></i>
-          No recent activities to display. Start by reporting a hazard or incident.
+
+      <!-- Recent Incidents -->
+      <div class="section-card">
+        <div class="section-header incidents">
+          <i class="fas fa-exclamation-triangle"></i>
+          Recent Incidents
+        </div>
+        <div class="section-body">
+          <table class="table table-hover incident-table">
+            <thead>
+              <tr>
+                <th>Report #</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for incident in recent_incidents %}
+              <tr>
+                <td><strong>{{ incident.report_number }}</strong></td>
+                <td>
+                  <span class="badge badge-custom
+                    {% if incident.incident_type == 'LTI' %}bg-danger
+                    {% elif incident.incident_type == 'MTC' %}bg-warning text-dark 
+                    {% elif incident.incident_type == 'FA' %}bg-info 
+                    {% else %}bg-dark{% endif %}">
+                    {{ incident.get_incident_type_display }}
+                  </span>
+                </td>
+                <td>{{ incident.incident_date|date:"d/m/y" }}</td>
+                <td>
+                  <span class="badge badge-custom
+                  {% if incident.status == 'CLOSED' %}bg-success
+                  {% elif incident.status == 'REPORTED' %}bg-secondary
+                  {% else %}bg-primary{% endif %}">
+                  {{ incident.get_status_display }}
+                  </span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                  <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                  No recent activities found
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
+      <!-- Recent Hazards -->
+      <div class="section-card">
+        <div class="section-header hazards">
+          <i class="fas fa-radiation"></i>
+          Recent Hazards
+        </div>
+        <div class="section-body">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Report No.</th>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Date</th>
+                <th>Risk Level</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for hazard in recent_hazards %}
+              <tr>
+                <td><strong>{{ hazard.report_number }}</strong></td>
+                <td>
+                  <span class="badge 
+                    {% if hazard.hazard_category == 'slip_trip_fall' %}badge-warning
+                    {% elif hazard.hazard_category == 'chemical' %}badge-danger
+                    {% else %}badge-info{% endif %}">
+                    {{ hazard.get_hazard_category_display }}
+                  </span>
+                </td>
+                <td>{{ hazard.hazard_title|truncatewords:8 }}</td>
+                <td>
+                  {{ hazard.incident_datetime|date:"d/m/Y" }}<br>
+                  <small class="text-muted">{{ hazard.incident_datetime|time:"H:i" }}</small>
+                </td>
+                <td>
+                  <span class="badge 
+                    {% if hazard.risk_level == 'Critical' %}badge-dark
+                    {% elif hazard.risk_level == 'High' %}badge-danger
+                    {% elif hazard.risk_level == 'Medium' %}badge-warning
+                    {% else %}badge-success{% endif %}">
+                    {{ hazard.get_severity_display }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge 
+                    {% if hazard.status == 'CLOSED' or hazard.status == 'RESOLVED' %}badge-success
+                    {% elif hazard.status == 'REPORTED' %}badge-secondary
+                    {% elif hazard.status == 'IN_PROGRESS' %}badge-primary 
+                    {% else %}badge-dark{% endif %}">
+                    {{ hazard.get_status_display }}
+                  </span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center">
+                  <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle mr-2"></i>No hazards reported yet.
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
     </div>
   </div>
 </div>

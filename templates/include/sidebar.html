@@ -225,6 +225,7 @@
               </a>
             </li>
 
+            {% if user.role.name != 'EMPLOYEE' %}
             <li class="nav-item">
               <a href="{% url 'accidents:IncidentAccidentDashboardView' %}" class="nav-link {% if url == 'IncidentAccidentDashboardView' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i><p>Incident Dashboard</p>
@@ -236,11 +237,12 @@
                 <i class="nav-icon far fa-circle"></i><p>Hazard Dashboard</p>
               </a>
             </li>
+            {% endif %}
           </ul>
         </li>
 
         <!-- Administration Section -->
-        {% if user.is_employee or user.role.name == 'ADMIN' or user.role.name == 'PLANT HEAD' %}
+        {% if user.is_admin_user %}
         <li class="nav-item">
           <a href="{% url 'organizations:dashboard' %}" class="nav-link">
             <i class="nav-icon fas fa-sitemap"></i>
