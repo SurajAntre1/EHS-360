@@ -22,6 +22,7 @@ from django.views import View
 import json
 from django.db.models import Count
 from django.db.models.functions import TruncMonth
+from .forms import HazardForm
 
 # Make sure all models are imported
 from apps.organizations.models import Plant, Zone, Location, SubLocation
@@ -150,192 +151,117 @@ class HazardListView(LoginRequiredMixin, ListView):
         return context
 class HazardCreateView(LoginRequiredMixin, CreateView):
     model = Hazard
+    form_class = HazardForm
     template_name = 'hazards/hazard_create.html'
     success_url = reverse_lazy('hazards:hazard_list')
-    fields = []
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['user'] = self.request.user
+        user = self.request.user
 
-        # Active departments for behalf dropdown
-        from apps.organizations.models import Department
+        context['user_assigned_plants'] = user.assigned_plants.filter(is_active=True)
+        if context['user_assigned_plants'].count() == 1:
+            plant = context['user_assigned_plants'].first()
+            context['user_assigned_zones'] = user.assigned_zones.filter(is_active=True, plant=plant)
+            if context['user_assigned_zones'].count() == 1:
+                zone = context['user_assigned_zones'].first()
+                context['user_assigned_locations'] = user.assigned_locations.filter(is_active=True, zone=zone)
+                if context['user_assigned_locations'].count() == 1:
+                    location = context['user_assigned_locations'].first()
+                    context['user_assigned_sublocations'] = user.assigned_sublocations.filter(
+                        is_active=True, location=location
+                    )
+
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
-
-        # Sublocations
-        if self.request.user.location and not self.request.user.sublocation:
-            context['sublocations'] = SubLocation.objects.filter(
-                location=self.request.user.location,
-                is_active=True
-            ).order_by('name')
-
         return context
 
-    def post(self, request, *args, **kwargs):
-        try:
-            hazard = Hazard()
+    def form_valid(self, form):
+        hazard = form.save(commit=False)
+        user = self.request.user
 
-            # --------------------------------------------------
-            # Reporter & Location
-            # --------------------------------------------------
-            hazard.reported_by = request.user
-            hazard.plant = request.user.plant
-            hazard.zone = request.user.zone
-            hazard.location = request.user.location
+        # Reporter & System Fields
+        hazard.reported_by = user
+        hazard.reporter_email = user.email
+        hazard.reporter_phone = getattr(user, 'phone', '')
+        hazard.report_timestamp = timezone.now()
+        hazard.report_source = 'web_portal'
 
-            # Sublocation
-            if request.user.sublocation:
-                hazard.sublocation = request.user.sublocation
-            else:
-                sublocation_id = request.POST.get('sublocation')
-                if sublocation_id:
-                    try:
-                        hazard.sublocation = SubLocation.objects.get(
-                            id=sublocation_id,
-                            is_active=True
-                        )
-                    except (SubLocation.DoesNotExist, ValueError):
-                        hazard.sublocation = None
+        # Location fallback
+        hazard.plant = hazard.plant or user.plant
+        hazard.zone = hazard.zone or user.zone
+        hazard.location = hazard.location or user.location
+        hazard.sublocation = hazard.sublocation or user.sublocation
 
-            # Reporter info
-            hazard.reporter_name = request.POST.get('reporter_name', '').strip()
-            hazard.reporter_email = request.user.email
-            hazard.reporter_phone = getattr(request.user, 'phone', '')
+        # Incident datetime fallback
+        if not hazard.incident_datetime:
+            hazard.incident_datetime = timezone.now()
 
-            # --------------------------------------------------
-            # ✅ UPDATED: ON BEHALF OF (TEXT + DEPARTMENT)
-            # --------------------------------------------------
-            is_reporting_on_behalf = request.POST.get('behalf_checkbox') == 'on'
+        # On behalf logic
+        if not self.request.POST.get('behalf_checkbox'):
+            hazard.behalf_person_name = None
+            hazard.behalf_person_dept = None
 
-            if is_reporting_on_behalf:
-                hazard.behalf_person_name = request.POST.get('behalf_person_name', '').strip()
-                hazard.behalf_person = None   # OLD FK REMOVED
+        # Title
+        hazard.hazard_title = f"{hazard.get_hazard_type_display()} - {hazard.get_hazard_category_display()}"
 
-                behalf_dept_id = request.POST.get('behalf_person_dept', '').strip()
-                if behalf_dept_id:
-                    try:
-                        hazard.behalf_person_dept = Department.objects.get(
-                            id=behalf_dept_id,
-                            is_active=True
-                        )
-                    except (Department.DoesNotExist, ValueError):
-                        hazard.behalf_person_dept = None
-                else:
-                    hazard.behalf_person_dept = None
-            else:
-                hazard.behalf_person_name = None
-                hazard.behalf_person = None
-                hazard.behalf_person_dept = None
+        # Status
+        hazard.status = 'REPORTED'
+        hazard.approval_status = 'PENDING'
 
-            # --------------------------------------------------
-            # Hazard Details
-            # --------------------------------------------------
-            hazard.hazard_type = request.POST.get('hazard_type')
-            hazard.hazard_category = request.POST.get('hazard_category')
-            hazard.severity = request.POST.get('severity')
+        # Deadline
+        severity_days = {'low': 30, 'medium': 15, 'high': 7, 'critical': 1}
+        base_date = timezone.now().date()
+        hazard.action_deadline = base_date + timezone.timedelta(
+            days=severity_days.get(hazard.severity, 15)
+        )
 
-            hazard.hazard_title = (
-                f"{hazard.get_hazard_type_display()} - "
-                f"{hazard.get_hazard_category_display()}"
-            )
+        # Save first (for report number)
+        hazard.save()
+        self.object = hazard
 
-            hazard.hazard_description = request.POST.get(
-                'hazard_description', ''
-            ).strip()
-            hazard.immediate_action = request.POST.get(
-                'immediate_action', ''
-            ).strip()
+        # Report Number
+        today = timezone.now().date()
+        plant_code = hazard.plant.code if hazard.plant else 'UNKN'
+        count = Hazard.objects.filter(created_at__date=today).count()
+        hazard.report_number = f"HAZ-{plant_code}-{today:%Y%m%d}-{count:03d}"
+        hazard.save(update_fields=['report_number'])
 
-            incident_datetime = request.POST.get('incident_datetime')
-            hazard.incident_datetime = (
-                timezone.datetime.fromisoformat(incident_datetime)
-                if incident_datetime else timezone.now()
-            )
-
-            hazard.location_details = request.POST.get(
-                'location_details', ''
-            ).strip()
-
-            # System fields
-            hazard.report_timestamp = timezone.now()
-            hazard.report_source = 'web_portal'
-
-            # Report number
-            today = timezone.now().date()
-            plant_code = hazard.plant.code if hazard.plant else 'UNKN'
-            count = Hazard.objects.filter(created_at__date=today).count() + 1
-            hazard.report_number = f"HAZ-{plant_code}-{today:%Y%m%d}-{count:03d}"
-
-            # Deadline
-            severity_days = {'low': 30, 'medium': 15, 'high': 7, 'critical': 1}
-            hazard.action_deadline = today + timezone.timedelta(
-                days=severity_days.get(hazard.severity, 15)
-            )
-
-            hazard.status = 'REPORTED'
-            hazard.approval_status = 'PENDING'
-            hazard.save()
-
-            # --------------------------------------------------
-            # Photos
-            # --------------------------------------------------
-            photo_count = int(request.POST.get('photo_count', 1))
-            photos_uploaded = 0
-
-            for i in range(photo_count):
-                photo = request.FILES.get(f'photo_{i}')
-                if photo:
-                    HazardPhoto.objects.create(
-                        hazard=hazard,
-                        photo=photo,
-                        photo_type='evidence',
-                        description=f'Photo {photos_uploaded + 1}',
-                        uploaded_by=request.user
-                    )
-                    photos_uploaded += 1
-
-            # --------------------------------------------------
-            # Success Message
-            # --------------------------------------------------
-            location_parts = [
-                hazard.plant.name,
-                hazard.zone.name if hazard.zone else None,
-                hazard.location.name,
-                hazard.sublocation.name if hazard.sublocation else None
-            ]
-            location_info = ' → '.join(filter(None, location_parts))
-
-            msg_parts = [
-                '✅ <strong>Hazard Report Submitted Successfully!</strong>',
-                '<div class="mt-2">',
-                f'<strong>Report Number:</strong> {hazard.report_number}',
-                f'<br><strong>Severity:</strong> {hazard.get_severity_display()}',
-                f'<br><strong>Location:</strong> {location_info}',
-                f'<br><strong>Action Deadline:</strong> '
-                f'{hazard.action_deadline:%d %B %Y}',
-            ]
-
-            if photos_uploaded:
-                msg_parts.append(
-                    f'<br><strong>Photos Uploaded:</strong> {photos_uploaded}'
+        # Photos
+        photos_uploaded = 0
+        photo_count = int(self.request.POST.get('photo_count', 1))
+        for i in range(photo_count + 5):
+            photo = self.request.FILES.get(f'photo_{i}')
+            if photo:
+                HazardPhoto.objects.create(
+                    hazard=hazard,
+                    photo=photo,
+                    photo_type='evidence',
+                    uploaded_by=user
                 )
+                photos_uploaded += 1
 
-            if hazard.behalf_person_name:
-                dept = hazard.behalf_person_dept.name if hazard.behalf_person_dept else 'N/A'
-                msg_parts.append(
-                    f'<br><strong>Reported on behalf of:</strong> '
-                    f'{hazard.behalf_person_name} ({dept})'
-                )
+        # Success Message (Old Style)
+        messages.success(
+            self.request,
+            mark_safe(
+                f"""
+                <strong>✅ Hazard Report Submitted Successfully!</strong><br>
+                <strong>Report No:</strong> {hazard.report_number}<br>
+                <strong>Severity:</strong> {hazard.get_severity_display()}<br>
+                <strong>Action Deadline:</strong> {hazard.action_deadline:%d %B %Y}<br>
+                <strong>Photos Uploaded:</strong> {photos_uploaded}
+                """
+            )
+        )
 
-            msg_parts.append('</div>')
-            messages.success(request, mark_safe(''.join(msg_parts)))
-
-            return redirect(self.success_url)
-
-        except Exception as e:
-            messages.error(request, f'Error creating hazard: {str(e)}')
-            return redirect('hazards:hazard_create')
-
+        return redirect(self.success_url)
+    
+    
 class HazardDetailView(LoginRequiredMixin, DetailView):
     """
     Display details of a specific hazard, optimized for performance.
@@ -376,141 +302,81 @@ class HazardDetailView(LoginRequiredMixin, DetailView):
 
 class HazardUpdateView(LoginRequiredMixin, UpdateView):
     model = Hazard
+    form_class = HazardForm
     template_name = 'hazards/hazard_update.html'
-    # The 'fields' attribute is not used since we are handling the POST manually.
-    fields = []
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        from apps.organizations.models import Department
-        context['departments'] = Department.objects.filter(is_active=True).order_by('name')
-        return context
-    
-    def get_success_url(self):
-        # Redirect to the detail page of the object that was just updated.
-        return reverse_lazy('hazards:hazard_detail', kwargs={'pk': self.object.pk})
-    
-    def post(self, request, *args, **kwargs):
-        # Get the hazard object we are editing.
-        self.object = self.get_object()
-        try:
-            # --------------------------------------------------
-            # Section 1: Update fields from the form
-            # Only process fields that actually exist in hazard_update.html
-            # --------------------------------------------------
 
-            # Reporter Name & Incident Datetime (from the "Reporter Information" section)
-            self.object.reporter_name = request.POST.get('reporter_name', '').strip()
-            incident_datetime_str = request.POST.get('incident_datetime')
-            if incident_datetime_str:
-                self.object.incident_datetime = timezone.datetime.fromisoformat(
-                    incident_datetime_str
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def get_success_url(self):
+        return reverse_lazy('hazards:hazard_detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        hazard = form.save(commit=False)
+
+        if not self.request.POST.get('behalf_checkbox'):
+            hazard.behalf_person_name = None
+            hazard.behalf_person_dept = None
+
+        hazard.hazard_title = f"{hazard.get_hazard_type_display()} - {hazard.get_hazard_category_display()}"
+
+        severity_days = {'low': 30, 'medium': 15, 'high': 7, 'critical': 1}
+        base_date = hazard.reported_date.date()
+        hazard.action_deadline = base_date + timezone.timedelta(
+            days=severity_days.get(hazard.severity, 15)
+        )
+
+        hazard.save()
+        self.object = hazard
+
+        # Photo deletion
+        for key in self.request.POST:
+            if key.startswith('keep_photo_') and self.request.POST[key] == '0':
+                photo_id = key.split('_')[-1]
+                HazardPhoto.objects.filter(id=photo_id, hazard=hazard).delete()
+
+        # New photos
+        photo_count = int(self.request.POST.get('photo_count', 1))
+        for i in range(photo_count + 5):
+            photo = self.request.FILES.get(f'photo_{i}')
+            if photo:
+                HazardPhoto.objects.create(
+                    hazard=hazard,
+                    photo=photo,
+                    photo_type='evidence',
+                    uploaded_by=self.request.user
                 )
 
-            # Additional Location Details
-            self.object.location_details = request.POST.get('location_details', '').strip()
-            
-            # On Behalf Of Logic (This part was already correct)
-            is_reporting_on_behalf = request.POST.get('behalf_checkbox') == 'on'
-            if is_reporting_on_behalf:
-                self.object.behalf_person_name = request.POST.get('behalf_person_name', '').strip()
-                self.object.behalf_person = None  # Clear the old ForeignKey link
+        messages.success(self.request, f"Hazard Report {hazard.report_number} updated successfully!")
+        return redirect(self.get_success_url())
 
-                behalf_dept_id = request.POST.get('behalf_person_dept', '').strip()
-                if behalf_dept_id:
-                    try:
-                        from apps.organizations.models import Department
-                        self.object.behalf_person_dept = Department.objects.get(id=behalf_dept_id, is_active=True)
-                    except (Department.DoesNotExist, ValueError):
-                        self.object.behalf_person_dept = None
-                else:
-                    self.object.behalf_person_dept = None
-            else:
-                self.object.behalf_person_name = None
-                self.object.behalf_person = None
-                self.object.behalf_person_dept = None
 
-            # Report Details (Type, Category, Severity)
-            self.object.hazard_type = request.POST.get('hazard_type')
-            self.object.hazard_category = request.POST.get('hazard_category')
-            self.object.severity = request.POST.get('severity')
-            
-            # Description and Immediate Actions
-            self.object.hazard_description = request.POST.get('hazard_description', '').strip()
-            self.object.immediate_action = request.POST.get('immediate_action', '').strip()
+def get_zones_by_plant(request, plant_id):
+    """Fetch zones for a given plant ID. Returns a JSON response."""
+    try:
+        zones = Zone.objects.filter(plant_id=plant_id, is_active=True).values('id', 'name', 'code')
+        return JsonResponse(list(zones), safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
-            # --------------------------------------------------
-            # Section 2: Re-generate or preserve fields NOT in the form
-            # This is the crucial part that prevents data loss.
-            # --------------------------------------------------
+def get_locations_by_zone(request, zone_id):
+    """Fetch locations for a given zone ID. Returns a JSON response."""
+    try:
+        locations = Location.objects.filter(zone_id=zone_id, is_active=True).values('id', 'name', 'code')
+        return JsonResponse(list(locations), safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
-            # CORRECTED: Re-generate the title based on the (potentially updated) type and category.
-            # This prevents the title from being blanked out.
-            self.object.hazard_title = (
-                f"{self.object.get_hazard_type_display()} - "
-                f"{self.object.get_hazard_category_display()}"
-            )
-
-            # CORRECTED: Recalculate the action deadline if the severity has changed.
-            severity_days = {'low': 30, 'medium': 15, 'high': 7, 'critical': 1}
-            days = severity_days.get(self.object.severity, 15)
-            # Use the original reported date as the base for the deadline calculation.
-            base_date = self.object.reported_date.date()
-            self.object.action_deadline = base_date + timezone.timedelta(days=days)
-
-            # NOTE: We are intentionally NOT touching fields like:
-            # - self.object.reporter_email
-            # - self.object.reporter_phone
-            # - self.object.witnesses
-            # - self.object.injury_status
-            # ...because they are not in the update form. This preserves their original values.
-
-            # --------------------------------------------------
-            # Section 3: Save object and handle photos
-            # --------------------------------------------------
-            self.object.save()
-
-            # Handle photo deletions (This logic is correct)
-            for key in request.POST:
-                if key.startswith('keep_photo_') and request.POST[key] == '0':
-                    photo_id = key.replace('keep_photo_', '')
-                    try:
-                        photo = HazardPhoto.objects.get(id=photo_id, hazard=self.object)
-                        photo.delete()
-                    except HazardPhoto.DoesNotExist:
-                        pass # Ignore if photo is already gone
-
-            # Handle new photo uploads (This logic is correct)
-            photos_uploaded = 0
-            # Check more than 1 in case of multiple uploads. Let's check up to 5 new slots.
-            photo_count = int(request.POST.get('photo_count', 1)) # Get this from a hidden field if you have one.
-            for i in range(photo_count + 5): # Check extra slots just in case
-                photo_file = request.FILES.get(f'photo_{i}')
-                if photo_file:
-                    HazardPhoto.objects.create(
-                        hazard=self.object,
-                        photo=photo_file,
-                        photo_type='evidence',
-                        description=f'Additional Photo {photos_uploaded + 1}',
-                        uploaded_by=request.user
-                    )
-                    photos_uploaded += 1
-            
-            # --------------------------------------------------
-            # Section 4: Success Message
-            # --------------------------------------------------
-            messages.success(request, mark_safe(
-                f"<strong>Report {self.object.report_number} updated successfully!</strong>"
-            ))
-            return redirect(self.get_success_url())
-
-        except Exception as e:
-            # It's good practice to log the actual error for debugging.
-            import traceback
-            print("ERROR updating hazard:", traceback.format_exc())
-            messages.error(request, f'An unexpected error occurred while updating the hazard: {str(e)}')
-            return redirect('hazards:hazard_update', pk=self.object.pk)
-            
+def get_sublocations_by_location(request, location_id):
+    """Fetch sub-locations for a given location ID. Returns a JSON response."""
+    try:
+        sublocations = SubLocation.objects.filter(location_id=location_id, is_active=True).values('id', 'name', 'code')
+        return JsonResponse(list(sublocations), safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+                 
 class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
     """
     Create an action item for a specific hazard.

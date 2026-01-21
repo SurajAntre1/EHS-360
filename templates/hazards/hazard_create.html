@@ -195,57 +195,61 @@
                                 <i class="fas fa-map-marker-alt"></i>
                                 Location Information
                             </div>
-                            
                             <div class="row">
+                                <!-- Plant Field -->
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label class="required-field">Plant</label>
-                                        <input type="text" class="form-control" 
-                                                value="{% if user.plant %}{{ user.plant.name }} ({{ user.plant.code }}){% else %}Not Assigned{% endif %}" readonly>
-                                        <input type="hidden" name="plant" id="id_plant" 
-                                                value="{% if user.plant %}{{ user.plant.id }}{% endif %}">
+                                        {% if user_assigned_plants.count == 1 %}
+                                            <input type="text" class="form-control readonly-field" value="{{ user_assigned_plants.first.name }} ({{ user_assigned_plants.first.code }})">
+                                            <!-- Still render the hidden form field to pass the value -->
+                                            {{ form.plant.as_hidden }}
+                                        {% else %}
+                                            {{ form.plant }}
+                                        {% endif %}
+                                        {{ form.plant.errors }}
                                     </div>
                                 </div>
                                 
+                                <!-- Zone Field -->
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label>Zone</label>
-                                        <input type="text" class="form-control" 
-                                                value="{% if user.zone %}{{ user.zone.name }} ({{ user.zone.code }}){% else %}Not Assigned{% endif %}" readonly>
-                                        <input type="hidden" name="zone" id="id_zone" 
-                                                value="{% if user.zone %}{{ user.zone.id }}{% endif %}">
+                                        {% if user_assigned_zones.count == 1 %}
+                                            <input type="text" class="form-control readonly-field" value="{{ user_assigned_zones.first.name }} ({{ user_assigned_zones.first.code }})">
+                                            {{ form.zone.as_hidden }}
+                                        {% else %}
+                                            {{ form.zone }}
+                                        {% endif %}
+                                        {{ form.zone.errors }}
                                     </div>
                                 </div>
                                 
+                                <!-- Location Field -->
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label class="required-field">Location</label>
-                                        <input type="text" class="form-control" 
-                                                value="{% if user.location %}{{ user.location.name }} ({{ user.location.code }}){% else %}Not Assigned{% endif %}" readonly>
-                                        <input type="hidden" name="location" id="id_location" 
-                                                value="{% if user.location %}{{ user.location.id }}{% endif %}">
+                                        {% if user_assigned_locations.count == 1 %}
+                                            <input type="text" class="form-control readonly-field" value="{{ user_assigned_locations.first.name }} ({{ user_assigned_locations.first.code }})">
+                                            {{ form.location.as_hidden }}
+                                        {% else %}
+                                            {{ form.location }}
+                                        {% endif %}
+                                        {{ form.location.errors }}
                                     </div>
                                 </div>
-                                
+
+                                <!-- Sub-Location Field -->
                                 <div class="col-md-3">
                                     <div class="form-group">
-                                        <label for="id_sublocation">Sub-Location</label>
-                                        {% if user.sublocation %}
-                                            <input type="text" class="form-control" 
-                                                value="{{ user.sublocation.name }}{% if user.sublocation.code %} ({{ user.sublocation.code }}){% endif %}" readonly>
-                                            <input type="hidden" name="sublocation" id="id_sublocation" value="{{ user.sublocation.id }}">
+                                        <label>Sub-Location</label>
+                                        {% if user_assigned_sublocations.count == 1 %}
+                                            <input type="text" class="form-control readonly-field" value="{{ user_assigned_sublocations.first.name }}">
+                                            {{ form.sublocation.as_hidden }}
                                         {% else %}
-                                            <select name="sublocation" id="id_sublocation" class="form-control">
-                                                <option value="">-- Select Sub-Location --</option>
-                                                {% if user.location and user.location.sublocations.all %}
-                                                    {% for sublocation in user.location.sublocations.all %}
-                                                        <option value="{{ sublocation.id }}">
-                                                            {{ sublocation.name }}{% if sublocation.code %} ({{ sublocation.code }}){% endif %}
-                                                        </option>
-                                                    {% endfor %}
-                                                {% endif %}
-                                            </select>
+                                            {{ form.sublocation }}
                                         {% endif %}
+                                        {{ form.sublocation.errors }}
                                     </div>
                                 </div>
                             </div>
@@ -254,13 +258,12 @@
                                 <div class="col-md-12">
                                     <div class="form-group">
                                         <label>Additional Location Details</label>
-                                        <textarea name="location_details" class="form-control" rows="2" 
-                                                  placeholder="Specific area, equipment, or landmark near the hazard"></textarea>
+                                        {{ form.location_details }}
+                                        {{ form.location_details.errors }}
                                     </div>
                                 </div>
                             </div>
                         </div>
-
                         <!-- Reporting On Behalf Of (Checkbox Toggle) -->
                             <div class="form-section">
                                 <div class="row">
@@ -471,11 +474,13 @@
     </div>
 </div>
 {% endblock %}
-
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Set current date and time
+
+    // =========================================================================
+    // DATE & SYSTEM FIELDS
+    // =========================================================================
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -483,40 +488,35 @@ $(document).ready(function() {
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const currentDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+
     $('#incident_datetime').val(currentDateTime);
-    
-    // Set system fields
     $('#report_timestamp').val(new Date().toISOString());
     $('#user_agent').val(navigator.userAgent);
-    
-    // Toggle Behalf Fields
+
+    // =========================================================================
+    // BEHALF OF SOMEONE TOGGLE
+    // =========================================================================
     $('#behalf_checkbox').change(function() {
         if ($(this).is(':checked')) {
             $('#behalf_fields').slideDown();
         } else {
             $('#behalf_fields').slideUp();
-            // Clear fields when unchecked to avoid submitting stale data
             $('input[name="behalf_person_name"]').val('');
             $('#behalf_person_dept').val('');
         }
     });
-    
-    // Auto-fill department when employee is selected
+
     $('#behalf_person_id').change(function() {
-        const selectedOption = $(this).find('option:selected');
-        const deptId = selectedOption.data('dept');
-        
-        if (deptId) {
-            $('#behalf_person_dept').val(deptId);
-        } else {
-            $('#behalf_person_dept').val('');
-        }
+        const deptId = $(this).find('option:selected').data('dept');
+        $('#behalf_person_dept').val(deptId || '');
     });
-    
-    // Severity Selection - Show Deadline
+
+    // =========================================================================
+    // SEVERITY & DEADLINE LOGIC
+    // =========================================================================
     $('#severity').change(function() {
         const severity = $(this).val();
-        
+
         if (severity) {
             const deadlineInfo = {
                 'low': { days: 30, text: '30 days to resolve', class: 'deadline-low' },
@@ -524,36 +524,37 @@ $(document).ready(function() {
                 'high': { days: 7, text: '7 days to resolve', class: 'deadline-high' },
                 'critical': { days: 1, text: '1 day to resolve (URGENT)', class: 'deadline-high' }
             };
-            
+
             const info = deadlineInfo[severity];
             const deadline = new Date();
             deadline.setDate(deadline.getDate() + info.days);
-            
+
             const deadlineText = deadline.toLocaleDateString('en-IN', {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric'
             });
-            
+
             $('#deadline_text')
-                .text(deadlineText + ' (' + info.text + ')')
+                .text(`${deadlineText} (${info.text})`)
                 .attr('class', 'deadline-badge ' + info.class);
-            
+
             $('#deadline_info').slideDown();
         } else {
             $('#deadline_info').slideUp();
         }
     });
-    
-    // Photo handling
+
+    // =========================================================================
+    // PHOTO UPLOAD & PREVIEW
+    // =========================================================================
     let photoCount = 1;
-    
-    // Handle photo input change
+
     $(document).on('change', '.photo-input', function() {
         const input = this;
         const index = $(this).data('index');
         const previewId = `preview_${index}`;
-        
+
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -565,16 +566,13 @@ $(document).ready(function() {
                         </button>
                     </div>
                 `);
-                
                 $(input).siblings('.add-photo-btn').hide();
-
                 $(input).closest('.photo-item').find('.remove-photo-slot').hide();
             };
             reader.readAsDataURL(input.files[0]);
         }
     });
-    
-    // Remove photo preview
+
     $(document).on('click', '.remove-photo', function() {
         const index = $(this).data('index');
         $(`#photo_${index}`).val('');
@@ -582,38 +580,106 @@ $(document).ready(function() {
         $(`#photo_${index}`).siblings('.add-photo-btn').show();
         $(`#photo_${index}`).closest('.photo-item').find('.remove-photo-slot').show();
     });
-    
-    // Add more photos
+
     $('#add-more-photos').click(function() {
         const newIndex = photoCount;
 
-
         const newPhotoHtml = `
             <div class="col-md-4 mb-3 photo-item">
-               
                 <button type="button" class="remove-photo-slot" title="Remove this slot">&times;</button>
-                
+
                 <div class="add-photo-btn" onclick="document.getElementById('photo_${newIndex}').click()">
                     <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
                     <p class="mb-0">Click to add photo</p>
                 </div>
-                <input type="file" name="photo_${newIndex}" id="photo_${newIndex}" 
-                       class="d-none photo-input" accept="image/*" 
+
+                <input type="file" name="photo_${newIndex}" id="photo_${newIndex}"
+                       class="d-none photo-input" accept="image/*"
                        data-index="${newIndex}">
+
                 <div id="preview_${newIndex}" class="mt-2"></div>
             </div>
         `;
-        
+
         $('#photo-container').append(newPhotoHtml);
         photoCount++;
         $('#photo_count').val(photoCount);
     });
 
-
     $(document).on('click', '.remove-photo-slot', function() {
-       
         $(this).closest('.photo-item').remove();
     });
+
+    // =========================================================================
+    // DEPENDENT DROPDOWNS (PLANT → ZONE → LOCATION → SUBLOCATION)
+    // =========================================================================
+    const plantSelect = document.getElementById('id_plant');
+    const zoneSelect = document.getElementById('id_zone');
+    const locationSelect = document.getElementById('id_location');
+    const sublocationSelect = document.getElementById('id_sublocation');
+
+    function resetSelect(selectEl, text) {
+        if (selectEl) {
+            selectEl.innerHTML = `<option value="">-- ${text} --</option>`;
+        }
+    }
+
+    async function fetchAndPopulate(url, selectEl, defaultText) {
+        resetSelect(selectEl, defaultText);
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            data.forEach(item => {
+                const optionText = item.code ? `${item.name} (${item.code})` : item.name;
+                selectEl.add(new Option(optionText, item.id));
+            });
+        } catch (error) {
+            console.error('AJAX Error:', error);
+        }
+    }
+
+    if (plantSelect) {
+        plantSelect.addEventListener('change', function() {
+            const plantId = this.value;
+            resetSelect(locationSelect, 'Select Zone First');
+            resetSelect(sublocationSelect, 'Select Location First');
+
+            if (plantId) {
+                const url = `{% url 'hazards:ajax_get_zones_by_plant' 0 %}`.replace('0', plantId);
+                fetchAndPopulate(url, zoneSelect, 'Select Zone');
+            } else {
+                resetSelect(zoneSelect, 'Select Plant First');
+            }
+        });
+    }
+
+    if (zoneSelect) {
+        zoneSelect.addEventListener('change', function() {
+            const zoneId = this.value;
+            resetSelect(sublocationSelect, 'Select Location First');
+
+            if (zoneId) {
+                const url = `{% url 'hazards:ajax_get_locations_by_zone' 0 %}`.replace('0', zoneId);
+                fetchAndPopulate(url, locationSelect, 'Select Location');
+            } else {
+                resetSelect(locationSelect, 'Select Zone First');
+            }
+        });
+    }
+
+    if (locationSelect) {
+        locationSelect.addEventListener('change', function() {
+            const locationId = this.value;
+
+            if (locationId) {
+                const url = `{% url 'hazards:ajax_get_sublocations_by_location' 0 %}`.replace('0', locationId);
+                fetchAndPopulate(url, sublocationSelect, 'Select Sub-Location');
+            } else {
+                resetSelect(sublocationSelect, 'Select Location First');
+            }
+        });
+    }
+
 });
 </script>
 {% endblock %}
