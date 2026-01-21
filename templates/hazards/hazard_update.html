@@ -268,37 +268,61 @@
                                 <i class="fas fa-map-marker-alt"></i>
                                 Location Information
                             </div>
-                            
                             <div class="row">
+                                <!-- Plant Field -->
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label class="required-field">Plant</label>
-                                        <input type="text" class="form-control readonly-field" 
-                                               value="{{ object.plant.name }} ({{ object.plant.code }})" readonly>
+                                        {% if user_assigned_plants.count == 1 %}
+                                            <input type="text" class="form-control readonly-field" value="{{ user_assigned_plants.first.name }} ({{ user_assigned_plants.first.code }})">
+                                            <!-- Still render the hidden form field to pass the value -->
+                                            {{ form.plant.as_hidden }}
+                                        {% else %}
+                                            {{ form.plant }}
+                                        {% endif %}
+                                        {{ form.plant.errors }}
                                     </div>
                                 </div>
                                 
+                                <!-- Zone Field -->
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label>Zone</label>
-                                        <input type="text" class="form-control readonly-field" 
-                                               value="{% if object.zone %}{{ object.zone.name }} ({{ object.zone.code }}){% else %}N/A{% endif %}" readonly>
+                                        {% if user_assigned_zones.count == 1 %}
+                                            <input type="text" class="form-control readonly-field" value="{{ user_assigned_zones.first.name }} ({{ user_assigned_zones.first.code }})">
+                                            {{ form.zone.as_hidden }}
+                                        {% else %}
+                                            {{ form.zone }}
+                                        {% endif %}
+                                        {{ form.zone.errors }}
                                     </div>
                                 </div>
                                 
+                                <!-- Location Field -->
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label class="required-field">Location</label>
-                                        <input type="text" class="form-control readonly-field" 
-                                               value="{{ object.location.name }} ({{ object.location.code }})" readonly>
+                                        {% if user_assigned_locations.count == 1 %}
+                                            <input type="text" class="form-control readonly-field" value="{{ user_assigned_locations.first.name }} ({{ user_assigned_locations.first.code }})">
+                                            {{ form.location.as_hidden }}
+                                        {% else %}
+                                            {{ form.location }}
+                                        {% endif %}
+                                        {{ form.location.errors }}
                                     </div>
                                 </div>
-                                
+
+                                <!-- Sub-Location Field -->
                                 <div class="col-md-3">
                                     <div class="form-group">
-                                        <label for="id_sublocation">Sub-Location</label>
-                                        <input type="text" class="form-control readonly-field" 
-                                               value="{% if object.sublocation %}{{ object.sublocation.name }}{% if object.sublocation.code %} ({{ object.sublocation.code }}){% endif %}{% else %}N/A{% endif %}" readonly>
+                                        <label>Sub-Location</label>
+                                        {% if user_assigned_sublocations.count == 1 %}
+                                            <input type="text" class="form-control readonly-field" value="{{ user_assigned_sublocations.first.name }}">
+                                            {{ form.sublocation.as_hidden }}
+                                        {% else %}
+                                            {{ form.sublocation }}
+                                        {% endif %}
+                                        {{ form.sublocation.errors }}
                                     </div>
                                 </div>
                             </div>
@@ -307,13 +331,12 @@
                                 <div class="col-md-12">
                                     <div class="form-group">
                                         <label>Additional Location Details</label>
-                                        <textarea name="location_details" class="form-control" rows="2" 
-                                                  placeholder="Specific area, equipment, or landmark near the hazard">{{ object.location_details }}</textarea>
+                                        {{ form.location_details }}
+                                        {{ form.location_details.errors }}
                                     </div>
                                 </div>
                             </div>
                         </div>
-
                         <!-- Reporting On Behalf Of (Checkbox Toggle) -->
                         <div class="form-section">
                             <div class="row">
@@ -661,5 +684,69 @@ function deletePhoto(photoId) {
         $(`#keep_photo_${photoId}`).closest('.existing-photo').parent().fadeOut();
     }
 }
+document.addEventListener('DOMContentLoaded', function() {
+    const plantSelect = document.getElementById('id_plant');
+    const zoneSelect = document.getElementById('id_zone');
+    const locationSelect = document.getElementById('id_location');
+    const sublocationSelect = document.getElementById('id_sublocation');
+
+    function resetSelect(selectEl, defaultText) {
+        selectEl.innerHTML = `<option value="">-- ${defaultText} --</option>`;
+    }
+
+    async function fetchAndPopulate(url, selectEl, defaultText) {
+        resetSelect(selectEl, defaultText);
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            data.forEach(item => {
+                const optionText = item.code ? `${item.name} (${item.code})` : item.name;
+                selectEl.add(new Option(optionText, item.id));
+            });
+        } catch (error) {
+            console.error('AJAX Error:', error);
+        }
+    }
+
+    if (plantSelect) {
+        plantSelect.addEventListener('change', function() {
+            const plantId = this.value;
+            resetSelect(locationSelect, 'Select Zone First');
+            resetSelect(sublocationSelect, 'Select Location First');
+            if (plantId) {
+                // URL ko '0' se replace karke actual ID daalein
+                const url = `{% url 'hazards:ajax_get_zones_by_plant' 0 %}`.replace('0', plantId);
+                fetchAndPopulate(url, zoneSelect, 'Select Zone');
+            } else {
+                resetSelect(zoneSelect, 'Select Plant First');
+            }
+        });
+    }
+
+    if (zoneSelect) {
+        zoneSelect.addEventListener('change', function() {
+            const zoneId = this.value;
+            resetSelect(sublocationSelect, 'Select Location First');
+            if (zoneId) {
+                const url = `{% url 'hazards:ajax_get_locations_by_zone' 0 %}`.replace('0', zoneId);
+                fetchAndPopulate(url, locationSelect, 'Select Location');
+            } else {
+                resetSelect(locationSelect, 'Select Zone First');
+            }
+        });
+    }
+
+    if (locationSelect) {
+        locationSelect.addEventListener('change', function() {
+            const locationId = this.value;
+            if (locationId) {
+                const url = `{% url 'hazards:ajax_get_sublocations_by_location' 0 %}`.replace('0', locationId);
+                fetchAndPopulate(url, sublocationSelect, 'Select Sub-Location');
+            } else {
+                resetSelect(sublocationSelect, 'Select Location First');
+            }
+        });
+    }
+});
 </script>
 {% endblock %}
