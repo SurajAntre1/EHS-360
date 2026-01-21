@@ -2,6 +2,11 @@ from django import forms
 from django.core.exceptions import ValidationError
 from .models import *
 from datetime import date
+ 
+# from django.contrib.auth.models import User
+from .models import Incident
+from apps.organizations.models import Plant, Zone, Location, SubLocation, Department
+from apps.organizations.models import *
 
 class IncidentReportForm(forms.ModelForm):
     """Form for creating/updating incident reports with manual affected person entry"""
@@ -227,40 +232,78 @@ class IncidentReportForm(forms.ModelForm):
             }
         }
     
+
+
     def __init__(self, *args, **kwargs):
+        """
+        Dynamically adjusts form fields for both Create and Update views,
+        and correctly populates querysets during POST requests for validation.
+        """
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
+        # Base queryset for the top-level field (Plant) based on user permissions.
+        if self.user:
+            assigned_plants = self.user.assigned_plants.filter(is_active=True)
+            if assigned_plants.exists():
+                self.fields['plant'].queryset = assigned_plants
+            else: # Fallback for users (like admins) with no specific assignments
+                self.fields['plant'].queryset = Plant.objects.filter(is_active=True)
+        else: # Fallback if user is somehow not available
+            self.fields['plant'].queryset = Plant.objects.filter(is_active=True)
+
+        # self.data contains the POST data. If it exists, it means the form is being submitted.
+        # We MUST populate the querysets based on the submitted data for validation to pass.
+        if self.data:
+            try:
+                plant_id = int(self.data.get('plant'))
+                self.fields['zone'].queryset = Zone.objects.filter(plant_id=plant_id, is_active=True).order_by('name')
+                
+                zone_id = int(self.data.get('zone'))
+                self.fields['location'].queryset = Location.objects.filter(zone_id=zone_id, is_active=True).order_by('name')
+                
+                location_id = int(self.data.get('location'))
+                self.fields['sublocation'].queryset = SubLocation.objects.filter(location_id=location_id, is_active=True).order_by('name')
+            except (ValueError, TypeError):
+                # This can happen if a field is not submitted. We pass silently
+                # as the form's own validation will catch the required field error.
+                pass
         
-        # Make zone and sublocation not required initially
-        self.fields['zone'].required = False
-        self.fields['sublocation'].required = False
-        self.fields['location'].required = True
-        
-        # IMPORTANT: Allow empty sublocation value
-        self.fields['sublocation'].empty_label = "-- Select Sub-Location --"
-        
-        # Make nature_of_injury required
-        self.fields['nature_of_injury'].required = True
-        
-        # Set empty querysets for zone and location
-        self.fields['zone'].queryset = Zone.objects.none()
-        self.fields['location'].queryset = Location.objects.none()
-        self.fields['sublocation'].queryset = SubLocation.objects.none()
-        
-        # If instance exists (editing), populate zone and location
-        if self.instance.pk:
+        # If not a POST request, handle the initial display for GET requests.
+        elif self.instance and self.instance.pk: # Editing an existing instance
             if self.instance.plant:
-                self.fields['zone'].queryset = Zone.objects.filter(
-                    plant=self.instance.plant, is_active=True
-                )
+                self.fields['zone'].queryset = Zone.objects.filter(plant=self.instance.plant, is_active=True).order_by('name')
             if self.instance.zone:
-                self.fields['location'].queryset = Location.objects.filter(
-                    zone=self.instance.zone, is_active=True
-                )
+                self.fields['location'].queryset = Location.objects.filter(zone=self.instance.zone, is_active=True).order_by('name')
             if self.instance.location:
-                self.fields['sublocation'].queryset = SubLocation.objects.filter(
-                    location=self.instance.location, is_active=True
-                )
-    
+                self.fields['sublocation'].queryset = SubLocation.objects.filter(location=self.instance.location, is_active=True).order_by('name')
+
+        elif self.user: # Creating a new instance (pre-fill logic)
+            assigned_plants = self.user.assigned_plants.filter(is_active=True)
+            if assigned_plants.count() == 1:
+                plant = assigned_plants.first()
+                self.initial['plant'] = plant.pk
+                
+                assigned_zones = self.user.assigned_zones.filter(plant=plant, is_active=True)
+                self.fields['zone'].queryset = assigned_zones
+                
+                if assigned_zones.count() == 1:
+                    zone = assigned_zones.first()
+                    self.initial['zone'] = zone.pk
+                    
+                    assigned_locations = self.user.assigned_locations.filter(zone=zone, is_active=True)
+                    self.fields['location'].queryset = assigned_locations
+                    
+                    if assigned_locations.count() == 1:
+                        location = assigned_locations.first()
+                        self.initial['location'] = location.pk
+                        
+                        assigned_sublocations = self.user.assigned_sublocations.filter(location=location, is_active=True)
+                        self.fields['sublocation'].queryset = assigned_sublocations
+                        
+                        if assigned_sublocations.count() == 1:
+                            self.initial['sublocation'] = assigned_sublocations.first().pk
+                                            
     def clean_affected_date_of_birth(self):
         """Validate date of birth"""
         dob = self.cleaned_data.get('affected_date_of_birth')

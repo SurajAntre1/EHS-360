@@ -26,6 +26,9 @@ urlpatterns = [
     path('ajax/get-zones/', views.GetZonesForPlantAjaxView.as_view(), name='ajax_get_zones'),
     path('ajax/get-locations/', views.GetLocationsForZoneAjaxView.as_view(), name='ajax_get_locations'),
     path('ajax/get-sublocations/', views.GetSublocationsForLocationAjaxView.as_view(), name='ajax_get_sublocations'),
+    path('api/zones-by-plant/<int:plant_id>/', views.get_zones_by_plant, name='ajax_get_zones_by_plant'),
+    path('api/locations-by-zone/<int:zone_id>/', views.get_locations_by_zone, name='ajax_get_locations_by_zone'),
+    path('api/sublocations-by-location/<int:location_id>/', views.get_sublocations_by_location, name='ajax_get_sublocations_by_location'),
 
     path('incidents/<int:pk>/closure-check/', views.IncidentClosureCheckView.as_view(), name='incident_closure_check'),
     path('incidents/<int:pk>/close/', views.IncidentClosureView.as_view(), name='incident_close'),

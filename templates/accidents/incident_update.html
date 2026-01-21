@@ -159,51 +159,85 @@
           <hr>
 
           <!-- Location Information -->
-          <h5 class="mb-3"><i class="fas fa-map-marker-alt mr-2"></i>Location Information</h5>
-          <div class="row">
-              <div class="col-md-3 mb-3">
-                  <label for="id_plant">Plant <span class="text-danger">*</span></label>
-                  {{ form.plant }}
-                  {% if form.plant.errors %}
-                    <div class="text-danger">{{ form.plant.errors }}</div>
-                  {% endif %}
-              </div>
-              
-              <div class="col-md-3 mb-3">
-                  <label for="id_zone">Zone</label>
-                  {{ form.zone }}
-                  {% if form.zone.errors %}
-                    <div class="text-danger">{{ form.zone.errors }}</div>
-                  {% endif %}
-              </div>
-              
-              <div class="col-md-3 mb-3">
-                  <label for="id_location">Location <span class="text-danger">*</span></label>
-                  {{ form.location }}
-                  {% if form.location.errors %}
-                    <div class="text-danger">{{ form.location.errors }}</div>
-                  {% endif %}
-              </div>
-              
-              <div class="col-md-3 mb-3">
-                  <label for="id_sublocation">Sub-Location</label>
-                  <select name="sublocation" id="id_sublocation" class="form-control">
-                      <option value="">-- Select Sub-Location --</option>
-                      {% if incident.location and incident.location.sublocations.all %}
-                          {% for sublocation in incident.location.sublocations.all %}
-                              <option value="{{ sublocation.id }}" {% if incident.sublocation and sublocation.id == incident.sublocation.id %}selected{% endif %}>
-                                  {{ sublocation.name }}{% if sublocation.code %} ({{ sublocation.code }}){% endif %}
-                              </option>
-                          {% endfor %}
-                      {% endif %}
-                  </select>
-                  <small class="form-text text-muted">Optional: Select specific sub-location if applicable</small>
-                  {% if form.sublocation.errors %}
-                    <div class="text-danger">{{ form.sublocation.errors }}</div>
-                  {% endif %}
-              </div>
-          </div>
+<h5 class="mb-3"><i class="fas fa-map-marker-alt mr-2"></i>Location Information</h5>
+<div class="row">
+    
+    <!-- Plant Field -->
+    <div class="col-md-3 mb-3">
+        <label for="id_plant">Plant <span class="text-danger">*</span></label>
+        
+        {% if user_assigned_plants.count == 1 %}
+            <!-- If user has only ONE assigned plant, show it as read-only text -->
+            <input type="text" class="form-control" 
+                   value="{{ user_assigned_plants.first.name }} ({{ user_assigned_plants.first.code }})" 
+                   readonly style="background-color: #e9ecef;">
+            <!-- IMPORTANT: Add a hidden input to submit the value -->
+            <input type="hidden" name="plant" id="id_plant_hidden" value="{{ user_assigned_plants.first.id }}">
+        {% else %}
+            <!-- If user has multiple plants, show the dropdown from the form -->
+            {{ form.plant }}
+        {% endif %}
 
+        {% if form.plant.errors %}
+          <div class="text-danger">{{ form.plant.errors }}</div>
+        {% endif %}
+    </div>
+    
+    <!-- Zone Field -->
+    <div class="col-md-3 mb-3">
+        <label for="id_zone">Zone</label>
+        
+        {% if user_assigned_zones.count == 1 %}
+            <input type="text" class="form-control" 
+                   value="{{ user_assigned_zones.first.name }} ({{ user_assigned_zones.first.code }})" 
+                   readonly style="background-color: #e9ecef;">
+            <input type="hidden" name="zone" id="id_zone_hidden" value="{{ user_assigned_zones.first.id }}">
+        {% else %}
+            {{ form.zone }}
+        {% endif %}
+
+        {% if form.zone.errors %}
+          <div class="text-danger">{{ form.zone.errors }}</div>
+        {% endif %}
+    </div>
+    
+    <!-- Location Field -->
+    <div class="col-md-3 mb-3">
+        <label for="id_location">Location <span class="text-danger">*</span></label>
+        
+        {% if user_assigned_locations.count == 1 %}
+            <input type="text" class="form-control" 
+                   value="{{ user_assigned_locations.first.name }} ({{ user_assigned_locations.first.code }})" 
+                   readonly style="background-color: #e9ecef;">
+            <input type="hidden" name="location" id="id_location_hidden" value="{{ user_assigned_locations.first.id }}">
+        {% else %}
+            {{ form.location }}
+        {% endif %}
+
+        {% if form.location.errors %}
+          <div class="text-danger">{{ form.location.errors }}</div>
+        {% endif %}
+    </div>
+    
+    <!-- Sub-Location Field -->
+    <div class="col-md-3 mb-3">
+        <label for="id_sublocation">Sub-Location</label>
+        
+        {% if user_assigned_sublocations.count == 1 %}
+            <input type="text" class="form-control" 
+                   value="{{ user_assigned_sublocations.first.name }}{% if user_assigned_sublocations.first.code %} ({{ user_assigned_sublocations.first.code }}){% endif %}" 
+                   readonly style="background-color: #e9ecef;">
+            <input type="hidden" name="sublocation" id="id_sublocation_hidden" value="{{ user_assigned_sublocations.first.id }}">
+        {% else %}
+            <!-- For update form, we directly render the form field which is populated by form's __init__ -->
+            {{ form.sublocation }}
+        {% endif %}
+
+        {% if form.sublocation.errors %}
+          <div class="text-danger">{{ form.sublocation.errors }}</div>
+        {% endif %}
+    </div>
+</div>
           <!-- Additional Location Details -->
           <div class="row mt-3">
             <div class="col-md-12 mb-3">
