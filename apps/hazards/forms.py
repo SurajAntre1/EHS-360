@@ -45,6 +45,11 @@ class HazardForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
+        self.fields['plant'].empty_label = "Select Plant"
+        self.fields['zone'].empty_label = "Select Zone"
+        self.fields['location'].empty_label = "Select Location"
+        self.fields['sublocation'].empty_label = "Select sub-location"
+
         self.fields['behalf_person_dept'].queryset = Department.objects.filter(is_active=True).order_by('name')
         self.fields['behalf_person_dept'].required = False
         self.fields['behalf_person_name'].required = False

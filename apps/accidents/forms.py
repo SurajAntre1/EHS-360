@@ -242,67 +242,52 @@ class IncidentReportForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        # Base queryset for the top-level field (Plant) based on user permissions.
-        if self.user:
-            assigned_plants = self.user.assigned_plants.filter(is_active=True)
-            if assigned_plants.exists():
-                self.fields['plant'].queryset = assigned_plants
-            else: # Fallback for users (like admins) with no specific assignments
-                self.fields['plant'].queryset = Plant.objects.filter(is_active=True)
-        else: # Fallback if user is somehow not available
-            self.fields['plant'].queryset = Plant.objects.filter(is_active=True)
+        #Placeholders 
+        self.fields['plant'].empty_label = "Select Plant"
+        self.fields['zone'].empty_label = "Select Zone"
+        self.fields['location'].empty_label = "Select Location"
+        self.fields['sublocation'].empty_label = "Select sub-location"
 
+        # Base queryset for the top-level field (Plant) based on user permissions.
+        self.fields['zone'].queryset = Zone.objects.none()
+        self.fields['location'].queryset = Location.objects.none()
+        self.fields['sublocation'].queryset = SubLocation.objects.none()
+
+        if not self.user:
+            return
+        
         # self.data contains the POST data. If it exists, it means the form is being submitted.
         # We MUST populate the querysets based on the submitted data for validation to pass.
+        assigned_plants = self.user.assigned_plants.filter(is_active=True)
+        self.fields['plant'].queryset = assigned_plants
+
+        # Edit existing incident
+        if self.instance.pk:
+            if self.instance.plant:
+                self.fields['zone'].queryset = self.user.assigned_zones.filter(plant=self.instance.plant,is_active=True)
+
+            if self.instance.zone:
+                self.fields['location'].queryset = self.user.assigned_locations.filter(zone=self.instance.zone,is_active=True)
+
+            if self.instance.location:
+                self.fields['sublocation'].queryset = self.user.assigned_sublocations.filter(location=self.instance.location,is_active=True)
+            return
+
         if self.data:
             try:
                 plant_id = int(self.data.get('plant'))
-                self.fields['zone'].queryset = Zone.objects.filter(plant_id=plant_id, is_active=True).order_by('name')
-                
+                self.fields['zone'].queryset = self.user.assigned_zones.filter(plant_id=plant_id,is_active=True)
+
                 zone_id = int(self.data.get('zone'))
-                self.fields['location'].queryset = Location.objects.filter(zone_id=zone_id, is_active=True).order_by('name')
-                
+                self.fields['location'].queryset = self.user.assigned_locations.filter(zone_id=zone_id,is_active=True)
+
                 location_id = int(self.data.get('location'))
-                self.fields['sublocation'].queryset = SubLocation.objects.filter(location_id=location_id, is_active=True).order_by('name')
-            except (ValueError, TypeError):
+                self.fields['sublocation'].queryset = self.user.assigned_sublocations.filter(location_id=location_id,is_active=True)
+
+            except (TypeError, ValueError):
                 # This can happen if a field is not submitted. We pass silently
                 # as the form's own validation will catch the required field error.
                 pass
-        
-        # If not a POST request, handle the initial display for GET requests.
-        elif self.instance and self.instance.pk: # Editing an existing instance
-            if self.instance.plant:
-                self.fields['zone'].queryset = Zone.objects.filter(plant=self.instance.plant, is_active=True).order_by('name')
-            if self.instance.zone:
-                self.fields['location'].queryset = Location.objects.filter(zone=self.instance.zone, is_active=True).order_by('name')
-            if self.instance.location:
-                self.fields['sublocation'].queryset = SubLocation.objects.filter(location=self.instance.location, is_active=True).order_by('name')
-
-        elif self.user: # Creating a new instance (pre-fill logic)
-            assigned_plants = self.user.assigned_plants.filter(is_active=True)
-            if assigned_plants.count() == 1:
-                plant = assigned_plants.first()
-                self.initial['plant'] = plant.pk
-                
-                assigned_zones = self.user.assigned_zones.filter(plant=plant, is_active=True)
-                self.fields['zone'].queryset = assigned_zones
-                
-                if assigned_zones.count() == 1:
-                    zone = assigned_zones.first()
-                    self.initial['zone'] = zone.pk
-                    
-                    assigned_locations = self.user.assigned_locations.filter(zone=zone, is_active=True)
-                    self.fields['location'].queryset = assigned_locations
-                    
-                    if assigned_locations.count() == 1:
-                        location = assigned_locations.first()
-                        self.initial['location'] = location.pk
-                        
-                        assigned_sublocations = self.user.assigned_sublocations.filter(location=location, is_active=True)
-                        self.fields['sublocation'].queryset = assigned_sublocations
-                        
-                        if assigned_sublocations.count() == 1:
-                            self.initial['sublocation'] = assigned_sublocations.first().pk
                                             
     def clean_affected_date_of_birth(self):
         """Validate date of birth"""

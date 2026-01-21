@@ -201,7 +201,7 @@
                                     <div class="form-group">
                                         <label class="required-field">Plant</label>
                                         {% if user_assigned_plants.count == 1 %}
-                                            <input type="text" class="form-control readonly-field" value="{{ user_assigned_plants.first.name }} ({{ user_assigned_plants.first.code }})">
+                                            <input type="text" class="form-control readonly-field" readonly value="{{ user_assigned_plants.first.name }} ({{ user_assigned_plants.first.code }})">
                                             <!-- Still render the hidden form field to pass the value -->
                                             {{ form.plant.as_hidden }}
                                         {% else %}
@@ -216,7 +216,7 @@
                                     <div class="form-group">
                                         <label>Zone</label>
                                         {% if user_assigned_zones.count == 1 %}
-                                            <input type="text" class="form-control readonly-field" value="{{ user_assigned_zones.first.name }} ({{ user_assigned_zones.first.code }})">
+                                            <input type="text" class="form-control readonly-field" readonly value="{{ user_assigned_zones.first.name }} ({{ user_assigned_zones.first.code }})">
                                             {{ form.zone.as_hidden }}
                                         {% else %}
                                             {{ form.zone }}
@@ -230,7 +230,7 @@
                                     <div class="form-group">
                                         <label class="required-field">Location</label>
                                         {% if user_assigned_locations.count == 1 %}
-                                            <input type="text" class="form-control readonly-field" value="{{ user_assigned_locations.first.name }} ({{ user_assigned_locations.first.code }})">
+                                            <input type="text" class="form-control readonly-field" readonly value="{{ user_assigned_locations.first.name }} ({{ user_assigned_locations.first.code }})">
                                             {{ form.location.as_hidden }}
                                         {% else %}
                                             {{ form.location }}
@@ -244,7 +244,7 @@
                                     <div class="form-group">
                                         <label>Sub-Location</label>
                                         {% if user_assigned_sublocations.count == 1 %}
-                                            <input type="text" class="form-control readonly-field" value="{{ user_assigned_sublocations.first.name }}">
+                                            <input type="text" class="form-control readonly-field" readonly value="{{ user_assigned_sublocations.first.name }}">
                                             {{ form.sublocation.as_hidden }}
                                         {% else %}
                                             {{ form.sublocation }}
