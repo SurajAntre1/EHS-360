@@ -6,13 +6,12 @@ from django.db import models
 from django.http import JsonResponse
 from django.http import HttpResponse
 from datetime import datetime
-from .utils import generate_environmental_excel, get_all_plants_environmental_data
+
 from apps.accounts.models import User
 from apps.accidents.models import Incident
 from apps.organizations.models import Plant
 from .models import *
-from .constants import MONTHS
-from apps.ENVdata.utils import EnvironmentalDataFetcher
+from .utils import EnvironmentalDataFetcher
 
 
 # =========================================================
@@ -34,7 +33,6 @@ class UnitManagerView(LoginRequiredMixin, View):
     def post(self, request):
         action = request.POST.get("action")
 
-        # ---------- CREATE CATEGORY ----------
         if action == "create_category":
             name = (request.POST.get("category_name") or "").strip()
             description = (request.POST.get("category_description") or "").strip()
@@ -56,7 +54,6 @@ class UnitManagerView(LoginRequiredMixin, View):
             messages.success(request, "Category added successfully")
             return redirect("environmental:unit-manager")
 
-        # ---------- CREATE UNIT ----------
         elif action == "create_unit":
             category_id = request.POST.get("unit_category")
             name = (request.POST.get("unit_name") or "").strip()
@@ -103,41 +100,27 @@ class UnitManagerView(LoginRequiredMixin, View):
 class PlantMonthlyEntryView(LoginRequiredMixin, View):
     template_name = "data_collection/data_env.html"
 
-    # ---------- HELPERS ----------
-
     def get_user_plants(self, request):
-        """Get all plants assigned to the user"""
         user = request.user
-        
-        # Admin/Superuser can access all plants
-        if user.is_superuser or user.is_staff or user.is_admin_user:
+        if user.is_superuser or user.is_staff or getattr(user, 'is_admin_user', False):
             return Plant.objects.filter(is_active=True).order_by('name')
-        
-        # Get user's assigned plants (using ManyToMany field)
+
         assigned = user.assigned_plants.filter(is_active=True)
-        
-        # If no assigned plants, check primary plant
-        if not assigned.exists() and user.plant:
+        if not assigned.exists() and getattr(user, 'plant', None):
             return Plant.objects.filter(id=user.plant.id, is_active=True)
-        
+
         return assigned.order_by('name')
 
     def get_selected_plant(self, request):
-        """Get the currently selected plant"""
         plant_id = request.GET.get('plant_id') or request.POST.get('selected_plant_id')
-        # Fetch incidents/hazards for this plant
-
         if plant_id:
-            user_plants = self.get_user_plants(request)
-            return user_plants.filter(id=plant_id).first()
-        
-        # Return first assigned plant by default
+            return self.get_user_plants(request).filter(id=plant_id).first()
         return self.get_user_plants(request).first()
 
     def get_questions(self):
         return EnvironmentalQuestion.objects.filter(
             is_active=True
-        ).order_by("is_system", "order", "id")
+        ).select_related('unit_category', 'default_unit').prefetch_related('selected_units').order_by("is_system", "order", "id")
 
     def slugify_field(self, text):
         return (
@@ -153,24 +136,16 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
             .replace("'", "")
         )
 
-    # ---------- GET ----------
-
     def get(self, request):
-        from datetime import datetime
-        from apps.ENVdata.utils import EnvironmentalDataFetcher
-        
         user_plants = self.get_user_plants(request)
-        
         if not user_plants.exists():
             return render(request, "no_plant_assigned.html")
-        
+
         selected_plant = self.get_selected_plant(request)
-        
         if not selected_plant:
             return render(request, "no_plant_assigned.html")
 
         questions = self.get_questions()
-        
         if not questions.exists():
             return render(request, self.template_name, {
                 "selected_plant": selected_plant,
@@ -178,50 +153,62 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 "no_questions": True,
             })
 
-        # Get current year
         current_year = datetime.now().year
-        
+
         # Get auto-populated data
         auto_data = EnvironmentalDataFetcher.get_data_for_plant_year(selected_plant, current_year)
+
+        # Fetch saved monthly data
+        saved_data = MonthlyIndicatorData.objects.filter(
+            plant=selected_plant
+        ).select_related('indicator')
         
-        # Get saved data
-        saved_data = MonthlyIndicatorData.objects.filter(plant=selected_plant)
         saved_dict = {}
         for d in saved_data:
             if d.indicator not in saved_dict:
                 saved_dict[d.indicator] = {}
             saved_dict[d.indicator][d.month.lower()] = d.value
 
-        # Build final data structure
+        MONTHS = MonthlyIndicatorData.MONTH_CHOICES
+
+        # Build question + month data for template
         questions_with_data = []
-        
         for q in questions:
             default_unit_name = q.default_unit.name if q.default_unit else "Count"
             
-            # Get data for all months
-            month_data = {}
+            # Check if this question has auto-calculation
             is_auto = q.question_text in auto_data
-            
-            for month in MONTHS:
-                month_key = month.lower()[:3]
+
+            month_rows = []
+            for month_code, month_name in MONTHS:
+                value = ''
+                key = month_code.lower()
                 
-                # Check saved data first, then auto data
-                if q.question_text in saved_dict and month_key in saved_dict[q.question_text]:
-                    month_data[month] = saved_dict[q.question_text][month_key]
-                elif is_auto and month in auto_data[q.question_text]:
-                    month_data[month] = auto_data[q.question_text][month]
-                else:
-                    month_data[month] = ''
-            
+                # Priority 1: Check saved manual data
+                if q in saved_dict and key in saved_dict[q]:
+                    value = saved_dict[q][key]
+                # Priority 2: Check auto-calculated data
+                elif is_auto and month_name in auto_data.get(q.question_text, {}):
+                    value = auto_data[q.question_text][month_name]
+
+                month_rows.append({
+                    "code": month_code,
+                    "name": month_name,
+                    "value": value,
+                })
+
             questions_with_data.append({
                 "question": q.question_text,
+                "question_id": q.id,
                 "default_unit_name": default_unit_name,
-                "month_data": month_data,
+                "months": month_rows,
                 "slugified": self.slugify_field(q.question_text),
                 "is_auto_populated": is_auto,
+                "source_type": q.source_type,
             })
-        auto_populated_count = sum(1 for q in questions_with_data if q['is_auto_populated'])
-        manual_entry_count = len(questions_with_data) - auto_populated_count
+
+        auto_count = sum(1 for q in questions_with_data if q['is_auto_populated'])
+        manual_count = len(questions_with_data) - auto_count
 
         context = {
             "selected_plant": selected_plant,
@@ -229,57 +216,50 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
             "questions_with_data": questions_with_data,
             "months": MONTHS,
             "current_year": current_year,
-            "total_questions": len(questions_with_data),  # Add this
-            "auto_populated_count": auto_populated_count,  # Add this
-            "manual_entry_count": manual_entry_count,  # Add this
+            "total_questions": len(questions_with_data),
+            "auto_populated_count": auto_count,
+            "manual_entry_count": manual_count,
         }
 
         return render(request, self.template_name, context)
 
-    # ---------- POST ----------
-
     def post(self, request):
-        # Get the selected plant from the form
         selected_plant_id = request.POST.get('selected_plant_id')
-        
         if not selected_plant_id:
             messages.error(request, "Please select a plant")
             return redirect("environmental:plant-entry")
-        
+
         user_plants = self.get_user_plants(request)
         selected_plant = user_plants.filter(id=selected_plant_id).first()
-        
         if not selected_plant:
             messages.error(request, "Invalid plant selected")
             return redirect("environmental:plant-entry")
 
         questions = self.get_questions()
+        MONTHS = MonthlyIndicatorData.MONTH_CHOICES
 
-        # Save data for the selected plant
         for q in questions:
-            question_text = q.question_text
             default_unit = q.default_unit.name if q.default_unit else "Count"
+            slug = self.slugify_field(q.question_text)
 
-            for month in MONTHS:
-                field_name = f"{self.slugify_field(question_text)}_{month.lower()}"
+            for month_code, month_name in MONTHS:
+                field_name = f"{slug}_{month_code.lower()}"
                 value = (request.POST.get(field_name) or "").strip()
 
                 if not value:
-                    # Delete if exists and now empty
                     MonthlyIndicatorData.objects.filter(
                         plant=selected_plant,
-                        indicator=question_text,
-                        month=month.lower()[:3]
+                        indicator=q,
+                        month=month_code
                     ).delete()
                     continue
 
                 try:
                     numeric_value = float(value.replace(",", ""))
-
                     MonthlyIndicatorData.objects.update_or_create(
                         plant=selected_plant,
-                        indicator=question_text,
-                        month=month.lower()[:3],
+                        indicator=q,
+                        month=month_code,
                         defaults={
                             "value": str(numeric_value),
                             "unit": default_unit,
@@ -287,57 +267,9 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                         }
                     )
                 except ValueError:
-                    messages.warning(request, f"Invalid value for {question_text} in {month}")
-                    continue
+                    messages.warning(request, f"Invalid value for {q.question_text} in {month_name}")
 
         messages.success(request, f"Data saved successfully for {selected_plant.name}!")
-
-    # ---------- POST ----------
-
-    def post(self, request):
-        selected_plant_id = request.POST.get('selected_plant_id')
-
-        if not selected_plant_id:
-            messages.error(request, "Please select a plant")
-            return redirect("environmental:plant-entry")
-
-        user_plants = self.get_user_plants(request)
-        selected_plant = user_plants.filter(id=selected_plant_id).first()
-
-        if not selected_plant:
-            messages.error(request, "Invalid plant selected")
-            return redirect("environmental:plant-entry")
-
-        questions = self.get_questions()
-
-        for q in questions:
-            question_text = q.question_text
-            default_unit = q.default_unit.name if q.default_unit else "Count"
-
-            for month in MONTHS:
-                field_name = f"{self.slugify_field(question_text)}_{month.lower()}"
-                value = (request.POST.get(field_name) or "").strip()
-
-                if not value:
-                    MonthlyIndicatorData.objects.filter(plant=selected_plant,indicator=question_text,month=month.lower()[:3]).delete()
-                    continue
-
-                try:
-                    numeric_value = float(value.replace(",", ""))
-                    MonthlyIndicatorData.objects.update_or_create(
-                        plant=selected_plant,
-                        indicator=question_text,
-                        month=month.lower()[:3],
-                        defaults={
-                            "value": str(numeric_value),
-                            "unit": default_unit,
-                            "created_by": request.user,
-                        }
-                    )
-                except ValueError:
-                    messages.warning(request,f"Invalid value for {question_text} in {month}")
-
-        messages.success(request,f"Data saved successfully for {selected_plant.name}!")
         return redirect(f"{request.path}?plant_id={selected_plant.id}&saved=1")
 
 
@@ -350,10 +282,20 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
 
     def get(self, request):
         categories = UnitCategory.objects.filter(is_active=True)
+        selected_category_id = request.GET.get('category_id')
+        
+        units = []
+        if selected_category_id:
+            units = Unit.objects.filter(
+                category_id=selected_category_id,
+                is_active=True
+            ).order_by('name')
         
         return render(request, self.template_name, {
             "questions": self.load_questions(),
-            "categories": categories
+            "categories": categories,
+            "selected_category_id": selected_category_id,
+            "units": units,
         })
 
     def post(self, request):
@@ -372,16 +314,26 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
         questions_list = []
         for q in EnvironmentalQuestion.objects.filter(is_active=True).order_by("is_system", "order", "id"):
             selected_units = q.selected_units.all()
+            
+            # Build filter description
+            filter_desc = ""
+            if q.filter_field and q.filter_value:
+                filter_desc = f"{q.filter_field} = {q.filter_value}"
+                if q.filter_field_2 and q.filter_value_2:
+                    filter_desc += f" AND {q.filter_field_2} = {q.filter_value_2}"
+            
             questions_list.append({
                 "id": q.id,
                 "question": q.question_text,
                 "category_id": q.unit_category.id if q.unit_category else None,
                 "category_name": q.unit_category.name if q.unit_category else "Not Set",
                 "default_unit_id": q.default_unit.id if q.default_unit else None,
-                "default_unit_name": q.default_unit.name if q.default_unit else "Not Set",
+                "default_unit_name": q.default_unit.name if q.default_unit else "Count",
                 "selected_unit_ids": [u.id for u in selected_units],
                 "selected_unit_names": [u.name for u in selected_units],
                 "order": q.order,
+                "source_type": q.source_type,
+                "filter_description": filter_desc,
             })
         return questions_list
 
@@ -390,10 +342,17 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
         category_id = request.POST.get("category_id")
         default_unit_id = request.POST.get("default_unit_id")
         selected_unit_ids = request.POST.getlist("selected_unit_ids[]")
-
+        source_type = request.POST.get("source_type", "MANUAL")
+        
+        # Dynamic filter fields
+        filter_field = (request.POST.get("filter_field") or "").strip()
+        filter_value = (request.POST.get("filter_value") or "").strip()
+        filter_field_2 = (request.POST.get("filter_field_2") or "").strip()
+        filter_value_2 = (request.POST.get("filter_value_2") or "").strip()
+        
         # Validation
-        if not question_text or not category_id:
-            messages.error(request, "Question text and category are required")
+        if not question_text:
+            messages.error(request, "Question text is required")
             return redirect("environmental:questions-manager")
 
         if EnvironmentalQuestion.objects.filter(
@@ -403,17 +362,20 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
             messages.error(request, "This question already exists")
             return redirect("environmental:questions-manager")
 
-        if not selected_unit_ids:
-            messages.error(request, "Please select at least one unit")
-            return redirect("environmental:questions-manager")
-
-        if not default_unit_id:
-            messages.error(request, "Please select a default unit")
-            return redirect("environmental:questions-manager")
-
-        if default_unit_id not in selected_unit_ids:
-            messages.error(request, "Default unit must be one of the selected units")
-            return redirect("environmental:questions-manager")
+        # For auto-calculated questions
+        if source_type != 'MANUAL':
+            if not filter_field or not filter_value:
+                messages.error(request, "Primary filter field and value are required")
+                return redirect("environmental:questions-manager")
+        else:
+            # Manual entry requires units
+            if not category_id or not default_unit_id or not selected_unit_ids:
+                messages.error(request, "Category and units are required for manual entry questions")
+                return redirect(f"environmental:questions-manager?category_id={category_id}")
+            
+            if default_unit_id not in selected_unit_ids:
+                messages.error(request, "Default unit must be one of the selected units")
+                return redirect(f"environmental:questions-manager?category_id={category_id}")
 
         # Create question
         max_order = EnvironmentalQuestion.objects.aggregate(
@@ -422,16 +384,22 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
 
         question = EnvironmentalQuestion.objects.create(
             question_text=question_text,
-            unit_category_id=category_id,
-            default_unit_id=default_unit_id,
+            unit_category_id=category_id if category_id else None,
+            default_unit_id=default_unit_id if default_unit_id else None,
+            source_type=source_type,
+            filter_field=filter_field if filter_field else None,
+            filter_value=filter_value if filter_value else None,
+            filter_field_2=filter_field_2 if filter_field_2 else None,
+            filter_value_2=filter_value_2 if filter_value_2 else None,
             order=max_order + 1,
             created_by=request.user,
             is_active=True,
             is_system=False,
         )
         
-        # Add selected units
-        question.selected_units.set(selected_unit_ids)
+        # Add selected units if provided
+        if selected_unit_ids:
+            question.selected_units.set(selected_unit_ids)
 
         messages.success(request, "Question added successfully")
         return redirect("environmental:questions-manager")
@@ -457,7 +425,7 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
 
 
 # =========================================================
-# API ENDPOINT FOR FETCHING UNITS BY CATEGORY
+# API ENDPOINTS
 # =========================================================
 
 class GetCategoryUnitsAPIView(LoginRequiredMixin, View):
@@ -474,7 +442,6 @@ class GetCategoryUnitsAPIView(LoginRequiredMixin, View):
             }, status=400)
         
         try:
-            # Fetch units for the category
             units = Unit.objects.filter(
                 category_id=category_id,
                 is_active=True
@@ -490,8 +457,59 @@ class GetCategoryUnitsAPIView(LoginRequiredMixin, View):
                 'success': False,
                 'error': str(e)
             }, status=500)
-        
 
+
+class GetSourceFieldsAPIView(LoginRequiredMixin, View):
+    """
+    API to get available fields and their choices for a source type
+    """
+    def get(self, request):
+        source_type = request.GET.get('source_type')
+        
+        if not source_type:
+            return JsonResponse({
+                'success': False,
+                'error': 'Source type is required'
+            }, status=400)
+        
+        try:
+            from apps.accidents.models import Incident
+            from apps.hazards.models import Hazard
+            
+            # Get model based on source type
+            if source_type == 'INCIDENT':
+                model = Incident
+            elif source_type == 'HAZARD':
+                model = Hazard
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Invalid source type'
+                }, status=400)
+            
+            # Get fields with choices
+            fields_with_choices = []
+            
+            for field in model._meta.get_fields():
+                if hasattr(field, 'choices') and field.choices:
+                    choices = [{'value': choice[0], 'display': choice[1]} for choice in field.choices]
+                    fields_with_choices.append({
+                        'field_name': field.name,
+                        'field_verbose_name': field.verbose_name.title(),
+                        'choices': choices
+                    })
+            
+            return JsonResponse({
+                'success': True,
+                'fields': fields_with_choices
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
+        
 
 # =========================================================
 # VIEW SUBMITTED DATA - USER VIEW (Read-only)
@@ -504,12 +522,12 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
         """Get all plants assigned to the user"""
         user = request.user
         
-        if user.is_superuser or user.is_staff or user.is_admin_user:
+        if user.is_superuser or user.is_staff or getattr(user, 'is_admin_user', False):
             return Plant.objects.filter(is_active=True)
         
         assigned = user.assigned_plants.filter(is_active=True)
         
-        if not assigned.exists() and user.plant:
+        if not assigned.exists() and getattr(user, 'plant', None):
             return Plant.objects.filter(id=user.plant.id, is_active=True)
         
         return assigned
@@ -547,6 +565,8 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
                 data_dict[d.indicator] = {}
             data_dict[d.indicator][d.month.lower()] = d.value
 
+        MONTHS = MonthlyIndicatorData.MONTH_CHOICES
+
         # Build display structure
         questions_data = []
         for q in questions:
@@ -556,10 +576,10 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
             total = 0
             has_values = False
             
-            for month in MONTHS:
-                month_key = month.lower()[:3]
-                value = data_dict.get(q.question_text, {}).get(month_key, '')
-                month_data[month] = value
+            for month_code, month_name in MONTHS:
+                month_key = month_code.lower()
+                value = data_dict.get(q, {}).get(month_key, '')
+                month_data[month_name] = value
                 
                 if value:
                     try:
@@ -579,7 +599,7 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
             "plant": plant,
             "user_plants": user_plants,
             "questions_data": questions_data,
-            "months": MONTHS,
+            "months": [name for code, name in MONTHS],
         }
 
         return render(request, self.template_name, context)
@@ -594,11 +614,11 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
 
     def get(self, request):
         # Check if user is admin/superuser
-        if not (request.user.is_superuser or request.user.is_staff or request.user.is_admin_user):
+        if not (request.user.is_superuser or request.user.is_staff or getattr(request.user, 'is_admin_user', False)):
             messages.error(request, "You don't have permission to access this page")
             return redirect("environmental:plant-entry")
 
-        # Get ALL active plants (no user filtering)
+        # Get ALL active plants
         all_plants = Plant.objects.filter(is_active=True).order_by('name')
 
         if not all_plants.exists():
@@ -606,7 +626,7 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
                 "no_plants": True,
             })
 
-        # Get all questions (ordered)
+        # Get all questions
         questions = EnvironmentalQuestion.objects.filter(
             is_active=True
         ).select_related('unit_category', 'default_unit').order_by("is_system", "order", "id")
@@ -617,9 +637,11 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
             })
 
         # Get ALL saved data efficiently
-        all_data = MonthlyIndicatorData.objects.select_related('plant').all()
+        all_data = MonthlyIndicatorData.objects.select_related('plant', 'indicator').all()
 
-        # Build data structure: list of plants with their question data
+        MONTHS = MonthlyIndicatorData.MONTH_CHOICES
+
+        # Build data structure
         plants_data = []
         plants_with_data_count = 0
         
@@ -627,31 +649,27 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
             plant_questions_data = []
             plant_has_any_data = False
             
-            # For each question, get this plant's data
             for q in questions:
                 default_unit_name = q.default_unit.name if q.default_unit else "Count"
                 
-                # Collect monthly data for this plant + question
                 month_data = {}
                 total = 0
                 has_values = False
                 
-                for month in MONTHS:
-                    month_key = month.lower()[:3]  # jan, feb, mar
+                for month_code, month_name in MONTHS:
+                    month_key = month_code.upper()
                     
-                    # Find the specific data entry
                     data_entry = all_data.filter(
                         plant=plant,
-                        indicator=q.question_text,
+                        indicator=q,
                         month=month_key
                     ).first()
                     
                     if data_entry and data_entry.value:
                         value = data_entry.value
                         plant_has_any_data = True
-                        month_data[month] = value
+                        month_data[month_name] = value
                         
-                        # Calculate total for annual
                         try:
                             numeric_value = float(str(value).replace(',', ''))
                             total += numeric_value
@@ -659,12 +677,10 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
                         except (ValueError, TypeError):
                             pass
                     else:
-                        month_data[month] = ''
+                        month_data[month_name] = ''
                 
-                # Format annual total
-                annual_display = f"{total:,.2f}" if has_values else "0%"
+                annual_display = f"{total:,.2f}" if has_values else "0"
                 
-                # Add question data for this plant
                 plant_questions_data.append({
                     "question": q.question_text,
                     "unit": default_unit_name,
@@ -673,11 +689,9 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
                     "has_data": has_values,
                 })
             
-            # Count plants with data
             if plant_has_any_data:
                 plants_with_data_count += 1
             
-            # Add this plant's complete data
             plants_data.append({
                 "plant": plant,
                 "questions_data": plant_questions_data,
@@ -686,110 +700,10 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
 
         context = {
             "plants_data": plants_data,
-            "months": MONTHS,
+            "months": [name for code, name in MONTHS],
             "total_plants": all_plants.count(),
             "plants_with_data": plants_with_data_count,
             "total_questions": questions.count(),
         }
 
-        return render(request, self.template_name, context)
-class ExportExcelView(LoginRequiredMixin, View):
-    def get(self, request):
-        months = MONTHS  
-        if request.user.is_superuser or request.user.is_staff or request.user.is_admin_user:
-            plants = Plant.objects.filter(is_active=True)
-        else:
-            plants = request.user.get_all_plants()
-            if not plants:
-                messages.error(request, "No plant is assigned to your account")
-                return redirect("enviromental:plant-detail-view")
-            
-        plants_data = get_all_plants_environmental_data(plants) 
-        
-        workbook = generate_environmental_excel(plants_data, months)
-        response = HttpResponse(
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        filename = f"Environmental_Data_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        workbook.save(response)
-        return response
-    
-
-
-
-from django.http import JsonResponse
-from django.views import View
-from apps.hazards.models import Hazard
-from apps.organizations.models import Plant
-from datetime import datetime, date
-import calendar
-
-class DebugDataView(View):
-    """Temporary debug view to check data"""
-    
-    def get(self, request):
-        # Get plant
-        plant_id = request.GET.get('plant_id')
-        if not plant_id:
-            return JsonResponse({'error': 'Please provide plant_id'})
-        
-        plant = Plant.objects.filter(id=plant_id).first()
-        if not plant:
-            return JsonResponse({'error': 'Plant not found'})
-        
-        # Get current month range
-        year = datetime.now().year
-        month = datetime.now().month
-        
-        start_date = date(year, month, 1)
-        last_day = calendar.monthrange(year, month)[1]
-        end_date = date(year, month, last_day)
-        
-        # Check Incidents
-        all_incidents = Incident.objects.filter(plant=plant)
-        current_month_incidents = Incident.objects.filter(
-            plant=plant,
-            incident_date__gte=start_date,
-            incident_date__lte=end_date
-        )
-        
-        # Check Hazards
-        all_hazards = Hazard.objects.filter(plant=plant)
-        current_month_hazards = Hazard.objects.filter(
-            plant=plant,
-            incident_datetime__date__gte=start_date,
-            incident_datetime__date__lte=end_date
-        )
-        
-        # Prepare response
-        response_data = {
-            'plant': plant.name,
-            'date_range': f'{start_date} to {end_date}',
-            'total_incidents_all_time': all_incidents.count(),
-            'total_hazards_all_time': all_hazards.count(),
-            'current_month_incidents': current_month_incidents.count(),
-            'current_month_hazards': current_month_hazards.count(),
-            'incidents_detail': [],
-            'hazards_detail': [],
-        }
-        
-        # Add incident details
-        for inc in current_month_incidents:
-            response_data['incidents_detail'].append({
-                'report_number': inc.report_number,
-                'type': inc.incident_type,
-                'date': str(inc.incident_date),
-                'plant': inc.plant.name,
-            })
-        
-        # Add hazard details
-        for haz in current_month_hazards:
-            response_data['hazards_detail'].append({
-                'report_number': haz.report_number,
-                'type': haz.hazard_type,
-                'datetime': str(haz.incident_datetime),
-                'plant': haz.plant.name,
-            })
-        
-        return JsonResponse(response_data, json_dumps_params={'indent': 2})
+        return render(request, self.template_name, context)        
