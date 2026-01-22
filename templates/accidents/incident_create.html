@@ -188,66 +188,87 @@
           <hr>
 
           <!-- Location Information -->
-          <h5 class="mb-3"><i class="fas fa-map-marker-alt mr-2"></i>Location Information</h5>
-          <div class="row">
-              <div class="col-md-3 mb-3">
-                  <label for="id_plant">Plant <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" 
-                        value="{% if user.plant %}{{ user.plant.name }} ({{ user.plant.code }}){% else %}Not Assigned{% endif %}" readonly style="background-color: #e9ecef;">
-                  <input type="hidden" name="plant" id="id_plant" 
-                        value="{% if user.plant %}{{ user.plant.id }}{% endif %}">
-                  {% if form.plant.errors %}
-                    <div class="text-danger">{{ form.plant.errors }}</div>
-                  {% endif %}
-              </div>
-              
-              <div class="col-md-3 mb-3">
-                  <label for="id_zone">Zone</label>
-                  <input type="text" class="form-control" 
-                        value="{% if user.zone %}{{ user.zone.name }} ({{ user.zone.code }}){% else %}Not Assigned{% endif %}" readonly style="background-color: #e9ecef;">
-                  <input type="hidden" name="zone" id="id_zone" 
-                        value="{% if user.zone %}{{ user.zone.id }}{% endif %}">
-                  {% if form.zone.errors %}
-                    <div class="text-danger">{{ form.zone.errors }}</div>
-                  {% endif %}
-              </div>
-              
-              <div class="col-md-3 mb-3">
-                  <label for="id_location">Location <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" 
-                        value="{% if user.location %}{{ user.location.name }} ({{ user.location.code }}){% else %}Not Assigned{% endif %}" readonly style="background-color: #e9ecef;">
-                  <input type="hidden" name="location" id="id_location" 
-                        value="{% if user.location %}{{ user.location.id }}{% endif %}">
-                  {% if form.location.errors %}
-                    <div class="text-danger">{{ form.location.errors }}</div>
-                  {% endif %}
-              </div>
-              
-              <div class="col-md-3 mb-3">
-                  <label for="id_sublocation">Sub-Location</label>
-                  {% if user.sublocation %}
-                      <input type="text" class="form-control" 
-                          value="{{ user.sublocation.name }}{% if user.sublocation.code %} ({{ user.sublocation.code }}){% endif %}" readonly style="background-color: #e9ecef;">
-                      <input type="hidden" name="sublocation" id="id_sublocation" value="{{ user.sublocation.id }}">
-                  {% else %}
-                      <select name="sublocation" id="id_sublocation" class="form-control">
-                          <option value="">-- Select Sub-Location --</option>
-                          {% if user.location and user.location.sublocations.all %}
-                              {% for sublocation in user.location.sublocations.all %}
-                                  <option value="{{ sublocation.id }}">
-                                      {{ sublocation.name }}{% if sublocation.code %} ({{ sublocation.code }}){% endif %}
-                                  </option>
-                              {% endfor %}
-                          {% endif %}
-                      </select>
-                  {% endif %}
-                  <small class="form-text text-muted">Optional: Select specific sub-location if applicable</small>
-                  {% if form.sublocation.errors %}
-                    <div class="text-danger">{{ form.sublocation.errors }}</div>
-                  {% endif %}
-              </div>
-          </div>
+<h5 class="mb-3"><i class="fas fa-map-marker-alt mr-2"></i>Location Information</h5>
+<div class="row">
+    
+    <!-- Plant Field -->
+    <div class="col-md-3 mb-3">
+        <label for="id_plant">Plant <span class="text-danger">*</span></label>
+        
+        {% if user_assigned_plants.count == 1 %}
+            <!-- If user has only ONE assigned plant, show it as read-only text -->
+            <input type="text" class="form-control" 
+                   value="{{ user_assigned_plants.first.name }} ({{ user_assigned_plants.first.code }})" 
+                   readonly style="background-color: #e9ecef;">
+            <!-- IMPORTANT: Add a hidden input to submit the value -->
+            <input type="hidden" name="plant" id="id_plant" value="{{ user_assigned_plants.first.id }}">
+        {% else %}
+            <!-- If user has multiple (or zero) plants, show the dropdown -->
+            {{ form.plant }}
+        {% endif %}
 
+        {% if form.plant.errors %}
+          <div class="text-danger">{{ form.plant.errors }}</div>
+        {% endif %}
+    </div>
+    
+    <!-- Zone Field -->
+    <div class="col-md-3 mb-3">
+        <label for="id_zone">Zone</label>
+        
+        {% if user_assigned_zones.count == 1 %}
+            <input type="text" class="form-control" 
+                   value="{{ user_assigned_zones.first.name }} ({{ user_assigned_zones.first.code }})" 
+                   readonly style="background-color: #e9ecef;">
+            <input type="hidden" name="zone" id="id_zone" value="{{ user_assigned_zones.first.id }}">
+        {% else %}
+            <!-- This dropdown will be populated by AJAX -->
+            {{ form.zone }}
+        {% endif %}
+
+        {% if form.zone.errors %}
+          <div class="text-danger">{{ form.zone.errors }}</div>
+        {% endif %}
+    </div>
+    
+    <!-- Location Field -->
+    <div class="col-md-3 mb-3">
+        <label for="id_location">Location <span class="text-danger">*</span></label>
+        
+        {% if user_assigned_locations.count == 1 %}
+            <input type="text" class="form-control" 
+                   value="{{ user_assigned_locations.first.name }} ({{ user_assigned_locations.first.code }})" 
+                   readonly style="background-color: #e9ecef;">
+            <input type="hidden" name="location" id="id_location" value="{{ user_assigned_locations.first.id }}">
+        {% else %}
+            <!-- This dropdown will be populated by AJAX -->
+            {{ form.location }}
+        {% endif %}
+
+        {% if form.location.errors %}
+          <div class="text-danger">{{ form.location.errors }}</div>
+        {% endif %}
+    </div>
+    
+    <!-- Sub-Location Field -->
+    <div class="col-md-3 mb-3">
+        <label for="id_sublocation">Sub-Location</label>
+        
+        {% if user_assigned_sublocations.count == 1 %}
+            <input type="text" class="form-control" 
+                   value="{{ user_assigned_sublocations.first.name }}{% if user_assigned_sublocations.first.code %} ({{ user_assigned_sublocations.first.code }}){% endif %}" 
+                   readonly style="background-color: #e9ecef;">
+            <input type="hidden" name="sublocation" id="id_sublocation" value="{{ user_assigned_sublocations.first.id }}">
+        {% else %}
+            <!-- This dropdown will be populated by AJAX -->
+            {{ form.sublocation }}
+        {% endif %}
+
+        {% if form.sublocation.errors %}
+          <div class="text-danger">{{ form.sublocation.errors }}</div>
+        {% endif %}
+    </div>
+</div>
           <!-- Additional Location Details -->
           <div class="row mt-3">
             <div class="col-md-12 mb-3">
@@ -799,6 +820,101 @@ document.addEventListener('DOMContentLoaded', function() {
     if (timeInput && !timeInput.value) {
         timeInput.value = now.toTimeString().split(' ')[0].substring(0, 5);
     }
+
+
+    const plantSelect = document.getElementById('id_plant');
+    const zoneSelect = document.getElementById('id_zone');
+    const locationSelect = document.getElementById('id_location');
+    const sublocationSelect = document.getElementById('id_sublocation');
+
+    function resetSelect(selectElement, defaultText) {
+        selectElement.innerHTML = `<option value="">-- ${defaultText} --</option>`;
+    }
+
+    if (plantSelect) {
+        plantSelect.addEventListener('change', function() {
+            const plantId = this.value;
+            
+            // Reset all child dropdowns
+            resetSelect(zoneSelect, 'Select Zone');
+            resetSelect(locationSelect, 'Select Zone First');
+            resetSelect(sublocationSelect, 'Select Location First');
+
+            if (plantId) {
+                // Fetch zones for the selected plant
+                fetch(`{% url 'accidents:ajax_get_zones' %}?plant_id=${plantId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(zone => {
+                            const option = new Option(`${zone.name} (${zone.code})`, zone.id);
+                            zoneSelect.add(option);
+                        });
+                    })
+                    .catch(error => console.error('Error loading zones:', error));
+            }
+        });
+    }
+
+    if (zoneSelect) {
+        zoneSelect.addEventListener('change', function() {
+            const zoneId = this.value;
+
+            // Reset child dropdowns
+            resetSelect(locationSelect, 'Select Location');
+            resetSelect(sublocationSelect, 'Select Location First');
+            
+            if (zoneId) {
+                fetch(`{% url 'accidents:ajax_get_locations' %}?zone_id=${zoneId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(location => {
+                            const option = new Option(`${location.name} (${location.code})`, location.id);
+                            locationSelect.add(option);
+                        });
+                    })
+                    .catch(error => console.error('Error loading locations:', error));
+            }
+        });
+    }
+    
+    if (locationSelect) {
+        locationSelect.addEventListener('change', function() {
+            const locationId = this.value;
+
+            resetSelect(sublocationSelect, 'Select Sub-Location');
+
+            if (locationId) {
+                fetch(`{% url 'accidents:ajax_get_sublocations' %}?location_id=${locationId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.forEach(sublocation => {
+                            const option = new Option(sublocation.code ? `${sublocation.name} (${sublocation.code})` : sublocation.name, sublocation.id);
+                            sublocationSelect.add(option);
+                        });
+                    })
+                    .catch(error => console.error('Error loading sub-locations:', error));
+            }
+        });
+    }
+
+    // --- Trigger change event on page load if a plant is pre-selected (single-assignment case) ---
+    // This will auto-load the next dropdowns when the page first loads.
+    if (plantSelect && plantSelect.value) {
+        plantSelect.dispatchEvent(new Event('change'));
+        // We need a small delay for the AJAX to complete before triggering the next one
+        setTimeout(() => {
+            if(zoneSelect && zoneSelect.value) {
+                zoneSelect.dispatchEvent(new Event('change'));
+                setTimeout(() => {
+                    if(locationSelect && locationSelect.value) {
+                        locationSelect.dispatchEvent(new Event('change'));
+                    }
+                }, 200); // delay for location to load
+            }
+        }, 200); // delay for zone to load
+    }
 });
+
+
 </script>
 {% endblock %}

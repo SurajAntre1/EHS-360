@@ -182,6 +182,13 @@
                 <div class="text-danger">{{ form.location.errors }}</div>
               {% endif %}
             </div>
+            <div class="col-md-4 mb-3">
+              <label for="id_sublocation">Sub-Location <span class="text-danger">*</span></label>
+              {{ form.sublocation }}
+              <small class="form-text text-muted">Select location first</small>
+              {% if form.sublocation.errors %}
+                <div class="text-danger">{{ form.sublocation.errors }}</div>
+              {% endif %}
           </div>
 
           <hr>
@@ -662,36 +669,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Load zones when plant is selected
-    plantSelect.addEventListener('change', function() {
-        const plantId = this.value;
-        
-        if (plantId) {
-            fetch(`{% url 'accidents:ajax_get_zones' %}?plant_id=${plantId}`)
+    locationSelect.addEventListener('change', function () {
+    const locationId = this.value;
+
+        if (locationId) {
+            fetch(`{% url 'accidents:ajax_get_sublocations' %}?location_id=${locationId}`)
                 .then(response => response.json())
                 .then(data => {
-                    zoneSelect.innerHTML = '<option value="">Select a zone</option>';
-                    locationSelect.innerHTML = '<option value="">Select location first</option>';
-                    
+                    sublocationSelect.innerHTML = '<option value="">Select sub-location</option>';
+
                     if (data.length === 0) {
-                        zoneSelect.innerHTML = '<option value="">No zones available</option>';
+                        sublocationSelect.innerHTML =
+                            '<option value="">No sub-locations available</option>';
                     } else {
-                        data.forEach(zone => {
+                        data.forEach(item => {
                             const option = document.createElement('option');
-                            option.value = zone.id;
-                            option.textContent = `${zone.name} (${zone.code})`;
-                            zoneSelect.appendChild(option);
+                            option.value = item.id;
+                            option.textContent = `${item.name} (${item.code})`;
+                            sublocationSelect.appendChild(option);
                         });
                     }
                 })
                 .catch(error => {
-                    console.error('Error loading zones:', error);
-                    zoneSelect.innerHTML = '<option value="">Error loading zones</option>';
+                    console.error('Error loading sub-locations:', error);
+                    sublocationSelect.innerHTML =
+                        '<option value="">Error loading sub-locations</option>';
                 });
         } else {
-            zoneSelect.innerHTML = '<option value="">Select plant first</option>';
-            locationSelect.innerHTML = '<option value="">Select zone first</option>';
+            sublocationSelect.innerHTML =
+                '<option value="">Select location first</option>';
         }
     });
+
     
     // Load locations when zone is selected
     zoneSelect.addEventListener('change', function() {

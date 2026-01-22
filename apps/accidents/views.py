@@ -23,6 +23,8 @@ from django.shortcuts import render
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.formatting.rule import CellIsRule
+from django.conf import settings  
+from django.conf.urls.static import static  
 
 from .forms import IncidentAttachmentForm # <-- Import the new form
 class IncidentDashboardView(LoginRequiredMixin, TemplateView):
@@ -151,140 +153,91 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
     form_class = IncidentReportForm
     template_name = 'accidents/incident_create.html'
     success_url = reverse_lazy('accidents:incident_list')
-    
+
+    def get_form_kwargs(self):
+        """
+        Passes the current request's user to the form's __init__ method.
+        This is CRUCIAL for the form logic to work.
+        """
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def get_context_data(self, **kwargs):
+        """
+        Adds the user's location assignments to the template context.
+        This allows the template to conditionally render fields as readonly or dropdowns.
+        """
         context = super().get_context_data(**kwargs)
+        user = self.request.user
         
-        # Add departments
+        # Pass QuerySets of assigned locations to the template
+        context['user_assigned_plants'] = user.assigned_plants.filter(is_active=True)
+        
+        # Pass other assignments for the template logic to use
+        # The template can now check the count of each of these
+        if context['user_assigned_plants'].count() == 1:
+            plant = context['user_assigned_plants'].first()
+            context['user_assigned_zones'] = user.assigned_zones.filter(is_active=True, plant=plant)
+            if context['user_assigned_zones'].count() == 1:
+                zone = context['user_assigned_zones'].first()
+                context['user_assigned_locations'] = user.assigned_locations.filter(is_active=True, zone=zone)
+                if context['user_assigned_locations'].count() == 1:
+                    location = context['user_assigned_locations'].first()
+                    context['user_assigned_sublocations'] = user.assigned_sublocations.filter(is_active=True, location=location)
+                else:
+                    context['user_assigned_sublocations'] = user.assigned_sublocations.none() # Or all if needed
+            else:
+                context['user_assigned_locations'] = user.assigned_locations.none()
+                context['user_assigned_sublocations'] = user.assigned_sublocations.none()
+        else:
+            context['user_assigned_zones'] = user.assigned_zones.none()
+            context['user_assigned_locations'] = user.assigned_locations.none()
+            context['user_assigned_sublocations'] = user.assigned_sublocations.none()
+
+
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
-        
         return context
     
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        
-        if self.request.POST:
-            # Update zone queryset based on selected plant
-            plant_id = self.request.POST.get('plant')
-            if plant_id:
-                form.fields['zone'].queryset = Zone.objects.filter(plant_id=plant_id, is_active=True)
-            
-            # Update location queryset based on selected zone
-            zone_id = self.request.POST.get('zone')
-            if zone_id:
-                form.fields['location'].queryset = Location.objects.filter(zone_id=zone_id, is_active=True)
-            
-            # Update sublocation queryset based on selected location
-            location_id = self.request.POST.get('location')
-            if location_id:
-                form.fields['sublocation'].queryset = SubLocation.objects.filter(
-                    location_id=location_id, 
-                    is_active=True
-                )
-            else:
-                form.fields['sublocation'].queryset = SubLocation.objects.none()
-        else:
-            # For GET request, if user has location, populate sublocation options
-            if self.request.user.location:
-                form.fields['sublocation'].queryset = SubLocation.objects.filter(
-                    location=self.request.user.location,
-                    is_active=True
-                )
-        
-        return form
-    
     def form_valid(self, form):
-        # Set reported_by to current user
-        form.instance.reported_by = self.request.user
+        """
+        Process the valid form, set the reporter, and handle location data.
+        """
+        incident = form.save(commit=False)
+        incident.reported_by = self.request.user
         
-        # ===== HANDLE MANUAL AFFECTED PERSON ENTRY =====
+        user = self.request.user
+
+        # Manually set location fields if they are single-assigned and might not be in the form post data
+        # (e.g., if we use readonly fields instead of disabled dropdowns).
+        if user.assigned_plants.count() == 1 and not form.cleaned_data.get('plant'):
+            incident.plant = user.assigned_plants.first()
         
-        # Employment Category
-        form.instance.affected_employment_category = self.request.POST.get('affected_employment_category', '').strip()
+        if user.assigned_zones.count() == 1 and not form.cleaned_data.get('zone'):
+            incident.zone = user.assigned_zones.first()
+
+        if user.assigned_locations.count() == 1 and not form.cleaned_data.get('location'):
+            incident.location = user.assigned_locations.first()
+
+        if user.assigned_sublocations.count() == 1 and not form.cleaned_data.get('sublocation'):
+            incident.sublocation = user.assigned_sublocations.first()
+
+        # Handle JSON fields from hidden inputs
+        incident.affected_body_parts = json.loads(self.request.POST.get('affected_body_parts_json', '[]'))
+        incident.unsafe_acts = json.loads(self.request.POST.get('unsafe_acts_json', '[]'))
+        incident.unsafe_conditions = json.loads(self.request.POST.get('unsafe_conditions_json', '[]'))
+        incident.unsafe_acts_other = self.request.POST.get('unsafe_acts_other', '').strip()
+        incident.unsafe_conditions_other = self.request.POST.get('unsafe_conditions_other', '').strip()
         
-        # Name and Employee ID
-        form.instance.affected_person_name = self.request.POST.get('affected_person_name', '').strip()
-        form.instance.affected_person_employee_id = self.request.POST.get('affected_person_employee_id', '').strip()
-        
-        # Department - FROM MASTER TABLE
-        affected_department_id = self.request.POST.get('affected_person_department', '').strip()
-        if affected_department_id:
-            try:
-                from apps.organizations.models import Department
-                department = Department.objects.get(id=affected_department_id, is_active=True)
-                form.instance.affected_person_department = department
-            except (Department.DoesNotExist, ValueError):
-                form.instance.affected_person_department = None
-        
-        # Date of Birth
-        affected_dob = self.request.POST.get('affected_date_of_birth', '').strip()
-        if affected_dob:
-            try:
-                form.instance.affected_date_of_birth = affected_dob
-            except:
-                form.instance.affected_date_of_birth = None
-        
-        # Age (from form - already calculated in frontend)
-        affected_age = self.request.POST.get('affected_age', '').strip()
-        if affected_age:
-            try:
-                form.instance.affected_age = int(affected_age)
-            except:
-                form.instance.affected_age = None
-        
-        # Gender
-        form.instance.affected_gender = self.request.POST.get('affected_gender', '').strip()
-        
-        # Job Title
-        form.instance.affected_job_title = self.request.POST.get('affected_job_title', '').strip()
-        
-        # Date of Joining
-        affected_doj = self.request.POST.get('affected_date_of_joining', '').strip()
-        if affected_doj:
-            try:
-                form.instance.affected_date_of_joining = affected_doj
-            except:
-                form.instance.affected_date_of_joining = None
-        
-        # ===== END AFFECTED PERSON SECTION =====
-        self.object = form.save(commit=False)
-        # Handle affected body parts JSON
-        affected_body_parts_json = self.request.POST.get('affected_body_parts_json', '[]')
-        try:
-            form.instance.affected_body_parts = json.loads(affected_body_parts_json)
-        except:
-            form.instance.affected_body_parts = []
-        
-        # Handle unsafe acts JSON
-        unsafe_acts_json = self.request.POST.get('unsafe_acts_json', '[]')
-        try:
-            form.instance.unsafe_acts = json.loads(unsafe_acts_json)
-        except:
-            form.instance.unsafe_acts = []
-        
-        # Handle unsafe acts other explanation
-        form.instance.unsafe_acts_other = self.request.POST.get('unsafe_acts_other', '').strip()
-        
-        # Handle unsafe conditions JSON
-        unsafe_conditions_json = self.request.POST.get('unsafe_conditions_json', '[]')
-        try:
-            form.instance.unsafe_conditions = json.loads(unsafe_conditions_json)
-        except:
-            form.instance.unsafe_conditions = []
-        
-        # Handle unsafe conditions other explanation
-        form.instance.unsafe_conditions_other = self.request.POST.get('unsafe_conditions_other', '').strip()
-        
-        # Save the incident - IMPORTANT: This creates self.object
-        # response = super().form_valid(form)
-        self.object.save()
+        incident.save()
+        self.object = incident
         form.save_m2m()
-        
+
         # Handle photo uploads
         photos = self.request.FILES.getlist('photos')
         for photo in photos:
             IncidentPhoto.objects.create(
-                incident=self.object,
+                incident=incident,
                 photo=photo,
                 photo_type='INCIDENT_SCENE',
                 uploaded_by=self.request.user
@@ -326,14 +279,8 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
         
         return redirect(self.get_success_url())
 
-
-    
     def form_invalid(self, form):
         messages.error(self.request, 'Please correct the errors below.')
-        print("Form errors:", form.errors)
-        print("POST Data - Sublocation:", self.request.POST.get('sublocation'))
-        print("POST Data - Location:", self.request.POST.get('location'))
-        
         return super().form_invalid(form)
 
 class IncidentDetailView(LoginRequiredMixin, DetailView):
@@ -359,6 +306,48 @@ class IncidentDetailView(LoginRequiredMixin, DetailView):
 # REPLACE YOUR EXISTING IncidentUpdateView WITH THIS UPDATED VERSION
 # ============================================================================
 
+def get_zones_by_plant(request, plant_id):
+    """
+    Fetch zones for a given plant ID.
+    Returns a JSON response for AJAX calls.
+    """
+    if not request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+        
+    try:
+        zones = Zone.objects.filter(plant_id=plant_id, is_active=True).values('id', 'name', 'code')
+        return JsonResponse({'zones': list(zones)})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def get_locations_by_zone(request, zone_id):
+    """
+    Fetch locations for a given zone ID.
+    Returns a JSON response for AJAX calls.
+    """
+    if not request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    try:
+        locations = Location.objects.filter(zone_id=zone_id, is_active=True).values('id', 'name', 'code')
+        return JsonResponse({'locations': list(locations)})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def get_sublocations_by_location(request, location_id):
+    """
+    Fetch sub-locations for a given location ID.
+    Returns a JSON response for AJAX calls.
+    """
+    if not request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+        
+    try:
+        sublocations = SubLocation.objects.filter(location_id=location_id, is_active=True).values('id', 'name', 'code')
+        return JsonResponse({'sublocations': list(sublocations)})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
 class IncidentUpdateView(LoginRequiredMixin, UpdateView):
     """Update incident report"""
     model = Incident
@@ -367,20 +356,51 @@ class IncidentUpdateView(LoginRequiredMixin, UpdateView):
     
     def get_success_url(self):
         return reverse_lazy('accidents:incident_detail', kwargs={'pk': self.object.pk})
+
+    def get_form_kwargs(self):
+        """
+        Passes the current request's user to the form's __init__ method.
+        This is CRUCIAL for the form logic to work correctly.
+        """
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
     
     def get_context_data(self, **kwargs):
+        """
+        Adds the user's location assignments to the template context.
+        This allows the template to conditionally render fields as readonly or dropdowns.
+        """
         context = super().get_context_data(**kwargs)
-        # Add departments
-        from apps.organizations.models import Department
+        user = self.request.user
+        
+        # Pass QuerySets of assigned locations to the template
+        context['user_assigned_plants'] = user.assigned_plants.filter(is_active=True)
+
+        # This logic helps the template decide if there's only one option to show
+        if context['user_assigned_plants'].count() == 1:
+            plant = context['user_assigned_plants'].first()
+            context['user_assigned_zones'] = user.assigned_zones.filter(is_active=True, plant=plant)
+            if context['user_assigned_zones'].count() == 1:
+                zone = context['user_assigned_zones'].first()
+                context['user_assigned_locations'] = user.assigned_locations.filter(is_active=True, zone=zone)
+                if context['user_assigned_locations'].count() == 1:
+                    location = context['user_assigned_locations'].first()
+                    context['user_assigned_sublocations'] = user.assigned_sublocations.filter(is_active=True, location=location)
+                else:
+                    context['user_assigned_sublocations'] = user.assigned_sublocations.none()
+            else:
+                context['user_assigned_locations'] = user.assigned_locations.none()
+                context['user_assigned_sublocations'] = user.assigned_sublocations.none()
+        else:
+            context['user_assigned_zones'] = user.assigned_zones.none()
+            context['user_assigned_locations'] = user.assigned_locations.none()
+            context['user_assigned_sublocations'] = user.assigned_sublocations.none()
+        
+        # Add departments for the affected person dropdown
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
-        
-        # Add employees for affected person dropdown - FIXED QUERY
-        context['employees'] = User.objects.filter(
-            is_active=True
-        ).select_related('department').order_by('first_name', 'last_name')
-        
         return context
-    
+        
     #Incident Update Form
     def get_form(self, form_class=None):
         form = super().get_form(form_class)

@@ -27,6 +27,9 @@ urlpatterns = [
     path('ajax/get-sublocations/', views.GetSubLocationsForLocationAjaxView.as_view(), name='ajax_get_sublocations'),
     path('<int:hazard_pk>/action/create/', views.HazardActionItemCreateView.as_view(), name='action_item_create'),
     path('action/<int:pk>/update/', views.HazardActionItemUpdateView.as_view(), name='action_item_update'),
+    path('api/get-zones/<int:plant_id>/', views.get_zones_by_plant, name='ajax_get_zones_by_plant'),
+    path('api/get-locations/<int:zone_id>/', views.get_locations_by_zone, name='ajax_get_locations_by_zone'),
+    path('api/get-sublocations/<int:location_id>/', views.get_sublocations_by_location, name='ajax_get_sublocations_by_location'),
 
     # Export URL
     path('export-hazards/', views.ExportHazardsView.as_view(), name='export_hazards'),
