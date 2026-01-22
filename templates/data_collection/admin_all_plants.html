@@ -1,608 +1,98 @@
 {% extends 'base/base.html' %}
 {% load static %}
-{% block title %}Environmental Data{% endblock %}
 
+{% block title %}All Plants Data{% endblock %}
 {% block page_title %}All Plants Environmental Data{% endblock %}
-{% load custom_tags %}
 
 {% block extra_css %}
 <style>
-    .admin-data-container {
-        padding: 20px;
-        background: #f8f9fa;
-        min-height: 100vh;
-    }
-    
-    .header-section {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-    
-    .header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 15px;
-    }
-    
-    .header-info h2 {
-        margin: 0;
-        color: #2c3e50;
-        font-size: 24px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .stats-info {
-        color: #7f8c8d;
-        margin-top: 8px;
-        font-size: 14px;
-    }
-    
-    .action-buttons {
-        display: flex;
-        gap: 10px;
-    }
-    
-    .btn {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 6px;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: 600;
-        font-size: 14px;
-        transition: all 0.3s;
-        cursor: pointer;
-    }
-    
-    .btn-primary {
-        background: #3498db;
-        color: white;
-    }
-    
-    .btn-primary:hover {
-        background: #2980b9;
-        color: white;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
-    }
-    
-    .btn-success {
-        background: #27ae60;
-        color: white;
-    }
-    
-    .btn-success:hover {
-        background: #229954;
-        color: white;
-    }
-    
-    .no-questions-alert {
-        background: white;
-        padding: 40px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        text-align: center;
-        margin-top: 20px;
-    }
-    
-    .no-questions-alert h3 {
-        color: #2c3e50;
-        margin-bottom: 15px;
-    }
-    
-    .no-questions-alert p {
-        color: #7f8c8d;
-        margin-bottom: 20px;
-        font-size: 16px;
-    }
-    
-    .data-table-container {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        overflow: hidden;
-        margin-bottom: 20px;
-    }
-    
-    .table-wrapper {
-        overflow-x: auto;
-    }
-    
-    .data-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    .data-table thead th {
-        background: #34495e;
-        color: white;
-        padding: 12px 10px;
-        text-align: center;
-        font-weight: 600;
-        font-size: 13px;
-        border-right: 1px solid #2c3e50;
-        white-space: nowrap;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-    
-    .data-table thead th:first-child {
-        text-align: left;
-        min-width: 200px;
-        position: sticky;
-        left: 0;
-        z-index: 11;
-    }
-    
-    .data-table thead th:nth-child(2) {
-        text-align: left;
-        min-width: 350px;
-        position: sticky;
-        left: 200px;
-        z-index: 11;
-        background: #34495e;
-    }
-    
-    .data-table thead th:nth-child(3) {
-        background: #f39c12;
-        min-width: 100px;
-    }
-    
-    .data-table tbody tr {
-        border-bottom: 1px solid #e9ecef;
-        transition: background-color 0.2s;
-    }
-    
-    .data-table tbody td {
-        padding: 10px 8px;
-        border-right: 1px solid #e9ecef;
-        text-align: center;
-        font-size: 13px;
-    }
-    
-    .data-table tbody td:first-child {
-        text-align: left;
-        font-weight: 500;
-        background: #fff;
-        position: sticky;
-        left: 0;
-        z-index: 9;
-        border-right: 2px solid #dee2e6;
-    }
-    
-    .data-table tbody td:nth-child(2) {
-        text-align: left;
-        position: sticky;
-        left: 200px;
-        z-index: 9;
-        background: #fff;
-        border-right: 2px solid #dee2e6;
-    }
-    
-    /* Plant row styling */
-    .plant-row {
-        background: linear-gradient(135deg, #e8f4fc 0%, #d4ebf7 100%);
-        cursor: pointer;
-        user-select: none;
-    }
-    
-    .plant-row td {
-        font-weight: 700;
-        color: #2c3e50;
-        padding: 12px 10px !important;
-        border-bottom: 2px solid #3498db !important;
-    }
-    
-    .plant-row:hover {
-        background: linear-gradient(135deg, #d4ebf7 0%, #c0e3f0 100%);
-    }
-    
-    .plant-name {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .expand-icon {
-        display: inline-block;
-        transition: transform 0.3s ease;
-        font-size: 14px;
-        color: #3498db;
-        font-weight: bold;
-    }
-    
-    .expand-icon.expanded {
-        transform: rotate(90deg);
-    }
-    
-    .plant-badge {
-        background: #3498db;
-        color: white;
-        padding: 4px 12px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-    
-    /* Question row styling */
-    .question-row {
-        display: none;
-    }
-    
-    .question-row.show {
-        display: table-row;
-    }
-    
-    .question-row:hover {
-        background: #f8f9fa;
-    }
-    
-    .question-row:nth-child(even) {
-        background: #fafbfc;
-    }
-    
-    .question-row:nth-child(even):hover {
-        background: #f0f0f0;
-    }
-    
-    .question-text {
-        padding-left: 30px !important;
-        color: #2c3e50;
-        font-weight: 500;
-    }
-    
-    .unit-badge {
-        background: #27ae60;
-        color: white;
-        padding: 2px 8px;
-        border-radius: 3px;
-        font-size: 11px;
-        font-weight: 600;
-        margin-left: 10px;
-    }
-    
-    .value-cell {
-        color: #7f8c8d;
-    }
-    
-    .value-cell.has-value {
-        font-weight: 600;
-        color: #2c3e50;
-    }
-    
-    .value-cell.zero-value {
-        color: #e74c3c;
-    }
-    
-    .annual-cell {
-        background: #fff3cd !important;
-        font-weight: 700;
-        color: #856404;
-        font-size: 14px;
-    }
-    
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: #7f8c8d;
-    }
-    
-    .empty-state i {
-        font-size: 64px;
-        color: #bdc3c7;
-        margin-bottom: 20px;
-    }
-    
-    .empty-state h3 {
-        color: #2c3e50;
-        margin: 20px 0 10px 0;
-    }
-    
-    .controls-bar {
-        background: #ecf0f1;
-        padding: 15px 20px;
-        border-bottom: 1px solid #bdc3c7;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .controls-bar button {
-        padding: 8px 16px;
-        border: none;
-        border-radius: 4px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    
-    .btn-expand-all {
-        background: #3498db;
-        color: white;
-    }
-    
-    .btn-expand-all:hover {
-        background: #2980b9;
-    }
-    
-    .btn-collapse-all {
-        background: #95a5a6;
-        color: white;
-    }
-    
-    .btn-collapse-all:hover {
-        background: #7f8c8d;
-    }
-    
-    @media screen and (max-width: 768px) {
-        .data-table thead th:first-child,
-        .data-table tbody td:first-child {
-            min-width: 150px;
-        }
-        
-        .data-table thead th:nth-child(2),
-        .data-table tbody td:nth-child(2) {
-            min-width: 250px;
-            left: 150px;
-        }
-    }
-.plant-row.no-data {
-    background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+.admin-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 1.5rem;
 }
 
-.plant-row.no-data td {
-    color: #636e72;
-}
-
-.no-data-badge {
-    background: #e17055;
+.header-section {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
     color: white;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    margin-left: 10px;
-}
-.btn-export {
-    background: #1d6f42; /* Excel green */
-    color: #ffffff;
 }
 
-.btn-export:hover {
-    background: #145a32;
-    color: #ffffff;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(29, 111, 66, 0.3);
+.plant-section {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.btn-export i {
-    font-size: 11px;
+.plant-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 3px solid #dc2626;
 }
 
-.btn-export:disabled {
-    background: #95a5a6;
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.data-table thead {
+    background: #f8fafc;
+}
+
+.data-table tbody tr:hover {
+    background: #f1f5f9;
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="admin-data-container">
-    <!-- Header Section -->
+<div class="admin-container">
     <div class="header-section">
-        <div class="header-content">
-            <div class="header-info">
-                <h2>
-                    <i class="fas fa-building"></i>
-                    All Plants Environmental Data
-                </h2>
-            <div class="stats-info">
-                <strong>Total Plants:</strong> {{ total_plants }} | 
-                <strong>Plants with Data:</strong> {{ plants_with_data }} | 
-                <strong>Year:</strong> {% now "Y" %} | 
-                <strong>Last Updated:</strong> {% now "F d, Y - H:i" %}
-            </div>
-            </div>
-            <div class="action-buttons">
-                <button onclick="window.print()" class="btn btn-primary">
-                    <i class="fas fa-print"></i> Print
-                </button>
-                <a href="{% url 'environmental:questions-manager' %}" class="btn btn-success">
-                    <i class="fas fa-cog"></i> Manage Questions
-                </a>
-            </div>
-        </div>
+        <h2>All Plants Environmental Data</h2>
+        <p>Total Plants: {{ total_plants }} | Plants with Data: {{ plants_with_data }} | Total Questions: {{ total_questions }}</p>
     </div>
 
-    {% if no_questions %}
-    <!-- No Questions Alert -->
-    <div class="no-questions-alert">
-        <i class="fas fa-inbox"></i>
-        <h3>No Environmental Questions Configured</h3>
-        <p>Please add environmental questions first.</p>
-        <a href="{% url 'environmental:questions-manager' %}" class="btn btn-primary">
-            <i class="fas fa-plus-circle"></i> Add Questions
-        </a>
-    </div>
-    
-    {% elif not plants_data %}
-    <!-- No Data Alert -->
-    <div class="data-table-container">
-        <div class="empty-state">
-            <i class="fas fa-database"></i>
-            <h3>No Data Available</h3>
-            <p>No plants have entered environmental data yet.</p>
-            <p>Please ensure plants are assigned to users and data has been entered.</p>
-        </div>
-    </div>
-    
-    {% else %}
-    <!-- Data Table -->
-    <div class="data-table-container">
-        <!-- Controls Bar -->
-        <div class="controls-bar">
-            <div>
-                <strong>{{ plants_data|length }}</strong> plant(s) with data
-            </div>
-            <div>
-                <a href="{% url 'environmental:export_excel' %}" class="btn btn-success">
-                    <i class="fa-solid fa-file-excel"></i> Export to Excel</a>
-                <button onclick="expandAll()" class="btn-expand-all">
-                    <i class="fas fa-expand-alt"></i> Expand All
-                </button>
-                <button onclick="collapseAll()" class="btn-collapse-all">
-                    <i class="fas fa-compress-alt"></i> Collapse All
-                </button>
-            </div>
-        </div>
+    {% for plant_data in plants_data %}
+    <div class="plant-section">
+        <h3 class="plant-title">{{ plant_data.plant.name }}</h3>
         
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>BUSINESS UNIT</th>
-                        <th>ASSIGNED QUESTION</th>
-                        <th>ANNUAL</th>
-                        {% for month in months %}
-                        <th>{{ month|upper }}</th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for plant_data in plants_data %}
-                    <!-- Plant Header Row -->
-                    <tr class="plant-row" data-plant-id="{{ plant_data.plant.id }}" onclick="togglePlant({{ plant_data.plant.id }})">
-                        <!-- This cell aligns with the "BUSINESS UNIT" sticky column -->
-                        <td>
-                            <div class="plant-name">
-                                <span class="expand-icon" id="icon-{{ plant_data.plant.id }}">▶</span>
-                                <span class="plant-badge">{{ plant_data.plant.name }}</span>
-                            </div>
-                        </td>
-                        <!-- This empty cell aligns with the "ASSIGNED QUESTION" sticky column -->
-                        <td></td> 
-                        <!-- This cell spans the rest of the non-sticky columns -->
-                        <td colspan="{{ months|length|add:1 }}"></td>
-                    </tr>
-                    
-                    <!-- Question Rows for this Plant -->
-                    {% for q_data in plant_data.questions_data %}
-                    <tr class="question-row plant-{{ plant_data.plant.id }}-questions">
-                        <td></td>
-                        <td class="question-text">
-                            {{ forloop.counter }}. {{ q_data.question }}
-                            <span class="unit-badge">{{ q_data.unit }}</span>
-                        </td>
-                        <td class="annual-cell">{{ q_data.annual }}</td>
-                        {% for month in months %}
-                        {% with value=q_data.month_data|get_item:month %}
-                        <td class="value-cell {% if value %}has-value{% endif %} {% if value == '0' or value == '0.00' %}zero-value{% endif %}">
-                            {% if value %}
-                                {{ value }}
-                            {% else %}
-                                0%
-                            {% endif %}
-                        </td>
-                        {% endwith %}
-                        {% endfor %}
-                    </tr>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Environmental Indicator</th>
+                    {% for month in months %}
+                    <th>{{ month }}</th>
                     {% endfor %}
+                    <th>Annual</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for q in plant_data.questions_data %}
+                <tr>
+                    <td><strong>{{ q.question }}</strong> ({{ q.unit }})</td>
+                    {% for month in months %}
+                    <td>{{ q.month_data|get_item:month|default:"-" }}</td>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                    <td><strong>{{ q.annual }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-    {% endif %}
+    {% endfor %}
 </div>
-
-<script>
-// Toggle individual plant
-function togglePlant(plantId) {
-    const icon = document.getElementById(`icon-${plantId}`);
-    const questions = document.querySelectorAll(`.plant-${plantId}-questions`);
-    
-    icon.classList.toggle('expanded');
-    
-    questions.forEach(row => {
-        row.classList.toggle('show');
-    });
-}
-
-// Expand all plants
-function expandAll() {
-    const plantRows = document.querySelectorAll('.plant-row');
-    plantRows.forEach(row => {
-        const plantId = row.getAttribute('data-plant-id');
-        const icon = document.getElementById(`icon-${plantId}`);
-        const questions = document.querySelectorAll(`.plant-${plantId}-questions`);
-        
-        icon.classList.add('expanded');
-        questions.forEach(q => q.classList.add('show'));
-    });
-}
-
-// Collapse all plants
-function collapseAll() {
-    const plantRows = document.querySelectorAll('.plant-row');
-    plantRows.forEach(row => {
-        const plantId = row.getAttribute('data-plant-id');
-        const icon = document.getElementById(`icon-${plantId}`);
-        const questions = document.querySelectorAll(`.plant-${plantId}-questions`);
-        
-        icon.classList.remove('expanded');
-        questions.forEach(q => q.classList.remove('show'));
-    });
-}
-
-// Expand all by default on page load
-document.addEventListener('DOMContentLoaded', function() {
-    expandAll();
-    
-    // Clean up NaN values
-    const cells = document.querySelectorAll('.value-cell');
-    cells.forEach(cell => {
-        const value = cell.textContent.trim();
-        if (value === 'NaN' || value === 'NaN%' || value === 'Infinity') {
-            cell.textContent = '0%';
-            cell.classList.remove('has-value');
-            cell.classList.add('zero-value');
-        }
-    });
-});
-
-// Keyboard shortcuts
-document.addEventListener('keydown', function(e) {
-    // Ctrl + E to expand all
-    if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
-        e.preventDefault();
-        expandAll();
-    }
-    
-    // Ctrl + C to collapse all
-    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
-        e.preventDefault();
-        collapseAll();
-    }
-    
-    // Ctrl + P to print
-    if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
-        e.preventDefault();
-        window.print();
-    }
-});
-</script>
 {% endblock %}

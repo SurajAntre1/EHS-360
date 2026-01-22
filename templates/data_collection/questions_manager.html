@@ -2,710 +2,536 @@
 {% load static %}
 
 {% block title %}Environmental Data{% endblock %}
-
 {% block page_title %}Questions Manager{% endblock %}
+
 {% block extra_css %}
 <style>
-    .questions-manager {
-        padding: 20px;
-        background: #f8f9fa;
-        min-height: 100vh;
-    }
-    
-    .header {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .header h2 {
-        margin: 0 0 10px 0;
-        color: #2c3e50;
-    }
-    
-    .header p {
-        margin: 0;
-        color: #7f8c8d;
-    }
-    
-    .alert {
-        padding: 12px 20px;
-        border-radius: 4px;
-        margin-bottom: 15px;
-    }
-    
-    .alert-success {
-        background: #d4edda;
-        color: #155724;
-        border: 1px solid #c3e6cb;
-    }
-    
-    .alert-danger {
-        background: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-    }
-    
-    .alert-info {
-        background: #d1ecf1;
-        color: #0c5460;
-        border: 1px solid #bee5eb;
-    }
-    
-    .questions-list {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .add-question-form {
-        background: #e8f4fc;
-        padding: 20px;
-        border-radius: 6px;
-        margin-bottom: 30px;
-        border: 2px solid #3498db;
-    }
-    
-    .add-question-form h3 {
-        margin: 0 0 20px 0;
-        color: #2c3e50;
-    }
-    
-    .form-group {
-        margin-bottom: 15px;
-    }
-    
-    .form-group label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: 600;
-        color: #2c3e50;
-        font-size: 14px;
-    }
-    
-    .form-group label .required {
-        color: #e74c3c;
-    }
-    
-    .form-group small {
-        display: block;
-        color: #7f8c8d;
-        margin-top: 5px;
-        font-size: 12px;
-    }
-    
-    .form-control {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        font-size: 14px;
-        transition: border-color 0.2s;
-    }
-    
-    .form-control:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-    }
-    
-    .units-container {
-        border: 1px solid #dee2e6;
-        padding: 15px;
-        border-radius: 4px;
-        background: white;
-        max-height: 300px;
-        overflow-y: auto;
-    }
-    
-    .units-container.empty {
-        text-align: center;
-        color: #7f8c8d;
-        padding: 30px;
-    }
-    
-    .unit-checkbox-item {
-        padding: 10px;
-        border-radius: 4px;
-        transition: background 0.2s;
-        margin-bottom: 8px;
-        border: 1px solid #e9ecef;
-    }
-    
-    .unit-checkbox-item:hover {
-        background: #f8f9fa;
-        border-color: #3498db;
-    }
-    
-    .unit-checkbox-item label {
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-        margin: 0;
-        font-weight: normal;
-    }
-    
-    .unit-checkbox-item input[type="checkbox"] {
-        margin-right: 10px;
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-    }
-    
-    .unit-info {
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .unit-name {
-        font-weight: 600;
-        color: #2c3e50;
-    }
-    
-    .unit-details {
-        font-size: 12px;
-        color: #7f8c8d;
-        margin-top: 2px;
-    }
-    
-    .btn {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 14px;
-        transition: all 0.2s;
-        display: inline-block;
-        text-decoration: none;
-    }
-    
-    .btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-    
-    .btn-primary {
-        background: #3498db;
-        color: white;
-    }
-    
-    .btn-primary:hover:not(:disabled) {
-        background: #2980b9;
-    }
-    
-    .btn-success {
-        background: #27ae60;
-        color: white;
-    }
-    
-    .btn-success:hover:not(:disabled) {
-        background: #229954;
-    }
-    
-    .btn-danger {
-        background: #e74c3c;
-        color: white;
-    }
-    
-    .btn-danger:hover:not(:disabled) {
-        background: #c0392b;
-    }
-    
-    .btn-secondary {
-        background: #95a5a6;
-        color: white;
-    }
-    
-    .btn-secondary:hover {
-        background: #7f8c8d;
-        color: white;
-    }
-    
-    .existing-questions h3 {
-        margin-bottom: 20px;
-        color: #2c3e50;
-    }
-    
-    .question-item {
-        border: 1px solid #dee2e6;
-        padding: 15px;
-        margin-bottom: 15px;
-        border-radius: 6px;
-        background: #fafbfc;
-        transition: background 0.2s;
-    }
-    
-    .question-item:hover {
-        background: #f0f0f0;
-    }
-    
-    .question-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-    
-    .question-number {
-        background: #3498db;
-        color: white;
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-weight: 600;
-        font-size: 14px;
-    }
-    
-    .question-details {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-    
-    .detail-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .detail-label {
-        font-weight: 600;
-        color: #7f8c8d;
-        min-width: 120px;
-        font-size: 13px;
-    }
-    
-    .detail-value {
-        flex: 1;
-        color: #2c3e50;
-    }
-    
-    .category-badge {
-        background: #3498db;
-        color: white;
-        padding: 3px 10px;
-        border-radius: 3px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-    
-    .unit-badge {
-        background: #27ae60;
-        color: white;
-        padding: 3px 8px;
-        border-radius: 3px;
-        font-size: 11px;
-        font-weight: 600;
-        margin-right: 5px;
-        display: inline-block;
-    }
-    
-    .action-buttons {
-        margin-top: 20px;
-        display: flex;
-        gap: 10px;
-    }
-    
-    .loading-spinner {
-        display: none;
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #3498db;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        animation: spin 1s linear infinite;
-        margin-left: 10px;
-    }
-    
-    .loading-spinner.show {
-        display: inline-block;
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    
-    .no-questions {
-        text-align: center;
-        padding: 40px;
-        color: #7f8c8d;
-    }
-    
-    @media screen and (max-width: 768px) {
-        .question-details {
-            grid-template-columns: 1fr;
-        }
-        
-        .detail-row {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        
-        .detail-label {
-            min-width: auto;
-        }
-    }
+.questions-manager {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.header h2 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.header p {
+    margin: 0;
+    color: #666;
+}
+
+.questions-list {
+    display: grid;
+    gap: 30px;
+}
+
+.add-question-form {
+    background: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.add-question-form h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group small {
+    display: block;
+    margin-top: 5px;
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.required {
+    color: #dc3545;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+}
+
+.units-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.unit-checkbox {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.unit-checkbox:hover {
+    background: #e9ecef;
+}
+
+.unit-checkbox input[type="checkbox"] {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.empty {
+    padding: 20px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #218838;
+}
+
+.btn-success:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.existing-questions {
+    background: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.existing-questions h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #28a745;
+    padding-bottom: 10px;
+}
+
+.question-item {
+    padding: 15px;
+    margin-bottom: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border-left: 4px solid #007bff;
+}
+
+.detail-row {
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.detail-label {
+    display: inline-block;
+    min-width: 150px;
+    font-weight: 600;
+    color: #666;
+}
+
+.alert {
+    padding: 12px 20px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.alert-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.filter-separator {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px dashed #e2e8f0;
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="questions-manager">
-    <!-- Header -->
+
     <div class="header">
         <h2>Environmental Questions Manager</h2>
         <p>Add, edit, delete, or reorder environmental indicators</p>
     </div>
-    
-    <!-- Messages -->
-    <!-- {% if messages %}
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-    {% endif %} -->
-    
+
     <div class="questions-list">
-        <!-- Add New Question Form -->
+
+        <!-- ================= ADD QUESTION FORM ================= -->
         <div class="add-question-form">
             <h3>Add New Question</h3>
+
             <form method="post" id="addQuestionForm">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="add">
-                
+
+                <!-- QUESTION TEXT -->
                 <div class="form-group">
-                    <label>
-                        Question Text <span class="required">*</span>
-                    </label>
-                    <input type="text" 
-                           name="question_text" 
-                           id="questionText" 
-                           class="form-control" 
-                           placeholder="e.g., Total Hazardous Waste Generated"
+                    <label>Question Text <span class="required">*</span></label>
+                    <input type="text" name="question_text" id="questionText"
+                           class="form-control"
+                           placeholder="e.g., Total Fatalities"
                            required>
                 </div>
-                
+
+                <!-- SOURCE TYPE -->
                 <div class="form-group">
-                    <label>
-                        Unit Category <span class="required">*</span>
-                    </label>
-                    <select name="category_id" 
-                            id="categorySelect" 
-                            class="form-control" 
-                            required>
+                    <label>Source Type <span class="required">*</span></label>
+                    <select name="source_type" id="sourceType" class="form-control" required>
+                        <option value="MANUAL">Manual Entry</option>
+                        <option value="INCIDENT">Incident Module</option>
+                        <option value="HAZARD">Hazard Module</option>
+                    </select>
+                    <small>Choose how this question gets its value</small>
+                </div>
+
+                <!-- FILTER CONFIGURATION (for auto-calculated questions) -->
+                <div id="filterConfigSection" style="display:none;">
+                    
+                    <!-- PRIMARY FILTER -->
+                    <div class="form-group">
+                        <label>Primary Filter Field <span class="required">*</span></label>
+                        <select name="filter_field" id="filterField" class="form-control">
+                            <option value="">-- Select Field to Filter --</option>
+                        </select>
+                        <small>Choose the main field to filter by (e.g., incident_type)</small>
+                    </div>
+
+                    <div class="form-group" id="filterValueSection" style="display:none;">
+                        <label>Primary Filter Value <span class="required">*</span></label>
+                        <select name="filter_value" id="filterValue" class="form-control">
+                            <option value="">-- Select Value --</option>
+                        </select>
+                        <small>Choose the primary value to count</small>
+                    </div>
+
+                    <!-- SECONDARY FILTER -->
+                    <div class="form-group filter-separator">
+                        <label>Secondary Filter Field <span style="color: #64748b;">(Optional)</span></label>
+                        <select name="filter_field_2" id="filterField2" class="form-control">
+                            <option value="">-- No Secondary Filter --</option>
+                        </select>
+                        <small>Add an additional filter (e.g., status for "LTI Reported")</small>
+                    </div>
+
+                    <div class="form-group" id="filterValueSection2" style="display:none;">
+                        <label>Secondary Filter Value</label>
+                        <select name="filter_value_2" id="filterValue2" class="form-control">
+                            <option value="">-- Select Value --</option>
+                        </select>
+                        <small>Choose the secondary value</small>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>Examples:</strong><br>
+                        • <strong>All Fatalities:</strong> incident_type = FATALITY (no secondary filter)<br>
+                        • <strong>LTI Reported:</strong> incident_type = LTI + status = REPORTED<br>
+                        • <strong>Closed Fatalities:</strong> incident_type = FATALITY + status = CLOSED
+                    </div>
+                </div>
+
+                <!-- UNIT CATEGORY (only for MANUAL) -->
+                <div class="form-group" id="unitCategorySection">
+                    <label>Unit Category <span class="required">*</span></label>
+                    <select name="category_id" id="categorySelect" class="form-control">
                         <option value="">-- Select Unit Category --</option>
                         {% for cat in categories %}
-                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        <option value="{{ cat.id }}" 
+                                {% if selected_category_id == cat.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
                         {% endfor %}
                     </select>
-                    <small>Select the category of measurement (e.g., Weight, Volume, Energy)</small>
+                    <small>Select a category, then page will reload to show units</small>
                 </div>
-                
-                <div class="form-group" id="unitsSection" style="display:none;">
-                    <label>
-                        Available Units (select at least one) <span class="required">*</span>
-                    </label>
-                    <div id="unitsList" class="units-container">
-                        <div class="empty">Please select a category first</div>
+
+                <!-- Show units only if category is selected -->
+                {% if units %}
+                <!-- AVAILABLE UNITS -->
+                <div class="form-group" id="unitsSection">
+                    <label>Available Units <span class="required">*</span></label>
+                    <div class="units-container">
+                        {% for unit in units %}
+                        <label class="unit-checkbox">
+                            <input type="checkbox" 
+                                   name="selected_unit_ids[]" 
+                                   value="{{ unit.id }}">
+                            {{ unit.name }} ({{ unit.base_unit }})
+                        </label>
+                        {% endfor %}
                     </div>
-                    <small>Check the units that users can choose from when entering data</small>
+                    <small>Select at least one unit for this question</small>
                 </div>
-                
-                <div class="form-group" id="defaultUnitSection" style="display:none;">
-                    <label>
-                        Default Unit <span class="required">*</span>
-                    </label>
-                    <select name="default_unit_id" 
-                            id="defaultUnitSelect" 
-                            class="form-control" 
-                            required>
+
+                <!-- DEFAULT UNIT -->
+                <div class="form-group" id="defaultUnitSection">
+                    <label>Default Unit <span class="required">*</span></label>
+                    <select name="default_unit_id" id="defaultUnitSelect" class="form-control">
                         <option value="">-- Select Default Unit --</option>
+                        {% for unit in units %}
+                        <option value="{{ unit.id }}">{{ unit.name }}</option>
+                        {% endfor %}
                     </select>
-                    <small>This unit will be used as the base unit for data storage and display</small>
+                    <small>Must be one of the selected units above</small>
                 </div>
-                
-                <div style="margin-top: 20px;">
-                    <button type="submit" class="btn btn-success" id="submitBtn">
-                        <i class="fas fa-plus-circle"></i> Add Question
-                    </button>
-                    <div class="loading-spinner" id="loadingSpinner"></div>
-                </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-success" id="submitBtn">
+                    Add Question
+                </button>
             </form>
         </div>
-        
-        <!-- Existing Questions -->
+
+        <!-- ================= EXISTING QUESTIONS ================= -->
         <div class="existing-questions">
             <h3>Existing Questions ({{ questions|length }})</h3>
-            
-            {% if questions %}
-                {% for item in questions %}
-                <div class="question-item">
-                    <div class="question-header">
-                        <span class="question-number">Question #{{ forloop.counter }}</span>
-                        <form method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this question? This action cannot be undone.');">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="delete">
-                            <input type="hidden" name="question_id" value="{{ item.id }}">
-                            <button type="submit" class="btn btn-danger btn-sm">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </form>
-                    </div>
-                    
-                    <div class="question-details">
-                        <div class="detail-row">
-                            <span class="detail-label">Question:</span>
-                            <span class="detail-value"><strong>{{ item.question }}</strong></span>
-                        </div>
-                        
-                        <div class="detail-row">
-                            <span class="detail-label">Category:</span>
-                            <span class="detail-value">
-                                <span class="category-badge">{{ item.category_name|default:"Not Set" }}</span>
-                            </span>
-                        </div>
-                        
-                        <div class="detail-row">
-                            <span class="detail-label">Default Unit:</span>
-                            <span class="detail-value">
-                                <span class="unit-badge">{{ item.default_unit_name|default:"Not Set" }}</span>
-                            </span>
-                        </div>
-                        
-                        <div class="detail-row">
-                            <span class="detail-label">Available Units:</span>
-                            <span class="detail-value">
-                                {% if item.selected_unit_names %}
-                                    {% for unit_name in item.selected_unit_names %}
-                                        <span class="unit-badge">{{ unit_name }}</span>
-                                    {% endfor %}
-                                {% else %}
-                                    <span style="color: #95a5a6;">No units selected</span>
-                                {% endif %}
-                            </span>
-                        </div>
-                    </div>
+
+            {% for item in questions %}
+            <div class="question-item">
+
+                <div class="detail-row">
+                    <span class="detail-label">Question:</span>
+                    <strong>{{ item.question }}</strong>
                 </div>
-                {% endfor %}
-            {% else %}
-                <div class="no-questions">
-                    <i class="fas fa-inbox" style="font-size: 48px; color: #bdc3c7; margin-bottom: 15px;"></i>
-                    <p>No questions added yet. Add your first environmental question above.</p>
+
+                <div class="detail-row">
+                    <span class="detail-label">Source Type:</span>
+                    {{ item.source_type }}
                 </div>
-            {% endif %}
+
+                {% if item.filter_description %}
+                <div class="detail-row">
+                    <span class="detail-label">Filter:</span>
+                    {{ item.filter_description }}
+                </div>
+                {% endif %}
+
+                {% if item.category_name != "Not Set" %}
+                <div class="detail-row">
+                    <span class="detail-label">Category:</span>
+                    {{ item.category_name }}
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">Default Unit:</span>
+                    {{ item.default_unit_name }}
+                </div>
+                {% endif %}
+
+            </div>
+            {% empty %}
+            <p>No questions yet.</p>
+            {% endfor %}
         </div>
-        
-        <!-- Back Button -->
-        <div style="margin-top: 30px;">
-            <a href="{% url 'environmental:plant-entry' %}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Data Entry
-            </a>
-        </div>
+
     </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
+    const sourceType = document.getElementById('sourceType');
+    const filterConfigSection = document.getElementById('filterConfigSection');
+    const filterField = document.getElementById('filterField');
+    const filterValue = document.getElementById('filterValue');
+    const filterValueSection = document.getElementById('filterValueSection');
+    
+    const filterField2 = document.getElementById('filterField2');
+    const filterValue2 = document.getElementById('filterValue2');
+    const filterValueSection2 = document.getElementById('filterValueSection2');
+    
+    const unitCategorySection = document.getElementById('unitCategorySection');
     const categorySelect = document.getElementById('categorySelect');
-    const unitsSection = document.getElementById('unitsSection');
-    const unitsList = document.getElementById('unitsList');
-    const defaultUnitSection = document.getElementById('defaultUnitSection');
-    const defaultUnitSelect = document.getElementById('defaultUnitSelect');
-    const addQuestionForm = document.getElementById('addQuestionForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const loadingSpinner = document.getElementById('loadingSpinner');
     
-    let availableUnits = [];
-    let selectedUnits = new Set();
-    
-    // ==================== CATEGORY CHANGE EVENT ====================
-    categorySelect.addEventListener('change', function() {
-        const categoryId = this.value;
+    // Handle source type change
+    sourceType.addEventListener('change', function () {
+        const isManual = this.value === 'MANUAL';
         
-        if (!categoryId) {
-            unitsSection.style.display = 'none';
-            defaultUnitSection.style.display = 'none';
-            availableUnits = [];
-            selectedUnits.clear();
-            return;
+        filterConfigSection.style.display = isManual ? 'none' : 'block';
+        unitCategorySection.style.display = isManual ? 'block' : 'none';
+        
+        // Clear selections
+        filterField.innerHTML = '<option value="">-- Select Field to Filter --</option>';
+        filterValue.innerHTML = '<option value="">-- Select Value --</option>';
+        filterField2.innerHTML = '<option value="">-- No Secondary Filter --</option>';
+        filterValue2.innerHTML = '<option value="">-- Select Value --</option>';
+        filterValueSection.style.display = 'none';
+        filterValueSection2.style.display = 'none';
+        
+        if (!isManual) {
+            loadSourceFields(this.value);
         }
-        
-        // Show loading
-        unitsList.innerHTML = '<div class="empty">Loading units...</div>';
-        unitsSection.style.display = 'block';
-        defaultUnitSection.style.display = 'none';
-        
-        // Fetch units via AJAX
-        fetch(`/env-data/api/get-category-units/?category_id=${categoryId}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
+    });
+
+    // Load available fields
+    function loadSourceFields(sourceType) {
+        fetch(`/env-data/api/get-source-fields/?source_type=${sourceType}`)
+            .then(response => response.json())
             .then(data => {
-                if (data.success && data.units) {
-                    availableUnits = data.units;
-                    selectedUnits.clear();
-                    displayUnits(data.units);
-                    defaultUnitSection.style.display = 'block';
-                } else {
-                    throw new Error(data.error || 'Failed to fetch units');
+                if (data.success && data.fields.length > 0) {
+                    // Populate primary filter
+                    filterField.innerHTML = '<option value="">-- Select Field to Filter --</option>';
+                    
+                    // Populate secondary filter
+                    filterField2.innerHTML = '<option value="">-- No Secondary Filter --</option>';
+                    
+                    data.fields.forEach(field => {
+                        // Primary filter option
+                        const option1 = document.createElement('option');
+                        option1.value = field.field_name;
+                        option1.textContent = field.field_verbose_name;
+                        option1.dataset.choices = JSON.stringify(field.choices);
+                        filterField.appendChild(option1);
+                        
+                        // Secondary filter option
+                        const option2 = document.createElement('option');
+                        option2.value = field.field_name;
+                        option2.textContent = field.field_verbose_name;
+                        option2.dataset.choices = JSON.stringify(field.choices);
+                        filterField2.appendChild(option2);
+                    });
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                unitsList.innerHTML = `<div class="empty" style="color: #e74c3c;">
-                    <i class="fas fa-exclamation-triangle"></i> Error loading units: ${error.message}
-                </div>`;
-                defaultUnitSection.style.display = 'none';
+                console.error('Error loading fields:', error);
+                alert('Error loading fields. Please try again.');
             });
+    }
+
+    // Handle primary filter field change
+    filterField.addEventListener('change', function() {
+        handleFilterFieldChange(this, filterValue, filterValueSection);
     });
-    
-    // ==================== DISPLAY UNITS ====================
-    function displayUnits(units) {
-        unitsList.innerHTML = '';
+
+    // Handle secondary filter field change
+    filterField2.addEventListener('change', function() {
+        if (this.value) {
+            handleFilterFieldChange(this, filterValue2, filterValueSection2);
+        } else {
+            filterValueSection2.style.display = 'none';
+        }
+    });
+
+    // Common function to handle filter field changes
+    function handleFilterFieldChange(fieldSelect, valueSelect, valueSection) {
+        const selectedOption = fieldSelect.options[fieldSelect.selectedIndex];
         
-        if (units.length === 0) {
-            unitsList.innerHTML = '<div class="empty">No units found for this category</div>';
-            populateDefaultUnitDropdown([]);
+        if (!fieldSelect.value) {
+            valueSection.style.display = 'none';
             return;
         }
         
-        units.forEach(unit => {
-            const checkboxDiv = document.createElement('div');
-            checkboxDiv.className = 'unit-checkbox-item';
+        try {
+            const choices = JSON.parse(selectedOption.dataset.choices || '[]');
             
-            checkboxDiv.innerHTML = `
-                <label>
-                    <input type="checkbox" 
-                           name="selected_unit_ids[]" 
-                           value="${unit.id}" 
-                           class="unit-checkbox"
-                           data-unit-name="${unit.name}">
-                    <div class="unit-info">
-                        <span class="unit-name">${unit.name}</span>
-                        <span class="unit-details">
-                            Base Unit: ${unit.base_unit} | Conversion Rate: ${unit.conversion_rate}
-                        </span>
-                    </div>
-                </label>
-            `;
-            
-            unitsList.appendChild(checkboxDiv);
-        });
-        
-        // Add event listeners to checkboxes
-        document.querySelectorAll('.unit-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                if (this.checked) {
-                    selectedUnits.add(this.value);
-                } else {
-                    selectedUnits.delete(this.value);
-                }
-                updateDefaultUnitDropdown();
-            });
-        });
-        
-        populateDefaultUnitDropdown(units);
-    }
-    
-    // ==================== POPULATE DEFAULT UNIT DROPDOWN ====================
-    function populateDefaultUnitDropdown(units) {
-        defaultUnitSelect.innerHTML = '<option value="">-- Select Default Unit --</option>';
-        
-        units.forEach(unit => {
-            const option = document.createElement('option');
-            option.value = unit.id;
-            option.textContent = `${unit.name} (${unit.base_unit})`;
-            option.dataset.unitName = unit.name;
-            defaultUnitSelect.appendChild(option);
-        });
-    }
-    
-    // ==================== UPDATE DEFAULT UNIT DROPDOWN ====================
-    function updateDefaultUnitDropdown() {
-        const options = defaultUnitSelect.querySelectorAll('option');
-        options.forEach(option => {
-            if (option.value === '') return;
-            
-            if (selectedUnits.has(option.value)) {
-                option.disabled = false;
-                option.style.color = '';
-            } else {
-                option.disabled = true;
-                option.style.color = '#ccc';
+            if (choices.length > 0) {
+                valueSelect.innerHTML = '<option value="">-- Select Value --</option>';
+                choices.forEach(choice => {
+                    const option = document.createElement('option');
+                    option.value = choice.value;
+                    option.textContent = choice.display;
+                    valueSelect.appendChild(option);
+                });
+                valueSection.style.display = 'block';
             }
-        });
-        
-        // If current selection is now disabled, reset
-        const currentValue = defaultUnitSelect.value;
-        if (currentValue && !selectedUnits.has(currentValue)) {
-            defaultUnitSelect.value = '';
+        } catch (e) {
+            console.error('Error parsing choices:', e);
         }
     }
-    
-    // ==================== FORM VALIDATION ====================
-    addQuestionForm.addEventListener('submit', function(e) {
-        const questionText = document.getElementById('questionText').value.trim();
-        const categoryId = categorySelect.value;
-        const selectedUnitCheckboxes = document.querySelectorAll('.unit-checkbox:checked');
-        const defaultUnitId = defaultUnitSelect.value;
-        
-        // Validate question text
-        if (!questionText) {
-            e.preventDefault();
-            alert('Please enter a question text');
-            document.getElementById('questionText').focus();
-            return false;
+
+    // Category selection for manual entry
+    categorySelect.addEventListener('change', function(e) {
+        const categoryId = this.value;
+        if (categoryId && sourceType.value === 'MANUAL') {
+            window.location.href = '?category_id=' + categoryId;
         }
-        
-        // Validate category
-        if (!categoryId) {
-            e.preventDefault();
-            alert('Please select a unit category');
-            categorySelect.focus();
-            return false;
-        }
-        
-        // Validate at least one unit selected
-        if (selectedUnitCheckboxes.length === 0) {
-            e.preventDefault();
-            alert('Please select at least one unit');
-            return false;
-        }
-        
-        // Validate default unit
-        if (!defaultUnitId) {
-            e.preventDefault();
-            alert('Please select a default unit');
-            defaultUnitSelect.focus();
-            return false;
-        }
-        
-        // Check if default unit is in selected units
-        const selectedUnitIds = Array.from(selectedUnitCheckboxes).map(cb => cb.value);
-        if (!selectedUnitIds.includes(defaultUnitId)) {
-            e.preventDefault();
-            alert('Default unit must be one of the selected units');
-            return false;
-        }
-        
-        // Show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-        loadingSpinner.classList.add('show');
     });
-    
-    // ==================== KEYBOARD SHORTCUTS ====================
-    document.addEventListener('keydown', function(e) {
-        // Ctrl + S to submit form
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            e.preventDefault();
-            if (submitBtn && !submitBtn.disabled) {
-                addQuestionForm.submit();
+
+    // Form validation
+    document.getElementById('addQuestionForm').addEventListener('submit', function(e) {
+        const isManual = sourceType.value === 'MANUAL';
+        
+        if (!isManual) {
+            if (!filterField.value) {
+                e.preventDefault();
+                alert('Please select a primary filter field');
+                filterField.focus();
+                return false;
+            }
+            
+            if (!filterValue.value) {
+                e.preventDefault();
+                alert('Please select a primary filter value');
+                filterValue.focus();
+                return false;
+            }
+            
+            // Validate secondary filter if field is selected
+            if (filterField2.value && !filterValue2.value) {
+                e.preventDefault();
+                alert('Please select a secondary filter value');
+                filterValue2.focus();
+                return false;
+            }
+        } else {
+            const selectedUnits = document.querySelectorAll('input[name="selected_unit_ids[]"]:checked');
+            
+            if (selectedUnits.length === 0) {
+                e.preventDefault();
+                alert('Please select at least one unit');
+                return false;
             }
         }
     });

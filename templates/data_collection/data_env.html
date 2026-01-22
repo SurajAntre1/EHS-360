@@ -2,675 +2,601 @@
 {% load static %}
 {% block title %}Environmental Data{% endblock %}
 {% block page_title %}Environmental Data Entry{% endblock %}
-{% load custom_tags %}
 
 {% block extra_css %}
 <style>
+/* ==================== ROOT VARIABLES ==================== */
+:root {
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --success-color: #10b981;
+    --success-hover: #059669;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --info-color: #3b82f6;
+    --bg-light: #f8fafc;
+    --bg-white: #ffffff;
+    --border-color: #e2e8f0;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+}
+
+/* ==================== CONTAINER ==================== */
+.env-data-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    background: var(--bg-light);
+    min-height: calc(100vh - 100px);
+}
+
+/* ==================== HEADER SECTION ==================== */
+.header-section {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #1e40af 100%);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-lg);
+    color: white;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.header-info h2 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: white;
+}
+
+.plant-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    font-size: 0.95rem;
+    opacity: 0.95;
+}
+
+.plant-info strong {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 600;
+}
+
+.btn-manage-questions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: white;
+    color: var(--primary-color);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-manage-questions:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    background: #f9fafb;
+}
+
+.btn-manage-questions i {
+    font-size: 1.1rem;
+}
+
+/* ==================== PLANT SELECTOR ==================== */
+.plant-selector-section {
+    background: var(--bg-white);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+}
+
+.plant-selector-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.plant-selector-container label {
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.plant-selector-container label i {
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.plant-selector-container select {
+    flex: 1;
+    min-width: 250px;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.plant-selector-container select:hover {
+    border-color: var(--primary-color);
+}
+
+.plant-selector-container select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.plant-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+}
+
+.plant-count-badge i {
+    font-size: 1rem;
+}
+
+/* ==================== NO QUESTIONS ALERT ==================== */
+.no-questions-alert {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid var(--warning-color);
+    border-radius: var(--radius-lg);
+    padding: 3rem;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+}
+
+.no-questions-alert h3 {
+    color: #92400e;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 2rem;
+    background: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* ==================== DATA TABLE CONTAINER ==================== */
+.data-table-container {
+    background: var(--bg-white);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+/* ==================== DATA TABLE ==================== */
+.data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.9rem;
+    background: white;
+}
+
+.data-table thead {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.data-table thead th {
+    padding: 1rem;
+    font-weight: 700;
+    text-align: left;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
+    white-space: nowrap;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.data-table thead th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 11;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    min-width: 300px;
+    max-width: 400px;
+}
+
+.data-table tbody tr {
+    transition: all 0.2s ease;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.data-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.data-table tbody td {
+    padding: 0.75rem 1rem;
+    border-right: 1px solid #f1f5f9;
+}
+
+.data-table tbody td:first-child {
+    position: sticky;
+    left: 0;
+    background: white;
+    z-index: 5;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-right: 2px solid var(--border-color);
+    min-width: 300px;
+    max-width: 400px;
+}
+
+.data-table tbody tr:hover td:first-child {
+    background: #f8fafc;
+}
+
+.data-table tbody td:last-child {
+    border-right: none;
+}
+
+/* ==================== UNIT BADGE ==================== */
+.unit-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e40af;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+    border: 1px solid #93c5fd;
+}
+
+/* ==================== AUTO INDICATOR ==================== */
+.data-table tbody td:first-child i.fas.fa-calculator {
+    margin-left: 0.5rem;
+    color: var(--success-color);
+    font-size: 0.875rem;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* ==================== DATA INPUT ==================== */
+.data-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    text-align: right;
+    transition: all 0.2s ease;
+    background: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.data-input:hover {
+    border-color: #cbd5e1;
+}
+
+.data-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    background: #fefefe;
+}
+
+.data-input::placeholder {
+    color: #cbd5e1;
+    font-style: italic;
+}
+
+/* ==================== ACTION BUTTONS ==================== */
+.action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 2px solid var(--border-color);
+}
+
+.btn-reset,
+.btn-save {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 2rem;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-reset {
+    background: #f1f5f9;
+    color: var(--text-secondary);
+    border: 2px solid var(--border-color);
+}
+
+.btn-reset:hover {
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-save {
+    background: linear-gradient(135deg, var(--success-color) 0%, var(--success-hover) 100%);
+    color: white;
+    border: 2px solid transparent;
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+}
+
+.btn-save:active {
+    transform: translateY(0);
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 1024px) {
     .env-data-container {
-        padding: 20px;
-        background: #f8f9fa;
-        min-height: 100vh;
-    }
-    
-    .header-section {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-    
-    .header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 15px;
-    }
-    
-    .header-info h2 {
-        margin: 0;
-        color: #2c3e50;
-        font-size: 24px;
-        font-weight: 600;
-    }
-    
-    .plant-info {
-        color: #7f8c8d;
-        margin-top: 5px;
-        font-size: 14px;
-    }
-    
-    .btn-manage-questions {
-        background: #3498db;
-        color: white;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        transition: all 0.3s;
-    }
-    
-    .btn-manage-questions:hover {
-        background: #2980b9;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
-        color: white;
-    }
-    
-    /* Plant Selector Styles */
-    .plant-selector-section {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        margin-bottom: 20px;
-    }
-    
-    .plant-selector-container {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        flex-wrap: wrap;
-    }
-    
-    .plant-selector-container label {
-        font-weight: 600;
-        color: white;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin: 0;
-        font-size: 16px;
-    }
-    
-    .plant-selector-container select {
-        flex: 1;
-        min-width: 300px;
-        max-width: 500px;
-        padding: 10px 15px;
-        border: 2px solid white;
-        border-radius: 6px;
-        font-size: 15px;
-        font-weight: 600;
-        background: white;
-        color: #2c3e50;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-    
-    .plant-selector-container select:focus {
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
-    }
-    
-    .plant-count-badge {
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
-        padding: 8px 15px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-    }
-    
-    .no-questions-alert {
-        background: white;
-        padding: 40px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        text-align: center;
-        margin-top: 20px;
-    }
-    
-    .no-questions-alert h3 {
-        color: #2c3e50;
-        margin-bottom: 15px;
-    }
-    
-    .no-questions-alert p {
-        color: #7f8c8d;
-        margin-bottom: 20px;
-        font-size: 16px;
-    }
-    
-    .btn-primary {
-        background: #3498db;
-        color: white;
-        padding: 12px 24px;
-        border: none;
-        border-radius: 6px;
-        font-size: 15px;
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-block;
-        transition: all 0.3s;
-    }
-    
-    .btn-primary:hover {
-        background: #2980b9;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
-        color: white;
-    }
-    
-    .data-table-container {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        overflow: hidden;
-    }
-    
-    .table-wrapper {
-        overflow-x: auto;
-        max-height: calc(100vh - 250px);
-    }
-    
-    .data-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        margin: 0;
-    }
-    
-    .data-table thead {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        background: #34495e;
-    }
-    
-    .data-table thead th {
-        background: #34495e;
-        color: white;
-        padding: 12px 8px;
-        text-align: center;
-        font-weight: 600;
-        font-size: 13px;
-        border-right: 1px solid #2c3e50;
-        white-space: nowrap;
-    }
-    
-    .data-table thead th:first-child {
-        position: sticky;
-        left: 0;
-        z-index: 11;
-        text-align: left;
-        min-width: 450px;
-        max-width: 450px;
-        border-right: 2px solid #2c3e50;
-    }
-    
-    .data-table tbody tr {
-        border-bottom: 1px solid #e9ecef;
-        transition: background-color 0.2s;
-    }
-    
-    .data-table tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-    
-    .data-table tbody tr:nth-child(even) {
-        background-color: #fafbfc;
-    }
-    
-    .data-table tbody td {
-        padding: 8px;
-        border-right: 1px solid #e9ecef;
-        text-align: center;
-    }
-    
-    .data-table tbody td:first-child {
-        position: sticky;
-        left: 0;
-        background: #fff;
-        text-align: left;
-        font-weight: 500;
-        color: #2c3e50;
-        min-width: 450px;
-        max-width: 450px;
-        border-right: 2px solid #dee2e6;
-        font-size: 13px;
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-    
-    .data-table tbody tr:hover td:first-child {
-        background-color: #f8f9fa;
-    }
-    
-    .data-table tbody tr:nth-child(even) td:first-child {
-        background-color: #fafbfc;
-    }
-    
-    .indicator-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .indicator-text {
-        flex: 1;
-    }
-    
-    .unit-badge {
-        background: #3498db;
-        color: white;
-        padding: 4px 10px;
-        border-radius: 3px;
-        font-size: 11px;
-        font-weight: 600;
-        white-space: nowrap;
-    }
-    
-    .data-input {
-        width: 100%;
-        padding: 6px 8px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        text-align: center;
-        font-size: 13px;
-        transition: all 0.2s;
-        min-width: 80px;
-    }
-    
-    .data-input:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-        background-color: #fff;
-    }
-    
-    .data-input:hover {
-        border-color: #3498db;
-    }
-    
-    .data-input.error {
-        border-color: #e74c3c;
-        background-color: #ffeaea;
-    }
-    
-    /* Auto-populated input styles */
-    .data-input.auto-populated {
-        background-color: #e8f5e9 !important;
-        border-left: 3px solid #4caf50 !important;
-        font-weight: 600;
-    }
-    
-    .data-input.auto-populated:focus {
-        background-color: #c8e6c9 !important;
-    }
-    
-    .auto-indicator {
-        font-size: 10px;
-        color: #4caf50;
-        display: inline-block;
-        margin-left: 8px;
-        font-weight: 600;
-        background: #e8f5e9;
-        padding: 2px 6px;
-        border-radius: 3px;
-    }
-    
-    .action-buttons {
-        padding: 20px;
-        background: white;
-        border-top: 1px solid #e9ecef;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .btn-save {
-        background: #27ae60;
-        color: white;
-        padding: 12px 32px;
-        border: none;
-        border-radius: 6px;
-        font-size: 15px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-    
-    .btn-save:hover {
-        background: #229954;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3);
-    }
-    
-    .btn-reset {
-        background: #95a5a6;
-        color: white;
-        padding: 12px 24px;
-        border: none;
-        border-radius: 6px;
-        font-size: 15px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-    
-    .btn-reset:hover {
-        background: #7f8c8d;
-    }
-    
-    .save-indicator {
-        display: none;
-        color: #27ae60;
-        font-size: 14px;
-        margin-left: 15px;
-        animation: fadeIn 0.3s;
-    }
-    
-    .save-indicator.show {
-        display: inline-block;
-    }
-    
-    .loading-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.5);
-        z-index: 9999;
-        justify-content: center;
-        align-items: center;
-    }
-    
-    .loading-overlay.show {
-        display: flex;
-    }
-    
-    .spinner {
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #3498db;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-    
-    .unit-note {
-        font-size: 11px;
-        color: #95a5a6;
-        display: block;
-        margin-top: 3px;
-        font-weight: normal;
-    }
-    
-    /* Legend for auto-populated data */
-    .data-legend {
-        background: #f8f9fa;
-        padding: 12px 20px;
-        border-bottom: 1px solid #e9ecef;
-        display: flex;
-        gap: 20px;
-        align-items: center;
-        font-size: 13px;
-    }
-    
-    .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .legend-box {
-        width: 20px;
-        height: 20px;
-        border-radius: 3px;
-        border: 1px solid #dee2e6;
-    }
-    
-    .legend-box.auto {
-        background-color: #e8f5e9;
-        border-left: 3px solid #4caf50;
-    }
-    
-    .legend-box.manual {
-        background-color: white;
-        border: 1px solid #ced4da;
-    }
-    
-    /* Stats Summary Section */
-    .stats-summary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 15px 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        color: white;
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 15px;
-    }
-    
-    .stat-item {
-        text-align: center;
-    }
-    
-    .stat-value {
-        font-size: 28px;
-        font-weight: 700;
-        display: block;
-        margin-bottom: 5px;
-    }
-    
-    .stat-label {
-        font-size: 12px;
-        opacity: 0.9;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    @media screen and (max-width: 768px) {
-        .header-content {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        
-        .btn-manage-questions {
-            width: 100%;
-            justify-content: center;
-        }
-        
-        .data-table tbody td:first-child,
-        .data-table thead th:first-child {
-            min-width: 300px;
-            max-width: 300px;
-        }
-        
-        .plant-selector-container {
-            flex-direction: column;
-            align-items: stretch;
-        }
-        
-        .plant-selector-container select {
-            min-width: 100%;
-        }
-        
-        .data-legend {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        
-        .stats-summary {
-            flex-direction: column;
-        }
+        padding: 1rem;
     }
 
-    #plantSelector {
-        color: #2c3e50 !important;
-        background-color: #ffffff !important;
-        padding: 7px 15px !important;
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
     }
+
+    .plant-info {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .data-table {
+        font-size: 0.85rem;
+    }
+
+    .data-table thead th,
+    .data-table tbody td {
+        padding: 0.5rem;
+    }
+
+    .data-table thead th:first-child,
+    .data-table tbody td:first-child {
+        min-width: 200px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-info h2 {
+        font-size: 1.5rem;
+    }
+
+    .plant-selector-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .plant-selector-container select {
+        min-width: 100%;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .btn-reset,
+    .btn-save {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .data-table thead th:first-child,
+    .data-table tbody td:first-child {
+        position: static;
+        min-width: auto;
+    }
+}
+
+/* ==================== LOADING STATE ==================== */
+.btn-save:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* ==================== PRINT STYLES ==================== */
+@media print {
+    .header-section,
+    .plant-selector-section,
+    .action-buttons,
+    .btn-manage-questions {
+        display: none;
+    }
+
+    .data-table-container {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+
+    .data-input {
+        border: none;
+        border-bottom: 1px solid #000;
+    }
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="env-data-container">
+
     <!-- Header Section -->
     <div class="header-section">
         <div class="header-content">
             <div class="header-info">
                 <h2>Environmental Data Entry</h2>
                 <div class="plant-info">
-                    <strong>Currently Editing:</strong> {{ selected_plant.name }} | 
-                    <strong>Year:</strong> {{ current_year|default:"2025" }} |
-                    <strong>Last Updated:</strong> {% now "F d, Y - H:i" %}
+                    <span><strong>Currently Editing:</strong> {{ selected_plant.name }}</span>
+                    <span><strong>Year:</strong> {{ current_year }}</span>
+                    <span><strong>Last Updated:</strong> {% now "F d, Y - H:i" %}</span>
                 </div>
             </div>
             {% if user.is_admin_user %}
             <div>
                 <a href="{% url 'environmental:questions-manager' %}" class="btn-manage-questions">
-                    <i class="fas fa-cog"></i> Manage Questions
+                    <i class="fas fa-cog"></i>
+                    <span>Manage Questions</span>
                 </a>
             </div>
             {% endif %}
         </div>
     </div>
 
-    <!-- Plant Selector (Only show if user has multiple plants) -->
+    <!-- Plant Selector -->
     {% if user_plants.count > 1 %}
     <div class="plant-selector-section">
         <div class="plant-selector-container">
-            <label for="plantSelector">
-                <i class="fas fa-building"></i> Select Plant:
+            <label>
+                <i class="fas fa-building"></i>
+                <span>Select Plant:</span>
             </label>
-            <select id="plantSelector" class="form-control" onchange="switchPlant(this.value)">
-                {% for p in user_plants %}
-                <option value="{{ p.id }}" {% if p.id == selected_plant.id %}selected{% endif %}>
-                    {{ p.name }}
+            <select onchange="switchPlant(this.value)">
+                {% for plant in user_plants %}
+                <option value="{{ plant.id }}" {% if plant.id == selected_plant.id %}selected{% endif %}>
+                    {{ plant.name }}
                 </option>
                 {% endfor %}
             </select>
             <span class="plant-count-badge">
-                <i class="fas fa-check-circle"></i> {{ user_plants.count }} plant(s) assigned
+                <i class="fas fa-check-circle"></i>
+                <span>{{ user_plants.count }} plant(s)</span>
             </span>
         </div>
     </div>
     {% endif %}
 
     {% if no_questions %}
-    <!-- No Questions Alert -->
-    <div class="no-questions-alert">
-        <i class="fas fa-inbox" style="font-size: 48px; color: #bdc3c7; margin-bottom: 15px;"></i>
-        <h3>No Environmental Questions Configured</h3>
-        <p>Please add environmental questions first using the Manage Questions page.</p>
-        <p><strong>Note:</strong> You need to have at least one question configured to enter data.</p>
-        <a href="{% url 'environmental:questions-manager' %}" class="btn-primary">
-            <i class="fas fa-plus-circle"></i> Go to Questions Manager
-        </a>
-    </div>
-    
+        <div class="no-questions-alert">
+            <h3><i class="fas fa-exclamation-triangle"></i> No Environmental Questions Configured</h3>
+            <p style="margin-bottom: 1.5rem; color: #92400e;">Please add questions to start collecting environmental data.</p>
+            <a href="{% url 'environmental:questions-manager' %}" class="btn-primary">
+                <i class="fas fa-plus-circle"></i>
+                <span>Add Questions</span>
+            </a>
+        </div>
     {% else %}
-    
-    <!-- Stats Summary -->
-    {% if auto_populated_count %}
-    <div class="stats-summary">
-        <div class="stat-item">
-            <span class="stat-value">{{ total_questions }}</span>
-            <span class="stat-label">Total Questions</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-value">{{ auto_populated_count }}</span>
-            <span class="stat-label">Auto-Populated</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-value">{{ manual_entry_count }}</span>
-            <span class="stat-label">Manual Entry</span>
-        </div>
-    </div>
-    {% endif %}
-    
+
     <!-- Data Entry Form -->
     <form method="post" id="dataEntryForm">
         {% csrf_token %}
         <input type="hidden" name="selected_plant_id" value="{{ selected_plant.id }}">
-        
+
         <div class="data-table-container">
-            <!-- Legend -->
-            <div class="data-legend">
-                <div class="legend-item">
-                    <div class="legend-box auto"></div>
-                    <span><i class="fas fa-calculator"></i> Auto-populated from Incident/Hazard records</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-box manual"></div>
-                    <span><i class="fas fa-edit"></i> Manual entry required</span>
-                </div>
-                <div>
-                    <i class="fas fa-info-circle" style="color: #3498db;"></i>
-                    <small style="color: #7f8c8d;">Auto-populated values can be edited if needed</small>
-                </div>
-            </div>
-            
             <div class="table-wrapper">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>
-                                Environmental Indicators
-                                <span class="unit-note">Enter numeric values for {{ selected_plant.name }}</span>
-                            </th>
-                            {% for month in months %}
-                            <th>{{ month }}</th>
+                            <th>Environmental Indicators</th>
+                            {% for month_name in months %}
+                                <th>{{ month_name }}</th>
                             {% endfor %}
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in questions_with_data %}
-                        <tr data-row="{{ forloop.counter }}" data-question="{{ item.slugified }}">
+                        {% for q in questions_with_data %}
+                        <tr>
                             <td>
-                                <div class="indicator-content">
-                                    <span class="indicator-text">
-                                        {{ forloop.counter }}. {{ item.question }}
-                                        {% if item.is_auto_populated %}
-                                        <span class="auto-indicator" title="Auto-calculated from Incident/Hazard records">
-                                            <i class="fas fa-calculator"></i> Auto
-                                        </span>
-                                        {% endif %}
-                                    </span>
-                                    <span class="unit-badge">{{ item.default_unit_name }}</span>
-                                </div>
+                                <span>{{ forloop.counter }}. {{ q.question }}</span>
+                                <span class="unit-badge">{{ q.default_unit_name }}</span>
+                                {% if q.is_auto_populated %}
+                                    <i class="fas fa-calculator" title="Auto-calculated"></i>
+                                {% endif %}
                             </td>
-                            
-                            {% for month in months %}
+                            {% for m in q.months %}
                             <td>
-                                <input 
-                                    type="text" 
-                                    name="{{ item.slugified }}_{{ month|lower }}" 
-                                    value="{{ item.month_data|get_item:month|default:'' }}" 
-                                    class="data-input {% if item.is_auto_populated %}auto-populated{% endif %}"
+                                <input
+                                    type="text"
+                                    name="{{ q.slugified }}_{{ m.code|lower }}"
+                                    value="{{ m.value }}"
+                                    class="data-input"
                                     placeholder="0"
-                                    autocomplete="off"
-                                    data-month="{{ month|lower }}"
-                                    data-row="{{ forloop.parentloop.counter }}"
-                                    {% if item.is_auto_populated %}
-                                    title="Auto-populated from {{ selected_plant.name }} Incident/Hazard records. You can edit this value if needed."
-                                    {% endif %}
+                                    pattern="[0-9]*\.?[0-9]*"
+                                    title="Enter numeric value"
                                 >
                             </td>
                             {% endfor %}
@@ -679,19 +605,16 @@
                     </tbody>
                 </table>
             </div>
-            
-            <!-- Action Buttons -->
+
+            <!-- Actions -->
             <div class="action-buttons">
-                <div>
-                    <button type="button" class="btn-reset" onclick="resetForm()">
-                        <i class="fas fa-redo"></i> Reset
-                    </button>
-                    <span class="save-indicator" id="saveIndicator">
-                        <i class="fas fa-check-circle"></i> Saved successfully!
-                    </span>
-                </div>
-                <button type="submit" class="btn-save">
-                    <i class="fas fa-save"></i> Save Data for {{ selected_plant.name }}
+                <button type="button" class="btn-reset" onclick="resetForm()">
+                    <i class="fas fa-undo"></i>
+                    <span>Reset</span>
+                </button>
+                <button type="submit" class="btn-save" id="saveBtn">
+                    <i class="fas fa-save"></i>
+                    <span>Save Data for {{ selected_plant.name }}</span>
                 </button>
             </div>
         </div>
@@ -699,149 +622,38 @@
     {% endif %}
 </div>
 
-<!-- Loading Overlay -->
-<div class="loading-overlay" id="loadingOverlay">
-    <div class="spinner"></div>
-</div>
-
 <script>
-// Switch plant function
 function switchPlant(plantId) {
-    if (confirm('Switch plant? Any unsaved data will be lost.')) {
-        window.location.href = `?plant_id=${plantId}`;
+    if (confirm("Switch plant? Any unsaved data will be lost.")) {
+        window.location.href = "?plant_id=" + plantId;
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Real-time validation
-    document.querySelectorAll('.data-input').forEach(input => {
-        input.addEventListener('input', function() {
-            const value = this.value.trim();
-            if (value && isNaN(parseFloat(value.replace(/,/g, '')))) {
-                this.classList.add('error');
-            } else {
-                this.classList.remove('error');
-            }
-        });
-        
-        // Format on blur
-        input.addEventListener('blur', function() {
-            const value = this.value.trim();
-            if (value) {
-                const num = parseFloat(value.replace(/,/g, ''));
-                if (!isNaN(num)) {
-                    this.value = num; // Store raw number
-                }
-            }
-        });
-    });
-    
-    // Form submission
-    const form = document.getElementById('dataEntryForm');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const inputs = this.querySelectorAll('.data-input');
-            let hasInvalidInput = false;
-            
-            inputs.forEach(input => {
-                const value = input.value.trim();
-                if (value && isNaN(parseFloat(value.replace(/,/g, '')))) {
-                    input.classList.add('error');
-                    hasInvalidInput = true;
-                }
-            });
-            
-            if (hasInvalidInput) {
-                e.preventDefault();
-                alert('Please enter valid numbers in all fields');
-                return;
-            }
-            
-            document.getElementById('loadingOverlay').classList.add('show');
-        });
-    }
-    
-    // Show success message if redirected after save
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('saved')) {
-        const saveIndicator = document.getElementById('saveIndicator');
-        saveIndicator.classList.add('show');
-        setTimeout(() => saveIndicator.classList.remove('show'), 3000);
-        
-        // Remove 'saved' parameter from URL without reload
-        window.history.replaceState({}, document.title, window.location.pathname + '?plant_id=' + urlParams.get('plant_id'));
-    }
-    
-    // Highlight auto-populated fields on page load
-    const autoPopulatedInputs = document.querySelectorAll('.data-input.auto-populated');
-    if (autoPopulatedInputs.length > 0) {
-        console.log(`${autoPopulatedInputs.length} fields auto-populated from Incident/Hazard data`);
-        
-        // Optional: Show a toast notification
-        const autoCount = autoPopulatedInputs.length;
-        const totalInputs = document.querySelectorAll('.data-input').length;
-        console.log(`📊 Data Summary: ${autoCount} of ${totalInputs} fields auto-populated (${Math.round((autoCount/totalInputs)*100)}%)`);
-    }
-});
-
-// Reset form function
 function resetForm() {
-    if (confirm('Are you sure you want to reset all changes? This will reload the page and restore auto-populated values.')) {
-        window.location.reload();
+    if (confirm("Reset all changes? This will reload the page and discard unsaved data.")) {
+        location.reload();
     }
 }
 
-// Keyboard shortcuts
-document.addEventListener('keydown', function(e) {
-    // Ctrl + S to save
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        document.querySelector('.btn-save')?.click();
-    }
-    
-    // Ctrl + R to reset
-    if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
-        e.preventDefault();
-        resetForm();
-    }
+// Form submission handling
+document.getElementById('dataEntryForm')?.addEventListener('submit', function(e) {
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Saving...</span>';
 });
 
-// Add tooltip for auto-populated inputs
-document.querySelectorAll('.data-input.auto-populated').forEach(input => {
-    input.addEventListener('mouseenter', function() {
-        const tooltip = this.getAttribute('title');
-        if (tooltip) {
-            this.style.cursor = 'help';
-        }
-    });
+// Auto-save warning on page leave
+let formChanged = false;
+document.getElementById('dataEntryForm')?.addEventListener('input', function() {
+    formChanged = true;
 });
 
-// Optional: Add a visual pulse effect to auto-populated fields on first load
-window.addEventListener('load', function() {
-    const autoInputs = document.querySelectorAll('.data-input.auto-populated');
-    
-    // Only animate if there are auto-populated fields and this is the first visit
-    if (autoInputs.length > 0 && !sessionStorage.getItem('animationShown')) {
-        autoInputs.forEach((input, index) => {
-            setTimeout(() => {
-                input.style.animation = 'pulse 0.5s ease-in-out';
-            }, index * 50); // Stagger the animation
-        });
-        
-        // Mark that animation has been shown for this session
-        sessionStorage.setItem('animationShown', 'true');
+window.addEventListener('beforeunload', function(e) {
+    if (formChanged) {
+        e.preventDefault();
+        e.returnValue = '';
     }
 });
 </script>
 
-<style>
-@keyframes pulse {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-}
-</style>
 {% endblock %}

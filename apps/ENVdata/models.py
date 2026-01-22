@@ -12,7 +12,7 @@ class UnitCategory(models.Model):
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(null=True, blank=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL,null=True,blank=True,on_delete=models.SET_NULL)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
 
     class Meta:
         verbose_name = "Unit Category"
@@ -27,9 +27,9 @@ class Unit(models.Model):
     Individual unit and its conversion rate to the base unit of its category
     """
     category = models.ForeignKey(UnitCategory, on_delete=models.CASCADE, related_name='units')
-    name = models.CharField(max_length=50)  # e.g., kg, MT, m³
-    base_unit = models.CharField(max_length=50)  # Base unit in this category, e.g., kg for weight
-    conversion_rate = models.FloatField(default=1)  # How much 1 unit equals in base_unit
+    name = models.CharField(max_length=50)
+    base_unit = models.CharField(max_length=50)
+    conversion_rate = models.FloatField(default=1)
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
@@ -40,47 +40,113 @@ class Unit(models.Model):
         return f"{self.name} ({self.category.name})"
 
 
-# Add this field to EnvironmentalQuestion model
 class EnvironmentalQuestion(models.Model):
+    """
+    Environmental questions with dynamic filter support
+    """
     question_text = models.CharField(max_length=500)
-    unit_category = models.ForeignKey(UnitCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='questions')  # ADD THIS
-    default_unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, blank=True, related_name='default_for_questions')  # CHANGE THIS
-    selected_units = models.ManyToManyField(Unit, blank=True, related_name='available_for_questions')  # ADD THIS
-    # Remove or keep unit_options as backup
+    source_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('INCIDENT', 'Incident Module'),
+            ('HAZARD', 'Hazard Module'),
+            ('MANUAL', 'Manual Entry'),
+        ],
+        default='MANUAL'
+    )
+    
+    # PRIMARY FILTER
+    filter_field = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        help_text="Primary field to filter (e.g., incident_type)"
+    )
+    filter_value = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        help_text="Primary value to match (e.g., LTI)"
+    )
+    
+    # SECONDARY FILTER
+    filter_field_2 = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        help_text="Secondary field to filter (e.g., status)"
+    )
+    filter_value_2 = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        help_text="Secondary value to match (e.g., REPORTED)"
+    )
+    
+    # Units (optional for auto-calculated questions)
+    unit_category = models.ForeignKey(
+        UnitCategory, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='questions'
+    )
+    default_unit = models.ForeignKey(
+        Unit, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='default_for_questions'
+    )
+    selected_units = models.ManyToManyField(
+        Unit, 
+        blank=True, 
+        related_name='available_for_questions'
+    )
     unit_options = models.CharField(max_length=200, blank=True, help_text="Legacy field")
+    
     order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
     is_system = models.BooleanField(default=False)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    PREDEFINED_ENV_QUESTIONS = [
-        "Fatalities",
-        "Lost Time Injuries (LTI)",
-        "MTC (Medical Treatment Case)",
-        "First aid cases",
-        "Fire Incidents",
-        "Near Miss Reported",
-        "Near Miss Closed",
-        "Observations (UA/UC) reported",
-        "Observations (UA/UC) Closed",
-        "Observations related to LSR/SIP reported",
-        "Observations related to LSR/SIP closed",
-        "Safety Inspections with Leadership Team",
-        "Points Identified in leadership team reported",
-        "Points Identified in leadership team closed",
-        "Asbestos walkthrough carried out by plant leadership",
-        "Asbestos walkthrough points reported",
-        "Asbestos walkthrough points closed",
-        "Total inspections carried out",
-    ]
+    
     class Meta:
         ordering = ['order', 'id']
 
+    def __str__(self):
+        return self.question_text
+
+
 class MonthlyIndicatorData(models.Model):
+    """
+    Stores monthly environmental data
+    """
+    MONTH_CHOICES = [
+        ("JAN", "January"),
+        ("FEB", "February"),
+        ("MAR", "March"),
+        ("APR", "April"),
+        ("MAY", "May"),
+        ("JUN", "June"),
+        ("JUL", "July"),
+        ("AUG", "August"),
+        ("SEP", "September"),
+        ("OCT", "October"),
+        ("NOV", "November"),
+        ("DEC", "December"),
+    ]
+    
     plant = models.ForeignKey('organizations.Plant', on_delete=models.CASCADE)
-    indicator = models.CharField(max_length=255)
-    month = models.CharField(max_length=3)
+    indicator = models.ForeignKey(
+        'EnvironmentalQuestion',
+        on_delete=models.CASCADE,
+        related_name='monthly_data',
+        null=True,
+        blank=True
+    )    
+    month = models.CharField(max_length=3, choices=MONTH_CHOICES)
     value = models.CharField(max_length=100)
     unit = models.CharField(max_length=50, default='Count')
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)

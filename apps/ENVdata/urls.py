@@ -4,16 +4,14 @@ from .views import *
 app_name = 'environmental'
 
 urlpatterns = [
-    path('plant-entry/',PlantMonthlyEntryView.as_view(), name='plant-entry'),
+    # Main views
+    path('plant-entry/', PlantMonthlyEntryView.as_view(), name='plant-entry'),
+    path('plant-data-view/', PlantDataDisplayView.as_view(), name='plant-data-view'),
+    path('admin-all-plants/', AdminAllPlantsDataView.as_view(), name='admin-all-plants'),
     path('questions-manager/', EnvironmentalQuestionsManagerView.as_view(), name='questions-manager'),
-    path('unit-manager/',UnitManagerView.as_view(),name="unit-manager"),
+    path('unit-manager/', UnitManagerView.as_view(), name='unit-manager'),
+    
+    # API endpoints
     path('api/get-category-units/', GetCategoryUnitsAPIView.as_view(), name='get-category-units'),
-    # User - View Their Submitted Data (Read-only)
-    path('plant-data/', PlantDataDisplayView.as_view(), name='plant-data-view'),  
-    # Admin - View All Plants Data (Read-only)
-    path('admin/all-plants-data/', AdminAllPlantsDataView.as_view(), name='admin-all-plants'),
-    # Export to excel
-    path("export_excel/", ExportExcelView.as_view(),name="export_excel"),
-    # path('debug-data/', DebugDataView.as_view(), name='debug-data'),
-
+    path('api/get-source-fields/', GetSourceFieldsAPIView.as_view(), name='get-source-fields'),
 ]
