@@ -293,7 +293,7 @@ class MonthlyIndicatorDataAdmin(admin.ModelAdmin):
     def indicator_preview(self, obj):
         """Show first 60 characters of indicator"""
         text = obj.indicator
-        preview = text[:60] + '...' if len(text) > 60 else text
+        preview = text.question_text[:60] + '...' if text.question_text and len(text.question_text) > 60 else text.question_text
         return format_html('<strong>{}</strong>', preview)
     indicator_preview.short_description = 'Indicator'
     

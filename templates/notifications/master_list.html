@@ -2,7 +2,11 @@
 {% load static %}
 
 {% block title %}Notification Master Configuration{% endblock %}
-
+{% block page_title %}Notification Master Configuration{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'notifications:notification_master_list' %}">Master List</a></li>
+<li class="breadcrumb-item"><a href="{% url 'notifications:notification_master_create' %}">Configure notifications role</a></li>
+{% endblock %}
 {% block extra_css %}
 <style>
     .role-section {
