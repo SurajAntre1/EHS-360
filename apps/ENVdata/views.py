@@ -555,12 +555,19 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
                 "no_questions": True,
             })
 
-        # Get saved data for this plant
-        saved_data = MonthlyIndicatorData.objects.filter(plant=plant)
+        # Get saved data for this plant - FILTER OUT NULL indicators
+        saved_data = MonthlyIndicatorData.objects.filter(
+            plant=plant,
+            indicator__isnull=False  # IMPORTANT: Skip records with no indicator
+        ).select_related('indicator')
 
         # Organize data
         data_dict = {}
         for d in saved_data:
+            # Double-check indicator exists (extra safety)
+            if d.indicator is None:
+                continue
+                
             if d.indicator not in data_dict:
                 data_dict[d.indicator] = {}
             data_dict[d.indicator][d.month.lower()] = d.value
@@ -599,11 +606,10 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
             "plant": plant,
             "user_plants": user_plants,
             "questions_data": questions_data,
-            "months": [name for code, name in MONTHS],
+            "months": MONTHS,  # Changed: Pass full tuples instead of just names
         }
 
         return render(request, self.template_name, context)
-
 
 # =========================================================
 # ADMIN VIEW - ALL PLANTS DATA
@@ -636,8 +642,10 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
                 "no_questions": True,
             })
 
-        # Get ALL saved data efficiently
-        all_data = MonthlyIndicatorData.objects.select_related('plant', 'indicator').all()
+        # Get ALL saved data efficiently - FILTER OUT NULL indicators
+        all_data = MonthlyIndicatorData.objects.filter(
+            indicator__isnull=False  # IMPORTANT: Skip records with no indicator
+        ).select_related('plant', 'indicator')
 
         MONTHS = MonthlyIndicatorData.MONTH_CHOICES
 
@@ -659,6 +667,7 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
                 for month_code, month_name in MONTHS:
                     month_key = month_code.upper()
                     
+                    # Find the specific data entry
                     data_entry = all_data.filter(
                         plant=plant,
                         indicator=q,
@@ -700,10 +709,10 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
 
         context = {
             "plants_data": plants_data,
-            "months": [name for code, name in MONTHS],
+            "months": MONTHS,  # Changed: Pass full tuples
             "total_plants": all_plants.count(),
             "plants_with_data": plants_with_data_count,
             "total_questions": questions.count(),
         }
 
-        return render(request, self.template_name, context)        
+        return render(request, self.template_name, context)
