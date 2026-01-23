@@ -538,6 +538,18 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'hazards/action_item_update.html'
     fields = []  # We handle fields manually in the post method.
 
+    def dispatch(self, request, *args, **kwargs):
+            self.object = self.get_object()
+            self.hazard = self.object.hazard
+            return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self,**kwargs):
+        context = super().get_context_data(**kwargs)
+        context['hazard'] = self.hazard
+        if self.hazard.action_deadline:
+            context['action_deadline_date'] = self.hazard.action_deadline.strftime('%Y-%m-%d')
+        return context
+    
     def get_success_url(self):
         """
         Redirect to the hazard detail page after a successful update.

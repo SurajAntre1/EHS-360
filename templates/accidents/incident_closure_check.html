@@ -2,6 +2,14 @@
 {% load static %}
 
 {% block title %}Closure Verification - {{ incident.report_number }}{% endblock %}
+{% block page_title %}Closure Verification - {{ incident.report_number }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Incident Managemnet</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:incident_list' %}">All Incidents</a></li>
+<li class="breadcrumb-item">Close Incident</li>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
