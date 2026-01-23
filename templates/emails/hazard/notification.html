@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ subject }}</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f8;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #333;
+        }
+        .container {
+            max-width: 720px;
+            margin: 30px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .header {
+            background-color: #d9534f;
+            color: #ffffff;
+            padding: 20px 30px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .content p {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .details {
+            margin: 20px 0;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+        }
+        .details table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .details th,
+        .details td {
+            padding: 12px 15px;
+            font-size: 14px;
+            text-align: left;
+        }
+        .details th {
+            width: 35%;
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .details tr:not(:last-child) th,
+        .details tr:not(:last-child) td {
+            border-bottom: 1px solid #e5e5e5;
+        }
+        .description {
+            margin-top: 25px;
+        }
+        .description h3 {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .description p {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: pre-line;
+        }
+        .footer {
+            background-color: #f1f1f1;
+            padding: 15px 30px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            background-color: #f0ad4e;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>⚠️ New Hazard Reported</h1>
+    </div>
+    <div class="content">
+        <p>Hello {{ recipient.get_full_name|default:recipient.username }},</p>
+        <p>
+            A new hazard has been reported in the system. Please review the details below
+            and take the necessary action.
+        </p>
+        <div class="details">
+            <table>
+                <tr>
+                    <th>Hazard Number</th>
+                    <td>{{ hazard.report_number }}</td>
+                </tr>
+                <tr>
+                    <th>Hazard Type</th>
+                    <td>{{ hazard.get_hazard_type_display }}</td>
+                </tr>
+                <tr>
+                    <th>Severity</th>
+                    <td>
+                        <span class="badge">
+                            {{ hazard.get_severity_display }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Plant</th>
+                    <td>{{ hazard.plant.name }}</td>
+                </tr>
+                <tr>
+                    <th>Location</th>
+                    <td>
+                        {{ hazard.location.name|default:"N/A" }}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Reported By</th>
+                    <td>{{ hazard.reported_by.get_full_name }}</td>
+                </tr>
+                <tr>
+                    <th>Reported On</th>
+                    <td>{{ hazard.created_at|date:"d M Y, H:i" }}</td>
+                </tr>
+            </table>
+        </div>
+        <div class="description">
+            <h3>Hazard Description</h3>
+            <p>
+                {{ hazard.hazard_description }}
+            </p>
+        </div>
+        <p>
+            Please log in to the EHS Management System to review and take appropriate action.
+        </p>
+        <p>
+            Regards,<br>
+            <strong>EHS Management System</strong>
+        </p>
+    </div>
+    <div class="footer">
+        This is an automated email. Please do not reply.
+    </div>
+
+</div>
+
+</body>
+</html>

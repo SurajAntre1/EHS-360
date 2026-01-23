@@ -55,13 +55,16 @@ class NotificationService:
             print(f"\n--- Processing Config: {config.name} ---")
             print(f"Role: {config.role.name}")
             print(f"Filters: Plant={config.filter_by_plant}, Location={config.filter_by_location}, Zone={config.filter_by_zone}")
-            
+
             # Build query to find users with this role
             query = User.objects.filter(
-                role=config.role,
-                is_active=True
-            )
+                    role=config.role,
+                    is_active=True
+                )
             
+            if config.role.name == 'PLANT HEAD':
+                config.filter_by_plant = True
+                
             # Apply filters based on configuration
             if config.filter_by_plant and plant:
                 query = query.filter(plant=plant)
@@ -185,21 +188,40 @@ class NotificationService:
     def notify(content_object, notification_type, module='INCIDENT'):
         """
         Main notification function - finds stakeholders and sends notifications
-        
+
         Args:
-            content_object: The object (Incident/Hazard) being notified about
+            content_object: The object (Incident/Hazard/InvestigationReport) being notified about
             notification_type: Type of notification (e.g., 'INCIDENT_REPORTED')
             module: Module name for template selection
         """
         print("\n" + "*"*70)
         print(f"NOTIFICATION SYSTEM - {notification_type}")
         print("*"*70)
-        
-        # Get plant, location, zone from content object
-        plant = getattr(content_object, 'plant', None)
-        location = getattr(content_object, 'location', None)
-        zone = getattr(content_object, 'zone', None)
-        
+
+        if content_object is None:
+            print(f"\n❌ ERROR: content_object is None. Cannot send notification for {notification_type}")
+            return
+
+        # Determine object type and extract plant/location/zone
+        # Auto-detect object type
+        if hasattr(content_object, 'incident'):
+            # Investigation Report
+            incident = content_object.incident
+            plant = incident.plant
+            location = incident.location
+            zone = incident.zone
+        elif hasattr(content_object, 'hazard'):
+            hazard = content_object.hazard
+            plant = hazard.plant
+            location = hazard.location
+            zone = hazard.zone
+        else:
+            # Incident / Hazard
+            plant = getattr(content_object, 'plant', None)
+            location = getattr(content_object, 'location', None)
+            zone = getattr(content_object, 'zone', None)
+
+
         # Find stakeholders based on NotificationMaster configuration
         stakeholders = NotificationService.get_stakeholders_for_event(
             event_type=notification_type,
@@ -207,34 +229,33 @@ class NotificationService:
             location=location,
             zone=zone
         )
-        
+
         if not stakeholders:
             print("\n❌ ERROR: No stakeholders found!")
             return
-        
-        # Get notification configuration
-        config = NotificationMaster.objects.filter(
-            notification_event=notification_type,
-            is_active=True
-        ).first()
-        
-        # Build notification content
-        if module == 'INCIDENT':
-            context = NotificationService._build_incident_context(content_object)
-        elif module == 'HAZARD':
-            context = NotificationService._build_hazard_context(content_object)
-        else:
-            context = {'object': content_object}
-        
-        # Send notifications to each stakeholder
+
         notifications_created = 0
         emails_sent = 0
-        
+        # Build notification context
+        if hasattr(content_object, 'incident'):
+            context = NotificationService._build_incident_report_context(content_object)
+        elif hasattr(content_object, 'hazard'):
+            context = NotificationService._build_hazard_action_context(content_object)
+        elif module == 'HAZARD':
+            context = NotificationService._build_hazard_context(content_object)
+        elif module == 'ENVIRONMENT':
+            context = NotificationService._build_environment_context(content_object)
+        elif module == 'INCIDENT_CLOSED':    
+            context = NotificationService._build_incident_close_context(content_object)
+        else:
+            context = NotificationService._build_incident_context(content_object)
+
+
         for stakeholder in stakeholders:
             print(f"\n{'='*70}")
             print(f"STAKEHOLDER: {stakeholder.username}")
             print(f"{'='*70}")
-            
+
             # Create in-app notification
             notification = NotificationService.create_notification(
                 recipient=stakeholder,
@@ -243,12 +264,18 @@ class NotificationService:
                 title=context.get('title', ''),
                 message=context.get('message', '')
             )
-            
+
             if notification:
                 notifications_created += 1
-            
-            # Send email if enabled in configuration
-            if config and config.email_enabled:
+
+            # Check role config for email
+            role_config = NotificationMaster.objects.filter(
+                notification_event=notification_type,
+                role=stakeholder.role,
+                is_active=True
+            ).first()
+
+            if role_config and getattr(role_config, 'email_enabled', False):
                 context['recipient'] = stakeholder
                 email_sent = NotificationService.send_email(
                     recipient=stakeholder,
@@ -257,14 +284,14 @@ class NotificationService:
                     html_template=f'emails/{module.lower()}/notification.html',
                     context=context
                 )
-                
+
                 if email_sent:
                     emails_sent += 1
                     if notification:
                         notification.is_email_sent = True
                         notification.email_sent_at = timezone.now()
                         notification.save()
-        
+
         print(f"\n{'='*70}")
         print("NOTIFICATION SUMMARY")
         print(f"{'='*70}")
@@ -272,6 +299,7 @@ class NotificationService:
         print(f"Notifications created: {notifications_created}")
         print(f"Emails sent: {emails_sent}")
         print(f"{'='*70}\n")
+
     
     
     @staticmethod
@@ -337,4 +365,175 @@ Regards,
 EHS Management System
 """,
             'hazard': hazard,
+        }
+    
+    @staticmethod
+    def _build_incident_report_context(incidentinvestigationreport):
+        """
+        Build context for Incident Investigation Report notifications
+        """
+        incident = incidentinvestigationreport.incident
+        return {
+            'title': f"Incident Investigation Completed | {incident.report_number}",
+            'subject': f"📝 Investigation Report Submitted - {incident.report_number}",
+            'message': f"""
+Hello,
+The investigation report for the following incident has been completed and submitted.
+
+INCIDENT DETAILS
+--------------------------------------------------
+Incident Number      : {incident.report_number}
+Incident Type        : {incident.get_incident_type_display()}
+Date & Time          : {incident.incident_date} {incident.incident_time}
+Plant                : {incident.plant.name}
+Zone                 : {incident.zone.name if incident.zone else 'N/A'}
+Location             : {incident.location.name if incident.location else 'N/A'}
+Sub-Location         : {incident.sublocation.name if incident.sublocation else 'N/A'}
+Reported By          : {incident.reported_by.get_full_name()}
+Investigation Date   : {incidentinvestigationreport.investigation_date}
+Investigator         : {incidentinvestigationreport.investigator.get_full_name()}
+Completed On         : {incidentinvestigationreport.completed_date}
+
+INCIDENT DESCRIPTION
+--------------------------------------------------
+{incident.description[:300]}{'...' if len(incident.description) > 300 else ''}
+
+KEY FINDINGS
+--------------------------------------------------
+Sequence of Events:
+{incidentinvestigationreport.sequence_of_events[:300]}{'...' if len(incidentinvestigationreport.sequence_of_events) > 300 else ''}
+
+Root Cause Analysis:
+{incidentinvestigationreport.root_cause_analysis[:300]}{'...' if len(incidentinvestigationreport.root_cause_analysis) > 300 else ''}
+
+RECOMMENDATIONS
+--------------------------------------------------
+Immediate Corrective Actions:
+{incidentinvestigationreport.immediate_corrective_actions[:300]}{'...' if len(incidentinvestigationreport.immediate_corrective_actions) > 300 else ''}
+
+Preventive Measures:
+{incidentinvestigationreport.preventive_measures[:300]}{'...' if len(incidentinvestigationreport.preventive_measures) > 300 else ''}
+
+Please review the investigation findings and proceed with action item assignment if required.
+
+Regards,
+EHS Management System
+""",
+        'investigation_report': incidentinvestigationreport,
+        'incident':incident,
+    }
+
+
+    @staticmethod
+    def _build_incident_close_context(incident):
+        """Build context for incident closure notifications"""
+        return{
+            'title' : f"Incident Closed | {incident.report_number}",
+            'subject' : f"Incident Closed ✅ - {incident.report_number}",
+            'message' : f"""
+Hello,
+
+A {incident.get_incident_type_display()} has been closed.
+
+INCIDENT DETAILS 
+----------------------------------------------------------------------------------
+Incident Number     : {incident.report_number}
+Date & Time         : {incident.incident_date} {incident.incident_time}
+Plant               : {incident.plant.name}
+Location            : {incident.location.name}
+Closed By           : {incident.closed_by.get_full_name()}
+Closure Date        : {incident.closure_date}
+
+DESCRIPTION
+---------------------------------------------------------------------------------
+{incident.description[:300]}{'...' if len(incident.description) > 300 else ''}
+
+Regards,
+EHS Management System
+""",
+
+            'incident':incident,
+        }
+    
+    @staticmethod
+    def _build_incident_action_context(incidnetactionitem):
+        """
+        Build context for Incident Action notifications
+        """
+        incident = incidnetactionitem.incident
+        return {
+            'title' : f"Incident Action Assigned | {incident.report_number}",
+            'subject': f"✅ Incident Action Assigned - {incident.report_number}",
+            'message': f"""
+Hello,
+The investigation action for the following incident has been assigned.
+
+INCIDENT DETAILS
+------------------------------------------------------------------
+Incident Number      : {incident.report_number}
+Incident Type        : {incident.get_incident_type_display()}
+Date & Time          : {incident.incident_date} {incident.incident_time}
+Plant                : {incident.plant.name}
+Zone                 : {incident.zone.name if incident.zone else 'N/A'}
+Location             : {incident.location.name if incident.location else 'N/A'}
+Sub-Location         : {incident.sublocation.name if incident.sublocation else 'N/A'}
+Reported By          : {incident.reported_by.get_full_name()}
+Target Date          : {incidnetactionitem.target_date}
+Status               : {incidnetactionitem.status}
+Completion Date      : {incidnetactionitem.completion_date}
+
+INCIDENT DESCRIPTION
+--------------------------------------------------
+{incident.description[:300]}{'...' if len(incident.description) > 300 else ''}
+
+ACTION DESCRIPTION
+--------------------------------------------------
+{incidnetactionitem.description[:300]}{'...' if len(incidnetactionitem.description) > 300 else ''}
+
+Please review the investigation findings and proceed with action item assignment if required.
+
+Regards,
+EHS Management System
+""",
+            'incidnetactionitem':incidnetactionitem,
+            'incident':incident,
+        }
+    
+
+    @staticmethod
+    def _build_hazard_action_context(action_item):
+        hazard = action_item.hazard
+
+        return {
+            'title': f"Hazard Action Assigned | {hazard.report_number}",
+            'subject': f"⚠️ Hazard Action Assigned - {hazard.report_number}",
+
+            'message': f"""
+Hello,
+
+A hazard action item has been assigned to you.
+
+HAZARD DETAILS
+--------------------------------------------------
+Hazard Number     : {hazard.report_number}
+Hazard Type       : {hazard.get_hazard_type_display()}
+Reported Date     : {hazard.reported_date}
+Plant             : {hazard.plant.name}
+Zone              : {hazard.zone.name if hazard.zone else 'N/A'}
+Location          : {hazard.location.name if hazard.location else 'N/A'}
+Sub-Location      : {hazard.sublocation.name if hazard.sublocation else 'N/A'}
+
+ACTION DETAILS
+--------------------------------------------------
+Description       : {action_item.action_description}
+Target Date       : {action_item.target_date}
+Status            : {action_item.status}
+
+Please complete the action within the target date.
+
+Regards,
+EHS Management System
+""",
+            'hazard': hazard,
+            'action_item': action_item,
         }

@@ -55,13 +55,6 @@
                 <h4>Description:</h4>
                 <p>{{ incident.description|truncatewords:50 }}</p>
             </div>
-            
-            <p style="margin-top: 20px;">
-                <a href="{{ request.scheme }}://{{ request.get_host }}/incidents/{{ incident.id }}/" 
-                   style="background: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
-                    View Incident Details
-                </a>
-            </p>
         </div>
         
         <div class="footer">

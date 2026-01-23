@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ subject }}</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 720px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .header {
+            background-color: #1f2937;
+            color: #ffffff;
+            padding: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .content {
+            padding: 24px;
+            color: #333333;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-top: 24px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        table td {
+            padding: 6px 4px;
+            vertical-align: top;
+        }
+        table td.label {
+            width: 40%;
+            font-weight: bold;
+            color: #374151;
+        }
+        .highlight {
+            background: #f9fafb;
+            padding: 12px;
+            border-left: 4px solid #2563eb;
+            margin-top: 10px;
+            white-space: pre-line;
+        }
+        .footer {
+            background: #f3f4f6;
+            padding: 16px;
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>Incident Investigation Completed</h1>
+    </div>
+
+    <div class="content">
+        <p>Hello {{ recipient.get_full_name }},</p>
+
+        <p>
+            The investigation report for the following incident has been
+            <strong>completed and submitted</strong>.
+        </p>
+
+        <!-- Incident Details -->
+        <div class="section-title">Incident Details</div>
+        <table>
+            <tr>
+                <td class="label">Incident Number</td>
+                <td>{{ incident.report_number }}</td>
+            </tr>
+            <tr>
+                <td class="label">Incident Type</td>
+                <td>{{ incident.get_incident_type_display }}</td>
+            </tr>
+            <tr>
+                <td class="label">Date &amp; Time</td>
+                <td>{{ incident.incident_date }} {{ incident.incident_time }}</td>
+            </tr>
+            <tr>
+                <td class="label">Plant</td>
+                <td>{{ incident.plant.name }}</td>
+            </tr>
+            <tr>
+                <td class="label">Zone</td>
+                <td>{{ incident.zone.name|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Location</td>
+                <td>{{ incident.location.name|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Sub-Location</td>
+                <td>{{ incident.sublocation.name|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Reported By</td>
+                <td>{{ incident.reported_by.get_full_name }}</td>
+            </tr>
+        </table>
+
+        <!-- Investigation Details -->
+        <div class="section-title">Investigation Details</div>
+        <table>
+            <tr>
+                <td class="label">Investigation Date</td>
+                <td>{{ investigation_report.investigation_date }}</td>
+            </tr>
+            <tr>
+                <td class="label">Investigator</td>
+                <td>{{ investigation_report.investigator.get_full_name }}</td>
+            </tr>
+            <tr>
+                <td class="label">Completed On</td>
+                <td>{{ investigation_report.completed_date }}</td>
+            </tr>
+        </table>
+
+        <!-- Description -->
+        <div class="section-title">Incident Description</div>
+        <div class="highlight">
+            {{ incident.description|default:"No description provided." }}
+        </div>
+
+        <!-- Findings -->
+        <div class="section-title">Key Findings</div>
+
+        <strong>Sequence of Events</strong>
+        <div class="highlight">
+            {{ investigation_report.sequence_of_events|default:"N/A" }}
+        </div>
+
+        <strong>Root Cause Analysis</strong>
+        <div class="highlight">
+            {{ investigation_report.root_cause_analysis|default:"N/A" }}
+        </div>
+
+        <!-- Recommendations -->
+        <div class="section-title">Recommendations</div>
+
+        <strong>Immediate Corrective Actions</strong>
+        <div class="highlight">
+            {{ investigation_report.immediate_corrective_actions|default:"N/A" }}
+        </div>
+
+        <strong>Preventive Measures</strong>
+        <div class="highlight">
+            {{ investigation_report.preventive_measures|default:"N/A" }}
+        </div>
+
+        <p>
+            Please review the investigation findings and proceed with
+            action item assignment as required.
+        </p>
+
+        <p>
+            Regards,<br>
+            <strong>EHS Management System</strong>
+        </p>
+    </div>
+
+    <div class="footer">
+        This is an automated notification. Please do not reply to this email.
+    </div>
+
+</div>
+
+</body>
+</html>
