@@ -295,39 +295,30 @@
                         </option>
                         {% endfor %}
                     </select>
-                    <small>Select a category, then page will reload to show units</small>
+                    <small>Select a category to load available units</small>
                 </div>
 
-                <!-- Show units only if category is selected -->
-                {% if units %}
-                <!-- AVAILABLE UNITS -->
-                <div class="form-group" id="unitsSection">
-                    <label>Available Units <span class="required">*</span></label>
-                    <div class="units-container">
-                        {% for unit in units %}
-                        <label class="unit-checkbox">
-                            <input type="checkbox" 
-                                   name="selected_unit_ids[]" 
-                                   value="{{ unit.id }}">
-                            {{ unit.name }} ({{ unit.base_unit }})
-                        </label>
-                        {% endfor %}
+                <!-- [MODIFIED] This wrapper will always exist, but will be shown/hidden -->
+                <div id="unitsWrapper" style="display: none;">
+                    <!-- AVAILABLE UNITS -->
+                    <div class="form-group" id="unitsSection">
+                        <label>Available Units <span class="required">*</span></label>
+                        <div class="units-container" id="unitsCheckboxContainer">
+                            <!-- Checkboxes will be dynamically inserted here by JavaScript -->
+                        </div>
+                        <small>Select at least one unit for this question</small>
                     </div>
-                    <small>Select at least one unit for this question</small>
-                </div>
 
-                <!-- DEFAULT UNIT -->
-                <div class="form-group" id="defaultUnitSection">
-                    <label>Default Unit <span class="required">*</span></label>
-                    <select name="default_unit_id" id="defaultUnitSelect" class="form-control">
-                        <option value="">-- Select Default Unit --</option>
-                        {% for unit in units %}
-                        <option value="{{ unit.id }}">{{ unit.name }}</option>
-                        {% endfor %}
-                    </select>
-                    <small>Must be one of the selected units above</small>
+                    <!-- DEFAULT UNIT -->
+                    <div class="form-group" id="defaultUnitSection">
+                        <label>Default Unit <span class="required">*</span></label>
+                        <select name="default_unit_id" id="defaultUnitSelect" class="form-control">
+                            <option value="">-- Select Default Unit --</option>
+                            <!-- Options will be dynamically inserted here -->
+                        </select>
+                        <small>Must be one of the selected units above</small>
+                    </div>
                 </div>
-                {% endif %}
 
                 <button type="submit" class="btn btn-success" id="submitBtn">
                     Add Question
@@ -341,121 +332,242 @@
 
             {% for item in questions %}
             <div class="question-item">
-
                 <div class="detail-row">
                     <span class="detail-label">Question:</span>
                     <strong>{{ item.question }}</strong>
                 </div>
-
                 <div class="detail-row">
                     <span class="detail-label">Source Type:</span>
                     {{ item.source_type }}
                 </div>
-
                 {% if item.filter_description %}
                 <div class="detail-row">
                     <span class="detail-label">Filter:</span>
                     {{ item.filter_description }}
                 </div>
                 {% endif %}
-
                 {% if item.category_name != "Not Set" %}
                 <div class="detail-row">
                     <span class="detail-label">Category:</span>
                     {{ item.category_name }}
                 </div>
-
                 <div class="detail-row">
                     <span class="detail-label">Default Unit:</span>
                     {{ item.default_unit_name }}
                 </div>
                 {% endif %}
-
             </div>
             {% empty %}
-            <p>No questions yet.</p>
+            <p class="empty">No questions yet.</p>
             {% endfor %}
         </div>
-
     </div>
 </div>
 
+<!-- [MODIFIED] This small script handles the case where the page reloads with a category pre-selected -->
+{% if units %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function updateUnitUI(units) {
+        const unitsWrapper = document.getElementById('unitsWrapper');
+        const unitsCheckboxContainer = document.getElementById('unitsCheckboxContainer');
+        const defaultUnitSelect = document.getElementById('defaultUnitSelect');
+
+        unitsCheckboxContainer.innerHTML = '';
+        defaultUnitSelect.innerHTML = '<option value="">-- Select Default Unit --</option>';
+
+        if (!units || units.length === 0) {
+            unitsCheckboxContainer.innerHTML = '<p class="empty">No units found for this category.</p>';
+            unitsWrapper.style.display = 'block';
+            return;
+        }
+
+        units.forEach(unit => {
+            const unitLabel = document.createElement('label');
+            unitLabel.className = 'unit-checkbox';
+            unitLabel.innerHTML = `
+                <input type="checkbox" name="selected_unit_ids[]" value="${unit.id}">
+                ${unit.name} (${unit.base_unit})
+            `;
+            unitsCheckboxContainer.appendChild(unitLabel);
+
+            const unitOption = document.createElement('option');
+            unitOption.value = unit.id;
+            unitOption.textContent = unit.name;
+            defaultUnitSelect.appendChild(unitOption);
+        });
+
+        unitsWrapper.style.display = 'block';
+    }
+    
+    // Create a units array from the Django context to pass to the function
+    const initialUnits = [
+        {% for unit in units %}
+        {
+            id: "{{ unit.id }}",
+            name: "{{ unit.name|escapejs }}",
+            base_unit: "{{ unit.base_unit|escapejs }}"
+        },
+        {% endfor %}
+    ];
+    updateUnitUI(initialUnits);
+});
+</script>
+{% endif %}
+
+
+<!-- [FULLY REPLACED] Complete new JavaScript block -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // --- Element References ---
     const sourceType = document.getElementById('sourceType');
     const filterConfigSection = document.getElementById('filterConfigSection');
     const filterField = document.getElementById('filterField');
     const filterValue = document.getElementById('filterValue');
     const filterValueSection = document.getElementById('filterValueSection');
-    
     const filterField2 = document.getElementById('filterField2');
     const filterValue2 = document.getElementById('filterValue2');
     const filterValueSection2 = document.getElementById('filterValueSection2');
-    
     const unitCategorySection = document.getElementById('unitCategorySection');
     const categorySelect = document.getElementById('categorySelect');
+    const unitsWrapper = document.getElementById('unitsWrapper');
+    const unitsCheckboxContainer = document.getElementById('unitsCheckboxContainer');
+    const defaultUnitSelect = document.getElementById('defaultUnitSelect');
     
-    // Handle source type change
+    // --- Event Listeners ---
+
+    // 1. Handle Source Type change
     sourceType.addEventListener('change', function () {
         const isManual = this.value === 'MANUAL';
         
         filterConfigSection.style.display = isManual ? 'none' : 'block';
         unitCategorySection.style.display = isManual ? 'block' : 'none';
         
-        // Clear selections
-        filterField.innerHTML = '<option value="">-- Select Field to Filter --</option>';
-        filterValue.innerHTML = '<option value="">-- Select Value --</option>';
-        filterField2.innerHTML = '<option value="">-- No Secondary Filter --</option>';
-        filterValue2.innerHTML = '<option value="">-- Select Value --</option>';
-        filterValueSection.style.display = 'none';
-        filterValueSection2.style.display = 'none';
+        // Hide units if not manual
+        if (!isManual) {
+            unitsWrapper.style.display = 'none';
+        } else if (categorySelect.value) {
+            // If manual and a category is already selected, show the units
+            unitsWrapper.style.display = 'block';
+        }
         
         if (!isManual) {
             loadSourceFields(this.value);
         }
     });
 
-    // Load available fields
+    // 2. Handle Category selection for Manual questions (AJAX)
+    categorySelect.addEventListener('change', function() {
+        const categoryId = this.value;
+
+        if (categoryId && sourceType.value === 'MANUAL') {
+            // Show loading state
+            unitsWrapper.style.display = 'block';
+            unitsCheckboxContainer.innerHTML = '<p class="empty">Loading units...</p>';
+            defaultUnitSelect.innerHTML = '<option value="">-- Loading --</option>';
+
+            // Fetch units from the API
+            const url = `{% url 'environmental:get-category-units' %}?category_id=${categoryId}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateUnitSelectionUI(data.units);
+                    } else {
+                        // Handle API error
+                        unitsCheckboxContainer.innerHTML = `<p class="empty">Error: ${data.error}</p>`;
+                        defaultUnitSelect.innerHTML = '<option value="">-- Error --</option>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching units:', error);
+                    unitsCheckboxContainer.innerHTML = `<p class="empty">Could not fetch units. Please try again.</p>`;
+                });
+        } else {
+            // Hide if no category is selected
+            unitsWrapper.style.display = 'none';
+        }
+    });
+
+    // --- Helper Functions ---
+    
+    // Function to populate the unit checkboxes and dropdown
+    function updateUnitSelectionUI(units) {
+        unitsCheckboxContainer.innerHTML = '';
+        defaultUnitSelect.innerHTML = '<option value="">-- Select Default Unit --</option>';
+
+        if (!units || units.length === 0) {
+            unitsCheckboxContainer.innerHTML = '<p class="empty">No units found for this category.</p>';
+            return;
+        }
+
+        units.forEach(unit => {
+            // Add to checkbox list
+            const unitLabel = document.createElement('label');
+            unitLabel.className = 'unit-checkbox';
+            unitLabel.innerHTML = `
+                <input type="checkbox" name="selected_unit_ids[]" value="${unit.id}">
+                ${unit.name} (${unit.base_unit})
+            `;
+            unitsCheckboxContainer.appendChild(unitLabel);
+
+            // Add to default unit dropdown
+            const unitOption = document.createElement('option');
+            unitOption.value = unit.id;
+            unitOption.textContent = unit.name;
+            defaultUnitSelect.appendChild(unitOption);
+        });
+    }
+
+    // Function to load fields for Incident/Hazard source types
     function loadSourceFields(sourceType) {
-        fetch(`/env-data/api/get-source-fields/?source_type=${sourceType}`)
+        const url = `{% url 'environmental:get-source-fields' %}?source_type=${sourceType}`;
+        fetch(url)
             .then(response => response.json())
             .then(data => {
-                if (data.success && data.fields.length > 0) {
-                    // Populate primary filter
-                    filterField.innerHTML = '<option value="">-- Select Field to Filter --</option>';
-                    
-                    // Populate secondary filter
-                    filterField2.innerHTML = '<option value="">-- No Secondary Filter --</option>';
-                    
+                filterField.innerHTML = '<option value="">-- Select Field to Filter --</option>';
+                filterField2.innerHTML = '<option value="">-- No Secondary Filter --</option>';
+                if (data.success && data.fields) {
                     data.fields.forEach(field => {
-                        // Primary filter option
-                        const option1 = document.createElement('option');
-                        option1.value = field.field_name;
-                        option1.textContent = field.field_verbose_name;
-                        option1.dataset.choices = JSON.stringify(field.choices);
-                        filterField.appendChild(option1);
-                        
-                        // Secondary filter option
-                        const option2 = document.createElement('option');
-                        option2.value = field.field_name;
-                        option2.textContent = field.field_verbose_name;
-                        option2.dataset.choices = JSON.stringify(field.choices);
-                        filterField2.appendChild(option2);
+                        const optionHTML = `<option value="${field.field_name}" data-choices='${JSON.stringify(field.choices)}'>${field.field_verbose_name}</option>`;
+                        filterField.innerHTML += optionHTML;
+                        filterField2.innerHTML += optionHTML;
                     });
                 }
             })
-            .catch(error => {
-                console.error('Error loading fields:', error);
-                alert('Error loading fields. Please try again.');
-            });
+            .catch(error => console.error('Error loading fields:', error));
     }
 
-    // Handle primary filter field change
+    // Common function for filter field changes
+    function handleFilterFieldChange(fieldSelect, valueSelect, valueSection) {
+        const selectedOption = fieldSelect.options[fieldSelect.selectedIndex];
+        valueSelect.innerHTML = '<option value="">-- Select Value --</option>';
+
+        if (!fieldSelect.value) {
+            valueSection.style.display = 'none';
+            return;
+        }
+        
+        try {
+            const choices = JSON.parse(selectedOption.dataset.choices || '[]');
+            if (choices.length > 0) {
+                choices.forEach(choice => {
+                    valueSelect.innerHTML += `<option value="${choice.value}">${choice.display}</option>`;
+                });
+                valueSection.style.display = 'block';
+            } else {
+                valueSection.style.display = 'none';
+            }
+        } catch (e) {
+            console.error('Error parsing choices:', e);
+            valueSection.style.display = 'none';
+        }
+    }
+
+    // Add listeners for filter fields
     filterField.addEventListener('change', function() {
         handleFilterFieldChange(this, filterValue, filterValueSection);
     });
-
-    // Handle secondary filter field change
     filterField2.addEventListener('change', function() {
         if (this.value) {
             handleFilterFieldChange(this, filterValue2, filterValueSection2);
@@ -464,77 +576,44 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Common function to handle filter field changes
-    function handleFilterFieldChange(fieldSelect, valueSelect, valueSection) {
-        const selectedOption = fieldSelect.options[fieldSelect.selectedIndex];
-        
-        if (!fieldSelect.value) {
-            valueSection.style.display = 'none';
-            return;
-        }
-        
-        try {
-            const choices = JSON.parse(selectedOption.dataset.choices || '[]');
-            
-            if (choices.length > 0) {
-                valueSelect.innerHTML = '<option value="">-- Select Value --</option>';
-                choices.forEach(choice => {
-                    const option = document.createElement('option');
-                    option.value = choice.value;
-                    option.textContent = choice.display;
-                    valueSelect.appendChild(option);
-                });
-                valueSection.style.display = 'block';
-            }
-        } catch (e) {
-            console.error('Error parsing choices:', e);
-        }
-    }
-
-    // Category selection for manual entry
-    categorySelect.addEventListener('change', function(e) {
-        const categoryId = this.value;
-        if (categoryId && sourceType.value === 'MANUAL') {
-            window.location.href = '?category_id=' + categoryId;
-        }
-    });
-
-    // Form validation
+    // --- Form Validation ---
     document.getElementById('addQuestionForm').addEventListener('submit', function(e) {
         const isManual = sourceType.value === 'MANUAL';
         
-        if (!isManual) {
-            if (!filterField.value) {
+        if (isManual) {
+            if (!categorySelect.value) {
                 e.preventDefault();
-                alert('Please select a primary filter field');
-                filterField.focus();
-                return false;
+                alert('Please select a unit category.');
+                return;
             }
-            
-            if (!filterValue.value) {
-                e.preventDefault();
-                alert('Please select a primary filter value');
-                filterValue.focus();
-                return false;
-            }
-            
-            // Validate secondary filter if field is selected
-            if (filterField2.value && !filterValue2.value) {
-                e.preventDefault();
-                alert('Please select a secondary filter value');
-                filterValue2.focus();
-                return false;
-            }
-        } else {
             const selectedUnits = document.querySelectorAll('input[name="selected_unit_ids[]"]:checked');
-            
             if (selectedUnits.length === 0) {
                 e.preventDefault();
-                alert('Please select at least one unit');
-                return false;
+                alert('Please select at least one unit.');
+                return;
+            }
+            if (!defaultUnitSelect.value) {
+                e.preventDefault();
+                alert('Please select a default unit.');
+                return;
+            }
+        } else { // Auto-calculated validation
+            if (!filterField.value || !filterValue.value) {
+                e.preventDefault();
+                alert('Please select a primary filter field and value.');
+                return;
+            }
+            if (filterField2.value && !filterValue2.value) {
+                e.preventDefault();
+                alert('Please select a secondary filter value.');
+                return;
             }
         }
     });
+
+    // --- Initial Setup ---
+    // Trigger change event on sourceType to set initial visibility
+    sourceType.dispatchEvent(new Event('change'));
 });
 </script>
 {% endblock %}
