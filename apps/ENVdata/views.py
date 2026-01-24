@@ -6,7 +6,7 @@ from django.db import models
 from django.http import JsonResponse
 from django.http import HttpResponse
 from datetime import datetime
-
+from django.core.paginator import Paginator 
 from apps.accounts.models import User
 from apps.accidents.models import Incident
 from apps.organizations.models import Plant
@@ -558,13 +558,12 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
         # Get saved data for this plant - FILTER OUT NULL indicators
         saved_data = MonthlyIndicatorData.objects.filter(
             plant=plant,
-            indicator__isnull=False  # IMPORTANT: Skip records with no indicator
+            indicator__isnull=False
         ).select_related('indicator')
 
-        # Organize data
+        # Organize data by question
         data_dict = {}
         for d in saved_data:
-            # Double-check indicator exists (extra safety)
             if d.indicator is None:
                 continue
                 
@@ -579,15 +578,19 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
         for q in questions:
             default_unit_name = q.default_unit.name if q.default_unit else "Count"
             
-            month_data = {}
+            # Create a list of month values in order
+            month_values = []
             total = 0
             has_values = False
             
             for month_code, month_name in MONTHS:
                 month_key = month_code.lower()
                 value = data_dict.get(q, {}).get(month_key, '')
-                month_data[month_name] = value
                 
+                # Store the value
+                month_values.append(value if value else '-')
+                
+                # Calculate total
                 if value:
                     try:
                         total += float(str(value).replace(',', ''))
@@ -598,120 +601,111 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
             questions_data.append({
                 "question": q.question_text,
                 "unit": default_unit_name,
-                "month_data": month_data,
-                "annual": f"{total:,.2f}" if has_values else '',
+                "month_values": month_values,  # List of values in order
+                "annual": f"{total:,.2f}" if has_values else '-',
             })
 
         context = {
             "plant": plant,
             "user_plants": user_plants,
             "questions_data": questions_data,
-            "months": MONTHS,  # Changed: Pass full tuples instead of just names
+            "months": MONTHS,
         }
 
         return render(request, self.template_name, context)
-
 # =========================================================
 # ADMIN VIEW - ALL PLANTS DATA
 # =========================================================
+
+from django.views import View
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.paginator import Paginator
 
 class AdminAllPlantsDataView(LoginRequiredMixin, View):
     template_name = "data_collection/admin_all_plants.html"
 
     def get(self, request):
-        # Check if user is admin/superuser
+        # Permission check
         if not (request.user.is_superuser or request.user.is_staff or getattr(request.user, 'is_admin_user', False)):
             messages.error(request, "You don't have permission to access this page")
             return redirect("environmental:plant-entry")
 
-        # Get ALL active plants
-        all_plants = Plant.objects.filter(is_active=True).order_by('name')
+        # ALL plants
+        all_plants = Plant.objects.filter(is_active=True).order_by("name")
 
         if not all_plants.exists():
-            return render(request, self.template_name, {
-                "no_plants": True,
-            })
+            return render(request, self.template_name, {"no_plants": True})
 
-        # Get all questions
+        # ✅ PAGINATION — ONE PLANT ONLY
+        paginator = Paginator(all_plants, 1)
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+
+        # Questions
         questions = EnvironmentalQuestion.objects.filter(
             is_active=True
-        ).select_related('unit_category', 'default_unit').order_by("is_system", "order", "id")
+        ).select_related(
+            "unit_category", "default_unit"
+        ).order_by("is_system", "order", "id")
 
         if not questions.exists():
-            return render(request, self.template_name, {
-                "no_questions": True,
-            })
+            return render(request, self.template_name, {"no_questions": True})
 
-        # Get ALL saved data efficiently - FILTER OUT NULL indicators
+        # ALL indicator data (queried once)
         all_data = MonthlyIndicatorData.objects.filter(
-            indicator__isnull=False  # IMPORTANT: Skip records with no indicator
-        ).select_related('plant', 'indicator')
+            indicator__isnull=False
+        ).select_related("plant", "indicator")
 
         MONTHS = MonthlyIndicatorData.MONTH_CHOICES
 
-        # Build data structure
         plants_data = []
-        plants_with_data_count = 0
-        
-        for plant in all_plants:
+
+        # 🔥 THIS IS THE FIX — page_obj, NOT all_plants
+        for plant in page_obj:
             plant_questions_data = []
-            plant_has_any_data = False
-            
+
             for q in questions:
-                default_unit_name = q.default_unit.name if q.default_unit else "Count"
-                
+                unit_name = q.default_unit.name if q.default_unit else "Count"
                 month_data = {}
                 total = 0
                 has_values = False
-                
+
                 for month_code, month_name in MONTHS:
-                    month_key = month_code.upper()
-                    
-                    # Find the specific data entry
-                    data_entry = all_data.filter(
+                    data = all_data.filter(
                         plant=plant,
                         indicator=q,
-                        month=month_key
+                        month=month_code.upper()
                     ).first()
-                    
-                    if data_entry and data_entry.value:
-                        value = data_entry.value
-                        plant_has_any_data = True
-                        month_data[month_name] = value
-                        
+
+                    if data and data.value:
+                        month_data[month_name] = data.value
                         try:
-                            numeric_value = float(str(value).replace(',', ''))
-                            total += numeric_value
+                            total += float(str(data.value).replace(",", ""))
                             has_values = True
-                        except (ValueError, TypeError):
+                        except Exception:
                             pass
                     else:
-                        month_data[month_name] = ''
-                
-                annual_display = f"{total:,.2f}" if has_values else "0"
-                
+                        month_data[month_name] = "-"
+
                 plant_questions_data.append({
                     "question": q.question_text,
-                    "unit": default_unit_name,
+                    "unit": unit_name,
                     "month_data": month_data,
-                    "annual": annual_display,
-                    "has_data": has_values,
+                    "annual": f"{total:,.2f}" if has_values else "-",
                 })
-            
-            if plant_has_any_data:
-                plants_with_data_count += 1
-            
+
             plants_data.append({
                 "plant": plant,
                 "questions_data": plant_questions_data,
-                "has_data": plant_has_any_data,
             })
 
         context = {
-            "plants_data": plants_data,
-            "months": MONTHS,  # Changed: Pass full tuples
+            "plants_data": plants_data,  # WILL CONTAIN ONLY 1 PLANT
+            "months": [m[1] for m in MONTHS],
+            "page_obj": page_obj,
             "total_plants": all_plants.count(),
-            "plants_with_data": plants_with_data_count,
             "total_questions": questions.count(),
         }
 

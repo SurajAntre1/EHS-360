@@ -1,52 +1,185 @@
 {% extends 'base/base.html' %}
 {% load static %}
-{% load custom_tags %}
+
 {% block title %}View Environmental Data{% endblock %}
 {% block page_title %}View Environmental Data{% endblock %}
 
 {% block extra_css %}
 <style>
+:root {
+    --primary-color: #2563eb;
+    --success-color: #10b981;
+    --bg-light: #f8fafc;
+    --bg-white: #ffffff;
+    --border-color: #e2e8f0;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    --radius-lg: 0.75rem;
+}
+
 .data-display-container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 1.5rem;
+    background: var(--bg-light);
+    min-height: calc(100vh - 100px);
 }
 
 .header-section {
     background: linear-gradient(135deg, #059669 0%, #047857 100%);
-    border-radius: 0.75rem;
+    border-radius: var(--radius-lg);
     padding: 2rem;
     margin-bottom: 1.5rem;
     color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.header-section h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.875rem;
+    font-weight: 700;
+}
+
+.header-section p {
+    margin: 0;
+    font-size: 1rem;
+    opacity: 0.95;
+}
+
+.plant-selector {
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+}
+
+.plant-selector label {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-right: 1rem;
+}
+
+.plant-selector select {
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    min-width: 250px;
+    cursor: pointer;
+}
+
+.plant-selector select:focus {
+    outline: none;
+    border-color: var(--success-color);
+}
+
+.data-table-wrapper {
+    background: white;
+    border-radius: var(--radius-lg);
+    overflow-x: auto;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
 }
 
 .display-table {
     width: 100%;
-    background: white;
     border-collapse: collapse;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    border-radius: 0.5rem;
-    overflow: hidden;
+    font-size: 0.9rem;
 }
 
 .display-table thead {
     background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
-.display-table th,
-.display-table td {
+.display-table thead th {
     padding: 1rem;
     text-align: left;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 2px solid var(--border-color);
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-.display-table th {
-    font-weight: 700;
-    color: #1e293b;
+.display-table thead th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 11;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    min-width: 300px;
+}
+
+.display-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.2s;
 }
 
 .display-table tbody tr:hover {
     background: #f8fafc;
+}
+
+.display-table tbody td {
+    padding: 0.75rem 1rem;
+    border-right: 1px solid #f1f5f9;
+}
+
+.display-table tbody td:first-child {
+    position: sticky;
+    left: 0;
+    background: white;
+    z-index: 5;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-right: 2px solid var(--border-color);
+    min-width: 300px;
+}
+
+.display-table tbody tr:hover td:first-child {
+    background: #f8fafc;
+}
+
+.display-table tbody td:last-child {
+    border-right: none;
+    font-weight: 700;
+    color: var(--success-color);
+}
+
+.unit-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e40af;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+    border: 1px solid #93c5fd;
+}
+
+.no-data {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 1024px) {
+    .display-table {
+        font-size: 0.85rem;
+    }
+    
+    .display-table thead th,
+    .display-table tbody td {
+        padding: 0.5rem;
+    }
 }
 </style>
 {% endblock %}
@@ -54,13 +187,13 @@
 {% block content %}
 <div class="data-display-container">
     <div class="header-section">
-        <h2>View Environmental Data</h2>
-        <p>Plant: {{ plant.name }}</p>
+        <h2><i class="fas fa-eye"></i> View Environmental Data</h2>
+        <p><i class="fas fa-industry"></i> Plant: {{ plant.name }}</p>
     </div>
 
     {% if user_plants.count > 1 %}
-    <div style="margin-bottom: 1.5rem;">
-        <label>Select Plant:</label>
+    <div class="plant-selector">
+        <label><i class="fas fa-building"></i> Select Plant:</label>
         <select onchange="window.location.href='?plant_id='+this.value">
             {% for p in user_plants %}
             <option value="{{ p.id }}" {% if p.id == plant.id %}selected{% endif %}>
@@ -71,28 +204,45 @@
     </div>
     {% endif %}
 
-    <table class="display-table">
-        <thead>
-            <tr>
-                <th>Environmental Indicator</th>
-                {% for month in months %}
-                <th>{{ month }}</th>
+    {% if no_questions %}
+    <div class="no-data">
+        <h3><i class="fas fa-exclamation-triangle"></i> No Environmental Questions Configured</h3>
+        <p>Please contact your administrator to add questions.</p>
+    </div>
+    {% else %}
+    <div class="data-table-wrapper">
+        <table class="display-table">
+            <thead>
+                <tr>
+                    <th>Environmental Indicator</th>
+                    {% for month_code, month_name in months %}
+                    <th>{{ month_name }}</th>
+                    {% endfor %}
+                    <th>Annual Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for q in questions_data %}
+                <tr>
+                    <td>
+                        <strong>{{ q.question }}</strong>
+                        <span class="unit-badge">{{ q.unit }}</span>
+                    </td>
+                    {% for value in q.month_values %}
+                    <td>{{ value }}</td>
+                    {% endfor %}
+                    <td><strong>{{ q.annual }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="14" class="no-data">
+                        <p>No data available</p>
+                    </td>
+                </tr>
                 {% endfor %}
-                <th>Annual Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for q in questions_data %}
-            <tr>
-                <td><strong>{{ q.question }}</strong> ({{ q.unit }})</td>
-                {% for month in months %}
-                <td>{{ q.month_data|get_item:month|default:"-" }}</td>
-                {% endfor %}
-                <td><strong>{{ q.annual|default:"-" }}</strong></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
 </div>
-
 {% endblock %}
