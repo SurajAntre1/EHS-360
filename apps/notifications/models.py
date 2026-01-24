@@ -125,7 +125,7 @@ class NotificationMaster(models.Model):
         ordering = ['role', 'module', 'notification_event']
         verbose_name = "Notification Configuration"
         verbose_name_plural = "Notification Configurations"
-        unique_together = [['role', 'notification_event']]  # ✅ Now matches field name
+        unique_together = [['role','module','notification_event']]  # ✅ Now matches field name
     
     def save(self, *args, **kwargs):
         """Auto-generate name from role, module and event"""

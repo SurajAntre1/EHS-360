@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ subject }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .email-container {
+            max-width: 700px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .email-header {
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+        .email-header h1 {
+            margin: 0;
+            font-size: 22px;
+        }
+        .email-body {
+            padding: 20px;
+            color: #333333;
+            line-height: 1.5;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 5px;
+            color: #007bff;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .info-table th, .info-table td {
+            padding: 8px 12px;
+            border: 1px solid #dddddd;
+        }
+        .info-table th {
+            background-color: #f0f0f0;
+            text-align: left;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 13px;
+            color: #777777;
+            text-align: center;
+            padding: 15px;
+            border-top: 1px solid #dddddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <h1>{{ title }}</h1>
+        </div>
+        <div class="email-body">
+            <p>Hello {{ recipient.get_full_name }},</p>
+
+            <p>The following investigation action for an incident has been assigned to you.</p>
+
+            <!-- Incident Details -->
+            <div class="section-title">Incident Details</div>
+            <table class="info-table">
+                <tr>
+                    <th>Incident Number</th>
+                    <td>{{ incident.report_number }}</td>
+                </tr>
+                <tr>
+                    <th>Incident Type</th>
+                    <td>{{ incident.get_incident_type_display }}</td>
+                </tr>
+                <tr>
+                    <th>Date & Time</th>
+                    <td>{{ incident.incident_date }} {{ incident.incident_time }}</td>
+                </tr>
+                <tr>
+                    <th>Plant</th>
+                    <td>{{ incident.plant.name }}</td>
+                </tr>
+                <tr>
+                    <th>Zone</th>
+                    <td>{{ incident.zone.name|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <th>Location</th>
+                    <td>{{ incident.location.name|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <th>Sub-Location</th>
+                    <td>{{ incident.sublocation.name|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <th>Reported By</th>
+                    <td>{{ incident.reported_by.get_full_name }}</td>
+                </tr>
+            </table>
+
+            <!-- Action Item Details -->
+            <div class="section-title">Action Item Details</div>
+            <table class="info-table">
+                <tr>
+                    <th>Description</th>
+                    <td>{{ incidnetactionitem.description }}</td>
+                </tr>
+                <tr>
+                    <th>Target Date</th>
+                    <td>{{ incidnetactionitem.target_date }}</td>
+                </tr>
+                <tr>
+                    <th>Status</th>
+                    <td>{{ incidnetactionitem.status }}</td>
+                </tr>
+                <tr>
+                    <th>Completion Date</th>
+                    <td>{{ incidnetactionitem.completion_date|default:"Pending" }}</td>
+                </tr>
+            </table>
+
+            <!-- Incident Description -->
+            <div class="section-title">Incident Description</div>
+            <p>{{ incident.description }}</p>
+
+            <p>Please review the assigned action item and take necessary steps.</p>
+
+            <p>Regards,<br>EHS Management System</p>
+        </div>
+        <div class="footer">
+            &copy; {{ now|date:"Y" }} EHS Management System. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>

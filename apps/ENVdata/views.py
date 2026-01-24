@@ -710,3 +710,33 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
         }
 
         return render(request, self.template_name, context)
+    
+class GetCategoryBaseUnitAPIView(LoginRequiredMixin, View):
+    """
+    API endpoint to fetch the established base unit for a category.
+    """
+    def get(self, request):
+        category_id = request.GET.get('category_id')
+        if not category_id:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Category ID is required'
+            }, status=400)
+        
+        try:
+            # Find the first unit in this category to determine the base unit
+            first_unit = Unit.objects.filter(category_id=category_id, is_active=True).first()
+            
+            # If a unit exists, return its base unit. Otherwise, return an empty string.
+            base_unit = first_unit.base_unit if first_unit else ""
+            
+            return JsonResponse({
+                'success': True,
+                'base_unit': base_unit
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)

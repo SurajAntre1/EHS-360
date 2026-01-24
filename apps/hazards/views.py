@@ -244,6 +244,33 @@ class HazardCreateView(LoginRequiredMixin, CreateView):
                     uploaded_by=user
                 )
                 photos_uploaded += 1
+        
+        # Add Notification 
+        print("\n\n" + "#" * 70)
+        print("VIEW: HAZARD SAVED SUCCESSFULLY")
+        print("#" * 70)
+        print(f"Report Number: {self.object.report_number}")
+        print(f"Incident ID: {self.object.id}")
+        print(f"Plant: {self.object.plant}")
+        print(f"Location: {self.object.plant}")
+        print("#" * 70)
+        print("\nVIEW: Calling notify_hazard_reported()")
+
+        try:
+            from apps.notifications.services import NotificationService
+
+            NotificationService.notify(
+                content_object= self.object,
+                notification_type= 'HAZARD_REPORTED',
+                module='HAZARD'
+            )
+
+            print("\nVIEW: ✅ Notifications sent successfully")
+        except Exception as e:
+            print(f"\nVIEW: ❌ ERROR in notification system: {e}")
+            import traceback
+            traceback.print_exc()
+        print("\n" + "#" * 70 + "\n\n")
 
         # Success Message (Old Style)
         messages.success(
@@ -442,8 +469,37 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             # Handle file attachment
             action_item.attachment = request.FILES['attachment']
             action_item.save()
-
             # Prepare success message
+
+            self.object = action_item  
+            # --- Debug logging like HazardCreateView ---
+            print("\n\n" + "#" * 70)
+            print("VIEW: ACTION ITEM SAVED SUCCESSFULLY")
+            print("#" * 70)
+            print(f"Action Item ID: {self.object.id}")
+            print(f"Hazard ID: {self.object.hazard.id}")
+            print(f"Hazard Report Number: {self.object.hazard.report_number}")
+            print(f"Responsible Emails: {self.object.responsible_emails}")
+            print(f"Target Date: {self.object.target_date}")
+            print("#" * 70)
+            print("\nVIEW: Calling notify_hazard_action_item_assigned()")
+
+            # --- SEND NOTIFICATIONS ---
+            try:
+                from apps.notifications.services import NotificationService
+
+                NotificationService.notify(
+                    content_object=action_item,  
+                    notification_type='HAZARD_ACTION_ASSIGNED',  
+                    module='HAZARD_ACTION'
+                )
+                print("\nVIEW: ✅ Action item notifications sent successfully")
+            except Exception as e:
+                print(f"\nVIEW: ❌ ERROR in action item notification system: {e}")
+                import traceback
+                traceback.print_exc()
+
+            # Success message
             email_count = action_item.get_emails_count()
             if is_self_assigned:
                 message = mark_safe(
@@ -457,11 +513,9 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
                 )
             
             messages.success(request, message)
-            
             return redirect('hazards:hazard_detail', pk=self.hazard.pk)
 
         except Exception as e:
-            # Log the error for debugging purposes
             print(f"Error creating action item: {e}")
             messages.error(request, f'Error creating action item: {str(e)}')
             return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)

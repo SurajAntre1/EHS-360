@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Hazard Action Assigned</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 720px;
+            margin: 30px auto;
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+        }
+        .header {
+            background-color: #dc3545;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 6px 6px 0 0;
+            text-align: center;
+        }
+        .header h2 {
+            margin: 0;
+        }
+        .section {
+            margin-top: 25px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333333;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td {
+            padding: 8px 6px;
+            vertical-align: top;
+            font-size: 14px;
+        }
+        td.label {
+            width: 35%;
+            font-weight: bold;
+            color: #555;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 13px;
+            color: #666;
+        }
+        .highlight {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <div class="header">
+        <h2>⚠️ Hazard Action Assigned</h2>
+    </div>
+
+    <p>Hello <strong>{{ recipient.get_full_name }}</strong>,</p>
+
+    <p>
+        A <span class="highlight">hazard action item</span> has been assigned to you.
+        Please review the details below and ensure completion before the target date.
+    </p>
+
+    <!-- HAZARD DETAILS -->
+    <div class="section">
+        <div class="section-title">Hazard Details</div>
+        <table>
+            <tr>
+                <td class="label">Hazard Number</td>
+                <td>{{ hazard.report_number }}</td>
+            </tr>
+            <tr>
+                <td class="label">Hazard Type</td>
+                <td>{{ hazard.get_hazard_type_display }}</td>
+            </tr>
+            <tr>
+                <td class="label">Reported Date</td>
+                <td>{{ hazard.reported_date }}</td>
+            </tr>
+            <tr>
+                <td class="label">Plant</td>
+                <td>{{ hazard.plant.name }}</td>
+            </tr>
+            <tr>
+                <td class="label">Zone</td>
+                <td>{{ hazard.zone.name|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Location</td>
+                <td>{{ hazard.location.name|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Sub-Location</td>
+                <td>{{ hazard.sublocation.name|default:"N/A" }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ACTION DETAILS -->
+    <div class="section">
+        <div class="section-title">Action Item Details</div>
+        <table>
+            <tr>
+                <td class="label">Action Description</td>
+                <td>{{ action_item.action_description }}</td>
+            </tr>
+            <tr>
+                <td class="label">Target Date</td>
+                <td>{{ action_item.target_date }}</td>
+            </tr>
+            <tr>
+                <td class="label">Status</td>
+                <td>{{ action_item.status }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <p>
+            Please ensure the action is completed within the specified timeline.
+        </p>
+        <p>
+            Regards,<br>
+            <strong>EHS Management System</strong>
+        </p>
+    </div>
+
+</div>
+</body>
+</html>

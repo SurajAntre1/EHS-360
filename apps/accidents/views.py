@@ -589,9 +589,9 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
             # Notify that investigation was completed
             # You'll need to add 'INCIDENT_INVESTIGATION_COMPLETED' to your NotificationMaster
             NotificationService.notify(
-                content_object=self.incident,
+                content_object=investigation,
                 notification_type='INCIDENT_INVESTIGATION_COMPLETED',
-                module='INCIDENT'
+                module='INCIDENT_INVESTIGATION_REPORTED'
             )
             
             print("✅ Investigation completion notifications sent")
@@ -661,9 +661,9 @@ class ActionItemCreateView(LoginRequiredMixin, CreateView):
             
             # Notify responsible persons about the action item
             NotificationService.notify(
-                content_object=self.incident,
+                content_object=action_item,
                 notification_type='INCIDENT_ACTION_ASSIGNED',
-                module='INCIDENT'
+                module='INCIDENT_ACTION'
             )
             
             print("✅ Action assignment notifications sent")
@@ -1431,27 +1431,28 @@ class IncidentCloseView(LoginRequiredMixin, UpdateView):
     model = Incident
     template_name = 'accidents/incident_close.html'
     fields = ['closure_remarks', 'lessons_learned', 'preventive_measures']
-    
     def form_valid(self, form):
+        print(">>>> form_valid called")
         incident = form.save(commit=False)
+
+        # Set closure fields
         incident.status = 'CLOSED'
         incident.closure_date = timezone.now()
         incident.closed_by = self.request.user
         incident.save()
-        
+        print(f">>>> Incident {incident.report_number} closed, calling NotificationService")
         # ===== ADD NOTIFICATION: Incident Closed =====
         try:
             from apps.notifications.services import NotificationService
-            
             NotificationService.notify(
                 content_object=incident,
                 notification_type='INCIDENT_CLOSED',
-                module='INCIDENT'
+                module='INCIDENT_CLOSED'
             )
-            
             print("✅ Incident closure notifications sent")
+
         except Exception as e:
             print(f"❌ Error sending closure notifications: {e}")
-        
-        messages.success(self.request, f'Incident {incident.report_number} has been closed successfully.')
+
+        messages.success(self.request,f'Incident {incident.report_number} has been closed successfully.')
         return redirect('accidents:incident_detail', pk=incident.pk)
