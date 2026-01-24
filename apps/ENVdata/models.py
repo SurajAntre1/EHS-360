@@ -143,19 +143,19 @@ class MonthlyIndicatorData(models.Model):
         'EnvironmentalQuestion',
         on_delete=models.CASCADE,
         related_name='monthly_data',
-        blank=True
+        blank=True,null=True
     )    
     # indicator = models.CharField(max_length=100)
     month = models.CharField(max_length=3, choices=MONTH_CHOICES)
     value = models.CharField(max_length=100)
-    unit = models.CharField(max_length=50, default='Count')
+    unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
         # unique_together = ('plant', 'indicator', 'month')
-        ordering = [ 'month']
+        ordering = ['plant', 'indicator', 'month', 'value', 'unit']
     
     def __str__(self):
         return f"{self.plant.name} - {self.indicator} - {self.month}: {self.value} {self.unit}"
