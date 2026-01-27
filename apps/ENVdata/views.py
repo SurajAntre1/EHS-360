@@ -12,6 +12,7 @@ from apps.accidents.models import Incident
 from apps.organizations.models import Plant
 from .models import *
 from .utils import EnvironmentalDataFetcher
+from django.shortcuts import render, redirect, get_object_or_404
 
 # =========================================================
 # UNIT MANAGER
@@ -407,47 +408,62 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
 class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
     template_name = "data_collection/questions_manager.html"
 
-    def get(self, request):
+    def get(self, request, question_id=None):
+        """
+        Handles both displaying the list of questions and the form for adding/editing a question.
+        If 'question_id' is provided in the URL, it populates the form for editing.
+        """
         categories = UnitCategory.objects.filter(is_active=True)
-        selected_category_id = request.GET.get('category_id')
         
-        units = []
-        if selected_category_id:
-            units = Unit.objects.filter(
-                category_id=selected_category_id,
-                is_active=True
-            ).order_by('name')
-        
+        # Initialize an empty question instance for the "add" form
+        editing_question = None
+
+        # If a question_id is passed, it means we are editing
+        if question_id:
+            # Fetch the question object or return a 404 error if not found
+            editing_question = get_object_or_404(EnvironmentalQuestion, id=question_id)
+
         return render(request, self.template_name, {
             "questions": self.load_questions(),
             "categories": categories,
-            "selected_category_id": selected_category_id,
-            "units": units,
+            "editing_question": editing_question,  # Pass the question object to the template
         })
 
-    def post(self, request):
+    def post(self, request, question_id=None):
+        """
+        Handles form submissions for adding, updating, and deleting questions.
+        """
         action = request.POST.get("action")
 
+        # Define a dictionary to map actions to handler methods
         actions = {
             "add": self.add_question,
+            "update": self.update_question, # Naya action
             "delete": self.delete_question,
         }
 
-        return actions.get(action, lambda r: redirect(
-            "environmental:questions-manager"
-        ))(request)
+        # Call the appropriate handler based on the action
+        # If question_id is present, pass it to the handler
+        if action in actions:
+            if question_id:
+                return actions[action](request, question_id)
+            else:
+                return actions[action](request)
+        
+        # Default redirect if no action matches
+        return redirect("environmental:questions-manager")
 
     def load_questions(self):
+        # Yeh function aàpke existing code jaisa hi rahega
         questions_list = []
         for q in EnvironmentalQuestion.objects.filter(is_active=True).order_by("is_system", "order", "id"):
             selected_units = q.selected_units.all()
             
-            # Build filter description
             filter_desc = ""
             if q.filter_field and q.filter_value:
-                filter_desc = f"{q.filter_field} = {q.filter_value}"
+                filter_desc = f"{q.get_filter_field_display() if hasattr(q, 'get_filter_field_display') else q.filter_field} = {q.filter_value}"
                 if q.filter_field_2 and q.filter_value_2:
-                    filter_desc += f" AND {q.filter_field_2} = {q.filter_value_2}"
+                    filter_desc += f" AND {q.get_filter_field_2_display() if hasattr(q, 'get_filter_field_2_display') else q.filter_field_2} = {q.filter_value_2}"
             
             questions_list.append({
                 "id": q.id,
@@ -465,6 +481,7 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
         return questions_list
 
     def add_question(self, request):
+        # Yeh function aapke existing code jaisa hi rahega
         question_text = (request.POST.get("question_text") or "").strip()
         category_id = request.POST.get("category_id")
         default_unit_id = request.POST.get("default_unit_id")
@@ -482,10 +499,8 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
             messages.error(request, "Question text is required")
             return redirect("environmental:questions-manager")
 
-        if EnvironmentalQuestion.objects.filter(
-            question_text__iexact=question_text,
-            is_active=True
-        ).exists():
+        # Prevent duplicate questions
+        if EnvironmentalQuestion.objects.filter(question_text__iexact=question_text, is_active=True).exists():
             messages.error(request, "This question already exists")
             return redirect("environmental:questions-manager")
 
@@ -524,32 +539,87 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
             is_system=False,
         )
         
-        # Add selected units if provided
+        selected_unit_ids = request.POST.getlist("selected_unit_ids[]")
         if selected_unit_ids:
             question.selected_units.set(selected_unit_ids)
 
-        messages.success(request, "Question added successfully")
+        messages.success(request, f"✓ Question '{question_text}' added successfully!")
+        return redirect("environmental:questions-manager")
+
+    def update_question(self, request, question_id):
+        """
+        Handles the logic to update an existing question.
+        """
+        # Fetch the question to be updated
+        question = get_object_or_404(EnvironmentalQuestion, id=question_id)
+
+        # Non-editable for system-defined questions
+        if question.is_system:
+            messages.error(request, "Predefined questions cannot be edited.")
+            return redirect("environmental:questions-manager")
+
+        # Get data from the form
+        question_text = (request.POST.get("question_text") or "").strip()
+        category_id = request.POST.get("category_id")
+        default_unit_id = request.POST.get("default_unit_id")
+        selected_unit_ids = request.POST.getlist("selected_unit_ids[]")
+        source_type = request.POST.get("source_type", "MANUAL")
+        
+        # Validation
+        if not question_text:
+            messages.error(request, "Question text cannot be empty.")
+            return redirect("environmental:questions-manager-edit", question_id=question.id)
+
+        # Check if another question with the same text already exists
+        if EnvironmentalQuestion.objects.filter(question_text__iexact=question_text, is_active=True).exclude(id=question.id).exists():
+            messages.error(request, "Another question with this text already exists.")
+            return redirect("environmental:questions-manager-edit", question_id=question.id)
+
+        # Update the question object with new values
+        question.question_text = question_text
+        question.unit_category_id = category_id if category_id else None
+        question.default_unit_id = default_unit_id if default_unit_id else None
+        question.source_type = source_type
+        # ... (Update other fields like filter_field, etc. as needed)
+        
+        # Save the changes to the database
+        question.save()
+
+        # Update the many-to-many relationship for selected units
+        if selected_unit_ids:
+            question.selected_units.set(selected_unit_ids)
+        else:
+            # If no units are selected, clear the existing ones
+            question.selected_units.clear()
+
+        messages.success(request, f"✓ Question '{question.question_text}' updated successfully!")
         return redirect("environmental:questions-manager")
 
     def delete_question(self, request):
+        """
+        Handles the logic to PERMANENTLY delete a question from the database.
+        """
         question_id = request.POST.get("question_id")
+        
+        # Use get_object_or_404 to safely retrieve the question
+        question = get_object_or_404(EnvironmentalQuestion, id=question_id)
 
-        question = EnvironmentalQuestion.objects.filter(id=question_id).first()
-
-        if not question:
-            messages.error(request, "Question not found")
-            return redirect("environmental:questions-manager")
-
+        # Prevent deletion of system-defined questions (this check is still important)
         if question.is_system:
-            messages.error(request, "Predefined questions cannot be deleted")
+            messages.error(request, "Predefined questions cannot be deleted.")
             return redirect("environmental:questions-manager")
 
-        question.is_active = False
-        question.save()
+        # --- THIS IS THE ONLY CHANGE ---
+        # Instead of soft-deleting, we will now permanently delete.
+        
+        # Store the question text for the success message before deleting the object
+        question_name = question.question_text
+        
+        # This command permanently removes the question from the database.
+        question.delete()
 
-        messages.success(request, "Question deleted successfully")
+        messages.success(request, f"✓ Question '{question_name}' has been permanently deleted.")
         return redirect("environmental:questions-manager")
-
 
 # =========================================================
 # API ENDPOINTS
