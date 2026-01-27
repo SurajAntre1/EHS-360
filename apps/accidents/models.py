@@ -5,7 +5,20 @@ import datetime
 
 User = get_user_model()
 
-
+class IncidentType(models.Model):
+    name=models.CharField(max_length=100,unique=True,help_text="full name of incident type")
+    code=models.CharField(max_length=100,unique=True,help_text="short code")
+    description=models.TextField(blank=True,help_text="Description of this incident type")
+    is_active=models.BooleanField(default=True,help_text="Is this incident type active?")
+    create_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    created_by=models.ForeignKey(User,on_delete=models.SET_NULL,null=True,related_name='incident_types_created')
+    class Meta:
+        ordering=['name']
+        verbose_name='Incident Type'
+        verbose_name_plural='Incident Types'
+    def __str__(self):
+        return f"{self.name}({self.code})"
 class Incident(models.Model):
     """
     Incident/Accident Reporting Model
@@ -13,13 +26,13 @@ class Incident(models.Model):
            FA (First Aid), HLFI (High Lost Frequency Injury), FATALITY
     """
     
-    INCIDENT_TYPES = [
-        ('LTI', 'Lost Time Injury (LTI)'),
-        ('MTC', 'Medical Treatment Case (MTC/RWC)'),
-        ('FA', 'First Aid (FA)'),
-        ('HLFI', 'High Lost Frequency Injury (HLFI)'),
-        ('FATALITY', 'Fatality'),
-    ]
+    # INCIDENT_TYPES = [
+    #     ('LTI', 'Lost Time Injury (LTI)'),
+    #     ('MTC', 'Medical Treatment Case (MTC/RWC)'),
+    #     ('FA', 'First Aid (FA)'),
+    #     ('HLFI', 'High Lost Frequency Injury (HLFI)'),
+    #     ('FATALITY', 'Fatality'),
+    # ]
     
     STATUS_CHOICES = [
         ('REPORTED', 'Reported'),
@@ -95,7 +108,8 @@ class Incident(models.Model):
     report_number = models.CharField(max_length=50, unique=True, editable=False)
     
     # Basic Information
-    incident_type = models.CharField(max_length=10, choices=INCIDENT_TYPES)
+    # incident_type = models.CharField(max_length=10, choices=INCIDENT_TYPES)
+    incident_type = models.ForeignKey(IncidentType,on_delete=models.CASCADE,related_name='incidents',help_text='Type of incient',blank=True,null=True)
     incident_date = models.DateField()
     incident_time = models.TimeField()
     plant = models.ForeignKey(Plant, on_delete=models.CASCADE, related_name='incidents')
