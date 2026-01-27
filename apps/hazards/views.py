@@ -658,7 +658,7 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
         selected_status = self.request.GET.get('status', '')
 
         # 2. Build the base queryset based on user role
-        if user.is_superuser or getattr(user, 'role', None) == 'ADMIN':
+        if user.is_superuser or getattr(user, 'role', None) and user.role.name == 'ADMIN':
             base_hazards = Hazard.objects.all()
             all_plants = Plant.objects.filter(is_active=True).order_by('name')
         elif getattr(user, 'plant', None):
@@ -668,31 +668,39 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
             base_hazards = Hazard.objects.filter(reported_by=user)
             all_plants = Plant.objects.none()
 
-        # 3. Apply filters to the base queryset
-        hazards = base_hazards
-        if selected_plant:
-            hazards = hazards.filter(plant_id=selected_plant)
-        if selected_zone:
-            hazards = hazards.filter(zone_id=selected_zone)
-        if selected_location:
-            hazards = hazards.filter(location_id=selected_location)
-        if selected_sublocation:
-            hazards = hazards.filter(sublocation_id=selected_sublocation)
-        if selected_severity:
-            hazards = hazards.filter(severity=selected_severity)
+        # --- FIX STARTS HERE ---
+        # 3. Calculate top-level stats BEFORE applying any filters.
+        # This ensures the main dashboard cards always show the total numbers.
+        context['total_hazards'] = base_hazards.count()
+        context['open_hazards'] = base_hazards.exclude(status__in=['RESOLVED', 'CLOSED']).count()
+        context['overdue_hazards_count'] = base_hazards.filter(action_deadline__lt=today).exclude(status__in=['RESOLVED', 'CLOSED']).count()
         
-        # --- MODIFIED SECTION: Improved Status Filtering ---
-        # This now handles both 'open' and specific statuses like 'REPORTED', 'CLOSED' etc.
+        # This month's count should also be based on the unfiltered set unless a month is selected.
+        this_month_total = base_hazards.filter(incident_datetime__year=today.year, incident_datetime__month=today.month).count()
+
+        # 4. Now, apply filters to a new queryset for charts and lists.
+        filtered_hazards = base_hazards
+        if selected_plant:
+            filtered_hazards = filtered_hazards.filter(plant_id=selected_plant)
+        if selected_zone:
+            filtered_hazards = filtered_hazards.filter(zone_id=selected_zone)
+        if selected_location:
+            filtered_hazards = filtered_hazards.filter(location_id=selected_location)
+        if selected_sublocation:
+            filtered_hazards = filtered_hazards.filter(sublocation_id=selected_sublocation)
+        if selected_severity:
+            filtered_hazards = filtered_hazards.filter(severity=selected_severity)
+        
         if selected_status:
             if selected_status == 'open':
-                hazards = hazards.exclude(status__in=['RESOLVED', 'CLOSED'])
+                filtered_hazards = filtered_hazards.exclude(status__in=['RESOLVED', 'CLOSED'])
             else:
-                hazards = hazards.filter(status=selected_status)
+                filtered_hazards = filtered_hazards.filter(status=selected_status)
         
         if selected_month:
             try:
                 year, month = map(int, selected_month.split('-'))
-                hazards = hazards.filter(incident_datetime__year=year, incident_datetime__month=month)
+                filtered_hazards = filtered_hazards.filter(incident_datetime__year=year, incident_datetime__month=month)
             except (ValueError, TypeError):
                 pass
         
@@ -700,11 +708,16 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
         date_to = self.request.GET.get('date_to')
 
         if date_from:
-            hazards = hazards.filter(incident_datetime__date__gte=date_from)
+            filtered_hazards = filtered_hazards.filter(incident_datetime__date__gte=date_from)
         if date_to:
-            hazards = hazards.filter(incident_datetime__date__lte=date_to)
+            filtered_hazards = filtered_hazards.filter(incident_datetime__date__lte=date_to)
 
-        # 4. Prepare filter dropdown options
+        # The "This Month" card should show the filtered count if a month is selected,
+        # otherwise, it shows the total for the current month.
+        context['this_month_hazards'] = filtered_hazards.count() if selected_month else this_month_total
+        # --- FIX ENDS HERE ---
+
+        # 5. Prepare filter dropdown options (this part remains the same)
         context['plants'] = all_plants
         
         zone_qs = Zone.objects.filter(is_active=True)
@@ -751,13 +764,10 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
              pass
         context['has_active_filters'] = any(context.get(key) for key in ['selected_plant', 'selected_zone', 'selected_location', 'selected_sublocation', 'selected_month', 'selected_severity', 'selected_status'])
 
-        context['total_hazards'] = hazards.count()
-        context['open_hazards'] = hazards.exclude(status__in=['RESOLVED', 'CLOSED']).count()
-        context['this_month_hazards'] = hazards.count() if selected_month else hazards.filter(incident_datetime__year=today.year, incident_datetime__month=today.month).count()
-        context['overdue_hazards_count'] = hazards.filter(action_deadline__lt=today).exclude(status__in=['RESOLVED', 'CLOSED']).count()
-        context['recent_hazards'] = hazards.select_related('plant', 'location').order_by('-incident_datetime')[:10]
+        # 6. Prepare data for lists and charts using the FILTERED queryset
+        context['recent_hazards'] = filtered_hazards.select_related('plant', 'location').order_by('-incident_datetime')[:10]
 
-        top_categories_query = hazards.values('hazard_category').annotate(count=Count('hazard_category')).order_by('-count')[:3]
+        top_categories_query = filtered_hazards.values('hazard_category').annotate(count=Count('hazard_category')).order_by('-count')[:3]
         category_display_map = dict(Hazard.HAZARD_CATEGORIES)
         top_categories_list = []
         for item in top_categories_query:
@@ -768,24 +778,22 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
             })
         context['top_hazard_categories'] = top_categories_list
 
-        # 8. Prepare Chart Data (on filtered data)
-        # Monthly Trend
+        # Monthly Trend (from filtered data)
         six_months_ago = today - datetime.timedelta(days=180)
-        monthly_hazards = hazards.filter(incident_datetime__gte=six_months_ago).annotate(month=TruncMonth('incident_datetime')).values('month').annotate(count=Count('id')).order_by('month')
+        monthly_hazards = filtered_hazards.filter(incident_datetime__gte=six_months_ago).annotate(month=TruncMonth('incident_datetime')).values('month').annotate(count=Count('id')).order_by('month')
         context['monthly_labels'] = json.dumps([item['month'].strftime('%b %Y') for item in monthly_hazards])
         context['monthly_data'] = json.dumps([item['count'] for item in monthly_hazards])
 
-        # Severity Distribution
-        severity_distribution = hazards.values('severity').annotate(count=Count('id'))
+        # Severity Distribution (from filtered data)
+        severity_distribution = filtered_hazards.values('severity').annotate(count=Count('id'))
         severity_dict = {item['severity']: item['count'] for item in severity_distribution}
         severity_labels = [choice[1] for choice in Hazard.SEVERITY_CHOICES]
         severity_values = [choice[0] for choice in Hazard.SEVERITY_CHOICES]
         context['severity_labels'] = json.dumps(severity_labels)
         context['severity_data'] = json.dumps([severity_dict.get(val, 0) for val in severity_values])
 
-        # Status Distribution
-        status_distribution = hazards.values('status').annotate(count=Count('id')).order_by('-count')
-        
+        # Status Distribution (from filtered data)
+        status_distribution = filtered_hazards.values('status').annotate(count=Count('id')).order_by('-count')
         status_labels = []
         status_keys = []
         status_data = []
@@ -793,15 +801,14 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
 
         for item in status_distribution:
             status_labels.append(status_choices_dict.get(item['status'], item['status']))
-            status_keys.append(item['status'])  # Store the key e.g. 'REPORTED'
+            status_keys.append(item['status'])
             status_data.append(item['count'])
 
         context['status_labels'] = json.dumps(status_labels)
-        context['status_keys'] = json.dumps(status_keys) # NEW: Pass keys to template for JS
+        context['status_keys'] = json.dumps(status_keys)
         context['status_data'] = json.dumps(status_data)
 
-        return context
-    
+        return context    
 
 # ==================================================
 # AJAX VIEWS for Cascading Dropdowns
