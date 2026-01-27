@@ -93,18 +93,17 @@
 }
 
 .form-control {
-    width: 100%;
-    padding: 0.75rem 1rem;
     border: 2px solid var(--border-color);
-    border-radius: 0.375rem;
-    font-size: 0.95rem;
-    transition: all 0.3s;
+    border-radius: 6px;
+    padding: 10px 15px;
+    height: 45px;
+    transition: all 0.3s ease;
 }
 
 .form-control:focus {
-    outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    outline: none;
 }
 
 .units-container {
@@ -428,7 +427,7 @@
     </div>
 
     <!-- Success/Error Messages -->
-    {% if messages %}
+    <!-- {% if messages %}
         {% for message in messages %}
         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
             <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
@@ -438,7 +437,7 @@
             </button>
         </div>
         {% endfor %}
-    {% endif %}
+    {% endif %} -->
 
     <div class="questions-list">
 

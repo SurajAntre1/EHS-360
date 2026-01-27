@@ -56,6 +56,52 @@
 .data-table tbody tr:hover {
     background: #f1f5f9;
 }
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 0.5rem;
+}
+
+.data-table {
+    min-width: 1200px; /* prevents squishing */
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.data-table th {
+    background: #f1f5f9;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.data-table th,
+.data-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.data-table td:first-child,
+.data-table th:first-child {
+    text-align: left;
+    position: sticky;
+    left: 0;
+    background: #ffffff;
+    z-index: 2;
+    font-weight: 600;
+}
+
+.data-table thead th:first-child {
+    z-index: 3;
+    background: #f1f5f9;
+}
+
+.data-table tbody tr:hover {
+    background: #f8fafc;
+}
+
 </style>
 {% endblock %}
 
@@ -70,6 +116,7 @@
     <div class="plant-section">
         <h3 class="plant-title">{{ plant_data.plant.name }}</h3>
         
+    <div class="table-wrapper">
         <table class="data-table">
             <thead>
                 <tr>
