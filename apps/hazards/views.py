@@ -18,6 +18,7 @@ from django.http import HttpResponse
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from .utils import generate_hazard_pdf
 from django.views import View
+from apps.common.image_utils import compress_image
 
 import json
 from django.db.models import Count
@@ -237,9 +238,10 @@ class HazardCreateView(LoginRequiredMixin, CreateView):
         for i in range(photo_count + 5):
             photo = self.request.FILES.get(f'photo_{i}')
             if photo:
+                compressed_photo = compress_image(photo)
                 HazardPhoto.objects.create(
                     hazard=hazard,
-                    photo=photo,
+                    photo=compressed_photo,
                     photo_type='evidence',
                     uploaded_by=user
                 )
@@ -369,9 +371,10 @@ class HazardUpdateView(LoginRequiredMixin, UpdateView):
         for i in range(photo_count + 5):
             photo = self.request.FILES.get(f'photo_{i}')
             if photo:
+                compressed_photo = compress_image(photo)
                 HazardPhoto.objects.create(
                     hazard=hazard,
-                    photo=photo,
+                    photo=compressed_photo,
                     photo_type='evidence',
                     uploaded_by=self.request.user
                 )
