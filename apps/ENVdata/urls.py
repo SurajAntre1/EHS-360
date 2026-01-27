@@ -9,6 +9,7 @@ urlpatterns = [
     path('plant-data-view/', PlantDataDisplayView.as_view(), name='plant-data-view'),
     path('admin-all-plants/', AdminAllPlantsDataView.as_view(), name='admin-all-plants'),
     path('questions-manager/', EnvironmentalQuestionsManagerView.as_view(), name='questions-manager'),
+    path('questions-manager/edit/<int:question_id>/', EnvironmentalQuestionsManagerView.as_view(), name='questions-manager-edit'),
     path('unit-manager/', UnitManagerView.as_view(), name='unit-manager'),
     
     # API endpoints

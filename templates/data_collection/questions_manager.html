@@ -1,10 +1,9 @@
 {% extends 'base/base.html' %}
 {% load static %}
-
 {% block title %}Environmental Data{% endblock %}
 {% block page_title %}Questions Manager{% endblock %}
-
 {% block extra_css %}
+
 <style>
 :root {
     --primary-color: #2563eb;
@@ -417,230 +416,255 @@
 }
 </style>
 {% endblock %}
-
 {% block content %}
 <div class="questions-manager">
-
-    <div class="header">
-        <h2><i class="fas fa-question-circle"></i> Environmental Questions Manager</h2>
-        <p>Configure environmental indicators for data collection</p>
-    </div>
-
-    <!-- Success/Error Messages -->
-    <!-- {% if messages %}
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-            {{ message }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-        {% endfor %}
-    {% endif %} -->
-
-    <div class="questions-list">
-
-        <!-- ================= ADD QUESTION FORM ================= -->
-        <div class="add-question-form">
-            <h3><i class="fas fa-plus-circle"></i> Add New Question</h3>
-
-            <form method="post" id="addQuestionForm">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="add">
-
-                <!-- QUESTION TEXT -->
-                <div class="form-group">
-                    <label>Question Text <span class="required">*</span></label>
-                    <input type="text" name="question_text" id="questionText"
-                           class="form-control"
-                           placeholder="e.g., Total Fatalities, Hazardous Waste Generated"
-                           required>
-                    <small>Enter a clear, descriptive question</small>
-                </div>
-
-                <!-- SOURCE TYPE -->
-                <div class="form-group">
-                    <label>Source Type <span class="required">*</span></label>
-                    <select name="source_type" id="sourceType" class="form-control" required>
-                        <option value="MANUAL">Manual Entry</option>
-                        <option value="INCIDENT">Incident Module (Auto-calculated)</option>
-                        <option value="HAZARD">Hazard Module (Auto-calculated)</option>
-                    </select>
-                    <small>Choose whether data is entered manually or calculated automatically</small>
-                </div>
-
-                <!-- FILTER CONFIGURATION (for auto-calculated questions) -->
-                <div id="filterConfigSection" style="display:none;">
-                    
-                    <!-- PRIMARY FILTER -->
-                    <div class="form-group">
-                        <label>Primary Filter Field <span class="required">*</span></label>
-                        <select name="filter_field" id="filterField" class="form-control">
-                            <option value="">-- Select Field to Filter --</option>
-                        </select>
-                        <small>Choose which field to filter by (e.g., incident_type, hazard_type)</small>
-                    </div>
-
-                    <div class="form-group" id="filterValueSection" style="display:none;">
-                        <label>Primary Filter Value <span class="required">*</span></label>
-                        <select name="filter_value" id="filterValue" class="form-control">
-                            <option value="">-- Select Value --</option>
-                        </select>
-                        <small>Select the specific value to count</small>
-                    </div>
-
-                    <!-- SECONDARY FILTER -->
-                    <div class="form-group filter-separator">
-                        <label>Secondary Filter Field <span style="color: #64748b;">(Optional)</span></label>
-                        <select name="filter_field_2" id="filterField2" class="form-control">
-                            <option value="">-- No Secondary Filter --</option>
-                        </select>
-                        <small>Add an additional filter condition (optional)</small>
-                    </div>
-
-                    <div class="form-group" id="filterValueSection2" style="display:none;">
-                        <label>Secondary Filter Value</label>
-                        <select name="filter_value_2" id="filterValue2" class="form-control">
-                            <option value="">-- Select Value --</option>
-                        </select>
-                        <small>Select the secondary filter value</small>
-                    </div>
-
-                    <div class="alert alert-info">
-                        <strong><i class="fas fa-lightbulb"></i> Examples:</strong><br>
-                        • <strong>All Fatalities:</strong> incident_type = FATALITY<br>
-                        • <strong>LTI Reported:</strong> incident_type = LTI + status = REPORTED<br>
-                        • <strong>Closed MTC Cases:</strong> incident_type = MTC + status = CLOSED
-                    </div>
-                </div>
-
-                <!-- UNIT CATEGORY (only for MANUAL) -->
-                <div class="form-group" id="unitCategorySection">
-                    <label>Unit Category <span class="required">*</span></label>
-                    <select name="category_id" id="categorySelect" class="form-control">
-                        <option value="">-- Select Unit Category --</option>
-                        {% for cat in categories %}
-                        <option value="{{ cat.id }}">{{ cat.name }}</option>
-                        {% endfor %}
-                    </select>
-                    <small>Select a category to load available units (e.g., Weight, Volume, Energy)</small>
-                </div>
-
-                <!-- UNITS SECTION (dynamically loaded) -->
-                <div id="unitsWrapper" style="display: none;">
-                    <!-- AVAILABLE UNITS -->
-                    <div class="form-group">
-                        <label>Available Units <span class="required">*</span></label>
-                        <div class="units-container" id="unitsCheckboxContainer">
-                            <div class="loading">
-                                <i class="fas fa-spinner fa-spin"></i> Loading units...
-                            </div>
-                        </div>
-                        <small>Select which units can be used for this question</small>
-                    </div>
-
-                    <!-- DEFAULT UNIT -->
-                    <div class="form-group">
-                        <label>Default Unit <span class="required">*</span></label>
-                        <select name="default_unit_id" id="defaultUnitSelect" class="form-control">
-                            <option value="">-- Select Default Unit --</option>
-                        </select>
-                        <small>Choose the default unit (must be one of the selected units above)</small>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-success" id="submitBtn">
-                    <i class="fas fa-plus-circle"></i> Add Question
-                </button>
-            </form>
-        </div>
-
-        <!-- ================= EXISTING QUESTIONS TABLE ================= -->
-        <div class="existing-questions">
-            <div class="table-header">
-                <h3>
-                    <i class="fas fa-table"></i> 
-                    Existing Questions 
-                    <span class="badge">{{ questions|length }}</span>
-                </h3>
-            </div>
-
-            <div class="table-wrapper">
-                {% if questions %}
-                <table class="questions-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 5%;">#</th>
-                            <th style="width: 30%;">Question</th>
-                            <th style="width: 12%;">Source</th>
-                            <th style="width: 25%;">Filter / Configuration</th>
-                            <th style="width: 13%;">Category</th>
-                            <th style="width: 15%;">Units</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in questions %}
-                        <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td>
-                                <div class="question-text">{{ item.question }}</div>
-                            </td>
-                            <td>
-                                <span class="source-badge {% if item.source_type == 'MANUAL' %}source-manual{% else %}source-auto{% endif %}">
-                                    {{ item.source_type }}
-                                </span>
-                            </td>
-                            <td>
-                                {% if item.filter_description %}
-                                    <span class="filter-tag">
-                                        <i class="fas fa-filter"></i> {{ item.filter_description }}
-                                    </span>
-                                {% else %}
-                                    <span style="color: #9ca3af;">—</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if item.category_name != "Not Set" %}
-                                    <span style="color: var(--text-primary); font-weight: 500;">
-                                        {{ item.category_name }}
-                                    </span>
-                                {% else %}
-                                    <span style="color: #9ca3af;">—</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if item.category_name != "Not Set" %}
-                                    <div class="unit-info">
-                                        <div class="default-unit">
-                                            <i class="fas fa-check-circle"></i> {{ item.default_unit_name }}
-                                        </div>
-                                        {% if item.selected_unit_names %}
-                                        <div class="unit-list">
-                                            <i class="fas fa-list"></i> {{ item.selected_unit_names|join:", " }}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                {% else %}
-                                    <span style="color: #9ca3af;">—</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <div class="no-data">
-                    <i class="fas fa-inbox"></i>
-                    <h4>No Questions Configured</h4>
-                    <p>Add your first environmental question using the form above.</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+<div class="header">
+    <h2><i class="fas fa-question-circle"></i> Environmental Questions Manager</h2>
+    <p>Configure environmental indicators for data collection</p>
 </div>
 
+<!-- Success/Error Messages -->
+<!-- {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'danger' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {% endfor %}
+{% endif %} -->
+
+<div class="questions-list">
+
+    <!-- ================= ADD / EDIT QUESTION FORM ================= -->
+    <div class="add-question-form">
+        <h3>
+            {% if editing_question %}
+                <i class="fas fa-edit"></i> Edit Question
+            {% else %}
+                <i class="fas fa-plus-circle"></i> Add New Question
+            {% endif %}
+        </h3>
+
+        <form method="post"
+              action="{% if editing_question %}{% url 'environmental:questions-manager-edit' editing_question.id %}{% else %}{% url 'environmental:questions-manager' %}{% endif %}"
+              id="addQuestionForm">
+            {% csrf_token %}
+
+            <input type="hidden" name="action" value="{% if editing_question %}update{% else %}add{% endif %}">
+            {% if editing_question %}
+                <input type="hidden" name="question_id" value="{{ editing_question.id }}">
+            {% endif %}
+
+            <!-- QUESTION TEXT -->
+            <div class="form-group">
+                <label>Question Text <span class="required">*</span></label>
+                <input type="text"
+                    name="question_text"
+                    class="form-control"
+                    required
+                    value="{{ editing_question.question_text|default:'' }}">
+            </div>
+
+            <!-- SOURCE TYPE -->
+            <div class="form-group">
+                <label>Source Type <span class="required">*</span></label>
+                <select name="source_type" id="sourceType" class="form-control" required>
+                    <option value="MANUAL" {% if editing_question.source_type == 'MANUAL' %}selected{% endif %}>Manual Entry</option>
+                    <option value="INCIDENT" {% if editing_question.source_type == 'INCIDENT' %}selected{% endif %}>Incident Module</option>
+                    <option value="HAZARD" {% if editing_question.source_type == 'HAZARD' %}selected{% endif %}>Hazard Module</option>
+                </select>
+            </div>
+
+            <!-- FILTER CONFIGURATION (for auto-calculated questions) -->
+            <div id="filterConfigSection" style="display:none;">
+                
+                <!-- PRIMARY FILTER -->
+                <div class="form-group">
+                    <label>Primary Filter Field <span class="required">*</span></label>
+                    <select name="filter_field" id="filterField" class="form-control">
+                        <option value="">-- Select Field to Filter --</option>
+                    </select>
+                    <small>Choose which field to filter by (e.g., incident_type, hazard_type)</small>
+                </div>
+
+                <div class="form-group" id="filterValueSection" style="display:none;">
+                    <label>Primary Filter Value <span class="required">*</span></label>
+                    <select name="filter_value" id="filterValue" class="form-control">
+                        <option value="">-- Select Value --</option>
+                    </select>
+                    <small>Select the specific value to count</small>
+                </div>
+
+                <!-- SECONDARY FILTER -->
+                <div class="form-group filter-separator">
+                    <label>Secondary Filter Field <span style="color: #64748b;">(Optional)</span></label>
+                    <select name="filter_field_2" id="filterField2" class="form-control">
+                        <option value="">-- No Secondary Filter --</option>
+                    </select>
+                    <small>Add an additional filter condition (optional)</small>
+                </div>
+
+                <div class="form-group" id="filterValueSection2" style="display:none;">
+                    <label>Secondary Filter Value</label>
+                    <select name="filter_value_2" id="filterValue2" class="form-control">
+                        <option value="">-- Select Value --</option>
+                    </select>
+                    <small>Select the secondary filter value</small>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong><i class="fas fa-lightbulb"></i> Examples:</strong><br>
+                    • <strong>All Fatalities:</strong> incident_type = FATALITY<br>
+                    • <strong>LTI Reported:</strong> incident_type = LTI + status = REPORTED<br>
+                    • <strong>Closed MTC Cases:</strong> incident_type = MTC + status = CLOSED
+                </div>
+            </div>
+
+            <!-- UNIT CATEGORY (only for MANUAL) -->
+            <div class="form-group" id="unitCategorySection">
+                <label>Unit Category <span class="required">*</span></label>
+                <select name="category_id" id="categorySelect" class="form-control">
+                    <option value="">-- Select Unit Category --</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}"
+                          {% if editing_question.category_id == cat.id %}selected{% endif %}>
+                          {{ cat.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- UNITS (AJAX stays same) -->
+            <div id="unitsWrapper" style="display:none;">
+                <div class="form-group">
+                    <label>Available Units</label>
+                    <div class="units-container" id="unitsCheckboxContainer"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Default Unit</label>
+                    <select name="default_unit_id" id="defaultUnitSelect" class="form-control"></select>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button type="submit" class="btn btn-success">
+                    {% if editing_question %}
+                        <i class="fas fa-save"></i> Update Question
+                    {% else %}
+                        <i class="fas fa-plus-circle"></i> Add Question
+                    {% endif %}
+                </button>
+
+                {% if editing_question %}
+                    <a href="{% url 'environmental:questions-manager' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+<!-- ================= EXISTING QUESTIONS TABLE ================= -->
+<div class="existing-questions">
+    <div class="table-header">
+        <h3>
+            <i class="fas fa-table"></i> Existing Questions
+            <span class="badge">{{ questions|length }}</span>
+        </h3>
+    </div>
+
+<div class="table-wrapper">
+
+    {% if questions %}
+    <table class="questions-table">
+        <thead>
+            <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 25%;">Question</th>
+                <th style="width: 10%;">Source</th>
+                <th style="width: 25%;">Filter / Configuration</th>
+                <th style="width: 15%;">Category</th>
+                <th style="width: 15%;">Units</th>
+                <th style="width: 5%;">Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for item in questions %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+
+                <td>
+                    <div class="question-text">{{ item.question }}</div>
+                </td>
+
+                <td>
+                    <span class="source-badge {% if item.source_type == 'MANUAL' %}source-manual{% else %}source-auto{% endif %}">
+                        {{ item.source_type }}
+                    </span>
+                </td>
+
+                <!-- FILTER / CONFIGURATION -->
+                <td>
+                    {% if item.filter_description %}
+                        <span class="filter-tag">
+                            <i class="fas fa-filter"></i>
+                            {{ item.filter_description }}
+                        </span>
+                    {% else %}
+                        <span style="color:#9ca3af;">—</span>
+                    {% endif %}
+                </td>
+
+                <td>
+                    {{ item.category_name|default:"—" }}
+                </td>
+
+                <td>
+                    {% if item.default_unit_name %}
+                        <strong>{{ item.default_unit_name }}</strong>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+
+                <!-- ACTIONS -->
+                <td>
+                    <a href="{% url 'environmental:questions-manager-edit' item.id %}"
+                       class="btn btn-sm btn-info" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </a>
+
+                    <form method="post"
+                          action="{% url 'environmental:questions-manager' %}"
+                          style="display:inline;"
+                          onsubmit="return confirm('Are you sure you want to delete this question?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="question_id" value="{{ item.id }}">
+                        <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {% else %}
+        <div class="no-data">
+            <i class="fas fa-inbox"></i>
+            <h4>No Questions Configured</h4>
+        </div>
+    {% endif %}
+
+</div>
+</div>
+<!-- 🔒 JS UNCHANGED -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // --- Element References ---
@@ -789,6 +813,97 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
+    function initializeEditForm() {
+    {% if editing_question %}
+        const editingQuestion = {
+            source_type: "{{ editing_question.source_type }}",
+            category_id: "{{ editing_question.unit_category.id }}",
+            default_unit_id: "{{ editing_question.default_unit.id }}",
+            selected_unit_ids: [
+                {% for unit in editing_question.selected_units.all %}"{{ unit.id }}",{% endfor %}
+            ]
+        };
+
+        // 1. Set the source type dropdown's value
+        sourceType.value = editingQuestion.source_type;
+        // 2. Manually trigger its 'change' event to show/hide sections
+        sourceType.dispatchEvent(new Event('change'));
+
+        // 3. If it's a manual question, set the category dropdown's value
+        if (editingQuestion.source_type === 'MANUAL' && editingQuestion.category_id) {
+            categorySelect.value = editingQuestion.category_id;
+            
+            // 4. THIS IS THE FIX: Manually trigger the category's 'change' event.
+            // This will start the AJAX call to load the units, just like a user click.
+            categorySelect.dispatchEvent(new Event('change'));
+
+            // The AJAX listener will now handle loading and pre-selecting the units.
+            // We need to wait for the AJAX to finish before setting the default unit.
+            // We will modify the 'categorySelect' event listener to handle this.
+        }
+    {% endif %}
+}
+    // New function to fetch units AND pre-select them
+    // function fetchAndPreselectUnits(categoryId, selectedUnitIds, defaultUnitId) {
+    //     unitsWrapper.style.display = 'block';
+    //     unitsCheckboxContainer.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading units...</div>';
+    //     defaultUnitSelect.innerHTML = '<option value="">-- Loading --</option>';
+
+    //     fetch(`/api/get-category-units/?category_id=${categoryId}`)
+    //         .then(response => response.json())
+    //         .then(data => {
+    //             if (data.success) {
+    //                 // Update UI with pre-selection logic
+    //                 updateUnitSelectionUI(data.units, selectedUnitIds);
+    //                 // Set the default unit after the dropdown is populated
+    //                 defaultUnitSelect.value = defaultUnitId;
+    //                 // Trigger update to show correct options in default unit dropdown
+    //                 window.updateDefaultUnitDropdown();
+    //             } else {
+    //                 unitsCheckboxContainer.innerHTML = `<div class="empty">Error: ${data.error}</div>`;
+    //             }
+    //         });
+    // }
+
+    // --- Modify the original updateUnitSelectionUI function ---
+    // Replace your old function with this new one
+    function updateUnitSelectionUI(units, selectedUnitIds = []) {
+    unitsCheckboxContainer.innerHTML = '';
+    defaultUnitSelect.innerHTML = '<option value="">-- Select Default Unit --</option>';
+
+    if (!units || units.length === 0) {
+        unitsCheckboxContainer.innerHTML = '<div class="empty">No units found for this category.</div>';
+        return;
+    }
+
+    units.forEach(unit => {
+        // Check if the current unit's ID is in the list of IDs to be pre-selected
+        const isChecked = selectedUnitIds.includes(String(unit.id));
+        
+        const label = document.createElement('label');
+        label.className = 'unit-checkbox';
+        // Add the 'checked' attribute if isChecked is true
+        label.innerHTML = `
+            <input type="checkbox" name="selected_unit_ids[]" value="${unit.id}" onchange="updateDefaultUnitDropdown()" ${isChecked ? 'checked' : ''}>
+            ${unit.name}
+        `;
+        unitsCheckboxContainer.appendChild(label);
+
+        const option = document.createElement('option');
+        option.value = unit.id;
+        option.textContent = unit.name;
+        defaultUnitSelect.appendChild(option);
+    });
+
+    // After creating all checkboxes, update the dropdown visibility
+    updateDefaultUnitDropdown();
+}
+
+    
+    // Call the initialization function when the page loads
+    initializeEditForm();
+
+
     // --- Filter Field Change Handlers ---
     function handleFilterFieldChange(fieldSelect, valueSelect, valueSection) {
         const selectedOption = fieldSelect.options[fieldSelect.selectedIndex];
@@ -899,6 +1014,7 @@ document.addEventListener('DOMContentLoaded', function () {
             setTimeout(() => alert.remove(), 500);
         });
     }, 5000);
+
 });
 </script>
 {% endblock %}
