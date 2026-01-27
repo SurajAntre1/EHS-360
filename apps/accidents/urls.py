@@ -4,10 +4,16 @@ from . import views
 app_name = 'accidents'
 
 urlpatterns = [
+
     # Dashboard
     path('', views.IncidentDashboardView.as_view(), name='dashboard'),
     path('dashboard/', views.IncidentAccidentDashboardView.as_view(), name='IncidentAccidentDashboardView'),
 
+    # incidents types 
+    path('incident-types/', views.IncidentTypeListView.as_view(),name='incident_type_list'),
+    path('incident-types/create/', views.IncidentTypeCreateView.as_view(),name='incident_type_create'),
+    path('incident-types/<int:pk>/update/', views.IncidentTypeUpdateView.as_view(),name='incident_type_update'),
+    path('incident-types/<int:pk>/delete/',views.IncidentTypeDeleteView.as_view(),name='incident_type_delete'),
     # Incident URLs
     path('incidents/', views.IncidentListView.as_view(), name='incident_list'),
     path('incidents/create/', views.IncidentCreateView.as_view(), name='incident_create'),

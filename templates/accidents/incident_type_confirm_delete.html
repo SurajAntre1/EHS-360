@@ -1,0 +1,304 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Delete Incident Type{% endblock %}
+{% block page_title %}Delete Incident Type{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Incident Management</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:incident_type_list' %}">Incident Types</a></li>
+<li class="breadcrumb-item active">Delete</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.delete-warning-box {
+    border: 2px solid #dc3545;
+    border-radius: 8px;
+    padding: 20px;
+    background-color: #fff5f5;
+    margin-bottom: 20px;
+}
+
+.delete-warning-box h5 {
+    color: #dc3545;
+    margin-bottom: 15px;
+}
+
+.cannot-delete-box {
+    border: 2px solid #dc3545;
+    border-radius: 8px;
+    padding: 20px;
+    background-color: #ffe5e5;
+    margin-bottom: 20px;
+}
+
+.cannot-delete-box h5 {
+    color: #dc3545;
+    margin-bottom: 15px;
+}
+
+.info-card {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.info-card .info-row {
+    display: flex;
+    padding: 10px 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.info-card .info-row:last-child {
+    border-bottom: none;
+}
+
+.info-card .info-label {
+    font-weight: 600;
+    color: #495057;
+    width: 150px;
+    flex-shrink: 0;
+}
+
+.info-card .info-value {
+    color: #212529;
+    flex-grow: 1;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.warning-icon {
+    font-size: 4rem;
+    color: #dc3545;
+    margin-bottom: 20px;
+}
+
+.back-button-section {
+    text-align: center;
+    margin-top: 30px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-8 offset-md-2">
+    <div class="ehs-card">
+      <div class="card-header bg-danger text-white">
+        <h3 class="card-title mb-0">
+          <i class="fas fa-trash-alt mr-2"></i>Confirm Deletion
+        </h3>
+      </div>
+      
+      <div class="card-body">
+        {% if incident_count > 0 %}
+          <!-- ========================================= -->
+          <!-- CANNOT DELETE - INCIDENT TYPE IN USE -->
+          <!-- ========================================= -->
+          <div class="text-center">
+            <i class="fas fa-ban warning-icon"></i>
+          </div>
+
+          <div class="cannot-delete-box">
+            <h5 class="alert-heading">
+              <i class="fas fa-exclamation-circle mr-2"></i>Cannot Delete This Incident Type!
+            </h5>
+            <p class="mb-3">
+              This incident type <strong>"{{ incident_type.name }} ({{ incident_type.code }})"</strong> 
+              is currently being used by <strong>{{ incident_count }}</strong> incident{% if incident_count > 1 %}s{% endif %}.
+            </p>
+            <p class="mb-0">
+              <i class="fas fa-info-circle mr-2"></i>
+              <strong>What you can do:</strong>
+            </p>
+            <ul class="mt-2 mb-0">
+              <li>Instead of deleting, you can <strong>deactivate</strong> this incident type to prevent it from being used in new incidents.</li>
+              <li>To delete, you must first reassign or delete all incidents using this type.</li>
+            </ul>
+          </div>
+
+          <!-- Incident Type Details -->
+          <div class="info-card">
+            <h6 class="mb-3">
+              <i class="fas fa-info-circle mr-2"></i>Incident Type Details
+            </h6>
+            <div class="info-row">
+              <div class="info-label">Name:</div>
+              <div class="info-value">{{ incident_type.name }}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Code:</div>
+              <div class="info-value">
+                <span class="badge badge-secondary">{{ incident_type.code }}</span>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Description:</div>
+              <div class="info-value">{{ incident_type.description|default:"—" }}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Status:</div>
+              <div class="info-value">
+                {% if incident_type.is_active %}
+                  <span class="badge badge-success">
+                    <i class="fas fa-check-circle"></i> Active
+                  </span>
+                {% else %}
+                  <span class="badge badge-danger">
+                    <i class="fas fa-times-circle"></i> Inactive
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Incidents Using:</div>
+              <div class="info-value">
+                <span class="badge badge-warning">
+                  <i class="fas fa-exclamation-triangle mr-1"></i>
+                  {{ incident_count }} incident{% if incident_count > 1 %}s{% endif %}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="back-button-section">
+            <a href="{% url 'accidents:incident_type_list' %}" class="btn btn-secondary btn-lg">
+              <i class="fas fa-arrow-left mr-2"></i>Back to List
+            </a>
+            <a href="{% url 'accidents:incident_type_update' incident_type.pk %}" class="btn btn-warning btn-lg ml-2">
+              <i class="fas fa-edit mr-2"></i>Edit This Type
+            </a>
+          </div>
+
+        {% else %}
+          <!-- ========================================= -->
+          <!-- CAN DELETE - NO INCIDENTS USING THIS TYPE -->
+          <!-- ========================================= -->
+          <div class="text-center">
+            <i class="fas fa-exclamation-triangle warning-icon"></i>
+          </div>
+
+          <div class="delete-warning-box">
+            <h5 class="alert-heading">
+              <i class="fas fa-exclamation-triangle mr-2"></i>Are You Sure?
+            </h5>
+            <p class="mb-0">
+              Do you really want to delete the incident type 
+              <strong>"{{ incident_type.name }} ({{ incident_type.code }})"</strong>?
+              <br><br>
+              <i class="fas fa-exclamation-circle text-danger mr-2"></i>
+              <strong class="text-danger">This action cannot be undone!</strong>
+            </p>
+          </div>
+
+          <!-- Incident Type Details -->
+          <div class="info-card">
+            <h6 class="mb-3">
+              <i class="fas fa-info-circle mr-2"></i>Incident Type Details
+            </h6>
+            <div class="info-row">
+              <div class="info-label">Name:</div>
+              <div class="info-value">{{ incident_type.name }}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Code:</div>
+              <div class="info-value">
+                <span class="badge badge-secondary">{{ incident_type.code }}</span>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Description:</div>
+              <div class="info-value">{{ incident_type.description|default:"—" }}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Status:</div>
+              <div class="info-value">
+                {% if incident_type.is_active %}
+                  <span class="badge badge-success">
+                    <i class="fas fa-check-circle"></i> Active
+                  </span>
+                {% else %}
+                  <span class="badge badge-danger">
+                    <i class="fas fa-times-circle"></i> Inactive
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Created By:</div>
+              <div class="info-value">
+                {% if incident_type.created_by %}
+                  {{ incident_type.created_by.get_full_name|default:incident_type.created_by.username }}
+                {% else %}
+                  —
+                {% endif %}
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Created At:</div>
+              <div class="info-value">
+                {{ incident_type.created_at|date:"d M Y, h:i A" }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Confirmation Form -->
+          <form method="POST" id="deleteForm">
+            {% csrf_token %}
+            <div class="action-buttons">
+              <button type="submit" class="btn btn-danger btn-lg" id="confirmDeleteBtn">
+                <i class="fas fa-trash mr-2"></i>Yes, Delete It
+              </button>
+              <a href="{% url 'accidents:incident_type_list' %}" class="btn btn-secondary btn-lg">
+                <i class="fas fa-times mr-2"></i>No, Cancel
+              </a>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if incident_count == 0 %}
+    // Add extra confirmation for delete action
+    const deleteForm = document.getElementById('deleteForm');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    if (deleteForm && confirmDeleteBtn) {
+        deleteForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const confirmed = confirm(
+                'FINAL CONFIRMATION:\n\n' +
+                'Are you absolutely sure you want to delete "{{ incident_type.name }}"?\n\n' +
+                'This action is PERMANENT and CANNOT be undone!'
+            );
+            
+            if (confirmed) {
+                // Show loading state
+                confirmDeleteBtn.disabled = true;
+                confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...';
+                
+                // Submit the form
+                this.submit();
+            }
+        });
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

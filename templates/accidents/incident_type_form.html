@@ -1,0 +1,242 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ action }} Incident Type{% endblock %}
+{% block page_title %}{{ action }} Incident Type{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Incident Management</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:incident_type_list' %}">Incident Types</a></li>
+<li class="breadcrumb-item active">{{ action }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-section {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.form-section h6 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 5px;
+}
+
+.required-indicator {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.form-check-label {
+    font-weight: 500;
+    color: #495057;
+    margin-left: 5px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-8 offset-md-2">
+    <div class="ehs-card">
+      <div class="card-header bg-primary text-white">
+        <h3 class="card-title mb-0">
+          <i class="fas fa-{% if action == 'Create' %}plus{% else %}edit{% endif %} mr-2"></i>
+          {{ action }} Incident Type
+        </h3>
+      </div>
+      
+      <form method="POST" id="incidentTypeForm">
+        {% csrf_token %}
+        
+        <div class="card-body">
+          <!-- Alert Info -->
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle mr-2"></i>
+            <strong>Note:</strong> All fields marked with <span class="text-danger">*</span> are mandatory.
+          </div>
+
+          <!-- Form Errors Display -->
+          {% if form.errors or form.non_field_errors %}
+          <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <h5 class="alert-heading">
+              <i class="fas fa-exclamation-triangle mr-2"></i>Please Correct the Following Errors:
+            </h5>
+            
+            {% if form.non_field_errors %}
+              <ul class="mb-2">
+                {% for error in form.non_field_errors %}
+                  <li><strong>{{ error }}</strong></li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            
+            {% if form.errors %}
+              <ul class="mb-0">
+                {% for field in form %}
+                  {% if field.errors %}
+                    {% for error in field.errors %}
+                      <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            {% endif %}
+            
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          {% endif %}
+
+          <!-- Basic Information Section -->
+          <div class="form-section">
+            <h6><i class="fas fa-info-circle mr-2"></i>Basic Information</h6>
+            
+            <!-- Name Field -->
+            <div class="form-group">
+              <label for="{{ form.name.id_for_label }}">
+                Incident Type Name <span class="text-danger">*</span>
+              </label>
+              {{ form.name }}
+              <small class="form-text text-muted">
+                Enter the full name of the incident type (e.g., Lost Time Injury, First Aid)
+              </small>
+              {% if form.name.errors %}
+                <div class="text-danger mt-1">
+                  {% for error in form.name.errors %}
+                    <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Code Field -->
+            <div class="form-group">
+              <label for="{{ form.code.id_for_label }}">
+                Short Code <span class="text-danger">*</span>
+              </label>
+              {{ form.code }}
+              <small class="form-text text-muted">
+                Enter a short, unique code (e.g., LTI, FA, MTC). Maximum 20 characters.
+              </small>
+              {% if form.code.errors %}
+                <div class="text-danger mt-1">
+                  {% for error in form.code.errors %}
+                    <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Description Field -->
+            <div class="form-group">
+              <label for="{{ form.description.id_for_label }}">
+                Description
+              </label>
+              {{ form.description }}
+              <small class="form-text text-muted">
+                Provide a detailed description of this incident type (optional)
+              </small>
+              {% if form.description.errors %}
+                <div class="text-danger mt-1">
+                  {% for error in form.description.errors %}
+                    <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Status Section -->
+          <div class="form-section">
+            <h6><i class="fas fa-toggle-on mr-2"></i>Status</h6>
+            
+            <!-- Active/Inactive Checkbox -->
+            <div class="form-group">
+              <div class="form-check">
+                {{ form.is_active }}
+                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                  <strong>Active</strong>
+                </label>
+              </div>
+              <small class="form-text text-muted">
+                <i class="fas fa-info-circle mr-1"></i>
+                When checked, this incident type will be available in incident reporting forms. 
+                Uncheck to deactivate (it will be hidden from forms but existing incidents will retain their type).
+              </small>
+              {% if form.is_active.errors %}
+                <div class="text-danger mt-1">
+                  {% for error in form.is_active.errors %}
+                    <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        
+        <div class="card-footer">
+          <button type="submit" class="btn btn-primary btn-lg">
+            <i class="fas fa-save mr-2"></i>{{ action }} Incident Type
+          </button>
+          <a href="{% url 'accidents:incident_type_list' %}" class="btn btn-secondary btn-lg ml-2">
+            <i class="fas fa-times mr-2"></i>Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation before submission
+    const form = document.getElementById('incidentTypeForm');
+    
+    form.addEventListener('submit', function(e) {
+        const nameField = document.getElementById('{{ form.name.id_for_label }}');
+        const codeField = document.getElementById('{{ form.code.id_for_label }}');
+        
+        // Check if required fields are filled
+        if (!nameField.value.trim()) {
+            e.preventDefault();
+            alert('Please enter the Incident Type Name.');
+            nameField.focus();
+            return false;
+        }
+        
+        if (!codeField.value.trim()) {
+            e.preventDefault();
+            alert('Please enter the Short Code.');
+            codeField.focus();
+            return false;
+        }
+        
+        // Convert code to uppercase automatically
+        codeField.value = codeField.value.trim().toUpperCase();
+    });
+    
+    // Auto-uppercase the code field as user types
+    const codeField = document.getElementById('{{ form.code.id_for_label }}');
+    codeField.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+});
+</script>
+{% endblock %}

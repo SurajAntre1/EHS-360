@@ -158,16 +158,22 @@
             <div class="col-md-4 mb-3">
               <label for="id_incident_type">Type of Incident <span class="text-danger">*</span></label>
               <select name="incident_type" id="id_incident_type" class="form-control" required>
-                <option value="">Select incident type</option>
-                <option value="FA">First Aid (FA)</option>
-                <option value="MTC">Medical Treatment Case (MTC/RWC)</option>
-                <option value="LTI">Lost Time Injury (LTI)</option>
-                <option value="HLFI">High Lost Frequency Injury (HLFI)</option>
-                <option value="FATALITY">Fatality</option>
+               {%for incident_type in active_incident_types %}
+                <option value="{{incident_type.id}}" data-code="{{ incident_type.code }}">
+                     {{ incident_type.name }}({{ incident_type.code }})
+                </option>
+                {% endfor %}
+
               </select>
               {% if form.incident_type.errors %}
                 <div class="text-danger">{{ form.incident_type.errors }}</div>
               {% endif %}
+              {% if not active_incident_types %}
+                <div class="alert alert-warning mt-2">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    No active incident types found. Please contact administrator to add incident types.
+                </div>
+            {% endif %}
             </div>
             <div class="col-md-4 mb-3">
               <label for="{{ form.incident_date.id_for_label }}">Date of Incident <span class="text-danger">*</span></label>
@@ -719,7 +725,21 @@ document.addEventListener('DOMContentLoaded', function() {
     incidentTypeSelect.addEventListener('change', function() {
         const selectedType = this.value;
         
-        if (selectedType === 'LTI' || selectedType === 'MTC' || selectedType === 'FA' || selectedType === 'HLFI' || selectedType === 'FATALITY') {
+        if (!selectedType) {
+            bodyPartsSection.style.display = 'none';
+            natureOfInjuryField.removeAttribute('required');
+            return;
+        }
+        
+        // Get the code from the selected option's data attribute
+        const selectedOption = this.options[this.selectedIndex];
+        const selectedCode = selectedOption.getAttribute('data-code');
+        
+        // Check if it's an injury-related incident type
+        const injuryTypes = ['LTI', 'MTC', 'FA', 'HLFI', 'FATALITY'];
+        const isInjuryType = injuryTypes.includes(selectedCode);
+        
+        if (isInjuryType) {
             bodyPartsSection.style.display = 'block';
             natureOfInjuryField.setAttribute('required', 'required');
         } else {
@@ -727,45 +747,30 @@ document.addEventListener('DOMContentLoaded', function() {
             natureOfInjuryField.removeAttribute('required');
         }
     });
-    
-    // Unsafe Acts - Show/hide "Other" explanation box
-    const unsafeActOtherCheckbox = document.getElementById('ua13');
-    const unsafeActsOtherBox = document.getElementById('unsafeActsOtherBox');
-    
-    unsafeActOtherCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            unsafeActsOtherBox.classList.add('show');
-        } else {
-            unsafeActsOtherBox.classList.remove('show');
-            document.getElementById('unsafe_acts_other').value = '';
-        }
-    });
-    
-    // Unsafe Conditions - Show/hide "Other" explanation box
-    const unsafeConditionOtherCheckbox = document.getElementById('uc14');
-    const unsafeConditionsOtherBox = document.getElementById('unsafeConditionsOtherBox');
-    
-    unsafeConditionOtherCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            unsafeConditionsOtherBox.classList.add('show');
-        } else {
-            unsafeConditionsOtherBox.classList.remove('show');
-            document.getElementById('unsafe_conditions_other').value = '';
-        }
-    });
-    
+   
     // Form submission
     document.getElementById('incidentForm').addEventListener('submit', function(e) {
         // Validate nature of injury if incident type requires it
         const selectedType = incidentTypeSelect.value;
-        if ((selectedType === 'LTI' || selectedType === 'MTC' || selectedType === 'FA' || selectedType === 'HLFI' || selectedType === 'FATALITY') 
-            && !natureOfInjuryField.value.trim()) {
-            e.preventDefault();
-            alert('Nature of Injury is required for this type of incident.');
-            natureOfInjuryField.focus();
-            return false;
-        }
-        
+        if (!selectedType) {
+        e.preventDefault();
+        alert('Please select an incident type.');
+        incidentTypeSelect.focus();
+        return false;
+    }
+      const selectedOption = incidentTypeSelect.options[incidentTypeSelect.selectedIndex];
+      const selectedCode = selectedOption.getAttribute('data-code');
+      
+      // Check if it's an injury-related incident type
+      const injuryTypes = ['LTI', 'MTC', 'FA', 'HLFI', 'FATALITY'];
+      const isInjuryType = injuryTypes.includes(selectedCode);
+      
+      if (isInjuryType && !natureOfInjuryField.value.trim()) {
+          e.preventDefault();
+          alert('Nature of Injury is required for this type of incident.');
+          natureOfInjuryField.focus();
+          return false;
+      }
         // Validate affected person details
         const affectedName = document.getElementById('id_affected_person_name').value.trim();
         const affectedEmployeeId = document.getElementById('id_affected_person_employee_id').value.trim();
