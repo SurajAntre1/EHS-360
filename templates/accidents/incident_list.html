@@ -43,9 +43,10 @@
         <div class="col-md-2 mb-2">
           <select name="incident_type" class="form-control">
             <option value="">All Types</option>
-            {% for type_key, type_name in incident_types %}
-            <option value="{{ type_key }}" {% if selected_incident_type == type_key %}selected{% endif %}>
-              {{ type_name }}
+            {% for incident_type in incident_types %}
+            <option value="{{ incident_type.id }}" 
+                    {% if selected_incident_type == incident_type.id|stringformat:"s" %}selected{% endif %}>
+                {{ incident_type.code }} - {{ incident_type.name }}
             </option>
             {% endfor %}
           </select>
@@ -115,72 +116,49 @@
         </thead>
 
         <tbody>
-          {% for incident in incidents %}
-          <tr>
-            <td>
-              <strong>{{ incident.report_number }}</strong>
-              {% if incident.is_investigation_overdue %}
-              <span class="badge badge-danger badge-sm">Overdue</span>
-              {% endif %}
-            </td>
-
-            <td>
-              <span class="badge
-                {% if incident.incident_type == 'LTI' %}badge-danger
-                {% elif incident.incident_type == 'MTC' %}badge-warning
-                {% elif incident.incident_type == 'FA' %}badge-info
-                {% else %}badge-dark{% endif %}">
-                {{ incident.get_incident_type_display }}
-              </span>
-            </td>
-
-            <td>{{ incident.affected_person_name }}</td>
-
-            <td>
-              {{ incident.incident_date|date:"d/m/Y" }}<br>
-              <small class="text-muted">{{ incident.incident_time|time:"H:i" }}</small>
-            </td>
-
-            <td>
-              <strong>{{ incident.plant.code }}</strong><br>
-              <small class="text-muted">{{ incident.location.name }}</small>
-            </td>
-
-            <td>
-              <span class="badge
-                {% if incident.status == 'CLOSED' %}badge-success
-                {% elif incident.status == 'REPORTED' %}badge-secondary
-                {% else %}badge-primary{% endif %}">
-                {{ incident.get_status_display }}
-              </span>
-            </td>
-
-            {% if user.role.name != 'EMPLOYEE' %}
-            <td>
-              <div class="btn-group" role="group">
-                <a href="{% url 'accidents:incident_detail' incident.pk %}" class="btn btn-sm btn-info">
-                  <i class="fas fa-eye"></i>
-                </a>
-                <a href="{% url 'accidents:incident_update' incident.pk %}" class="btn btn-sm btn-primary">
-                  <i class="fas fa-edit"></i>
-                </a>
-                <a href="{% url 'accidents:incident_pdf' incident.pk %}" class="btn btn-sm btn-danger" target="_blank">
-                  <i class="fas fa-file-pdf"></i>
-                </a>
-              </div>
-            </td>
-            {% endif %}
-          </tr>
-
-          {% empty %}
-          <tr>
-            <td colspan="{% if user.role.name != 'EMPLOYEE' %}7{% else %}6{% endif %}" class="text-center">
-              <div class="alert alert-info">
-                <i class="fas fa-info-circle mr-2"></i>No incidents found.
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
+            {% for incident in incidents %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                    <a href="{% url 'accidents:incident_detail' incident.pk %}">
+                        {{ incident.report_number }}
+                    </a>
+                </td>
+                <td>
+                    <!-- ✅ UPDATED: Display incident type from ForeignKey -->
+                    <span class="badge badge-info">
+                        {{ incident.incident_type.code }}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge badge-{{ incident.get_status_badge_class }}">
+                        {{ incident.get_status_display }}
+                    </span>
+                </td>
+                <td>{{ incident.incident_date|date:"d M Y" }}</td>
+                <td>{{ incident.plant.name }}</td>
+                <td>{{ incident.affected_person_name }}</td>
+                <td>{{ incident.reported_by.get_full_name }}</td>
+                <td class="text-center">
+                    <a href="{% url 'accidents:incident_detail' incident.pk %}" 
+                      class="btn btn-sm btn-info" 
+                      title="View Details">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'accidents:incident_update' incident.pk %}" 
+                      class="btn btn-sm btn-warning" 
+                      title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="text-center">
+                    <p class="text-muted">No incidents found.</p>
+                </td>
+            </tr>
+            {% endfor %}
         </tbody>
       </table>
     </div>

@@ -7,7 +7,33 @@ from datetime import date
 from .models import Incident
 from apps.organizations.models import Plant, Zone, Location, SubLocation, Department
 from apps.organizations.models import *
+from django import forms
+from .models import IncidentType
 
+class IncidentTypeForm(forms.ModelForm):
+    class Meta:
+        model = IncidentType
+        fields = ['name', 'code', 'description', 'is_active']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Lost Time Injury'
+            }),
+            'code': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., LTI',
+                'maxlength': '20'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Enter description...'
+            }),
+        }
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
 class IncidentReportForm(forms.ModelForm):
     """Form for creating/updating incident reports with manual affected person entry"""
     

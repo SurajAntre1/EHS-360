@@ -1,0 +1,297 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Incident Types{% endblock %}
+{% block page_title %}Incident Type Master{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Incident Management</a></li>
+<li class="breadcrumb-item active">Incident Types</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.stats-card h3 {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.stats-card p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.table-actions {
+    white-space: nowrap;
+}
+
+.status-badge {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.search-section {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.badge-usage {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="ehs-card">
+      <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+          <h3 class="card-title mb-0">
+            <i class="fas fa-list-alt mr-2"></i>Incident Type Master
+          </h3>
+          <a href="{% url 'accidents:incident_type_create' %}" class="btn btn-light btn-sm">
+            <i class="fas fa-plus mr-1"></i>Add New Incident Type
+          </a>
+        </div>
+      </div>
+      
+      <div class="card-body">
+        <!-- Statistics Row -->
+        <div class="row mb-4">
+          <div class="col-md-4">
+            <div class="stats-card">
+              <h3>{{ incident_types|length }}</h3>
+              <p><i class="fas fa-list mr-2"></i>Total Incident Types</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stats-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+              <h3>{{ incident_types|length }}</h3>
+              <p><i class="fas fa-check-circle mr-2"></i>Active Types</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stats-card" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);">
+              <h3>{% for type in incident_types %}{{ type.incident_count|default:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}</h3>
+              <p><i class="fas fa-exclamation-triangle mr-2"></i>Total Incidents</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="search-section">
+          <form method="GET" action="" class="form-inline">
+            <div class="input-group" style="width: 100%; max-width: 500px;">
+              <input type="text" 
+                     name="search" 
+                     class="form-control" 
+                     placeholder="Search by name, code, or description..." 
+                     value="{{ search_query }}">
+              <div class="input-group-append">
+                <button class="btn btn-primary" type="submit">
+                  <i class="fas fa-search"></i> Search
+                </button>
+                {% if search_query %}
+                  <a href="{% url 'accidents:incident_type_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Clear
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          </form>
+          
+          {% if search_query %}
+            <div class="mt-2">
+              <small class="text-muted">
+                <i class="fas fa-filter mr-1"></i>
+                Showing results for: <strong>"{{ search_query }}"</strong>
+              </small>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Incident Types Table -->
+        {% if incident_types %}
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover">
+            <thead class="thead-light">
+              <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 25%;">Name</th>
+                <th style="width: 12%;">Code</th>
+                <th style="width: 35%;">Description</th>
+                <th style="width: 10%;" class="text-center">Status</th>
+                <th style="width: 10%;" class="text-center">Usage</th>
+                <th style="width: 13%;" class="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for incident_type in incident_types %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                  <strong>{{ incident_type.name }}</strong>
+                </td>
+                <td>
+                  <span class="badge badge-secondary">{{ incident_type.code }}</span>
+                </td>
+                <td>
+                  {% if incident_type.description %}
+                    {{ incident_type.description|truncatewords:20 }}
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if incident_type.is_active %}
+                    <span class="badge badge-success status-badge">
+                      <i class="fas fa-check-circle"></i> Active
+                    </span>
+                  {% else %}
+                    <span class="badge badge-danger status-badge">
+                      <i class="fas fa-times-circle"></i> Inactive
+                    </span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <span class="badge badge-info badge-usage" 
+                        title="Number of incidents using this type">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    {{ incident_type.incident_count }} incident(s)
+                  </span>
+                </td>
+                <td class="text-center table-actions">
+                  <a href="{% url 'accidents:incident_type_update' incident_type.pk %}" 
+                     class="btn btn-sm btn-warning" 
+                     title="Edit this incident type">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <a href="{% url 'accidents:incident_type_delete' incident_type.pk %}" 
+                     class="btn btn-sm btn-danger" 
+                     title="Delete this incident type">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav aria-label="Page navigation">
+          <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}">
+                  <i class="fas fa-angle-double-left"></i> First
+                </a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                  <i class="fas fa-angle-left"></i> Previous
+                </a>
+              </li>
+            {% endif %}
+
+            <li class="page-item active">
+              <span class="page-link">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+              </span>
+            </li>
+
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                  Next <i class="fas fa-angle-right"></i>
+                </a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}">
+                  Last <i class="fas fa-angle-double-right"></i>
+                </a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="empty-state">
+          <i class="fas fa-inbox"></i>
+          {% if search_query %}
+            <h4>No Results Found</h4>
+            <p class="text-muted">No incident types match your search for "{{ search_query }}"</p>
+            <a href="{% url 'accidents:incident_type_list' %}" class="btn btn-secondary btn-sm mt-3">
+              <i class="fas fa-times mr-1"></i>Clear Search
+            </a>
+          {% else %}
+            <h4>No Incident Types Yet</h4>
+            <p class="text-muted">Get started by creating your first incident type</p>
+            <a href="{% url 'accidents:incident_type_create' %}" class="btn btn-primary btn-sm mt-3">
+              <i class="fas fa-plus mr-1"></i>Add First Incident Type
+            </a>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Confirm before delete
+    const deleteButtons = document.querySelectorAll('a[href*="delete"]');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            const confirmed = confirm('Are you sure you want to delete this incident type?');
+            if (!confirmed) {
+                e.preventDefault();
+            }
+        });
+    });
+    
+    // Highlight active row on hover
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f0f8ff';
+        });
+        row.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,6 +1,6 @@
 from urllib.parse import urlencode
 from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
-from django.views.generic import ListView, CreateView, UpdateView, DetailView, TemplateView
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, TemplateView,DeleteView
 from django.urls import reverse, reverse_lazy
 from django.shortcuts import get_object_or_404, redirect
 from django.db.models import Q, Count
@@ -28,6 +28,113 @@ from django.conf.urls.static import static
 from apps.common.image_utils import compress_image
 
 from .forms import IncidentAttachmentForm # <-- Import the new form
+
+
+
+
+class IncidentTypeListView(LoginRequiredMixin, ListView):
+    """List all incident types with search functionality"""
+    model = IncidentType
+    template_name = 'accidents/incident_type_list.html'
+    context_object_name = 'incident_types'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = IncidentType.objects.annotate(
+            incident_count=Count('incidents')
+        ).order_by('name')
+        
+        search_query = self.request.GET.get('search', '')
+        if search_query:
+            queryset = queryset.filter(
+                Q(name__icontains=search_query) |
+                Q(code__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['search_query'] = self.request.GET.get('search', '')
+        return context
+
+
+class IncidentTypeCreateView(LoginRequiredMixin, CreateView):
+    """Create a new incident type"""
+    model = IncidentType
+    form_class = IncidentTypeForm
+    template_name = 'accidents/incident_type_form.html'
+    success_url = reverse_lazy('accidents:incident_type_list')
+    
+    def form_valid(self, form):
+        incident_type = form.save(commit=False)
+        incident_type.created_by = self.request.user
+        incident_type.save()
+        messages.success(
+            self.request, 
+            f'Incident Type "{incident_type.name}" created successfully!'
+        )
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Create'
+        return context
+
+
+class IncidentTypeUpdateView(LoginRequiredMixin, UpdateView):
+    """Update an existing incident type"""
+    model = IncidentType
+    form_class = IncidentTypeForm
+    template_name = 'accidents/incident_type_form.html'
+    success_url = reverse_lazy('accidents:incident_type_list')
+    
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            f'Incident Type "{self.object.name}" updated successfully!'
+        )
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action'] = 'Update'
+        context['incident_type'] = self.object
+        return context
+
+
+class IncidentTypeDeleteView(LoginRequiredMixin, DeleteView):
+    """Delete an incident type"""
+    model = IncidentType
+    template_name = 'accidents/incident_type_confirm_delete.html'
+    success_url = reverse_lazy('accidents:incident_type_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['incident_count'] = self.object.incidents.count()
+        return context
+    
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        incident_count = self.object.incidents.count()
+        
+        if incident_count > 0:
+            messages.error(
+                request,
+                f'Cannot delete "{self.object.name}". It is being used by {incident_count} incident(s).'
+            )
+            return redirect('accidents:incident_type_list')
+        
+        incident_type_name = self.object.name
+        success_url = self.get_success_url()
+        self.object.delete()
+        
+        messages.success(
+            request,
+            f'Incident Type "{incident_type_name}" deleted successfully!'
+        )
+        return redirect(success_url)
 class IncidentDashboardView(LoginRequiredMixin, TemplateView):
     """Incident Management Dashboard"""
     template_name = 'accidents/dashboard.html'
@@ -55,11 +162,31 @@ class IncidentDashboardView(LoginRequiredMixin, TemplateView):
             investigation_completed_date__isnull=True
         ).count()
         
-        # By Type
-        context['lti_count'] = incidents.filter(incident_type='LTI').count()
-        context['mtc_count'] = incidents.filter(incident_type='MTC').count()
-        context['fa_count'] = incidents.filter(incident_type='FA').count()
-        context['hlfi_count'] = incidents.filter(incident_type='HLFI').count()
+        # ✅ UPDATED: By Type using ForeignKey relationship
+        # Get incident type IDs for common types
+        try:
+            lti_type = IncidentType.objects.get(code='LTI')
+            context['lti_count'] = incidents.filter(incident_type=lti_type).count()
+        except IncidentType.DoesNotExist:
+            context['lti_count'] = 0
+        
+        try:
+            mtc_type = IncidentType.objects.get(code='MTC')
+            context['mtc_count'] = incidents.filter(incident_type=mtc_type).count()
+        except IncidentType.DoesNotExist:
+            context['mtc_count'] = 0
+        
+        try:
+            fa_type = IncidentType.objects.get(code='FA')
+            context['fa_count'] = incidents.filter(incident_type=fa_type).count()
+        except IncidentType.DoesNotExist:
+            context['fa_count'] = 0
+        
+        try:
+            hlfi_type = IncidentType.objects.get(code='HLFI')
+            context['hlfi_count'] = incidents.filter(incident_type=hlfi_type).count()
+        except IncidentType.DoesNotExist:
+            context['hlfi_count'] = 0
         
         # Recent incidents
         context['recent_incidents'] = incidents.order_by('-reported_date')[:10]
@@ -86,7 +213,7 @@ class IncidentListView(LoginRequiredMixin, ListView):
         user = self.request.user
         
         # Start with the base queryset, fetching related objects to optimize queries
-        queryset = Incident.objects.select_related('plant', 'location', 'reported_by').order_by('-incident_date', '-incident_time')
+        queryset = Incident.objects.select_related('plant', 'location', 'reported_by','incident_type').order_by('-incident_date', '-incident_time')
         
         # --- ROLE-BASED DATA FILTERING ---
         # Check if the user is a superuser or has an ADMIN role
@@ -115,7 +242,7 @@ class IncidentListView(LoginRequiredMixin, ListView):
         
         incident_type = self.request.GET.get('incident_type')
         if incident_type:
-            queryset = queryset.filter(incident_type=incident_type)
+            queryset = queryset.filter(incident_type_id=incident_type)
         
         status = self.request.GET.get('status')
         if status:
@@ -139,7 +266,7 @@ class IncidentListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         from apps.organizations.models import Plant
         context['plants'] = Plant.objects.filter(is_active=True)
-        context['incident_types'] = Incident.INCIDENT_TYPES
+        context['incident_types'] = IncidentType.objects.filter(is_active=True).order_by('name')
         context['status_choices'] = Incident.STATUS_CHOICES
         context['search_query'] = self.request.GET.get('search', '')
         context['selected_incident_type'] = self.request.GET.get('incident_type', '')
@@ -196,7 +323,7 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
             context['user_assigned_locations'] = user.assigned_locations.none()
             context['user_assigned_sublocations'] = user.assigned_sublocations.none()
 
-
+        context['active_incident_types'] = IncidentType.objects.filter(is_active=True)
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
         return context
     
