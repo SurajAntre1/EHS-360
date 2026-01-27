@@ -3,6 +3,10 @@
 {% block title %}Environmental Data{% endblock %}
 {% block page_title %}Environmental Data Entry{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+{% endblock %}
+
 {% block extra_css %}
 <style>
 /* ==================== ROOT VARIABLES ==================== */
