@@ -33,7 +33,7 @@
 
 /* ==================== CONTAINER ==================== */
 .env-data-container {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
     padding: 1.5rem;
     background: var(--bg-light);
@@ -260,8 +260,8 @@
     left: 0;
     z-index: 11;
     background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-    min-width: 300px;
-    max-width: 400px;
+    min-width: 350px;
+    max-width: 450px;
 }
 
 .data-table tbody tr {
@@ -290,8 +290,8 @@
     font-weight: 600;
     color: var(--text-primary);
     border-right: 2px solid var(--border-color);
-    min-width: 300px;
-    max-width: 400px;
+    min-width: 350px;
+    max-width: 450px;
 }
 
 .data-table tbody tr:hover td:first-child {
@@ -300,6 +300,13 @@
 
 .data-table tbody td:last-child {
     border-right: none;
+}
+
+/* ==================== INPUT CELL CONTAINER ==================== */
+.input-cell-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
 }
 
 /* ==================== UNIT BADGE ==================== */
@@ -335,7 +342,8 @@
 
 /* ==================== DATA INPUT ==================== */
 .data-input {
-    width: 100%;
+    flex: 1;
+    min-width: 80px;
     padding: 0.5rem 0.75rem;
     border: 2px solid var(--border-color);
     border-radius: var(--radius-sm);
@@ -361,6 +369,29 @@
 .data-input::placeholder {
     color: #cbd5e1;
     font-style: italic;
+}
+
+/* ==================== UNIT SELECT ==================== */
+.unit-select {
+    padding: 0.5rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 70px;
+}
+
+.unit-select:hover {
+    border-color: #cbd5e1;
+}
+
+.unit-select:focus {
+    outline: none;
+    border-color: var(--info-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 /* ==================== ACTION BUTTONS ==================== */
@@ -475,6 +506,14 @@
         position: static;
         min-width: auto;
     }
+
+    .input-cell-container {
+        flex-direction: column;
+    }
+
+    .unit-select {
+        width: 100%;
+    }
 }
 
 /* ==================== LOADING STATE ==================== */
@@ -498,7 +537,8 @@
         border: 1px solid #000;
     }
 
-    .data-input {
+    .data-input,
+    .unit-select {
         border: none;
         border-bottom: 1px solid #000;
     }
@@ -513,14 +553,14 @@
     <div class="header-section">
         <div class="header-content">
             <div class="header-info">
-                <h2>Environmental Data Entry</h2>
+                <h2><i class="fas fa-leaf"></i> Environmental Data Entry</h2>
                 <div class="plant-info">
                     <span><strong>Currently Editing:</strong> {{ selected_plant.name }}</span>
                     <span><strong>Year:</strong> {{ current_year }}</span>
                     <span><strong>Last Updated:</strong> {% now "F d, Y - H:i" %}</span>
                 </div>
             </div>
-            {% if user.is_admin_user %}
+            {% if user.is_superuser or user.is_staff or user.is_admin_user %}
             <div>
                 <a href="{% url 'environmental:questions-manager' %}" class="btn-manage-questions">
                     <i class="fas fa-cog"></i>
@@ -576,7 +616,7 @@
                     <thead>
                         <tr>
                             <th>Environmental Indicators</th>
-                            {% for month_name in months %}
+                            {% for month_code, month_name in months %}
                                 <th>{{ month_name }}</th>
                             {% endfor %}
                         </tr>
@@ -588,11 +628,12 @@
                                 <span>{{ forloop.counter }}. {{ q.question }}</span>
                                 <span class="unit-badge">{{ q.default_unit_name }}</span>
                                 {% if q.is_auto_populated %}
-                                    <i class="fas fa-calculator" title="Auto-calculated"></i>
+                                    <i class="fas fa-calculator" title="Auto-calculated from {{ q.source_type }}"></i>
                                 {% endif %}
                             </td>
                             {% for m in q.months %}
                             <td>
+                                <div class="input-cell-container">
                                 <input
                                     type="text"
                                     name="{{ q.slugified }}_{{ m.code|lower }}"
@@ -601,7 +642,19 @@
                                     placeholder="0"
                                     pattern="[0-9]*\.?[0-9]*"
                                     title="Enter numeric value"
+                                    {% if q.is_auto_populated %}readonly style="background: #f0f9ff;"{% endif %}
                                 >
+                                {% if q.available_units|length > 1 and not q.is_auto_populated %}
+                                <select class="unit-select" name="{{ q.slugified }}_{{ m.code|lower }}_unit">
+                                    {% for unit in q.available_units %}
+                                    <option value="{{ unit.id }}" {% if unit.id == m.saved_unit_id %}selected{% endif %}>
+                                        {{ unit.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                {% endif %}
+                            </div>
+
                             </td>
                             {% endfor %}
                         </tr>

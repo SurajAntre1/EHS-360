@@ -6,173 +6,434 @@
 
 {% block extra_css %}
 <style>
-/* Unit Management Sections */
-.unit-section {
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 20px;
-    background-color: #f8f9fa;
+/* ==================== ROOT VARIABLES ==================== */
+:root {
+    --primary-color: #2196f3;
+    --primary-dark: #1976d2;
+    --success-color: #4caf50;
+    --danger-color: #f44336;
+    --warning-color: #ff9800;
+    --info-color: #00bcd4;
+    --border-color: #dee2e6;
+    --bg-light: #f8f9fa;
+    --bg-white: #ffffff;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 8px rgba(0,0,0,0.15);
+    --radius: 8px;
+}
+
+/* ==================== GENERAL STYLES ==================== */
+.ehs-card {
+    border: none;
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius);
     margin-bottom: 20px;
 }
 
-.unit-section h6 {
-    color: #495057;
-    font-weight: 600;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #dee2e6;
+.card-header {
+    border-radius: var(--radius) var(--radius) 0 0 !important;
+    padding: 1.5rem;
 }
 
+.card-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* ==================== TAB NAVIGATION ==================== */
+.nav-tabs {
+    border-bottom: 2px solid var(--border-color);
+}
+
+.nav-tabs .nav-link {
+    color: var(--text-secondary);
+    border: none;
+    padding: 12px 24px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--primary-color);
+    background: rgba(33, 150, 243, 0.1);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    background: var(--bg-white);
+    border-bottom: 3px solid var(--primary-color);
+    font-weight: 600;
+}
+
+/* ==================== ALERT STYLES ==================== */
+.alert {
+    border-radius: var(--radius);
+    border-left: 4px solid;
+    padding: 15px 20px;
+}
+
+.alert-info {
+    background: #e3f2fd;
+    border-left-color: var(--info-color);
+    color: #01579b;
+}
+
+.alert-warning {
+    background: #fff3e0;
+    border-left-color: var(--warning-color);
+    color: #e65100;
+}
+
+.alert-danger {
+    background: #ffebee;
+    border-left-color: var(--danger-color);
+    color: #b71c1c;
+}
+
+.alert-success {
+    background: #e8f5e9;
+    border-left-color: var(--success-color);
+    color: #1b5e20;
+}
+
+/* ==================== FORM SECTIONS ==================== */
+.form-section-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 20px;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.form-section-header h5 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.unit-form-section {
+    background-color: var(--bg-white);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+/* ==================== FORM CONTROLS ==================== */
+.form-control {
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px 15px;
+    transition: all 0.3s;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+.form-check-input {
+    width: 20px;
+    height: 20px;
+    margin-top: 0;
+}
+
+.form-check-label {
+    margin-left: 8px;
+    font-weight: 500;
+}
+
+/* ==================== CONVERSION INFO ==================== */
+.conversion-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    border: 2px solid var(--info-color);
+    padding: 15px 20px;
+    border-radius: var(--radius);
+    margin-top: 15px;
+}
+
+.conversion-info h6 {
+    margin: 0 0 8px 0;
+    color: #01579b;
+    font-weight: 600;
+}
+
+.conversion-info p {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #01579b;
+}
+
+/* ==================== BUTTONS ==================== */
+.btn {
+    padding: 10px 24px;
+    font-weight: 600;
+    border-radius: 6px;
+    transition: all 0.3s;
+    border: none;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.btn-success:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-danger {
+    background: var(--danger-color);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #da190b;
+}
+
+.btn-secondary {
+    background: var(--text-secondary);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-outline-danger {
+    border: 2px solid var(--danger-color);
+    color: var(--danger-color);
+    background: transparent;
+}
+
+.btn-outline-danger:hover {
+    background: var(--danger-color);
+    color: white;
+}
+
+.btn-info {
+    background: var(--info-color);
+    color: white;
+}
+
+.btn-info:hover {
+    background: #0097a7;
+}
+
+/* ==================== CATEGORY CARDS ==================== */
 .category-card {
-    background-color: #ffffff;
+    background-color: var(--bg-white);
     border: 2px solid #e3f2fd;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
     transition: all 0.3s ease;
 }
 
 .category-card:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    border-color: #2196f3;
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
 }
 
 .category-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--border-color);
 }
 
 .category-name {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #1976d2;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary-dark);
 }
 
 .category-description {
-    color: #666;
-    font-size: 0.9rem;
-    margin-bottom: 10px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+/* ==================== STATUS BADGES ==================== */
+.status-badge {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-active {
+    background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%);
+    color: #1b5e20;
+}
+
+.status-inactive {
+    background: linear-gradient(135deg, #ffcdd2 0%, #ef9a9a 100%);
+    color: #b71c1c;
+}
+
+/* ==================== UNIT BADGES ==================== */
+.unit-badges-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .unit-badge {
-    display: inline-block;
-    padding: 5px 12px;
-    margin: 5px;
-    background-color: #e3f2fd;
-    border: 1px solid #2196f3;
-    border-radius: 15px;
-    font-size: 0.85rem;
-    color: #1565c0;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border: 2px solid var(--primary-color);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: #0d47a1;
+    transition: all 0.3s;
+}
+
+.unit-badge:hover {
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-2px);
+}
+
+.unit-badge strong {
+    font-weight: 700;
+    margin-right: 5px;
 }
 
 .unit-badge .conversion-rate {
     font-weight: 600;
-    color: #0d47a1;
+    color: #1565c0;
+    margin-left: 5px;
 }
 
-.readonly-field {
-    background-color: #e9ecef;
-    cursor: not-allowed;
+.unit-badge a {
+    margin-left: 8px;
+    transition: all 0.2s;
 }
 
-.base-unit-display {
-    background-color: #fff3cd;
-    border: 1px solid #ffc107;
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-weight: 500;
-    color: #856404;
+.unit-badge a:hover i {
+    transform: scale(1.2);
 }
 
-.conversion-info {
-    background-color: #d1ecf1;
-    border: 1px solid #17a2b8;
-    padding: 10px;
-    border-radius: 4px;
-    margin-top: 10px;
+/* ==================== EMPTY STATE ==================== */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
 }
 
+.empty-state i {
+    font-size: 5rem;
+    margin-bottom: 20px;
+    opacity: 0.3;
+    color: var(--primary-color);
+}
+
+.empty-state h5 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+/* ==================== MODAL ==================== */
+.modal-content {
+    border-radius: var(--radius);
+    border: none;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.modal-header.bg-danger {
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%) !important;
+}
+
+/* ==================== VALIDATION STYLES ==================== */
+.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+    .category-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .unit-form-section {
+        padding: 15px;
+    }
+
+    .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+}
+
+/* ==================== UTILITY CLASSES ==================== */
 .action-buttons {
     display: flex;
     gap: 10px;
 }
 
-.table-responsive {
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.table thead th {
-    background-color: #2196f3;
-    color: white;
-    border: none;
+.badge {
+    display: inline-block;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.875rem;
     font-weight: 600;
+    border-radius: 0.375rem;
 }
 
-.table tbody tr:hover {
-    background-color: #f5f5f5;
-}
-
-.status-badge {
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-
-.status-active {
-    background-color: #c8e6c9;
-    color: #2e7d32;
-}
-
-.status-inactive {
-    background-color: #ffcdd2;
-    color: #c62828;
-}
-
-.form-section-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.badge-primary {
+    background: var(--primary-color);
     color: white;
-    padding: 15px 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
 }
 
-.form-section-header h5 {
-    margin: 0;
-    font-weight: 600;
-}
-
-.unit-form-section {
-    background-color: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 25px;
-    margin-bottom: 20px;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 40px;
-    color: #999;
-}
-
-.empty-state i {
-    font-size: 4rem;
-    margin-bottom: 15px;
-    opacity: 0.3;
+.badge-info {
+    background: var(--info-color);
+    color: white;
 }
 </style>
 {% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'environmental:unit-manager' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'environmental:plant-entry' %}">Home</a></li>
 <li class="breadcrumb-item"><a href="#">Environmental Management</a></li>
 <li class="breadcrumb-item active">Unit Management</li>
 {% endblock %}
-
 
 {% block content %}
 <div class="row">
@@ -199,7 +460,7 @@
       </ul>
 
       <div class="tab-content p-3">
-        <!-- CREATE TAB -->
+        <!-- ==================== CREATE TAB ==================== -->
         <div class="tab-pane fade show active" id="create" role="tabpanel">
           <form method="POST" id="unitManagementForm">
             {% csrf_token %}
@@ -212,64 +473,28 @@
                 All fields marked with <span class="text-danger">*</span> are mandatory.
               </div>
 
-              <!-- Form Errors Display -->
-              {% if form.errors or category_form.errors or form.non_field_errors %}
-              <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <h5 class="alert-heading"><i class="fas fa-exclamation-triangle mr-2"></i>Please Correct the Following Errors:</h5>
-                
-                {% if form.non_field_errors %}
-                  <ul class="mb-2">
-                    {% for error in form.non_field_errors %}
-                      <li><strong>{{ error }}</strong></li>
-                    {% endfor %}
-                  </ul>
-                {% endif %}
-                
-                {% if category_form.errors %}
-                  <ul class="mb-2">
-                    <li><strong>Unit Category Errors:</strong></li>
-                    {% for field in category_form %}
-                      {% if field.errors %}
-                        {% for error in field.errors %}
-                          <li><strong>{{ field.label }}:</strong> {{ error }}</li>
-                        {% endfor %}
-                      {% endif %}
-                    {% endfor %}
-                  </ul>
-                {% endif %}
-
-                {% if form.errors %}
-                  <ul class="mb-0">
-                    <li><strong>Unit Errors:</strong></li>
-                    {% for field in form %}
-                      {% if field.errors %}
-                        {% for error in field.errors %}
-                          <li><strong>{{ field.label }}:</strong> {{ error }}</li>
-                        {% endfor %}
-                      {% endif %}
-                    {% endfor %}
-                  </ul>
-                {% endif %}
-                
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                  <span aria-hidden="true">&times;</span>
-                </button>
-              </div>
-              {% endif %}
-
-              <!-- Success Messages -->
-              <!-- {% if messages %}
+              <!-- Success/Error Messages -->
+              {% if messages %}
                 {% for message in messages %}
                   <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle mr-2"></i>{{ message }}
+                    {% if message.tags == 'success' %}
+                      <i class="fas fa-check-circle mr-2"></i>
+                    {% elif message.tags == 'error' or message.tags == 'danger' %}
+                      <i class="fas fa-exclamation-circle mr-2"></i>
+                    {% elif message.tags == 'warning' %}
+                      <i class="fas fa-exclamation-triangle mr-2"></i>
+                    {% else %}
+                      <i class="fas fa-info-circle mr-2"></i>
+                    {% endif %}
+                    {{ message }}
                     <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                       <span aria-hidden="true">&times;</span>
                     </button>
                   </div>
                 {% endfor %}
-              {% endif %} -->
+              {% endif %}
 
-              <!-- SECTION 1: UNIT CATEGORY FORM -->
+              <!-- ==================== SECTION 1: UNIT CATEGORY FORM ==================== -->
               <div class="form-section-header">
                 <h5><i class="fas fa-folder-plus mr-2"></i>Step 1: Create Unit Category</h5>
               </div>
@@ -288,17 +513,9 @@
                            class="form-control" 
                            id="id_category_name" 
                            name="category_name" 
-                           placeholder="Enter category name (e.g., Weight, Volume, Energy)"
-                           maxlength="100"
-                           value="{{ category_form.name.value|default:'' }}">
-                    <small class="form-text text-muted">e.g., Weight, Volume, Energy, Time, Distance</small>
-                    {% if category_form.name.errors %}
-                      <div class="text-danger mt-1">
-                        {% for error in category_form.name.errors %}
-                          <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
-                        {% endfor %}
-                      </div>
-                    {% endif %}
+                           placeholder="e.g., Weight, Volume, Energy"
+                           maxlength="100">
+                    <small class="form-text text-muted">Examples: Weight, Volume, Energy, Time, Distance</small>
                   </div>
 
                   <div class="col-md-6 mb-3">
@@ -308,7 +525,7 @@
                              class="form-check-input" 
                              id="id_category_is_active" 
                              name="category_is_active"
-                             {% if category_form.is_active.value %}checked{% endif %}>
+                             checked>
                       <label class="form-check-label" for="id_category_is_active">
                         Active
                       </label>
@@ -324,15 +541,8 @@
                               id="id_category_description" 
                               name="category_description" 
                               rows="3" 
-                              placeholder="Brief description of what this category represents">{{ category_form.description.value|default:'' }}</textarea>
+                              placeholder="Brief description of what this category represents"></textarea>
                     <small class="form-text text-muted">Optional: Brief description of what this category represents</small>
-                    {% if category_form.description.errors %}
-                      <div class="text-danger mt-1">
-                        {% for error in category_form.description.errors %}
-                          <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
-                        {% endfor %}
-                      </div>
-                    {% endif %}
                   </div>
                 </div>
 
@@ -345,7 +555,7 @@
 
               <hr class="my-4">
 
-              <!-- SECTION 2: UNIT FORM -->
+              <!-- ==================== SECTION 2: UNIT FORM ==================== -->
               <div class="form-section-header">
                 <h5><i class="fas fa-ruler-combined mr-2"></i>Step 2: Add Individual Units</h5>
               </div>
@@ -363,19 +573,10 @@
                     <select class="form-control" id="id_unit_category" name="unit_category">
                       <option value="">-- Select Category --</option>
                       {% for category in categories %}
-                        <option value="{{ category.id }}" {% if form.category.value == category.id %}selected{% endif %}>
-                          {{ category.name }}
-                        </option>
+                        <option value="{{ category.id }}">{{ category.name }}</option>
                       {% endfor %}
                     </select>
                     <small class="form-text text-muted">Choose the category this unit belongs to</small>
-                    {% if form.category.errors %}
-                      <div class="text-danger mt-1">
-                        {% for error in form.category.errors %}
-                          <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
-                        {% endfor %}
-                      </div>
-                    {% endif %}
                   </div>
 
                   <div class="col-md-6 mb-3">
@@ -384,17 +585,9 @@
                            class="form-control" 
                            id="id_unit_name" 
                            name="unit_name" 
-                           placeholder="e.g., kg, MT, m³, kWh, liters"
-                           maxlength="50"
-                           value="{{ form.name.value|default:'' }}">
+                           placeholder="e.g., kg, MT, m³, kWh"
+                           maxlength="50">
                     <small class="form-text text-muted">e.g., kg, MT, m³, kWh, liters</small>
-                    {% if form.name.errors %}
-                      <div class="text-danger mt-1">
-                        {% for error in form.name.errors %}
-                          <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
-                        {% endfor %}
-                      </div>
-                    {% endif %}
                   </div>
                 </div>
 
@@ -406,16 +599,8 @@
                            id="id_unit_base_unit" 
                            name="unit_base_unit" 
                            placeholder="e.g., kg, liters, meters"
-                           maxlength="50"
-                           value="{{ form.base_unit.value|default:'' }}">
+                           maxlength="50">
                     <small class="form-text text-muted">The reference unit for this category (e.g., kg for Weight)</small>
-                    {% if form.base_unit.errors %}
-                      <div class="text-danger mt-1">
-                        {% for error in form.base_unit.errors %}
-                          <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
-                        {% endfor %}
-                      </div>
-                    {% endif %}
                   </div>
 
                   <div class="col-md-6 mb-3">
@@ -426,16 +611,8 @@
                            name="unit_conversion_rate" 
                            placeholder="e.g., 1000 (for MT to kg)"
                            step="0.0001"
-                           min="0"
-                           value="{{ form.conversion_rate.value|default:'' }}">
+                           min="0.0001">
                     <small class="form-text text-muted">How many base units equal 1 of this unit</small>
-                    {% if form.conversion_rate.errors %}
-                      <div class="text-danger mt-1">
-                        {% for error in form.conversion_rate.errors %}
-                          <small><i class="fas fa-exclamation-circle"></i> {{ error }}</small><br>
-                        {% endfor %}
-                      </div>
-                    {% endif %}
                   </div>
                 </div>
 
@@ -453,7 +630,7 @@
                              class="form-check-input" 
                              id="id_unit_is_active" 
                              name="unit_is_active"
-                             {% if form.is_active.value %}checked{% endif %}>
+                             checked>
                       <label class="form-check-label" for="id_unit_is_active">
                         Active
                       </label>
@@ -472,10 +649,13 @@
           </form>
         </div>
 
-        <!-- LIST TAB -->
+        <!-- ==================== LIST TAB ==================== -->
         <div class="tab-pane fade" id="list" role="tabpanel">
           <div class="card-body">
-            <h5 class="mb-4"><i class="fas fa-list-alt mr-2"></i>All Unit Categories & Units</h5>
+            <h5 class="mb-4">
+              <i class="fas fa-list-alt mr-2"></i>All Unit Categories & Units
+              <span class="badge badge-primary ml-2">{{ categories.count }} Categories</span>
+            </h5>
 
             {% if categories %}
               {% for category in categories %}
@@ -490,16 +670,13 @@
                     </span>
                   </div>
                   <div class="action-buttons">
-                  <button class="btn btn-sm btn-outline-secondary" disabled>
-                    <i class="fas fa-edit"></i> Edit
-                  </button>
-                  <button type="button"
-                          class="btn btn-sm btn-outline-danger"
-                          onclick="confirmDelete('category', {{ category.id }})">
-                    <i class="fas fa-trash"></i> Delete
-                  </button>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger"
+                            onclick="confirmDelete('category', {{ category.id }}, '{{ category.name }}')">
+                      <i class="fas fa-trash mr-1"></i> Delete
+                    </button>
+                  </div>
                 </div>
-
 
                 {% if category.description %}
                 <div class="category-description">
@@ -508,33 +685,36 @@
                 {% endif %}
 
                 <div class="mt-3">
-                  <strong class="d-block mb-2"><i class="fas fa-ruler mr-2"></i>Units in this category:</strong>
+                  <strong class="d-block mb-2">
+                    <i class="fas fa-ruler mr-2"></i>Units in this category:
+                    <span class="badge badge-info ml-1">{{ category.units.count }}</span>
+                  </strong>
+                  
                   {% if category.units.all %}
                     <div class="unit-badges-container">
                       {% for unit in category.units.all %}
                         <span class="unit-badge">
-                        <strong>{{ unit.name }}</strong>
-                        <span class="conversion-rate">
-                          (1 {{ unit.name }} = {{ unit.conversion_rate }} {{ unit.base_unit }})
+                          <strong>{{ unit.name }}</strong>
+                          <span class="conversion-rate">
+                            (1 {{ unit.name }} = {{ unit.conversion_rate }} {{ unit.base_unit }})
+                          </span>
+
+                          {% if not unit.is_active %}
+                            <span class="badge badge-danger ml-1">Inactive</span>
+                          {% endif %}
+
+                          <!-- Delete button -->
+                          <a href="#" onclick="confirmDelete('unit', {{ unit.id }}, '{{ unit.name }}'); return false;"
+                             title="Delete Unit">
+                            <i class="fas fa-times-circle text-danger"></i>
+                          </a>
                         </span>
-
-                        {% if not unit.is_active %}
-                          <span class="badge badge-danger ml-1">Inactive</span>
-                        {% endif %}
-
-                        <!-- FIX: Edit disabled -->
-                        <i class="fas fa-edit text-muted ml-2" title="Edit (Not implemented)"></i>
-
-                        <!-- FIX: Delete via modal -->
-                        <a href="#" onclick="confirmDelete('unit', {{ unit.id }}); return false;"
-                          class="ml-1" title="Delete">
-                          <i class="fas fa-trash text-danger"></i>
-                        </a>
-                      </span>
                       {% endfor %}
                     </div>
                   {% else %}
-                    <p class="text-muted mb-0"><i>No units added yet for this category</i></p>
+                    <p class="text-muted mb-0">
+                      <i class="fas fa-inbox mr-1"></i><em>No units added yet for this category</em>
+                    </p>
                   {% endif %}
                 </div>
               </div>
@@ -544,23 +724,29 @@
                 <i class="fas fa-inbox"></i>
                 <h5>No Categories Found</h5>
                 <p class="text-muted">Start by creating a unit category in the "Create Units" tab.</p>
+                <a href="#create" data-toggle="tab" class="btn btn-primary mt-3">
+                  <i class="fas fa-plus-circle mr-2"></i>Create First Category
+                </a>
               </div>
             {% endif %}
           </div>
         </div>
       </div>
 
-      <div class="card-footer">
-        <a href="{% url 'environmental:unit-manager' %}" class="btn btn-secondary btn-lg">
-          <i class="fas fa-arrow-left mr-2"></i>Back
+      <div class="card-footer bg-light">
+        <a href="{% url 'environmental:plant-entry' %}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+        <a href="{% url 'environmental:questions-manager' %}" class="btn btn-info float-right">
+          <i class="fas fa-question-circle mr-2"></i>Manage Questions
         </a>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+<!-- ==================== DELETE CONFIRMATION MODAL ==================== -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header bg-danger text-white">
@@ -572,8 +758,10 @@
         </button>
       </div>
       <div class="modal-body">
-        <p id="deleteMessage">Are you sure you want to delete this item?</p>
-        <p class="text-danger"><strong>Warning:</strong> This action cannot be undone.</p>
+        <p id="deleteMessage"></p>
+        <p class="text-danger mb-0">
+          <strong><i class="fas fa-exclamation-circle mr-1"></i>Warning:</strong> This action cannot be undone.
+        </p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">
@@ -581,8 +769,11 @@
         </button>
         <form id="deleteForm" method="POST" style="display: inline;">
           {% csrf_token %}
+          <input type="hidden" name="action" id="deleteAction">
+          <input type="hidden" name="category_id" id="deleteCategoryId">
+          <input type="hidden" name="unit_id" id="deleteUnitId">
           <button type="submit" class="btn btn-danger">
-            <i class="fas fa-trash mr-2"></i>Delete
+            <i class="fas fa-trash mr-2"></i>Yes, Delete
           </button>
         </form>
       </div>
@@ -593,23 +784,131 @@
 
 {% block extra_js %}
 <script>
-function confirmDelete(type, id) {
-    const modal = $('#deleteModal');
-    const deleteForm = document.getElementById('deleteForm');
-    const deleteMessage = document.getElementById('deleteMessage');
-
-    deleteForm.action = ""; // FIX: prevent NoReverseMatch
-
-    if (type === 'category') {
-        deleteMessage.innerHTML =
-            'Are you sure you want to delete this category?<br>' +
-            '<strong class="text-danger">All units in this category will also be deleted!</strong>';
-    } else {
-        deleteMessage.textContent = 'Are you sure you want to delete this unit?';
+$(document).ready(function() {
+    // ==================== CONVERSION RATE PREVIEW ====================
+    function updateConversionPreview() {
+        const rate = $('#id_unit_conversion_rate').val();
+        const unitName = $('#id_unit_name').val();
+        const baseUnit = $('#id_unit_base_unit').val();
+        
+        if (rate && unitName && baseUnit) {
+            const conversionInfo = $('#conversionInfo');
+            const conversionText = $('#conversionText');
+            
+            conversionText.html(`<strong>1 ${unitName}</strong> = <strong>${rate} ${baseUnit}</strong>`);
+            conversionInfo.slideDown();
+        } else {
+            $('#conversionInfo').slideUp();
+        }
     }
 
-    modal.modal('show');
-}
-</script>
+    // Trigger on input changes
+    $('#id_unit_conversion_rate, #id_unit_name, #id_unit_base_unit').on('input', updateConversionPreview);
 
+    // ==================== DELETE CONFIRMATION ====================
+    window.confirmDelete = function(type, id, name) {
+        const modal = $('#deleteModal');
+        const deleteMessage = $('#deleteMessage');
+        const deleteAction = $('#deleteAction');
+        const deleteCategoryId = $('#deleteCategoryId');
+        const deleteUnitId = $('#deleteUnitId');
+
+        // Reset hidden fields
+        deleteCategoryId.val('');
+        deleteUnitId.val('');
+
+        if (type === 'category') {
+            deleteAction.val('delete_category');
+            deleteCategoryId.val(id);
+            deleteMessage.html(
+                `Are you sure you want to delete the category <strong>"${name}"</strong>?<br><br>` +
+                `<span class="text-danger"><strong><i class="fas fa-exclamation-triangle mr-1"></i>All units in this category will also be deactivated!</strong></span>`
+            );
+        } else if (type === 'unit') {
+            deleteAction.val('delete_unit');
+            deleteUnitId.val(id);
+            deleteMessage.html(
+                `Are you sure you want to delete the unit <strong>"${name}"</strong>?`
+            );
+        }
+
+        modal.modal('show');
+    };
+
+    // ==================== AUTO-DISMISS SUCCESS ALERTS ====================
+    setTimeout(function() {
+        $('.alert-success').fadeOut('slow');
+    }, 5000);
+
+    // ==================== DYNAMIC FORM VALIDATION ====================
+    // Handle form submission with dynamic validation based on which button clicked
+    $('#unitManagementForm').on('submit', function(e) {
+        // Get which button was clicked
+        const submitButton = $(document.activeElement);
+        const action = submitButton.val();
+        
+        // Clear previous validation
+        $('.is-invalid').removeClass('is-invalid');
+        
+        if (action === 'create_category') {
+            // Validate Step 1 fields only
+            const categoryName = $('#id_category_name').val().trim();
+            
+            if (!categoryName) {
+                e.preventDefault();
+                $('#id_category_name').addClass('is-invalid');
+                alert('Please enter a category name');
+                $('#id_category_name').focus();
+                return false;
+            }
+        }
+        
+        if (action === 'create_unit') {
+            // Validate Step 2 fields only
+            const category = $('#id_unit_category').val();
+            const unitName = $('#id_unit_name').val().trim();
+            const baseUnit = $('#id_unit_base_unit').val().trim();
+            const conversionRate = $('#id_unit_conversion_rate').val();
+            
+            if (!category) {
+                e.preventDefault();
+                $('#id_unit_category').addClass('is-invalid');
+                alert('Please select a category');
+                $('#id_unit_category').focus();
+                return false;
+            }
+            
+            if (!unitName) {
+                e.preventDefault();
+                $('#id_unit_name').addClass('is-invalid');
+                alert('Please enter a unit name');
+                $('#id_unit_name').focus();
+                return false;
+            }
+            
+            if (!baseUnit) {
+                e.preventDefault();
+                $('#id_unit_base_unit').addClass('is-invalid');
+                alert('Please enter a base unit');
+                $('#id_unit_base_unit').focus();
+                return false;
+            }
+            
+            if (!conversionRate || parseFloat(conversionRate) <= 0) {
+                e.preventDefault();
+                $('#id_unit_conversion_rate').addClass('is-invalid');
+                alert('Please enter a valid conversion rate (greater than 0)');
+                $('#id_unit_conversion_rate').focus();
+                return false;
+            }
+        }
+    });
+
+    // ==================== SMOOTH TAB SWITCHING ====================
+    $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+        // Scroll to top when switching tabs
+        $('html, body').animate({ scrollTop: 0 }, 300);
+    });
+});
+</script>
 {% endblock %}

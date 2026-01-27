@@ -6,13 +6,12 @@ from django.db import models
 from django.http import JsonResponse
 from django.http import HttpResponse
 from datetime import datetime
-
+from django.core.paginator import Paginator 
 from apps.accounts.models import User
 from apps.accidents.models import Incident
 from apps.organizations.models import Plant
 from .models import *
 from .utils import EnvironmentalDataFetcher
-
 
 # =========================================================
 # UNIT MANAGER
@@ -22,7 +21,7 @@ class UnitManagerView(LoginRequiredMixin, View):
     template_name = "data_collection/unit_manager.html"
 
     def get(self, request):
-        categories = UnitCategory.objects.filter(is_active=True)
+        categories = UnitCategory.objects.filter(is_active=True).prefetch_related('units')
         units = Unit.objects.filter(is_active=True).select_related("category")
 
         return render(request, self.template_name, {
@@ -33,6 +32,7 @@ class UnitManagerView(LoginRequiredMixin, View):
     def post(self, request):
         action = request.POST.get("action")
 
+        # ---------- CREATE CATEGORY ----------
         if action == "create_category":
             name = (request.POST.get("category_name") or "").strip()
             description = (request.POST.get("category_description") or "").strip()
@@ -42,18 +42,26 @@ class UnitManagerView(LoginRequiredMixin, View):
                 messages.error(request, "Category name is required")
                 return redirect("environmental:unit-manager")
 
-            UnitCategory.objects.get_or_create(
-                name=name,
-                defaults={
-                    "description": description,
-                    "is_active": is_active,
-                    "created_by": request.user,
-                }
-            )
+            # Check if category already exists
+            if UnitCategory.objects.filter(name__iexact=name).exists():
+                messages.error(request, f"Category '{name}' already exists")
+                return redirect("environmental:unit-manager")
 
-            messages.success(request, "Category added successfully")
+            try:
+                UnitCategory.objects.create(
+                    name=name,
+                    description=description,
+                    is_active=is_active,
+                    created_by=request.user,
+                    created_at=datetime.now()
+                )
+                messages.success(request, f"✓ Category '{name}' created successfully!")
+            except Exception as e:
+                messages.error(request, f"Error creating category: {str(e)}")
+
             return redirect("environmental:unit-manager")
 
+        # ---------- CREATE UNIT ----------
         elif action == "create_unit":
             category_id = request.POST.get("unit_category")
             name = (request.POST.get("unit_name") or "").strip()
@@ -61,8 +69,21 @@ class UnitManagerView(LoginRequiredMixin, View):
             conversion_rate = request.POST.get("unit_conversion_rate")
             is_active = request.POST.get("unit_is_active") == "on"
 
-            if not all([category_id, name, base_unit, conversion_rate]):
-                messages.error(request, "All unit fields are required")
+            # Validate only unit fields
+            if not category_id:
+                messages.error(request, "Please select a category for the unit")
+                return redirect("environmental:unit-manager")
+
+            if not name:
+                messages.error(request, "Unit name is required")
+                return redirect("environmental:unit-manager")
+
+            if not base_unit:
+                messages.error(request, "Base unit is required")
+                return redirect("environmental:unit-manager")
+
+            if not conversion_rate:
+                messages.error(request, "Conversion rate is required")
                 return redirect("environmental:unit-manager")
 
             try:
@@ -70,7 +91,13 @@ class UnitManagerView(LoginRequiredMixin, View):
                 conversion_rate = float(conversion_rate)
 
                 if conversion_rate <= 0:
-                    raise ValueError
+                    messages.error(request, "Conversion rate must be greater than 0")
+                    return redirect("environmental:unit-manager")
+
+                # Check if unit already exists in this category
+                if Unit.objects.filter(category=category, name__iexact=name).exists():
+                    messages.error(request, f"Unit '{name}' already exists in category '{category.name}'")
+                    return redirect("environmental:unit-manager")
 
                 Unit.objects.create(
                     category=category,
@@ -81,13 +108,63 @@ class UnitManagerView(LoginRequiredMixin, View):
                     created_by=request.user,
                 )
 
-                messages.success(request, "Unit added successfully")
+                messages.success(request, f"✓ Unit '{name}' created successfully in category '{category.name}'!")
 
             except UnitCategory.DoesNotExist:
                 messages.error(request, "Invalid category selected")
             except ValueError:
-                messages.error(request, "Conversion rate must be a number greater than 0")
+                messages.error(request, "Conversion rate must be a valid number")
+            except Exception as e:
+                messages.error(request, f"Error creating unit: {str(e)}")
 
+            return redirect("environmental:unit-manager")
+
+        # ---------- DELETE CATEGORY ----------
+        elif action == "delete_category":
+            category_id = request.POST.get("category_id")
+            
+            try:
+                category = UnitCategory.objects.get(id=category_id)
+                category_name = category.name
+                
+                # Check if category has units
+                unit_count = category.units.count()
+                
+                # Soft delete - mark as inactive
+                category.is_active = False
+                category.save()
+                
+                # Also deactivate all units in this category
+                category.units.all().update(is_active=False)
+                
+                messages.success(request, f"✓ Category '{category_name}' and {unit_count} unit(s) deleted successfully!")
+                
+            except UnitCategory.DoesNotExist:
+                messages.error(request, "Category not found")
+            except Exception as e:
+                messages.error(request, f"Error deleting category: {str(e)}")
+            
+            return redirect("environmental:unit-manager")
+
+        # ---------- DELETE UNIT ----------
+        elif action == "delete_unit":
+            unit_id = request.POST.get("unit_id")
+            
+            try:
+                unit = Unit.objects.get(id=unit_id)
+                unit_name = unit.name
+                
+                # Soft delete - mark as inactive
+                unit.is_active = False
+                unit.save()
+                
+                messages.success(request, f"✓ Unit '{unit_name}' deleted successfully!")
+                
+            except Unit.DoesNotExist:
+                messages.error(request, "Unit not found")
+            except Exception as e:
+                messages.error(request, f"Error deleting unit: {str(e)}")
+            
             return redirect("environmental:unit-manager")
 
         return redirect("environmental:unit-manager")
@@ -96,6 +173,7 @@ class UnitManagerView(LoginRequiredMixin, View):
 # =========================================================
 # PLANT MONTHLY ENTRY
 # =========================================================
+from decimal import Decimal  # <-- add this
 
 class PlantMonthlyEntryView(LoginRequiredMixin, View):
     template_name = "data_collection/data_env.html"
@@ -160,14 +238,19 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
 
         # Fetch saved monthly data
         saved_data = MonthlyIndicatorData.objects.filter(
-            plant=selected_plant
-        ).select_related('indicator')
+            plant=selected_plant,
+            indicator__isnull=False
+        ).select_related('indicator', 'unit')
         
+        # Organize saved data including units
         saved_dict = {}
         for d in saved_data:
             if d.indicator not in saved_dict:
                 saved_dict[d.indicator] = {}
-            saved_dict[d.indicator][d.month.lower()] = d.value
+            saved_dict[d.indicator][d.month.lower()] = {
+                'value': d.value,
+                'unit': d.unit  # Store the Unit object
+            }
 
         MONTHS = MonthlyIndicatorData.MONTH_CHOICES
 
@@ -175,40 +258,59 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
         questions_with_data = []
         for q in questions:
             default_unit_name = q.default_unit.name if q.default_unit else "Count"
+            default_unit_id = q.default_unit.id if q.default_unit else None
             
             # Check if this question has auto-calculation
             is_auto = q.question_text in auto_data
 
+            # Get available units for this question
+            available_units = []
+            if q.selected_units.exists():
+                available_units = list(q.selected_units.all())
+            elif q.default_unit:
+                available_units = [q.default_unit]
+
             month_rows = []
             for month_code, month_name in MONTHS:
+                month_key = month_code.lower()
                 value = ''
-                key = month_code.lower()
+                saved_unit_name = default_unit_name  # Default
                 
                 # Priority 1: Check saved manual data
-                if q in saved_dict and key in saved_dict[q]:
-                    value = saved_dict[q][key]
+                if q in saved_dict and month_key in saved_dict[q]:
+                    value = saved_dict[q][month_key]['value']
+                    saved_unit_name = saved_dict[q][month_key]['unit'].name if saved_dict[q][month_key]['unit'] else default_unit_name
                 # Priority 2: Check auto-calculated data
                 elif is_auto and month_name in auto_data.get(q.question_text, {}):
                     value = auto_data[q.question_text][month_name]
+                    saved_unit_name = "Count"  # Auto-calculated are counts
+
+                # Find the unit ID for the saved unit
+                saved_unit_id = default_unit_id
+                for unit in available_units:
+                    if unit.name == saved_unit_name:
+                        saved_unit_id = unit.id
+                        break
 
                 month_rows.append({
                     "code": month_code,
                     "name": month_name,
                     "value": value,
+                    "saved_unit_id": saved_unit_id,
+                    "saved_unit_name": saved_unit_name,
                 })
 
             questions_with_data.append({
                 "question": q.question_text,
                 "question_id": q.id,
                 "default_unit_name": default_unit_name,
+                "default_unit_id": default_unit_id,
+                "available_units": available_units,
                 "months": month_rows,
                 "slugified": self.slugify_field(q.question_text),
                 "is_auto_populated": is_auto,
                 "source_type": q.source_type,
             })
-
-        auto_count = sum(1 for q in questions_with_data if q['is_auto_populated'])
-        manual_count = len(questions_with_data) - auto_count
 
         context = {
             "selected_plant": selected_plant,
@@ -217,8 +319,8 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
             "months": MONTHS,
             "current_year": current_year,
             "total_questions": len(questions_with_data),
-            "auto_populated_count": auto_count,
-            "manual_entry_count": manual_count,
+            "auto_populated_count": sum(1 for q in questions_with_data if q['is_auto_populated']),
+            "manual_entry_count": len(questions_with_data) - sum(1 for q in questions_with_data if q['is_auto_populated']),
         }
 
         return render(request, self.template_name, context)
@@ -237,15 +339,27 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
 
         questions = self.get_questions()
         MONTHS = MonthlyIndicatorData.MONTH_CHOICES
+        saved_count = 0
 
         for q in questions:
-            default_unit = q.default_unit.name if q.default_unit else "Count"
             slug = self.slugify_field(q.question_text)
-
+            default_unit = q.default_unit  # fallback Unit object
             for month_code, month_name in MONTHS:
-                field_name = f"{slug}_{month_code.lower()}"
-                value = (request.POST.get(field_name) or "").strip()
+                value_field = f"{slug}_{month_code.lower()}"
+                unit_field = f"{slug}_{month_code.lower()}_unit"
 
+                value = (request.POST.get(value_field) or "").strip()
+                selected_unit_id = request.POST.get(unit_field)
+
+                # Determine selected Unit object
+                unit_obj = default_unit
+                if selected_unit_id:
+                    try:
+                        unit_obj = Unit.objects.get(id=selected_unit_id)
+                    except Unit.DoesNotExist:
+                        unit_obj = default_unit
+
+                # Delete if value empty
                 if not value:
                     MonthlyIndicatorData.objects.filter(
                         plant=selected_plant,
@@ -254,23 +368,36 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                     ).delete()
                     continue
 
+                # Save value with unit conversion
                 try:
-                    numeric_value = float(value.replace(",", ""))
-                    MonthlyIndicatorData.objects.update_or_create(
+                    numeric_value = Decimal(value.replace(",", ""))
+
+                    # Convert to base unit if needed
+                    if unit_obj and unit_obj.base_unit != unit_obj.name:
+                        numeric_value = numeric_value * Decimal(unit_obj.conversion_rate)
+
+                    # Round to 4 decimal places to avoid floating point issues
+                    numeric_value = numeric_value.quantize(Decimal("0.0001"))
+
+                    obj, created = MonthlyIndicatorData.objects.update_or_create(
                         plant=selected_plant,
                         indicator=q,
                         month=month_code,
                         defaults={
-                            "value": str(numeric_value),
-                            "unit": default_unit,
+                            "value": numeric_value,
+                            "unit": unit_obj,  # store selected unit
                             "created_by": request.user,
                         }
                     )
-                except ValueError:
-                    messages.warning(request, f"Invalid value for {q.question_text} in {month_name}")
+                    saved_count += 1
 
-        messages.success(request, f"Data saved successfully for {selected_plant.name}!")
+                except (ValueError, Decimal.InvalidOperation):
+                    messages.warning(request, f"Invalid value for {q.question_text} in {month_name}")
+                    continue
+
+        messages.success(request, f"✓ Data saved successfully! {saved_count} entries updated for {selected_plant.name}")
         return redirect(f"{request.path}?plant_id={selected_plant.id}&saved=1")
+
 
 
 # =========================================================
@@ -558,13 +685,12 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
         # Get saved data for this plant - FILTER OUT NULL indicators
         saved_data = MonthlyIndicatorData.objects.filter(
             plant=plant,
-            indicator__isnull=False  # IMPORTANT: Skip records with no indicator
+            indicator__isnull=False
         ).select_related('indicator')
 
-        # Organize data
+        # Organize data by question
         data_dict = {}
         for d in saved_data:
-            # Double-check indicator exists (extra safety)
             if d.indicator is None:
                 continue
                 
@@ -579,15 +705,19 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
         for q in questions:
             default_unit_name = q.default_unit.name if q.default_unit else "Count"
             
-            month_data = {}
+            # Create a list of month values in order
+            month_values = []
             total = 0
             has_values = False
             
             for month_code, month_name in MONTHS:
                 month_key = month_code.lower()
                 value = data_dict.get(q, {}).get(month_key, '')
-                month_data[month_name] = value
                 
+                # Store the value
+                month_values.append(value if value else '-')
+                
+                # Calculate total
                 if value:
                     try:
                         total += float(str(value).replace(',', ''))
@@ -598,120 +728,111 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
             questions_data.append({
                 "question": q.question_text,
                 "unit": default_unit_name,
-                "month_data": month_data,
-                "annual": f"{total:,.2f}" if has_values else '',
+                "month_values": month_values,  # List of values in order
+                "annual": f"{total:,.2f}" if has_values else '-',
             })
 
         context = {
             "plant": plant,
             "user_plants": user_plants,
             "questions_data": questions_data,
-            "months": MONTHS,  # Changed: Pass full tuples instead of just names
+            "months": MONTHS,
         }
 
         return render(request, self.template_name, context)
-
 # =========================================================
 # ADMIN VIEW - ALL PLANTS DATA
 # =========================================================
+
+from django.views import View
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.paginator import Paginator
 
 class AdminAllPlantsDataView(LoginRequiredMixin, View):
     template_name = "data_collection/admin_all_plants.html"
 
     def get(self, request):
-        # Check if user is admin/superuser
+        # Permission check
         if not (request.user.is_superuser or request.user.is_staff or getattr(request.user, 'is_admin_user', False)):
             messages.error(request, "You don't have permission to access this page")
             return redirect("environmental:plant-entry")
 
-        # Get ALL active plants
-        all_plants = Plant.objects.filter(is_active=True).order_by('name')
+        # ALL plants
+        all_plants = Plant.objects.filter(is_active=True).order_by("name")
 
         if not all_plants.exists():
-            return render(request, self.template_name, {
-                "no_plants": True,
-            })
+            return render(request, self.template_name, {"no_plants": True})
 
-        # Get all questions
+        # ✅ PAGINATION — ONE PLANT ONLY
+        paginator = Paginator(all_plants, 1)
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+
+        # Questions
         questions = EnvironmentalQuestion.objects.filter(
             is_active=True
-        ).select_related('unit_category', 'default_unit').order_by("is_system", "order", "id")
+        ).select_related(
+            "unit_category", "default_unit"
+        ).order_by("is_system", "order", "id")
 
         if not questions.exists():
-            return render(request, self.template_name, {
-                "no_questions": True,
-            })
+            return render(request, self.template_name, {"no_questions": True})
 
-        # Get ALL saved data efficiently - FILTER OUT NULL indicators
+        # ALL indicator data (queried once)
         all_data = MonthlyIndicatorData.objects.filter(
-            indicator__isnull=False  # IMPORTANT: Skip records with no indicator
-        ).select_related('plant', 'indicator')
+            indicator__isnull=False
+        ).select_related("plant", "indicator")
 
         MONTHS = MonthlyIndicatorData.MONTH_CHOICES
 
-        # Build data structure
         plants_data = []
-        plants_with_data_count = 0
-        
-        for plant in all_plants:
+
+        # 🔥 THIS IS THE FIX — page_obj, NOT all_plants
+        for plant in page_obj:
             plant_questions_data = []
-            plant_has_any_data = False
-            
+
             for q in questions:
-                default_unit_name = q.default_unit.name if q.default_unit else "Count"
-                
+                unit_name = q.default_unit.name if q.default_unit else "Count"
                 month_data = {}
                 total = 0
                 has_values = False
-                
+
                 for month_code, month_name in MONTHS:
-                    month_key = month_code.upper()
-                    
-                    # Find the specific data entry
-                    data_entry = all_data.filter(
+                    data = all_data.filter(
                         plant=plant,
                         indicator=q,
-                        month=month_key
+                        month=month_code.upper()
                     ).first()
-                    
-                    if data_entry and data_entry.value:
-                        value = data_entry.value
-                        plant_has_any_data = True
-                        month_data[month_name] = value
-                        
+
+                    if data and data.value:
+                        month_data[month_name] = data.value
                         try:
-                            numeric_value = float(str(value).replace(',', ''))
-                            total += numeric_value
+                            total += float(str(data.value).replace(",", ""))
                             has_values = True
-                        except (ValueError, TypeError):
+                        except Exception:
                             pass
                     else:
-                        month_data[month_name] = ''
-                
-                annual_display = f"{total:,.2f}" if has_values else "0"
-                
+                        month_data[month_name] = "-"
+
                 plant_questions_data.append({
                     "question": q.question_text,
-                    "unit": default_unit_name,
+                    "unit": unit_name,
                     "month_data": month_data,
-                    "annual": annual_display,
-                    "has_data": has_values,
+                    "annual": f"{total:,.2f}" if has_values else "-",
                 })
-            
-            if plant_has_any_data:
-                plants_with_data_count += 1
-            
+
             plants_data.append({
                 "plant": plant,
                 "questions_data": plant_questions_data,
-                "has_data": plant_has_any_data,
             })
 
         context = {
-            "plants_data": plants_data,
-            "months": MONTHS,  # Changed: Pass full tuples
+            "plants_data": plants_data,  # WILL CONTAIN ONLY 1 PLANT
+            "months": [m[1] for m in MONTHS],
+            "page_obj": page_obj,
             "total_plants": all_plants.count(),
-            "plants_with_data": plants_with_data_count,
             "total_questions": questions.count(),
         }
 
