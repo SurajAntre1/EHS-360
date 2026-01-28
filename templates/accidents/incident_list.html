@@ -10,9 +10,44 @@
 <li class="breadcrumb-item active">All Incidents</li>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table thead th {
+    vertical-align: middle;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.filter-section {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.btn-actions {
+    white-space: nowrap;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="ehs-card">
-  <div class="card-header">
+  <div class="card-header bg-primary text-white">
     <div class="row align-items-center">
       <div class="col">
         <h3 class="card-title mb-0">
@@ -21,7 +56,7 @@
       </div>
       {% if user.role.name != 'EMPLOYEE' %}
       <div class="col-auto">
-        <a href="{% url 'accidents:incident_create' %}" class="btn btn-primary">
+        <a href="{% url 'accidents:incident_create' %}" class="btn btn-light">
           <i class="fas fa-plus mr-1"></i> Report New Incident
         </a>
       </div>
@@ -30,146 +65,222 @@
   </div>
 
   <div class="card-body">
+    <!-- Search and Filter Section -->
+    <div class="filter-section">
+      <form method="GET">
+        <div class="row">
+          <!-- Search Input -->
+          <div class="col-md-3 mb-3">
+            <label class="small font-weight-bold">Search</label>
+            <input type="text" 
+                   name="search" 
+                   class="form-control"
+                   placeholder="Report no, person name..."
+                   value="{{ search_query }}">
+          </div>
 
-    <!-- Search and Filter -->
-    <form method="GET" class="mb-4">
-      <div class="row">
-        <div class="col-md-3 mb-2">
-          <input type="text" name="search" class="form-control"
-                 placeholder="Search report no, title, person..."
-                 value="{{ search_query }}">
+          <!-- Incident Type Filter -->
+          <div class="col-md-3 mb-3">
+            <label class="small font-weight-bold">Incident Type</label>
+            <select name="incident_type" class="form-control">
+              <option value="">All Types</option>
+              {% for incident_type in incident_types %}
+              <option value="{{ incident_type.id }}" 
+                      {% if selected_incident_type == incident_type.id|stringformat:"s" %}selected{% endif %}>
+                  {{ incident_type.code }} - {{ incident_type.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Status Filter -->
+          <div class="col-md-2 mb-3">
+            <label class="small font-weight-bold">Status</label>
+            <select name="status" class="form-control">
+              <option value="">All Status</option>
+              {% for status_key, status_name in status_choices %}
+              <option value="{{ status_key }}" {% if selected_status == status_key %}selected{% endif %}>
+                {{ status_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Plant Filter -->
+          <div class="col-md-2 mb-3">
+            <label class="small font-weight-bold">Plant</label>
+            <select name="plant" class="form-control">
+              <option value="">All Plants</option>
+              {% for plant in plants %}
+              <option value="{{ plant.id }}" {% if selected_plant == plant.id|stringformat:"s" %}selected{% endif %}>
+                {{ plant.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Filter Buttons -->
+          <div class="col-md-2 mb-3">
+            <label class="small font-weight-bold d-block">&nbsp;</label>
+            <button type="submit" class="btn btn-primary btn-block">
+              <i class="fas fa-search"></i> Filter
+            </button>
+          </div>
         </div>
 
-        <div class="col-md-2 mb-2">
-          <select name="incident_type" class="form-control">
-            <option value="">All Types</option>
-            {% for incident_type in incident_types %}
-            <option value="{{ incident_type.id }}" 
-                    {% if selected_incident_type == incident_type.id|stringformat:"s" %}selected{% endif %}>
-                {{ incident_type.code }} - {{ incident_type.name }}
-            </option>
-            {% endfor %}
-          </select>
+        <!-- Date Range Filters -->
+        <div class="row">
+          <div class="col-md-3 mb-2">
+            <label class="small font-weight-bold">Date From</label>
+            <input type="date" 
+                   name="date_from" 
+                   class="form-control"
+                   value="{{ request.GET.date_from }}">
+          </div>
+          <div class="col-md-3 mb-2">
+            <label class="small font-weight-bold">Date To</label>
+            <input type="date" 
+                   name="date_to" 
+                   class="form-control"
+                   value="{{ request.GET.date_to }}">
+          </div>
+          <div class="col-md-2 mb-2">
+            <label class="small font-weight-bold d-block">&nbsp;</label>
+            <a href="{% url 'accidents:incident_list' %}" class="btn btn-secondary btn-block">
+              <i class="fas fa-redo"></i> Reset
+            </a>
+          </div>
         </div>
+      </form>
+    </div>
 
-        <div class="col-md-2 mb-2">
-          <select name="status" class="form-control">
-            <option value="">All Status</option>
-            {% for status_key, status_name in status_choices %}
-            <option value="{{ status_key }}" {% if selected_status == status_key %}selected{% endif %}>
-              {{ status_name }}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="col-md-2 mb-2">
-          <select name="plant" class="form-control">
-            <option value="">All Plants</option>
-            {% for plant in plants %}
-            <option value="{{ plant.id }}" {% if selected_plant == plant.id|stringformat:"s" %}selected{% endif %}>
-              {{ plant.name }}
-            </option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="col-md-3 mb-2">
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-search"></i> Filter
-          </button>
-          <a href="{% url 'accidents:incident_list' %}" class="btn btn-secondary">
-            <i class="fas fa-redo"></i> Reset
-          </a>
-        </div>
-      </div>
-
-      <div class="row mt-2">
-        <div class="col-md-3">
-          <label class="small">Date From:</label>
-          <input type="date" name="date_from" class="form-control form-control-sm"
-                 value="{{ request.GET.date_from }}">
-        </div>
-        <div class="col-md-3">
-          <label class="small">Date To:</label>
-          <input type="date" name="date_to" class="form-control form-control-sm"
-                 value="{{ request.GET.date_to }}">
-        </div>
-      </div>
-    </form>
+    <!-- Results Info -->
+    <div class="mb-3">
+      <p class="text-muted mb-0">
+        <i class="fas fa-list mr-2"></i>
+        Showing {{ incidents|length }} incident(s)
+      </p>
+    </div>
 
     <!-- Incidents Table -->
     <div class="table-responsive">
-      <table class="table table-hover">
-        <thead>
+      <table class="table table-bordered table-hover">
+        <thead class="thead-light">
           <tr>
-            <th>Report No.</th>
-            <th>Type</th>
-            <th>Affected Person</th>
-            <th>Date & Time</th>
-            <th>Plant / Location</th>
-            <th>Status</th>
+            <th style="width: 5%;">#</th>
+            <th style="width: 15%;">Report No.</th>
+            <th style="width: 12%;">Type</th>
+            <th style="width: 15%;">Affected Person</th>
+            <th style="width: 12%;">Date & Time</th>
+            <th style="width: 15%;">Plant / Location</th>
+            <th style="width: 12%;">Status</th>
             {% if user.role.name != 'EMPLOYEE' %}
-            <th>Actions</th>
+            <th style="width: 14%;" class="text-center">Actions</th>
+            {% else %}
+            <th style="width: 14%;" class="text-center">Actions</th>
             {% endif %}
           </tr>
         </thead>
 
         <tbody>
-            {% for incident in incidents %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>
-                    <a href="{% url 'accidents:incident_detail' incident.pk %}">
-                        {{ incident.report_number }}
-                    </a>
-                </td>
-                <td>
-                    <!-- ✅ UPDATED: Display incident type from ForeignKey -->
-                    <span class="badge badge-info">
-                        {{ incident.incident_type.code }}
-                    </span>
-                </td>
-                <td>
-                    <span class="badge badge-{{ incident.get_status_badge_class }}">
-                        {{ incident.get_status_display }}
-                    </span>
-                </td>
-                <td>{{ incident.incident_date|date:"d M Y" }}</td>
-                <td>{{ incident.plant.name }}</td>
-                <td>{{ incident.affected_person_name }}</td>
-                <td>{{ incident.reported_by.get_full_name }}</td>
-                <td class="text-center">
-                    <a href="{% url 'accidents:incident_detail' incident.pk %}" 
-                      class="btn btn-sm btn-info" 
-                      title="View Details">
-                        <i class="fas fa-eye"></i>
-                    </a>
-                    <a href="{% url 'accidents:incident_update' incident.pk %}" 
-                      class="btn btn-sm btn-warning" 
-                      title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="9" class="text-center">
-                    <p class="text-muted">No incidents found.</p>
-                </td>
-            </tr>
-            {% endfor %}
+          {% for incident in incidents %}
+          <tr>
+            <!-- Serial Number -->
+            <td class="text-center">{{ forloop.counter }}</td>
+            
+            <!-- Report Number -->
+            <td>
+              <a href="{% url 'accidents:incident_detail' incident.pk %}" class="font-weight-bold">
+                {{ incident.report_number }}
+              </a>
+            </td>
+            
+            <!-- Incident Type -->
+            <td>
+              <span class="badge badge-info">
+                {{ incident.incident_type.code }}
+              </span>
+            </td>
+            
+            <!-- Affected Person -->
+            <td>{{ incident.affected_person_name|truncatechars:25 }}</td>
+            
+            <!-- Date & Time -->
+            <td>
+              <div>{{ incident.incident_date|date:"d M Y" }}</div>
+              <small class="text-muted">{{ incident.incident_time|time:"H:i" }}</small>
+            </td>
+            
+            <!-- Plant / Location -->
+            <td>
+              <div><strong>{{ incident.plant.name }}</strong></div>
+              <small class="text-muted">{{ incident.location.name }}</small>
+            </td>
+            
+            <!-- Status -->
+            <td>
+              {% if incident.status == 'REPORTED' %}
+                <span class="badge badge-warning">{{ incident.get_status_display }}</span>
+              {% elif incident.status == 'UNDER_INVESTIGATION' %}
+                <span class="badge badge-info">{{ incident.get_status_display }}</span>
+              {% elif incident.status == 'ACTION_IN_PROGRESS' %}
+                <span class="badge badge-primary">{{ incident.get_status_display }}</span>
+              {% elif incident.status == 'COMPLETED' %}
+                <span class="badge badge-success">{{ incident.get_status_display }}</span>
+              {% elif incident.status == 'CLOSED' %}
+                <span class="badge badge-secondary">{{ incident.get_status_display }}</span>
+              {% else %}
+                <span class="badge badge-light">{{ incident.get_status_display }}</span>
+              {% endif %}
+            </td>
+            
+            <!-- Actions -->
+            <td class="text-center btn-actions">
+              <a href="{% url 'accidents:incident_detail' incident.pk %}" 
+                 class="btn btn-sm btn-info" 
+                 title="View Details">
+                <i class="fas fa-eye"></i>
+              </a>
+              {% if user.role.name != 'EMPLOYEE' %}
+              <a href="{% url 'accidents:incident_update' incident.pk %}" 
+                 class="btn btn-sm btn-warning" 
+                 title="Edit">
+                <i class="fas fa-edit"></i>
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5">
+              <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+              <p class="text-muted mb-0">No incidents found matching your criteria.</p>
+              {% if search_query or selected_incident_type or selected_status or selected_plant %}
+              <a href="{% url 'accidents:incident_list' %}" class="btn btn-sm btn-secondary mt-3">
+                <i class="fas fa-redo mr-1"></i>Clear Filters
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
 
     <!-- Pagination -->
     {% if is_paginated %}
-    <nav aria-label="Page navigation">
+    <nav aria-label="Page navigation" class="mt-4">
       <ul class="pagination justify-content-center">
         {% if page_obj.has_previous %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+          <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_incident_type %}&incident_type={{ selected_incident_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_plant %}&plant={{ selected_plant }}{% endif %}">
+            <i class="fas fa-angle-double-left"></i> First
+          </a>
+        </li>
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_incident_type %}&incident_type={{ selected_incident_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_plant %}&plant={{ selected_plant }}{% endif %}">
+            <i class="fas fa-angle-left"></i> Previous
+          </a>
         </li>
         {% endif %}
 
@@ -181,7 +292,14 @@
 
         {% if page_obj.has_next %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_incident_type %}&incident_type={{ selected_incident_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_plant %}&plant={{ selected_plant }}{% endif %}">
+            Next <i class="fas fa-angle-right"></i>
+          </a>
+        </li>
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_incident_type %}&incident_type={{ selected_incident_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_plant %}&plant={{ selected_plant }}{% endif %}">
+            Last <i class="fas fa-angle-double-right"></i>
+          </a>
         </li>
         {% endif %}
       </ul>
@@ -190,4 +308,23 @@
 
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Highlight active row on hover
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            if (!this.querySelector('td[colspan]')) { // Skip empty state row
+                this.style.backgroundColor = '#f0f8ff';
+            }
+        });
+        row.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+});
+</script>
 {% endblock %}
