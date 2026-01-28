@@ -257,9 +257,8 @@ class Incident(models.Model):
         verbose_name = 'Incident Report'
         verbose_name_plural = 'Incident Reports'
     
-def __str__(self):
-    incident_type = self.incident_type.name if self.incident_type else 'N/A'
-    return f"{self.report_number} - {incident_type}"
+    def __str__(self):
+        return f"{self.report_number} - {self.get_incident_type_display()}"
 
     
     def save(self, *args, **kwargs):
