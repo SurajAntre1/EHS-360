@@ -193,7 +193,7 @@ def generate_incident_pdf(incident):
     story.append(Paragraph("<b>SECTION 2: INJURY & CAUSAL FACTORS</b>", styles['SectionHeader']))
 
     injury_data = [
-        [Paragraph('<b>Incident Type:</b>', styles['Label']), Paragraph(get_val(incident.get_incident_type_display()), styles['Value'])],
+        [Paragraph('<b>Incident Type:</b>', styles['Label']), Paragraph(get_val(incident.incident_type.name if incident.incident_type else 'N/A'), styles['Value'])],
         [Paragraph('<b>Nature of Injury:</b>', styles['Label']), Paragraph(get_val(incident.nature_of_injury), styles['Value'])],
     ]
     injury_table = Table(injury_data, colWidths=[drawable_width * 0.25, drawable_width * 0.75])
