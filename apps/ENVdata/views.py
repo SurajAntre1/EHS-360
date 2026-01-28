@@ -13,7 +13,156 @@ from apps.organizations.models import Plant
 from .models import *
 from .utils import EnvironmentalDataFetcher
 from django.shortcuts import render, redirect, get_object_or_404
+# =========================================================
+# API ENDPOINTS FOR QUESTIONS MANAGER
+# =========================================================
 
+class GetSourceFieldsAPIView(LoginRequiredMixin, View):
+    """
+    API to get available fields and their choices for a source type
+    Incident types are fetched from database, Hazard types are hardcoded choices
+    """
+    def get(self, request):
+        from apps.accidents.models import IncidentType
+        
+        source_type = request.GET.get('source_type')
+        
+        if not source_type:
+            return JsonResponse({
+                'success': False,
+                'error': 'Source type is required'
+            }, status=400)
+        
+        try:
+            fields = []
+            
+            if source_type == 'INCIDENT':
+                # ✅ Get incident types from database (DYNAMIC)
+                incident_types = IncidentType.objects.filter(is_active=True).order_by('name')
+                incident_type_choices = [
+                    {'value': str(it.id), 'display': f"{it.code} - {it.name}"}
+                    for it in incident_types
+                ]
+                
+                # ✅ Get incident status choices from model
+                from apps.accidents.models import Incident
+                status_choices = []
+                if hasattr(Incident, 'STATUS_CHOICES'):
+                    status_choices = [
+                        {'value': choice[0], 'display': choice[1]} 
+                        for choice in Incident.STATUS_CHOICES
+                    ]
+                
+                fields = [
+                    {
+                        'field_name': 'incident_type',
+                        'field_verbose_name': 'Incident Type',
+                        'choices': incident_type_choices
+                    },
+                    {
+                        'field_name': 'status',
+                        'field_verbose_name': 'Status',
+                        'choices': status_choices if status_choices else [
+                            {'value': 'REPORTED', 'display': 'Reported'},
+                            {'value': 'UNDER_INVESTIGATION', 'display': 'Under Investigation'},
+                            {'value': 'ACTION_IN_PROGRESS', 'display': 'Action In Progress'},
+                            {'value': 'COMPLETED', 'display': 'Completed'},
+                            {'value': 'CLOSED', 'display': 'Closed'},
+                        ]
+                    },
+                    {
+                        'field_name': 'plant',
+                        'field_verbose_name': 'Plant',
+                        'choices': [
+                            {'value': str(p.id), 'display': p.name}
+                            for p in Plant.objects.filter(is_active=True).order_by('name')
+                        ]
+                    }
+                ]
+            
+            elif source_type == 'HAZARD':
+                try:
+                    # ✅ Get hazard types from MODEL CHOICES (HARDCODED)
+                    from apps.hazards.models import Hazard
+                    
+                    # Get hazard type choices from model
+                    hazard_type_choices = []
+                    if hasattr(Hazard, 'HAZARD_TYPE_CHOICES'):
+                        hazard_type_choices = [
+                            {'value': choice[0], 'display': choice[1]} 
+                            for choice in Hazard.HAZARD_TYPE_CHOICES
+                        ]
+                    
+                    # Get severity choices from model
+                    severity_choices = []
+                    if hasattr(Hazard, 'SEVERITY_CHOICES'):
+                        severity_choices = [
+                            {'value': choice[0], 'display': choice[1]} 
+                            for choice in Hazard.SEVERITY_CHOICES
+                        ]
+                    
+                    # Get status choices from model
+                    hazard_status_choices = []
+                    if hasattr(Hazard, 'STATUS_CHOICES'):
+                        hazard_status_choices = [
+                            {'value': choice[0], 'display': choice[1]} 
+                            for choice in Hazard.STATUS_CHOICES
+                        ]
+                    
+                    fields = [
+                        {
+                            'field_name': 'hazard_type',
+                            'field_verbose_name': 'Hazard Type',
+                            'choices': hazard_type_choices if hazard_type_choices else []
+                        },
+                        {
+                            'field_name': 'severity',
+                            'field_verbose_name': 'Severity',
+                            'choices': severity_choices if severity_choices else [
+                                {'value': 'low', 'display': 'Low'},
+                                {'value': 'medium', 'display': 'Medium'},
+                                {'value': 'high', 'display': 'High'},
+                                {'value': 'critical', 'display': 'Critical'},
+                            ]
+                        },
+                        {
+                            'field_name': 'status',
+                            'field_verbose_name': 'Status',
+                            'choices': hazard_status_choices if hazard_status_choices else []
+                        },
+                        {
+                            'field_name': 'plant',
+                            'field_verbose_name': 'Plant',
+                            'choices': [
+                                {'value': str(p.id), 'display': p.name}
+                                for p in Plant.objects.filter(is_active=True).order_by('name')
+                            ]
+                        }
+                    ]
+                
+                except ImportError:
+                    # ✅ Fallback if hazard module doesn't exist
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Hazard module is not available'
+                    }, status=400)
+            
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Invalid source type'
+                }, status=400)
+            
+            return JsonResponse({
+                'success': True,
+                'fields': fields
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
 # =========================================================
 # UNIT MANAGER
 # =========================================================
@@ -454,16 +603,121 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
         return redirect("environmental:questions-manager")
 
     def load_questions(self):
-        # Yeh function aàpke existing code jaisa hi rahega
+        """Load questions with human-readable filter descriptions"""
+        from apps.accidents.models import IncidentType
+        
         questions_list = []
         for q in EnvironmentalQuestion.objects.filter(is_active=True).order_by("is_system", "order", "id"):
             selected_units = q.selected_units.all()
             
             filter_desc = ""
             if q.filter_field and q.filter_value:
-                filter_desc = f"{q.get_filter_field_display() if hasattr(q, 'get_filter_field_display') else q.filter_field} = {q.filter_value}"
+                # Get human-readable filter description
+                filter_field_name = q.get_filter_field_display() if hasattr(q, 'get_filter_field_display') else q.filter_field
+                
+                # ✅ Handle different field types
+                if q.filter_field == 'incident_type':
+                    try:
+                        incident_type = IncidentType.objects.get(id=q.filter_value)
+                        filter_value_display = f"{incident_type.code} - {incident_type.name}"
+                    except IncidentType.DoesNotExist:
+                        filter_value_display = q.filter_value
+                
+                elif q.filter_field == 'hazard_type':
+                    try:
+                        from apps.hazards.models import HazardType
+                        hazard_type = HazardType.objects.get(id=q.filter_value)
+                        filter_value_display = f"{hazard_type.code} - {hazard_type.name}"
+                    except:
+                        filter_value_display = q.filter_value
+                
+                elif q.filter_field == 'status':
+                    # Map status codes to display names
+                    status_map = {
+                        'REPORTED': 'Reported',
+                        'UNDER_INVESTIGATION': 'Under Investigation',
+                        'ACTION_IN_PROGRESS': 'Action In Progress',
+                        'COMPLETED': 'Completed',
+                        'CLOSED': 'Closed',
+                        'OPEN': 'Open',
+                        'IN_PROGRESS': 'In Progress',
+                        'RESOLVED': 'Resolved',
+                    }
+                    filter_value_display = status_map.get(q.filter_value, q.filter_value)
+                
+                elif q.filter_field == 'severity':
+                    severity_map = {
+                        'LOW': 'Low',
+                        'MEDIUM': 'Medium',
+                        'HIGH': 'High',
+                        'CRITICAL': 'Critical',
+                    }
+                    filter_value_display = severity_map.get(q.filter_value, q.filter_value)
+                
+                elif q.filter_field == 'plant':
+                    try:
+                        plant = Plant.objects.get(id=q.filter_value)
+                        filter_value_display = plant.name
+                    except Plant.DoesNotExist:
+                        filter_value_display = q.filter_value
+                
+                else:
+                    filter_value_display = q.filter_value
+                
+                filter_desc = f"{filter_field_name} = {filter_value_display}"
+                
+                # ✅ Secondary filter (same logic)
                 if q.filter_field_2 and q.filter_value_2:
-                    filter_desc += f" AND {q.get_filter_field_2_display() if hasattr(q, 'get_filter_field_2_display') else q.filter_field_2} = {q.filter_value_2}"
+                    filter_field_2_name = q.get_filter_field_2_display() if hasattr(q, 'get_filter_field_2_display') else q.filter_field_2
+                    
+                    if q.filter_field_2 == 'incident_type':
+                        try:
+                            incident_type_2 = IncidentType.objects.get(id=q.filter_value_2)
+                            filter_value_2_display = f"{incident_type_2.code} - {incident_type_2.name}"
+                        except IncidentType.DoesNotExist:
+                            filter_value_2_display = q.filter_value_2
+                    
+                    elif q.filter_field_2 == 'hazard_type':
+                        try:
+                            from apps.hazards.models import HazardType
+                            hazard_type_2 = HazardType.objects.get(id=q.filter_value_2)
+                            filter_value_2_display = f"{hazard_type_2.code} - {hazard_type_2.name}"
+                        except:
+                            filter_value_2_display = q.filter_value_2
+                    
+                    elif q.filter_field_2 == 'status':
+                        status_map = {
+                            'REPORTED': 'Reported',
+                            'UNDER_INVESTIGATION': 'Under Investigation',
+                            'ACTION_IN_PROGRESS': 'Action In Progress',
+                            'COMPLETED': 'Completed',
+                            'CLOSED': 'Closed',
+                            'OPEN': 'Open',
+                            'IN_PROGRESS': 'In Progress',
+                            'RESOLVED': 'Resolved',
+                        }
+                        filter_value_2_display = status_map.get(q.filter_value_2, q.filter_value_2)
+                    
+                    elif q.filter_field_2 == 'severity':
+                        severity_map = {
+                            'LOW': 'Low',
+                            'MEDIUM': 'Medium',
+                            'HIGH': 'High',
+                            'CRITICAL': 'Critical',
+                        }
+                        filter_value_2_display = severity_map.get(q.filter_value_2, q.filter_value_2)
+                    
+                    elif q.filter_field_2 == 'plant':
+                        try:
+                            plant_2 = Plant.objects.get(id=q.filter_value_2)
+                            filter_value_2_display = plant_2.name
+                        except Plant.DoesNotExist:
+                            filter_value_2_display = q.filter_value_2
+                    
+                    else:
+                        filter_value_2_display = q.filter_value_2
+                    
+                    filter_desc += f" AND {filter_field_2_name} = {filter_value_2_display}"
             
             questions_list.append({
                 "id": q.id,
@@ -656,56 +910,56 @@ class GetCategoryUnitsAPIView(LoginRequiredMixin, View):
             }, status=500)
 
 
-class GetSourceFieldsAPIView(LoginRequiredMixin, View):
-    """
-    API to get available fields and their choices for a source type
-    """
-    def get(self, request):
-        source_type = request.GET.get('source_type')
+# class GetSourceFieldsAPIView(LoginRequiredMixin, View):
+#     """
+#     API to get available fields and their choices for a source type
+#     """
+#     def get(self, request):
+#         source_type = request.GET.get('source_type')
         
-        if not source_type:
-            return JsonResponse({
-                'success': False,
-                'error': 'Source type is required'
-            }, status=400)
+#         if not source_type:
+#             return JsonResponse({
+#                 'success': False,
+#                 'error': 'Source type is required'
+#             }, status=400)
         
-        try:
-            from apps.accidents.models import Incident
-            from apps.hazards.models import Hazard
+#         try:
+#             from apps.accidents.models import Incident
+#             from apps.hazards.models import Hazard
             
-            # Get model based on source type
-            if source_type == 'INCIDENT':
-                model = Incident
-            elif source_type == 'HAZARD':
-                model = Hazard
-            else:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Invalid source type'
-                }, status=400)
+#             # Get model based on source type
+#             if source_type == 'INCIDENT':
+#                 model = Incident
+#             elif source_type == 'HAZARD':
+#                 model = Hazard
+#             else:
+#                 return JsonResponse({
+#                     'success': False,
+#                     'error': 'Invalid source type'
+#                 }, status=400)
             
-            # Get fields with choices
-            fields_with_choices = []
+#             # Get fields with choices
+#             fields_with_choices = []
             
-            for field in model._meta.get_fields():
-                if hasattr(field, 'choices') and field.choices:
-                    choices = [{'value': choice[0], 'display': choice[1]} for choice in field.choices]
-                    fields_with_choices.append({
-                        'field_name': field.name,
-                        'field_verbose_name': field.verbose_name.title(),
-                        'choices': choices
-                    })
+#             for field in model._meta.get_fields():
+#                 if hasattr(field, 'choices') and field.choices:
+#                     choices = [{'value': choice[0], 'display': choice[1]} for choice in field.choices]
+#                     fields_with_choices.append({
+#                         'field_name': field.name,
+#                         'field_verbose_name': field.verbose_name.title(),
+#                         'choices': choices
+#                     })
             
-            return JsonResponse({
-                'success': True,
-                'fields': fields_with_choices
-            })
+#             return JsonResponse({
+#                 'success': True,
+#                 'fields': fields_with_choices
+#             })
             
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'error': str(e)
-            }, status=500)
+#         except Exception as e:
+#             return JsonResponse({
+#                 'success': False,
+#                 'error': str(e)
+#             }, status=500)
         
 
 # =========================================================

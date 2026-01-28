@@ -11,9 +11,11 @@ urlpatterns = [
     path('questions-manager/', EnvironmentalQuestionsManagerView.as_view(), name='questions-manager'),
     path('questions-manager/edit/<int:question_id>/', EnvironmentalQuestionsManagerView.as_view(), name='questions-manager-edit'),
     path('unit-manager/', UnitManagerView.as_view(), name='unit-manager'),
-    
+    # path('api/get-source-fields/', views.get_source_fields, name='get-source-fields'),
+
     # API endpoints
     path('api/get-category-units/', GetCategoryUnitsAPIView.as_view(), name='get-category-units'),
     path('api/get-source-fields/', GetSourceFieldsAPIView.as_view(), name='get-source-fields'),
     path('api/get-base-unit/', GetCategoryBaseUnitAPIView.as_view(), name='api-get-base-unit'),
+
 ]
