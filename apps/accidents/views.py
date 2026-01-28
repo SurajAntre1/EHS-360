@@ -25,6 +25,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.formatting.rule import CellIsRule
 from django.conf import settings  
 from django.conf.urls.static import static  
+from apps.common.image_utils import compress_image
 
 from .forms import IncidentAttachmentForm # <-- Import the new form
 
@@ -363,9 +364,10 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
         # Handle photo uploads
         photos = self.request.FILES.getlist('photos')
         for photo in photos:
+            compressed_photo = compress_image(photo)
             IncidentPhoto.objects.create(
                 incident=incident,
-                photo=photo,
+                photo=compressed_photo,
                 photo_type='INCIDENT_SCENE',
                 uploaded_by=self.request.user
             )
@@ -598,9 +600,10 @@ class IncidentUpdateView(LoginRequiredMixin, UpdateView):
         # Handle photo uploads
         photos = self.request.FILES.getlist('photos')
         for photo in photos:
+            compressed_photo = compress_image(photo)
             IncidentPhoto.objects.create(
                 incident=self.object,
-                photo=photo,
+                photo=compressed_photo,
                 photo_type='INCIDENT_SCENE',
                 uploaded_by=self.request.user
             )
