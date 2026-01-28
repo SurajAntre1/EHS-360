@@ -637,13 +637,16 @@
                             <td><strong>{{ incident.report_number }}</strong></td>
                             <!-- <td>{{ incident.incident_title|truncatewords:5 }}</td> -->
                             <td>
+                                {% with code=incident.incident_type.code|default:'' %}
                                 <span class="badge badge-custom 
-                                    {% if incident.incident_type == 'LTI' %}bg-danger
-                                    {% elif incident.incident_type == 'MTC' %}bg-warning text-dark
-                                    {% elif incident.incident_type == 'FA' %}bg-info
+                                    {% if code == 'LTI' %}bg-danger
+                                    {% elif code == 'MTC' %}bg-warning text-dark
+                                    {% elif code == 'FA' %}bg-info
+                                    {% elif code == 'HLFI' %}bg-success
                                     {% else %}bg-dark{% endif %}">
-                                    {{ incident.get_incident_type_display }}
+                                    {{ incident.incident_type.name|default:'N/A' }}
                                 </span>
+                                {% endwith %}
                             </td>
                             <!-- 
                                 THIS COMMENTED-OUT BLOCK HAS BEEN REMOVED AS IT WOULD CAUSE AN ERROR

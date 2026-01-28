@@ -1,3 +1,4 @@
+from multiprocessing import context
 from urllib.parse import urlencode
 from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, TemplateView,DeleteView
@@ -14,6 +15,7 @@ from django.db.models.functions import TruncMonth
 from django.views.generic import UpdateView, TemplateView
 from django.contrib import messages
 from django.utils import timezone
+from apps.accidents.models import IncidentType
 from apps.notifications import *
 import datetime
 from django.db.models import Q
@@ -166,25 +168,25 @@ class IncidentDashboardView(LoginRequiredMixin, TemplateView):
         # Get incident type IDs for common types
         try:
             lti_type = IncidentType.objects.get(code='LTI')
-            context['lti_count'] = incidents.filter(incident_type=lti_type).count()
+            context['lti_count'] = incidents.filter(incident_type__code='LTI').count()
         except IncidentType.DoesNotExist:
             context['lti_count'] = 0
         
         try:
             mtc_type = IncidentType.objects.get(code='MTC')
-            context['mtc_count'] = incidents.filter(incident_type=mtc_type).count()
+            context['mtc_count'] = incidents.filter(incident_type__code='MTC').count()
         except IncidentType.DoesNotExist:
             context['mtc_count'] = 0
         
         try:
             fa_type = IncidentType.objects.get(code='FA')
-            context['fa_count'] = incidents.filter(incident_type=fa_type).count()
+            context['fa_count'] = incidents.filter(incident_type__code='FA').count()
         except IncidentType.DoesNotExist:
             context['fa_count'] = 0
         
         try:
             hlfi_type = IncidentType.objects.get(code='HLFI')
-            context['hlfi_count'] = incidents.filter(incident_type=hlfi_type).count()
+            context['hlfi_count'] = incidents.filter(incident_type__code='HLFI').count()
         except IncidentType.DoesNotExist:
             context['hlfi_count'] = 0
         
@@ -1047,10 +1049,11 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
         # ==================================================
         # INCIDENT TYPE COUNTS (For Doughnut Chart)
         # ==================================================
-        context['lti_count'] = incidents.filter(incident_type='LTI').count()
-        context['mtc_count'] = incidents.filter(incident_type='MTC').count()
-        context['fa_count'] = incidents.filter(incident_type='FA').count()
-        context['hlfi_count'] = incidents.filter(incident_type='HLFI').count()
+        context['lti_count'] = incidents.filter(incident_type__code='LTI').count()
+        context['mtc_count'] = incidents.filter(incident_type__code='MTC').count()
+        context['fa_count']  = incidents.filter(incident_type__code='FA').count()
+        context['hlfi_count'] = incidents.filter(incident_type__code='HLFI').count()
+
 
         # ==================================================
         # RECENT INCIDENTS & OVERDUE INVESTIGATIONS
@@ -1089,22 +1092,31 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
         # The model does not have 'severity_level', so we use 'incident_type' instead.
         # This data is for the bar chart named 'severityChart' in the template.
         # ==================================================
-        type_distribution = incidents.values('incident_type').annotate(
-            count=Count('id')
+        incident_types = IncidentType.objects.order_by('id')
+
+# Count incidents per type
+        type_counts = (
+            incidents
+            .values('incident_type__id')
+            .annotate(count=Count('id'))
         )
-        
-        type_choices_dict = dict(Incident.INCIDENT_TYPES)
-        type_dict = {label: 0 for code, label in Incident.INCIDENT_TYPES}
 
-        for item in type_distribution:
-            display_name = type_choices_dict.get(item['incident_type'])
-            if display_name:
-                type_dict[display_name] = item['count']
+        # Map: incident_type_id -> count
+        count_map = {
+            item['incident_type__id']: item['count']
+            for item in type_counts
+        }
 
-        # We keep the context variable names the same to avoid changing the template's JavaScript
-        context['severity_labels'] = json.dumps(list(type_dict.keys()))
-        context['severity_data'] = json.dumps(list(type_dict.values()))
+        # Build chart data
+        severity_labels = []
+        severity_data = []
 
+        for itype in incident_types:
+            severity_labels.append(itype.name)
+            severity_data.append(count_map.get(itype.id, 0))
+
+        context['severity_labels'] = json.dumps(severity_labels)
+        context['severity_data'] = json.dumps(severity_data)
         # ==================================================
         # STATUS DISTRIBUTION
         # ==================================================
@@ -1492,7 +1504,7 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
         for row_index, incident in enumerate(queryset, start=2):
             row_data = [
                 incident.report_number,
-                incident.get_incident_type_display(),
+                incident.incident_type.name if incident.incident_type else 'N/A',
                 incident.get_status_display(),
                 incident.incident_date,
                 incident.incident_time,
