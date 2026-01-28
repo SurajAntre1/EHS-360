@@ -246,12 +246,8 @@
               <tr>
                 <td><strong>{{ incident.report_number }}</strong></td>
                 <td>
-                  <span class="badge badge-custom
-                    {% if incident.incident_type == 'LTI' %}bg-danger
-                    {% elif incident.incident_type == 'MTC' %}bg-warning text-dark 
-                    {% elif incident.incident_type == 'FA' %}bg-info 
-                    {% else %}bg-dark{% endif %}">
-                    {{ incident.get_incident_type_display }}
+                  <span class="badge badge-custom bg-dark">
+                    {{ incident.incident_type.name }}
                   </span>
                 </td>
                 <td>{{ incident.incident_date|date:"d/m/y" }}</td>

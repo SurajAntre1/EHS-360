@@ -432,7 +432,10 @@ class IncidentUpdateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         
         # ✅ POPULATE incident_type dropdown
-        self.fields['incident_type'].queryset = IncidentType.objects.filter(is_active=True).order_by('name')
+        incident_type_qs = IncidentType.objects.filter(is_active=True)
+        if self.instance.pk and self.instance.incident_type:
+            incident_type_qs = incident_type_qs | IncidentType.objects.filter(pk=self.instance.incident_type.pk)
+        self.fields['incident_type'].queryset = incident_type_qs.distinct().order_by('name')
         self.fields['incident_type'].label_from_instance = lambda obj: f"{obj.code} - {obj.name}"
         self.fields['incident_type'].empty_label = "Select incident type"
 

@@ -144,7 +144,7 @@
               {% elif incident.incident_type == 'HLFI' %}badge-dark
               {% elif incident.incident_type == 'FATALITY' %}badge-danger
               {% else %}badge-secondary{% endif %}">
-              {{ incident.get_incident_type_display }}
+              {{ incident.incident_type.name }}
             </span>
             <span class="badge badge-lg 
               {% if incident.status == 'CLOSED' %}badge-success
@@ -273,7 +273,7 @@
                 {% elif incident.incident_type == 'HLFI' %}badge-dark
                 {% elif incident.incident_type == 'FATALITY' %}badge-danger
                 {% else %}badge-secondary{% endif %}">
-                {{ incident.get_incident_type_display }}
+                {{ incident.incident_type.name }}
               </span>
             </p>
           </div>

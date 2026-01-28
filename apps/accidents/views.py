@@ -480,7 +480,7 @@ def get_sublocations_by_location(request, location_id):
 class IncidentUpdateView(LoginRequiredMixin, UpdateView):
     """Update incident report"""
     model = Incident
-    form_class = IncidentReportForm
+    form_class = IncidentUpdateForm
     template_name = 'accidents/incident_update.html'
     
     def get_success_url(self):
@@ -556,6 +556,10 @@ class IncidentUpdateView(LoginRequiredMixin, UpdateView):
     
     def form_valid(self, form):
         # Handle affected person selection
+        incident_type = form.cleaned_data.get('incident_type')
+        if incident_type:
+            form.instance.incident_type = incident_type
+
         affected_person_id = self.request.POST.get('affected_person_id', '').strip()
         if affected_person_id:
             try:

@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 from .models import NotificationMaster, Notification
+from apps.accidents.models import IncidentType
 import logging
 
 logger = logging.getLogger(__name__)
@@ -305,13 +306,17 @@ class NotificationService:
     @staticmethod
     def _build_incident_context(incident):
         """Build context for incident notifications"""
+        incident_type = (
+            incident.incident_type.name
+            if incident.incident_type else 'NA'
+        )
         return {
             'title': f"New Incident Reported | {incident.report_number}",
             'subject': f"⚠️ New Incident Reported - {incident.report_number}",
             'message': f"""
 Hello,
 
-A new {incident.get_incident_type_display()} has been reported.
+A new {incident_type} has been reported.
 
 INCIDENT DETAILS
 --------------------------------------------------
@@ -372,6 +377,10 @@ EHS Management System
         """
         Build context for Incident Investigation Report notifications
         """
+        incident_type = (
+            incident.incident_type.name
+            if incident.incident_type else 'NA'
+        )
         incident = incidentinvestigationreport.incident
         return {
             'title': f"Incident Investigation Completed | {incident.report_number}",
@@ -383,7 +392,7 @@ The investigation report for the following incident has been completed and submi
 INCIDENT DETAILS
 --------------------------------------------------
 Incident Number      : {incident.report_number}
-Incident Type        : {incident.get_incident_type_display()}
+Incident Type        : {incident_type}
 Date & Time          : {incident.incident_date} {incident.incident_time}
 Plant                : {incident.plant.name}
 Zone                 : {incident.zone.name if incident.zone else 'N/A'}
@@ -426,6 +435,10 @@ EHS Management System
 
     @staticmethod
     def _build_incident_close_context(incident):
+        incident_type = (
+            incident.incident_type.name
+            if incident.incident_type else 'NA'
+        )
         """Build context for incident closure notifications"""
         return{
             'title' : f"Incident Closed | {incident.report_number}",
@@ -433,7 +446,7 @@ EHS Management System
             'message' : f"""
 Hello,
 
-A {incident.get_incident_type_display()} has been closed.
+A {incident_type} has been closed.
 
 INCIDENT DETAILS 
 ----------------------------------------------------------------------------------
@@ -460,6 +473,10 @@ EHS Management System
         """
         Build context for Incident Action notifications
         """
+        incident_type = (
+            incident.incident_type.name
+            if incident.incident_type else 'NA'
+        )
         incident = incidnetactionitem.incident
         return {
             'title' : f"Incident Action Assigned | {incident.report_number}",
@@ -471,7 +488,7 @@ The investigation action for the following incident has been assigned.
 INCIDENT DETAILS
 ------------------------------------------------------------------
 Incident Number      : {incident.report_number}
-Incident Type        : {incident.get_incident_type_display()}
+Incident Type        : {incident_type}
 Date & Time          : {incident.incident_date} {incident.incident_time}
 Plant                : {incident.plant.name}
 Zone                 : {incident.zone.name if incident.zone else 'N/A'}

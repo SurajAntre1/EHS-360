@@ -128,17 +128,16 @@
           <div class="row">
             <div class="col-md-4 mb-3">
               <label for="id_incident_type">Type of Incident <span class="text-danger">*</span></label>
-              <select name="incident_type" id="id_incident_type" class="form-control" required>
-                <option value="">Select incident type</option>
-                <option value="FA" {% if incident.incident_type == 'FA' %}selected{% endif %}>First Aid (FA)</option>
-                <option value="MTC" {% if incident.incident_type == 'MTC' %}selected{% endif %}>Medical Treatment Case (MTC/RWC)</option>
-                <option value="LTI" {% if incident.incident_type == 'LTI' %}selected{% endif %}>Lost Time Injury (LTI)</option>
-                <option value="HLFI" {% if incident.incident_type == 'HLFI' %}selected{% endif %}>High Lost Frequency Injury (HLFI)</option>
-                <option value="FATALITY" {% if incident.incident_type == 'FATALITY' %}selected{% endif %}>Fatality</option>
-              </select>
+              {{ form.incident_type }} {{ form.status.as_hidden }}
               {% if form.incident_type.errors %}
                 <div class="text-danger">{{ form.incident_type.errors }}</div>
               {% endif %}
+              {% if form.incident_type.field.queryset.count == 0 %}
+                      <div class="alert alert-warning mt-2">
+                          <i class="fas fa-exclamation-triangle mr-2"></i>
+                          No active incident types found. Please contact administrator to add incident types.
+                      </div>
+                  {% endif %}
             </div>
             <div class="col-md-4 mb-3">
               <label for="{{ form.incident_date.id_for_label }}">Date of Incident <span class="text-danger">*</span></label>

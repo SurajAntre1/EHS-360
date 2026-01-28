@@ -238,7 +238,7 @@
                     {% elif incident.incident_type == 'MTC' %}badge-warning
                     {% elif incident.incident_type == 'FA' %}badge-info
                     {% else %}badge-dark{% endif %}">
-                    {{ incident.get_incident_type_display }}
+                    {{ incident.incident_type.name }}
                   </span>
                 </td>
                 <!-- <td>{{ incident.incident_title|truncatewords:8 }}</td> -->
