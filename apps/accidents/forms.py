@@ -2,13 +2,9 @@ from django import forms
 from django.core.exceptions import ValidationError
 from .models import *
 from datetime import date
- 
-# from django.contrib.auth.models import User
-from .models import Incident
+from .models import Incident, IncidentType
 from apps.organizations.models import Plant, Zone, Location, SubLocation, Department
-from apps.organizations.models import *
-from django import forms
-from .models import IncidentType
+
 
 class IncidentTypeForm(forms.ModelForm):
     class Meta:
@@ -34,22 +30,10 @@ class IncidentTypeForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
+
+
 class IncidentReportForm(forms.ModelForm):
     """Form for creating/updating incident reports with manual affected person entry"""
-    
-    # Updated incident_type to include FATALITY and exclude Near Miss
-    incident_type = forms.ChoiceField(
-        choices=[
-            ('', 'Select incident type'),
-            ('FA', 'First Aid (FA)'),
-            ('MTC', 'Medical Treatment Case (MTC/RWC)'),
-            ('LTI', 'Lost Time Injury (LTI)'),
-            ('HLFI', 'High Lost Frequency Injury (HLFI)'),
-            ('FATALITY', 'Fatality'),
-        ],
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        required=True
-    )
     
     # ===== MANUAL AFFECTED PERSON FIELDS =====
     
@@ -180,7 +164,7 @@ class IncidentReportForm(forms.ModelForm):
     class Meta:
         model = Incident
         fields = [
-            'incident_type', 
+            'incident_type',
             'incident_date', 
             'incident_time',
             'plant', 
@@ -203,6 +187,10 @@ class IncidentReportForm(forms.ModelForm):
         ]
         
         widgets = {
+            'incident_type': forms.Select(attrs={
+                'class': 'form-control',
+                'required': True
+            }),
             'incident_date': forms.DateInput(attrs={
                 'type': 'date',
                 'class': 'form-control',
@@ -257,8 +245,6 @@ class IncidentReportForm(forms.ModelForm):
                 'required': 'Please describe the nature of injury.'
             }
         }
-    
-
 
     def __init__(self, *args, **kwargs):
         """
@@ -267,23 +253,29 @@ class IncidentReportForm(forms.ModelForm):
         """
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        # Set empty labels
         self.fields['plant'].empty_label = "Select Plant"
         self.fields['zone'].empty_label = "Select Zone"
         self.fields['location'].empty_label = "Select Location"
         self.fields['sublocation'].empty_label = "Select sub-location"
-
+        
+        # ✅ POPULATE incident_type dropdown with active types from database
+        self.fields['incident_type'].queryset = IncidentType.objects.filter(is_active=True).order_by('name')
+        self.fields['incident_type'].label_from_instance = lambda obj: f"{obj.code} - {obj.name}"
+        self.fields['incident_type'].empty_label = "Select incident type"
+        
         # Base queryset for the top-level field (Plant) based on user permissions.
         if self.user:
             assigned_plants = self.user.assigned_plants.filter(is_active=True)
             if assigned_plants.exists():
                 self.fields['plant'].queryset = assigned_plants
-            else: # Fallback for users (like admins) with no specific assignments
+            else:
                 self.fields['plant'].queryset = Plant.objects.filter(is_active=True)
-        else: # Fallback if user is somehow not available
+        else:
             self.fields['plant'].queryset = Plant.objects.filter(is_active=True)
 
-        # self.data contains the POST data. If it exists, it means the form is being submitted.
-        # We MUST populate the querysets based on the submitted data for validation to pass.
+        # Handle POST data for cascading dropdowns
         if self.data:
             try:
                 plant_id = int(self.data.get('plant'))
@@ -295,12 +287,10 @@ class IncidentReportForm(forms.ModelForm):
                 location_id = int(self.data.get('location'))
                 self.fields['sublocation'].queryset = SubLocation.objects.filter(location_id=location_id, is_active=True).order_by('name')
             except (ValueError, TypeError):
-                # This can happen if a field is not submitted. We pass silently
-                # as the form's own validation will catch the required field error.
                 pass
         
-        # If not a POST request, handle the initial display for GET requests.
-        elif self.instance and self.instance.pk: # Editing an existing instance
+        # Handle editing existing instance
+        elif self.instance and self.instance.pk:
             if self.instance.plant:
                 self.fields['zone'].queryset = Zone.objects.filter(plant=self.instance.plant, is_active=True).order_by('name')
             if self.instance.zone:
@@ -308,7 +298,8 @@ class IncidentReportForm(forms.ModelForm):
             if self.instance.location:
                 self.fields['sublocation'].queryset = SubLocation.objects.filter(location=self.instance.location, is_active=True).order_by('name')
 
-        elif self.user: # Creating a new instance (pre-fill logic)
+        # Handle creating new instance (pre-fill logic)
+        elif self.user:
             assigned_plants = self.user.assigned_plants.filter(is_active=True)
             if assigned_plants.count() == 1:
                 plant = assigned_plants.first()
@@ -341,21 +332,17 @@ class IncidentReportForm(forms.ModelForm):
         if dob:
             today = date.today()
             
-            # Check if DOB is not in future
             if dob > today:
                 raise ValidationError("Date of birth cannot be in the future.")
             
-            # Calculate age
             age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
             
-            # Check minimum age
             if age < 16:
                 raise ValidationError(
                     f"The affected person must be at least 16 years old. "
                     f"Current age based on date of birth: {age} years."
                 )
             
-            # Check maximum age
             if age > 100:
                 raise ValidationError(
                     f"Please verify the date of birth. The calculated age is {age} years, which seems incorrect."
@@ -370,7 +357,6 @@ class IncidentReportForm(forms.ModelForm):
         if doj:
             today = date.today()
             
-            # Check if DOJ is not in future
             if doj > today:
                 raise ValidationError("Date of joining cannot be in the future.")
         
@@ -392,18 +378,15 @@ class IncidentReportForm(forms.ModelForm):
         """Cross-field validation"""
         cleaned_data = super().clean()
         
-        # Get dates
         dob = cleaned_data.get('affected_date_of_birth')
         doj = cleaned_data.get('affected_date_of_joining')
         
-        # Validate DOJ is after DOB
         if dob and doj:
             if doj <= dob:
                 raise ValidationError({
                     'affected_date_of_joining': "Date of joining must be after the date of birth."
                 })
             
-            # Calculate age at joining
             age_at_joining = doj.year - dob.year - ((doj.month, doj.day) < (dob.month, dob.day))
             
             if age_at_joining < 16:
@@ -417,19 +400,6 @@ class IncidentReportForm(forms.ModelForm):
 class IncidentUpdateForm(forms.ModelForm):
     """Form for updating existing incidents"""
     
-    incident_type = forms.ChoiceField(
-        choices=[
-            ('', 'Select incident type'),
-            ('FA', 'First Aid (FA)'),
-            ('MTC', 'Medical Treatment Case (MTC/RWC)'),
-            ('LTI', 'Lost Time Injury (LTI)'),
-            ('HLFI', 'High Lost Frequency Injury (HLFI)'),
-            ('FATALITY', 'Fatality'),
-        ],
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        required=True
-    )
-    
     class Meta:
         model = Incident
         fields = [
@@ -442,6 +412,7 @@ class IncidentUpdateForm(forms.ModelForm):
         ]
         
         widgets = {
+            'incident_type': forms.Select(attrs={'class': 'form-control'}),
             'incident_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'incident_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'plant': forms.Select(attrs={'class': 'form-control'}),
@@ -455,6 +426,15 @@ class IncidentUpdateForm(forms.ModelForm):
             'nature_of_injury': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'status': forms.Select(attrs={'class': 'form-control'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # ✅ POPULATE incident_type dropdown
+        self.fields['incident_type'].queryset = IncidentType.objects.filter(is_active=True).order_by('name')
+        self.fields['incident_type'].label_from_instance = lambda obj: f"{obj.code} - {obj.name}"
+        self.fields['incident_type'].empty_label = "Select incident type"
 
 
 class IncidentInvestigationReportForm(forms.ModelForm):
@@ -476,9 +456,6 @@ class IncidentInvestigationReportForm(forms.ModelForm):
             'investigation_team': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'sequence_of_events': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'root_cause_analysis': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            # 'contributing_factors': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            # 'unsafe_conditions_identified': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            # 'unsafe_acts_identified': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'evidence_collected': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'witness_statements': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'immediate_corrective_actions': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -486,7 +463,7 @@ class IncidentInvestigationReportForm(forms.ModelForm):
             'completed_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
 
-####
+
 class IncidentActionItemForm(forms.ModelForm):
     """Form for action items with email validation."""
 
@@ -520,35 +497,27 @@ class IncidentActionItemForm(forms.ModelForm):
         """
         emails_string = self.cleaned_data.get('responsible_person_emails', '')
         if not emails_string:
-            return '' # required=True will handle the empty case
+            return ''
 
-        # Split emails, strip whitespace, and convert to lowercase for case-insensitive check
         email_list = [email.strip().lower() for email in emails_string.split(',') if email.strip()]
-        
-        # Remove duplicates
         unique_emails = list(set(email_list))
         
         if not unique_emails:
             raise forms.ValidationError("Please provide at least one valid email address.")
 
-        # Query the database for users with these emails
         found_users = User.objects.filter(email__in=unique_emails)
-        
-        # Create a list of emails that were found in the database
         found_emails = [user.email.lower() for user in found_users]
-        
-        # Find which emails from the input were not found in the database
         missing_emails = [email for email in unique_emails if email not in found_emails]
 
         if missing_emails:
-            # If any email is not found, raise a validation error with a clear message
             raise forms.ValidationError(
                 f"The following users could not be found: {', '.join(missing_emails)}. "
                 "Please ensure all email addresses are correct and belong to registered users."
             )
         
-        # Return the original, cleaned string of emails for the view to process
         return emails_string
+
+
 class IncidentPhotoForm(forms.ModelForm):
     """Form for incident photos"""
     
@@ -594,7 +563,8 @@ class IncidentClosureForm(forms.ModelForm):
                 'class': 'form-check-input'
             })
         }
-        
+
+
 class IncidentAttachmentForm(forms.ModelForm):
     """
     A simple form dedicated to uploading the closure attachment on the
