@@ -25,103 +25,96 @@ class EnvironmentalDataFetcher:
             source_type__in=['INCIDENT', 'HAZARD']
         )
         
+        MONTHS = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ]
+        
         for question in auto_questions:
-            question_data = cls._calculate_question_data(
-                plant=plant,
-                year=year,
-                question=question
-            )
+            month_data = {}
             
-            if question_data:
-                result[question.question_text] = question_data
+            for month_num, month_name in enumerate(MONTHS, start=1):
+                count = cls.calculate_question_value(
+                    question, plant, month_num, year
+                )
+                month_data[month_name] = count
+            
+            result[question.question_text] = month_data
         
         return result
     
     @classmethod
-    def _calculate_question_data(cls, plant, year, question):
-        """
-        Calculate monthly data dynamically based on question configuration
-        """
-        from apps.accidents.models import Incident
-        from apps.hazards.models import Hazard
+    def calculate_question_value(cls, question, plant, month, year):
+        """Calculate value for a specific question, plant, and month"""
         
-        monthly_data = {}
-        
-        # Get the model and date field
         if question.source_type == 'INCIDENT':
-            model = Incident
-            date_field = 'incident_date'
+            from apps.accidents.models import Incident
+            
+            queryset = Incident.objects.filter(
+                plant=plant,
+                incident_date__month=month,
+                incident_date__year=year
+            )
+            
+            # ✅ Apply primary filter - incident_type is ForeignKey (use _id)
+            if question.filter_field == 'incident_type' and question.filter_value:
+                queryset = queryset.filter(incident_type_id=question.filter_value)
+            elif question.filter_field == 'status' and question.filter_value:
+                queryset = queryset.filter(status=question.filter_value)
+            elif question.filter_field == 'plant' and question.filter_value:
+                queryset = queryset.filter(plant_id=question.filter_value)
+            
+            # ✅ Apply secondary filter
+            if question.filter_field_2 and question.filter_value_2:
+                if question.filter_field_2 == 'incident_type':
+                    queryset = queryset.filter(incident_type_id=question.filter_value_2)
+                elif question.filter_field_2 == 'status':
+                    queryset = queryset.filter(status=question.filter_value_2)
+                elif question.filter_field_2 == 'plant':
+                    queryset = queryset.filter(plant_id=question.filter_value_2)
+            
+            return queryset.count()
+        
         elif question.source_type == 'HAZARD':
-            model = Hazard
-            date_field = 'incident_datetime'
-        else:
-            return monthly_data
-        
-        # Build dynamic filter criteria
-        filter_criteria = {'plant': plant}
-        
-        # Add PRIMARY filter
-        if question.filter_field and question.filter_value:
-            filter_criteria[question.filter_field] = question.filter_value
-        
-        # Add SECONDARY filter
-        if question.filter_field_2 and question.filter_value_2:
-            filter_criteria[question.filter_field_2] = question.filter_value_2
-        
-        # Loop through each month
-        for month_num in range(1, 13):
-            month_name = calendar.month_name[month_num]
-            
-            # Get date range for this month
-            start_date = date(year, month_num, 1)
-            last_day = calendar.monthrange(year, month_num)[1]
-            end_date = date(year, month_num, last_day)
-            
-            # Build query with date filter
-            if question.source_type == 'INCIDENT':
-                query_filters = {
-                    **filter_criteria,
-                    f'{date_field}__gte': start_date,
-                    f'{date_field}__lte': end_date,
-                }
-            else:  # HAZARD
-                query_filters = {
-                    **filter_criteria,
-                    f'{date_field}__date__gte': start_date,
-                    f'{date_field}__date__lte': end_date,
-                }
-            
-            # Execute query
             try:
-                count = model.objects.filter(**query_filters).count()
-                monthly_data[month_name] = count
+                from apps.hazards.models import Hazard
+                
+                # ✅ Use incident_datetime (DateTimeField)
+                queryset = Hazard.objects.filter(
+                    plant=plant,
+                    incident_datetime__year=year,
+                    incident_datetime__month=month
+                )
+                
+                # ✅ Apply primary filter - hazard_type is CharField (NO _id)
+                if question.filter_field == 'hazard_type' and question.filter_value:
+                    queryset = queryset.filter(hazard_type=question.filter_value)
+                elif question.filter_field == 'severity' and question.filter_value:
+                    queryset = queryset.filter(severity=question.filter_value)
+                elif question.filter_field == 'status' and question.filter_value:
+                    queryset = queryset.filter(status=question.filter_value)
+                elif question.filter_field == 'plant' and question.filter_value:
+                    queryset = queryset.filter(plant_id=question.filter_value)
+                
+                # ✅ Apply secondary filter
+                if question.filter_field_2 and question.filter_value_2:
+                    if question.filter_field_2 == 'hazard_type':
+                        queryset = queryset.filter(hazard_type=question.filter_value_2)
+                    elif question.filter_field_2 == 'severity':
+                        queryset = queryset.filter(severity=question.filter_value_2)
+                    elif question.filter_field_2 == 'status':
+                        queryset = queryset.filter(status=question.filter_value_2)
+                    elif question.filter_field_2 == 'plant':
+                        queryset = queryset.filter(plant_id=question.filter_value_2)
+                
+                return queryset.count()
+            
+            except ImportError:
+                return 0
             except Exception as e:
-                print(f"Error calculating data for {question.question_text}: {e}")
-                monthly_data[month_name] = 0
+                print(f"Error calculating hazard data: {e}")
+                import traceback
+                traceback.print_exc()
+                return 0
         
-        return monthly_data
-    
-    @classmethod
-    def get_available_fields(cls, source_type):
-        """
-        Get available fields for a given source type
-        """
-        from apps.accidents.models import Incident
-        from apps.hazards.models import Hazard
-        
-        if source_type == 'INCIDENT':
-            model = Incident
-        elif source_type == 'HAZARD':
-            model = Hazard
-        else:
-            return []
-        
-        fields = []
-        for field in model._meta.get_fields():
-            if not field.auto_created and not field.many_to_many and not field.one_to_many:
-                fields.append({
-                    'name': field.name,
-                    'type': field.get_internal_type()
-                })
-        
-        return fields
+        return 0
