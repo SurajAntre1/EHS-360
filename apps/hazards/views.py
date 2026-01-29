@@ -455,19 +455,19 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             
             if assignment_type == 'self':
                 action_item.responsible_emails = request.user.email
+                action_item.status = 'COMPLETED'
+                action_item.completion_date = datetime.date.today()
                 is_self_assigned = True
             else:
                 responsible_emails = request.POST.get('responsible_emails', '').strip()
                 action_item.responsible_emails = responsible_emails
+                action_item.status = 'PENDING'
                 is_self_assigned = False
 
             # Handle target date
             target_date_str = request.POST.get('target_date')
             if target_date_str:
                 action_item.target_date = datetime.datetime.strptime(target_date_str, '%Y-%m-%d').date()
-
-            # Set the initial status to 'PENDING'
-            action_item.status = 'PENDING'
 
             # Handle file attachment
             action_item.attachment = request.FILES['attachment']
