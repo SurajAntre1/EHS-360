@@ -3,6 +3,27 @@
 
 {% block title %}Investigation Report - {{ investigation.incident.report_number }}{% endblock %}
 
+{% block extra_css %}
+<style>
+.action-footer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.action-footer .left-actions,
+.action-footer .right-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.action-footer form {
+    margin: 0;
+}
+</style>
+{% endblock %}
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -282,15 +303,40 @@
             <!-- Action Buttons -->
             <div class="card mt-3">
                 <div class="card-footer">
-                    <a href="{% url 'accidents:incident_detail' investigation.incident.pk %}" class="btn btn-primary">
-                        <i class="fas fa-arrow-left mr-1"></i>Back to Incident
-                    </a>
+                    <div class="action-footer">
 
-                    <a href="{% url 'accidents:incident_closure_check' investigation.incident.pk %}" class="btn btn-success">
-                        <i class="fas fa-check-circle mr-1"></i>Closure Check
-                    </a>
+                        <!-- Left actions -->
+                        <div class="left-actions">
+                            <a href="{% url 'accidents:incident_detail' investigation.incident.pk %}"
+                               class="btn btn-primary">
+                                <i class="fas fa-arrow-left mr-1"></i> Back to Incident
+                            </a>
+                        </div>
 
-                    
+                        <!-- Right actions -->
+                        <div class="right-actions">
+                            {% if incident.status == 'CLOSED' %}
+                                {% if user.is_superuser or user.role.name == 'ADMIN' or user.role.name == 'SAFETY MANAGER' %}
+                                    <form method="POST"
+                                          action="{% url 'accidents:incident_reopen' incident.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="btn btn-warning"
+                                                onclick="return confirm('Are you sure you want to reopen this incident?')">
+                                            <i class="fas fa-redo mr-1"></i> Reopen Incident
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                                {% if user.can_close_incidents or user.is_superuser or user.role.name == 'ADMIN' or user.role.name == 'SAFETY MANAGER' or user.role.name == 'PLANT HEAD' %}
+                                    <a href="{% url 'accidents:incident_closure_check' incident.pk %}"
+                                       class="btn btn-success">
+                                        <i class="fas fa-check-circle mr-1"></i> Close Incident
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
 
