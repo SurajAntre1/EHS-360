@@ -1,3 +1,4 @@
+import os
 """
 Django settings for ehs360_project project.
 
