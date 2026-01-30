@@ -1,8 +1,7 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Edit Hazard Report{% endblock %}
-{% block page_title %}Edit Hazard Report {{ object.report_number }}{% endblock %}
+
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
 <li class="breadcrumb-item"><a href="{% url 'hazards:dashboard' %}">Hazard Management</a></li>
