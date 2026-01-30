@@ -163,7 +163,16 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+CSRF_TRUSTED_ORIGINS = [
+    'https://ehs360.everestind.com',
+]
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://ehs360.everestind.com',   # production HTTPS
+    'http://ehs360.everestind.com',    # if you also allow HTTP access
+    'http://192.168.252.114',          # internal/local HTTP
+    'https://192.168.252.114',         # internal/local HTTPS (if used)
+]
 
 # Crispy Forms
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
