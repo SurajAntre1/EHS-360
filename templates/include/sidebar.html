@@ -429,63 +429,74 @@
           </ul>
         </li>
 
-        <!-- Inspection Module -->
-        {% if user.is_hod or user.is_safety_manager or user.is_admin_user or user.is_superuser %}
-        <li class="nav-item {% if 'inspections' in request.path %}menu-open{% endif %}">
-          <a href="#" class="nav-link {% if 'inspections' in request.path %}active{% endif %}">
-            <i class="nav-icon fas fa-users-cog"></i>
-            <p>Inspection Management <i class="right fas fa-angle-left"></i></p>
+
+    <!-- Inspection Module -->
+    {% if user.is_hod or user.is_safety_manager or user.is_admin_user or user.is_superuser %}
+    <li class="nav-item {% if 'inspections' in request.path %}menu-open{% endif %}">
+      <a href="#" class="nav-link {% if 'inspections' in request.path %}active{% endif %}">
+        <i class="nav-icon fas fa-clipboard-check"></i>
+        <p>Inspection Management <i class="right fas fa-angle-left"></i></p>
+      </a>
+      <ul class="nav nav-treeview">
+        <li class="nav-item">
+          <a href="{% url 'inspections:inspection_dashboard' %}" class="nav-link">
+            <i class="nav-icon far fa-circle"></i>
+            <p>Dashboard</p>
           </a>
-          <ul class="nav nav-treeview">
+        </li>
+
+        <li class="nav-item">
+          <a href="{% url 'inspections:my_inspections' %}" class="nav-link">
+            <i class="nav-icon far fa-circle"></i>
+            <p>My Inspections</p>
+          </a>
+        </li>
+
+        <li class="nav-item">
+          <a href="{% url 'inspections:schedule_create' %}" class="nav-link">
+            <i class="nav-icon far fa-circle"></i>
+            <p>Schedule Inspection</p>
+          </a>
+        </li>
+        
+        <li class="nav-item">
+          <a href="{% url 'inspections:schedule_list' %}" class="nav-link">
+            <i class="nav-icon far fa-circle"></i>
+            <p>All Schedules</p>
+          </a>
+        </li>
+
+        <!-- Configuration Submenu (Admin/Superuser only) -->
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="nav-icon fas fa-cog"></i>
+            <p>Configuration <i class="right fas fa-angle-left"></i></p>
+          </a>
+          <ul class="nav nav-treeview" style="padding-left: 15px;">
             <li class="nav-item">
-              <a href="{% url 'inspections:dashboard' %}" class="nav-link">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Dashboard</p>
+              <a href="{% url 'inspections:category_list' %}" class="nav-link">
+                <i class="nav-icon far fa-dot-circle"></i>
+                <p>Categories</p>
               </a>
             </li>
-
             <li class="nav-item">
-              <a href="{% url 'inspections:schedule_list' %}" class="nav-link">
-                <i class="nav-icon far fa-circle"></i>
-                <p>My Inspections</p>
+              <a href="{% url 'inspections:question_list' %}" class="nav-link">
+                <i class="nav-icon far fa-dot-circle"></i>
+                <p>Questions</p>
               </a>
             </li>
-
-            {% if user.is_safety_manager or user.is_admin_user or user.is_superuser %}
-            <li class="nav-item">
-              <a href="{% url 'inspections:schedule_create' %}" class="nav-link">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Schedule Inspection</p>
-              </a>
-            </li>
-            {% endif %}
-
-            <li class="nav-item">
-              <a href="{% url 'inspections:inspection_list' %}" class="nav-link">
-                <i class="nav-icon far fa-circle"></i>
-                <p>All Inspections</p>
-              </a>
-            </li>
-
-            <li class="nav-item">
-              <a href="{% url 'inspections:findings_list' %}" class="nav-link">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Findings</p>
-              </a>
-            </li>
-
-            {% if user.is_superuser or user.is_admin_user %}
             <li class="nav-item">
               <a href="{% url 'inspections:template_list' %}" class="nav-link">
-                <i class="nav-icon far fa-circle"></i>
+                <i class="nav-icon far fa-dot-circle"></i>
                 <p>Templates</p>
               </a>
             </li>
-            {% endif %}
           </ul>
         </li>
-        {% endif %}
       </ul>
+    </li>
+    {% endif %}     
+    </ul>
     </nav>
   </div>
 </aside>

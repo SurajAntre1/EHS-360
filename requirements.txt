@@ -11,9 +11,11 @@ colorama==0.4.6
 crispy-bootstrap5==2025.6
 cron_descriptor==2.0.6
 Django==4.2.27
+django-appconf==1.2.0
 django-celery-beat==2.8.1
 django-crispy-forms==2.5
 django-filter==25.1
+django-select2==8.4.7
 django-timezone-field==7.2.1
 djangorestframework==3.16.1
 et_xmlfile==2.0.0

@@ -1,13 +1,13 @@
+<!-- templates/inspections/question_list.html -->
 
 {% extends 'base/base.html' %}
-
-{% block title %}Inspection Templates{% endblock %}
-{% block page_title %}Inspection Templates{% endblock %}
+{% block title %}Inspection Questions{% endblock %}
+{% block page_title %}Inspection Questions{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
 <li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
-<li class="breadcrumb-item active">Templates</li>
+<li class="breadcrumb-item active">Questions</li>
 {% endblock %}
 
 {% block content %}
@@ -15,8 +15,8 @@
     <div class="col-md-12">
         <!-- Header -->
         <div class="mb-3">
-            <a href="{% url 'inspections:template_create' %}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Create Template
+            <a href="{% url 'inspections:question_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Question
             </a>
         </div>
         
@@ -26,33 +26,23 @@
                 <form method="get">
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="form-label">Inspection Type</label>
-                            <select name="inspection_type" class="form-control">
-                                <option value="">All Types</option>
-                                {% for value, label in inspection_types %}
-                                <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>
-                                    {{ label }}
-                                </option>
-                                {% endfor %}
-                            </select>
+                            <label class="form-label">Category</label>
+                            {{ filter_form.category }}
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label">Type</label>
+                            {{ filter_form.question_type }}
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label class="form-label">Critical</label>
+                            {{ filter_form.is_critical }}
                         </div>
                         
                         <div class="col-md-3">
-                            <label class="form-label">Plant</label>
-                            <select name="plant" class="form-control">
-                                <option value="">All Plants</option>
-                                {% for plant in plants %}
-                                <option value="{{ plant.id }}" {% if selected_plant == plant.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ plant.name }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-4">
                             <label class="form-label">Search</label>
-                            <input type="text" name="search" class="form-control" 
-                                   placeholder="Search templates..." value="{{ search }}">
+                            {{ filter_form.search }}
                         </div>
                         
                         <div class="col-md-2">
@@ -66,10 +56,10 @@
             </div>
         </div>
 
-        <!-- Templates Table -->
+        <!-- Questions Table -->
         <div class="ehs-card">
             <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-clipboard-list"></i> Inspection Templates</h3>
+                <h3 class="card-title"><i class="fas fa-question-circle"></i> Questions ({{ total_questions }})</h3>
             </div>
             <div class="card-body">
                 {% if page_obj %}
@@ -77,52 +67,59 @@
                     <table class="table table-striped table-hover">
                         <thead>
                             <tr>
-                                <th>Code</th>
-                                <th>Template Name</th>
-                                <th>Type</th>
-                                <th>Questions</th>
-                                <th>Plants</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th style="width: 100px;">Code</th>
+                                <th style="width: 120px;">Category</th>
+                                <th>Question</th>
+                                <th style="width: 100px;">Type</th>
+                                <th style="width: 80px;">Flags</th>
+                                <th style="width: 80px;">Status</th>
+                                <th style="width: 150px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for template in page_obj %}
+                            {% for question in page_obj %}
                             <tr>
-                                <td><strong>{{ template.template_code }}</strong></td>
-                                <td>{{ template.template_name }}</td>
+                                <td><strong>{{ question.question_code }}</strong></td>
                                 <td>
-                                    <span class="badge badge-info">{{ template.get_inspection_type_display }}</span>
+                                    <span class="category-badge">{{ question.category.category_code }}</span>
                                 </td>
                                 <td>
-                                    <span class="badge badge-success">{{ template.questions_count }} questions</span>
+                                    {{ question.question_text|truncatewords:15 }}
+                                    {% if question.is_critical %}
+                                    <span class="badge badge-danger ml-2">Critical</span>
+                                    {% endif %}
                                 </td>
+                                <td>{{ question.get_question_type_display }}</td>
                                 <td>
-                                    {% if template.applicable_plants.count > 0 %}
-                                        {{ template.applicable_plants.count }} plant(s)
-                                    {% else %}
-                                        <span class="text-muted">All Plants</span>
+                                    {% if question.is_remarks_mandatory %}
+                                    <i class="fas fa-comment text-info" title="Remarks Mandatory"></i>
+                                    {% endif %}
+                                    {% if question.is_photo_required %}
+                                    <i class="fas fa-camera text-warning" title="Photo Required"></i>
+                                    {% endif %}
+                                    {% if question.auto_generate_finding %}
+                                    <i class="fas fa-exclamation-triangle text-danger" title="Auto Finding"></i>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if template.is_active %}
+                                    {% if question.is_active %}
                                     <span class="badge badge-success">Active</span>
                                     {% else %}
                                     <span class="badge badge-secondary">Inactive</span>
                                     {% endif %}
                                 </td>
                                 <td class="table-actions">
-                                    <a href="{% url 'inspections:template_detail' template.pk %}" 
-                                       class="btn btn-sm btn-info" title="View Details">
+                                    <a href="{% url 'inspections:question_detail' question.pk %}" 
+                                       class="btn btn-sm btn-info" title="View">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{% url 'inspections:template_edit' template.pk %}" 
+                                    <a href="{% url 'inspections:question_edit' question.pk %}" 
                                        class="btn btn-sm btn-warning" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <a href="{% url 'inspections:template_clone' template.pk %}" 
-                                       class="btn btn-sm btn-success" title="Clone">
-                                        <i class="fas fa-copy"></i>
+                                    <a href="{% url 'inspections:question_delete' question.pk %}" 
+                                       class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
                                     </a>
                                 </td>
                             </tr>
@@ -162,10 +159,10 @@
                 
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
-                    <p class="text-muted">No templates found.</p>
-                    <a href="{% url 'inspections:template_create' %}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Create First Template
+                    <i class="fas fa-question-circle fa-4x text-muted mb-3"></i>
+                    <p class="text-muted">No questions found.</p>
+                    <a href="{% url 'inspections:question_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create First Question
                     </a>
                 </div>
                 {% endif %}

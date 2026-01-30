@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 from apps.hazards.models import Hazard
 from apps.accidents.models import Incident
-from apps.inspections.models import Inspection
+# from apps.inspections.models import Inspection
 from apps.ENVdata.models import MonthlyIndicatorData
 from django.shortcuts import redirect
 from django.contrib import messages

@@ -1,0 +1,226 @@
+
+{% extends 'base/base.html' %}
+{% block title %}Inspection Dashboard{% endblock %}
+{% block page_title %}Inspection Dashboard{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item active">Inspection Dashboard</li>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row">
+    <div class="col-lg-3 col-6">
+        <div class="ehs-stat-card">
+            <div class="ehs-stat-icon ehs-icon-inspection">
+                <i class="fas fa-folder"></i>
+            </div>
+            <div class="ehs-stat-content">
+                <div class="ehs-stat-title">Total Categories</div>
+                <div class="ehs-stat-value">{{ total_categories }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-6">
+        <div class="ehs-stat-card">
+            <div class="ehs-stat-icon ehs-icon-environmental">
+                <i class="fas fa-question-circle"></i>
+            </div>
+            <div class="ehs-stat-content">
+                <div class="ehs-stat-title">Total Questions</div>
+                <div class="ehs-stat-value">{{ total_questions }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-6">
+        <div class="ehs-stat-card">
+            <div class="ehs-stat-icon ehs-icon-hazard">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="ehs-stat-content">
+                <div class="ehs-stat-title">Active Templates</div>
+                <div class="ehs-stat-value">{{ total_templates }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-6">
+        <div class="ehs-stat-card">
+            <div class="ehs-stat-icon ehs-icon-incident">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="ehs-stat-content">
+                <div class="ehs-stat-title">Total Schedules</div>
+                <div class="ehs-stat-value">{{ total_schedules }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if user.is_hod %}
+<!-- HOD Specific Stats -->
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="ehs-card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-clock"></i> My Pending Inspections</h3>
+            </div>
+            <div class="card-body">
+                <h2 class="text-warning">{{ my_pending_inspections|default:0 }}</h2>
+                <a href="{% url 'inspections:my_inspections' %}?status=SCHEDULED" class="btn btn-primary btn-sm">
+                    <i class="fas fa-eye"></i> View Details
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="ehs-card">
+            <div class="card-header bg-danger">
+                <h3 class="card-title text-white"><i class="fas fa-exclamation-triangle"></i> Overdue Inspections</h3>
+            </div>
+            <div class="card-body">
+                <h2 class="text-danger">{{ my_overdue_inspections|default:0 }}</h2>
+                <a href="{% url 'inspections:my_inspections' %}?status=OVERDUE" class="btn btn-danger btn-sm">
+                    <i class="fas fa-eye"></i> View Details
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if user.is_safety_manager or user.is_superuser %}
+<!-- Safety Manager Stats -->
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="ehs-card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-tasks"></i> Pending Schedules</h3>
+            </div>
+            <div class="card-body">
+                <h2 class="text-primary">{{ pending_schedules|default:0 }}</h2>
+                <a href="{% url 'inspections:schedule_list' %}?status=SCHEDULED" class="btn btn-primary btn-sm">
+                    <i class="fas fa-list"></i> View All
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="ehs-card">
+            <div class="card-header bg-danger">
+                <h3 class="card-title text-white"><i class="fas fa-exclamation-circle"></i> Overdue Schedules</h3>
+            </div>
+            <div class="card-body">
+                <h2 class="text-danger">{{ overdue_schedules|default:0 }}</h2>
+                <a href="{% url 'inspections:schedule_list' %}?status=OVERDUE" class="btn btn-danger btn-sm">
+                    <i class="fas fa-list"></i> View All
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="ehs-card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-bolt"></i> Quick Actions</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'inspections:category_create' %}" class="btn btn-primary btn-block">
+                            <i class="fas fa-plus"></i> Add Category
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'inspections:question_create' %}" class="btn btn-success btn-block">
+                            <i class="fas fa-plus"></i> Add Question
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'inspections:template_create' %}" class="btn btn-warning btn-block">
+                            <i class="fas fa-plus"></i> Create Template
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'inspections:schedule_create' %}" class="btn btn-info btn-block">
+                            <i class="fas fa-calendar-plus"></i> Schedule Inspection
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activities -->
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="ehs-card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-folder"></i> Recent Categories</h3>
+            </div>
+            <div class="card-body">
+                {% if recent_categories %}
+                <ul class="list-group list-group-flush">
+                    {% for category in recent_categories %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            <span class="category-badge">{{ category.category_code }}</span>
+                            {{ category.category_name }}
+                        </span>
+                        <a href="{% url 'inspections:question_list' %}?category={{ category.id }}" 
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted text-center">No categories yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="ehs-card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-calendar"></i> Recent Schedules</h3>
+            </div>
+            <div class="card-body">
+                {% if recent_schedules %}
+                <ul class="list-group list-group-flush">
+                    {% for schedule in recent_schedules %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ schedule.schedule_code }}</strong><br>
+                                <small class="text-muted">{{ schedule.template.template_name }}</small>
+                            </div>
+                            <span class="badge 
+                                {% if schedule.status == 'SCHEDULED' %}badge-primary
+                                {% elif schedule.status == 'IN_PROGRESS' %}badge-warning
+                                {% elif schedule.status == 'COMPLETED' %}badge-success
+                                {% elif schedule.status == 'OVERDUE' %}badge-danger
+                                {% else %}badge-secondary{% endif %}">
+                                {{ schedule.get_status_display }}
+                            </span>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted text-center">No schedules yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
