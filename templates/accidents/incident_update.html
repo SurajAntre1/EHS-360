@@ -110,6 +110,7 @@
       
       <form method="POST" id="incidentForm" enctype="multipart/form-data">
         {% csrf_token %}
+        {{ incident.affected_body_parts|default:"[]"|json_script:"initial-body-parts-data" }}
         <input type="hidden" name="affected_body_parts_json" id="affectedBodyPartsJson">
         <input type="hidden" name="unsafe_acts_json" id="unsafeActsJson">
         <input type="hidden" name="unsafe_conditions_json" id="unsafeConditionsJson">
@@ -128,16 +129,28 @@
           <div class="row">
             <div class="col-md-4 mb-3">
               <label for="id_incident_type">Type of Incident <span class="text-danger">*</span></label>
-              {{ form.incident_type }} {{ form.status.as_hidden }}
+              
+              {# ✅ START: REPLACEMENT CODE #}
+              <select name="incident_type" id="id_incident_type" class="form-control" required>
+                  <option value="">---------</option>
+                  {% for type in active_incident_types %}
+                      <option value="{{ type.id }}" data-code="{{ type.code }}" {% if incident.incident_type.id == type.id %}selected{% endif %}>
+                          {{ type.name }} ({{ type.code }})
+                      </option>
+                  {% endfor %}
+              </select>
+              {{ form.status.as_hidden }}
+              {# ✅ END: REPLACEMENT CODE #}
+
               {% if form.incident_type.errors %}
                 <div class="text-danger">{{ form.incident_type.errors }}</div>
               {% endif %}
-              {% if form.incident_type.field.queryset.count == 0 %}
-                      <div class="alert alert-warning mt-2">
-                          <i class="fas fa-exclamation-triangle mr-2"></i>
-                          No active incident types found. Please contact administrator to add incident types.
-                      </div>
-                  {% endif %}
+              {% if not active_incident_types %}
+                <div class="alert alert-warning mt-2">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    No active incident types found. Please contact administrator to add incident types.
+                </div>
+              {% endif %}
             </div>
             <div class="col-md-4 mb-3">
               <label for="{{ form.incident_date.id_for_label }}">Date of Incident <span class="text-danger">*</span></label>
@@ -686,8 +699,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Initialize selected body parts from existing data
-    window.selectedBodyParts = new Set({{ incident.affected_body_parts|default:"[]"|safe }});
-    
+    const initialBodyPartsJSON = document.getElementById('initial-body-parts-data').textContent;
+    const initialBodyPartsArray = JSON.parse(initialBodyPartsJSON);
+    window.selectedBodyParts = new Set(initialBodyPartsArray);
     // Initialize unsafe acts and conditions from existing data
     const existingUnsafeActs = {{ incident.unsafe_acts|default:"[]"|safe }};
     const existingUnsafeConditions = {{ incident.unsafe_conditions|default:"[]"|safe }};
@@ -820,17 +834,80 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Show/hide body parts based on incident type
-    incidentTypeSelect.addEventListener('change', function() {
-        const selectedType = this.value;
+    // incidentTypeSelect.addEventListener('change', function() {
+    //     const selectedType = this.value;
         
-        if (selectedType === 'LTI' || selectedType === 'MTC' || selectedType === 'FA' || selectedType === 'HLFI' || selectedType === 'FATALITY') {
+    //     if (selectedType === 'LTI' || selectedType === 'MTC' || selectedType === 'FA' || selectedType === 'HLFI' || selectedType === 'FATALITY') {
+    //         bodyPartsSection.style.display = 'block';
+    //         natureOfInjuryField.setAttribute('required', 'required');
+    //     } else {
+    //         bodyPartsSection.style.display = 'none';
+    //         natureOfInjuryField.removeAttribute('required');
+    //     }
+    // });
+    
+    // function toggleBodyPartsSection() {
+    //     if (!incidentTypeSelect.value) {
+    //         bodyPartsSection.style.display = 'none';
+    //         natureOfInjuryField.removeAttribute('required');
+    //         return;
+    //     }
+
+    //     // Get the code from the selected option's data attribute
+    //     const selectedOption = incidentTypeSelect.options[incidentTypeSelect.selectedIndex];
+    //     const selectedCode = selectedOption.getAttribute('data-code');
+
+    //     // Define which codes are injury-related
+    //     const injuryTypes = ['LTI', 'MTC', 'FA', 'HLFI', 'FATALITY'];
+    //     const isInjuryType = injuryTypes.includes(selectedCode);
+
+    //     if (isInjuryType) {
+    //         bodyPartsSection.style.display = 'block';
+    //         natureOfInjuryField.setAttribute('required', 'required');
+    //     } else {
+    //         bodyPartsSection.style.display = 'none';
+    //         natureOfInjuryField.removeAttribute('required');
+    //     }
+    // }
+
+    // // Add an event listener for when the user changes the selection
+    // incidentTypeSelect.addEventListener('change', toggleBodyPartsSection);
+
+    // // IMPORTANT: Trigger the function once on page load to set the initial state
+    // toggleBodyPartsSection();
+    
+
+    function toggleBodyPartsSection() {
+        if (!incidentTypeSelect.value) {
+            bodyPartsSection.style.display = 'none';
+            natureOfInjuryField.removeAttribute('required');
+            return;
+        }
+
+        // Get the code from the selected option's data attribute
+        const selectedOption = incidentTypeSelect.options[incidentTypeSelect.selectedIndex];
+        const selectedCode = selectedOption.getAttribute('data-code');
+
+        // Define which codes are injury-related
+        const injuryTypes = ['LTI', 'MTC', 'FA', 'HLFI', 'FATALITY'];
+        const isInjuryType = injuryTypes.includes(selectedCode);
+
+        if (isInjuryType) {
             bodyPartsSection.style.display = 'block';
             natureOfInjuryField.setAttribute('required', 'required');
         } else {
             bodyPartsSection.style.display = 'none';
             natureOfInjuryField.removeAttribute('required');
         }
-    });
+    }
+
+    // Add an event listener for when the user changes the selection
+    incidentTypeSelect.addEventListener('change', toggleBodyPartsSection);
+
+    // IMPORTANT: Trigger the function once on page load to set the initial state
+    toggleBodyPartsSection();
+    // ✅ END: REPLACEMENT JAVASCRIPT
+
     
     // Unsafe Acts - Show/hide "Other" explanation box
     const unsafeActOtherCheckbox = document.getElementById('ua13');
