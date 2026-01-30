@@ -142,9 +142,7 @@ class IncidentInvestigationReportAdmin(admin.ModelAdmin):
         #         'long_term_recommendations'
         #     )
         # }),
-        ('Action Plan', {
-            'fields': ('action_items', 'target_completion_date')
-        }),
+        # ✅ FIX: Removed fields that no longer exist on the model
         ('Sign-off', {
             'fields': (
                 'completed_by', 'completed_date',
