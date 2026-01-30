@@ -1,0 +1,217 @@
+<!-- templates/inspections/question_form.html -->
+
+{% extends 'base/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:question_list' %}">Questions</a></li>
+<li class="breadcrumb-item active">{{ action }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <div class="ehs-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-question-circle"></i> {{ title }}
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.category.id_for_label }}">
+                                    Category <span class="text-danger">*</span>
+                                </label>
+                                {{ form.category }}
+                                {% if form.category.errors %}
+                                <div class="text-danger small">{{ form.category.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.question_type.id_for_label }}">
+                                    Question Type <span class="text-danger">*</span>
+                                </label>
+                                {{ form.question_type }}
+                                {% if form.question_type.errors %}
+                                <div class="text-danger small">{{ form.question_type.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.question_text.id_for_label }}">
+                            Question Text <span class="text-danger">*</span>
+                        </label>
+                        {{ form.question_text }}
+                        {% if form.question_text.errors %}
+                        <div class="text-danger small">{{ form.question_text.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            Enter the inspection question that will be asked during inspections
+                        </small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="{{ form.weightage.id_for_label }}">
+                                    Weightage
+                                </label>
+                                {{ form.weightage }}
+                                <small class="form-text text-muted">Weight for compliance scoring (0-100)</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="{{ form.display_order.id_for_label }}">
+                                    Display Order
+                                </label>
+                                {{ form.display_order }}
+                                <small class="form-text text-muted">Order within category</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="{{ form.reference_standard.id_for_label }}">
+                                    Reference Standard
+                                </label>
+                                {{ form.reference_standard }}
+                                <small class="form-text text-muted">e.g., OSHA 1910.157</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.guidance_notes.id_for_label }}">
+                            Guidance Notes
+                        </label>
+                        {{ form.guidance_notes }}
+                        <small class="form-text text-muted">
+                            Additional guidance for inspectors on how to answer this question
+                        </small>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-cogs"></i> Configuration Flags
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <div class="icheck-primary">
+                                            {{ form.is_remarks_mandatory }}
+                                            <label for="{{ form.is_remarks_mandatory.id_for_label }}">
+                                                <i class="fas fa-comment text-info"></i> Remarks Mandatory
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted">Require remarks for this question</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <div class="icheck-primary">
+                                            {{ form.is_photo_required }}
+                                            <label for="{{ form.is_photo_required.id_for_label }}">
+                                                <i class="fas fa-camera text-warning"></i> Photo Required
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted">Require photo evidence</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <div class="icheck-primary">
+                                            {{ form.is_critical }}
+                                            <label for="{{ form.is_critical.id_for_label }}">
+                                                <i class="fas fa-exclamation-triangle text-danger"></i> Critical Question
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted">Mark as high-priority</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <div class="icheck-primary">
+                                            {{ form.auto_generate_finding }}
+                                            <label for="{{ form.auto_generate_finding.id_for_label }}">
+                                                <i class="fas fa-bolt text-primary"></i> Auto-Generate Finding
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted">Create finding if "No"</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="icheck-primary">
+                            {{ form.is_active }}
+                            <label for="{{ form.is_active.id_for_label }}">
+                                <strong>Active</strong>
+                            </label>
+                        </div>
+                        <small class="form-text text-muted">
+                            Only active questions can be used in templates
+                        </small>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'inspections:question_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <div>
+                            <button type="submit" name="save_and_add" class="btn btn-info">
+                                <i class="fas fa-plus"></i> Save & Add Another
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> {{ action }} Question
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Auto-resize textarea
+    $('textarea').each(function() {
+        this.setAttribute('style', 'height:' + (this.scrollHeight) + 'px;overflow-y:hidden;');
+    }).on('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+    
+    // Show tooltip for flags
+    $('[data-toggle="tooltip"]').tooltip();
+});
+</script>
+{% endblock %}

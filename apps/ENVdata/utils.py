@@ -49,7 +49,7 @@ class EnvironmentalDataFetcher:
         
         if question.source_type == 'INCIDENT':
             from apps.accidents.models import Incident
-            
+
             queryset = Incident.objects.filter(
                 plant=plant,
                 incident_date__month=month,

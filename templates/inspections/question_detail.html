@@ -1,0 +1,149 @@
+<!-- templates/inspections/question_detail.html -->
+
+{% extends 'base/base.html' %}
+
+{% block title %}Question Details{% endblock %}
+{% block page_title %}Question Details{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:question_list' %}">Questions</a></li>
+<li class="breadcrumb-item active">{{ question.question_code }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <!-- Action Buttons -->
+        <div class="mb-3">
+            <a href="{% url 'inspections:question_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+            <a href="{% url 'inspections:question_edit' question.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <a href="{% url 'inspections:question_delete' question.pk %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Delete
+            </a>
+        </div>
+
+        <!-- Question Details Card -->
+        <div class="ehs-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-question-circle"></i> {{ question.question_code }}
+                </h3>
+                <div class="card-tools">
+                    {% if question.is_active %}
+                    <span class="badge badge-success">Active</span>
+                    {% else %}
+                    <span class="badge badge-secondary">Inactive</span>
+                    {% endif %}
+                    {% if question.is_critical %}
+                    <span class="badge badge-danger ml-2">Critical</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <tbody>
+                        <tr>
+                            <th width="200">Category</th>
+                            <td>
+                                <span class="badge" style="background: linear-gradient(135deg, var(--primary-blue), var(--primary-green)); color: white; padding: 0.5em 1em;">
+                                    {{ question.category.category_code }}
+                                </span>
+                                {{ question.category.category_name }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Question Text</th>
+                            <td><strong>{{ question.question_text }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Question Type</th>
+                            <td>{{ question.get_question_type_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>Configuration</th>
+                            <td>
+                                {% if question.is_remarks_mandatory %}
+                                <span class="badge badge-info">
+                                    <i class="fas fa-comment"></i> Remarks Mandatory
+                                </span>
+                                {% endif %}
+                                {% if question.is_photo_required %}
+                                <span class="badge badge-warning">
+                                    <i class="fas fa-camera"></i> Photo Required
+                                </span>
+                                {% endif %}
+                                {% if question.auto_generate_finding %}
+                                <span class="badge badge-danger">
+                                    <i class="fas fa-exclamation-triangle"></i> Auto-Generate Finding
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Weightage</th>
+                            <td>{{ question.weightage }}</td>
+                        </tr>
+                        <tr>
+                            <th>Display Order</th>
+                            <td>{{ question.display_order }}</td>
+                        </tr>
+                        {% if question.reference_standard %}
+                        <tr>
+                            <th>Reference Standard</th>
+                            <td>{{ question.reference_standard }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if question.guidance_notes %}
+                        <tr>
+                            <th>Guidance Notes</th>
+                            <td>{{ question.guidance_notes }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th>Created By</th>
+                            <td>{{ question.created_by.get_full_name }} on {{ question.created_at|date:"d M Y H:i" }}</td>
+                        </tr>
+                        {% if question.updated_by %}
+                        <tr>
+                            <th>Last Updated</th>
+                            <td>{{ question.updated_by.get_full_name }} on {{ question.updated_at|date:"d M Y H:i" }}</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Templates Using This Question -->
+        {% if templates %}
+        <div class="ehs-card mt-3">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-clipboard-list"></i> Used in Templates ({{ templates.count }})
+                </h3>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for template in templates %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            <strong>{{ template.template_code }}</strong> - {{ template.template_name }}
+                        </span>
+                        <a href="{% url 'inspections:template_detail' template.pk %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

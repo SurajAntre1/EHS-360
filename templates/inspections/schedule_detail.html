@@ -1,0 +1,222 @@
+<!-- templates/inspections/schedule_detail.html -->
+
+{% extends 'base/base.html' %}
+
+{% block title %}Schedule Details{% endblock %}
+{% block page_title %}Schedule: {{ schedule.schedule_code }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:schedule_list' %}">Schedules</a></li>
+<li class="breadcrumb-item active">{{ schedule.schedule_code }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <!-- Action Buttons -->
+        <div class="mb-3">
+            <a href="{% url 'inspections:schedule_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+            
+            {% if can_edit %}
+            <a href="{% url 'inspections:schedule_edit' schedule.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            {% endif %}
+            
+            {% if can_cancel %}
+            <a href="{% url 'inspections:schedule_cancel' schedule.pk %}" class="btn btn-danger">
+                <i class="fas fa-ban"></i> Cancel Schedule
+            </a>
+            {% endif %}
+            
+            {% if schedule.status not in 'COMPLETED,CANCELLED' %}
+            <a href="{% url 'inspections:schedule_send_reminder' schedule.pk %}" class="btn btn-info">
+                <i class="fas fa-bell"></i> Send Reminder
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="row">
+            <!-- Schedule Details -->
+            <div class="col-md-8">
+                <div class="ehs-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-info-circle"></i> Schedule Details
+                        </h3>
+                        <div class="card-tools">
+                            <span class="badge 
+                                {% if schedule.status == 'SCHEDULED' %}badge-primary
+                                {% elif schedule.status == 'IN_PROGRESS' %}badge-warning
+                                {% elif schedule.status == 'COMPLETED' %}badge-success
+                                {% elif schedule.status == 'OVERDUE' %}badge-danger
+                                {% else %}badge-secondary{% endif %}">
+                                {{ schedule.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th width="200">Schedule Code</th>
+                                    <td><strong>{{ schedule.schedule_code }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Template</th>
+                                    <td>
+                                        <a href="{% url 'inspections:template_detail' schedule.template.pk %}">
+                                            {{ schedule.template.template_name }}
+                                        </a>
+                                        <span class="badge badge-info ml-2">
+                                            {{ schedule.template.get_total_questions }} questions
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Assigned To</th>
+                                    <td>
+                                        {{ schedule.assigned_to.get_full_name }}
+                                        <small class="text-muted">({{ schedule.assigned_to.employee_id }})</small>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Assigned By</th>
+                                    <td>{{ schedule.assigned_by.get_full_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Plant</th>
+                                    <td>{{ schedule.plant.name }}</td>
+                                </tr>
+                                {% if schedule.zone %}
+                                <tr>
+                                    <th>Zone</th>
+                                    <td>{{ schedule.zone.name }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if schedule.location %}
+                                <tr>
+                                    <th>Location</th>
+                                    <td>{{ schedule.location.name }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if schedule.sublocation %}
+                                <tr>
+                                    <th>Sub-Location</th>
+                                    <td>{{ schedule.sublocation.name }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if schedule.department %}
+                                <tr>
+                                    <th>Department</th>
+                                    <td>{{ schedule.department.name }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <th>Scheduled Date</th>
+                                    <td>{{ schedule.scheduled_date|date:"d M Y" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Due Date</th>
+                                    <td>
+                                        {{ schedule.due_date|date:"d M Y" }}
+                                        {% if schedule.is_overdue %}
+                                        <span class="badge badge-danger ml-2">Overdue</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if schedule.assignment_notes %}
+                                <tr>
+                                    <th>Assignment Notes</th>
+                                    <td>{{ schedule.assignment_notes }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <th>Created</th>
+                                    <td>{{ schedule.created_at|date:"d M Y H:i" }}</td>
+                                </tr>
+                                {% if schedule.started_at %}
+                                <tr>
+                                    <th>Started At</th>
+                                    <td>{{ schedule.started_at|date:"d M Y H:i" }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if schedule.completed_at %}
+                                <tr>
+                                    <th>Completed At</th>
+                                    <td>{{ schedule.completed_at|date:"d M Y H:i" }}</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Timeline -->
+            <div class="col-md-4">
+                <div class="ehs-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-history"></i> Timeline
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="timeline">
+                            <li>
+                                <i class="fas fa-plus bg-primary"></i>
+                                <div class="timeline-item">
+                                    <h3 class="timeline-header">Schedule Created</h3>
+                                    <div class="timeline-body">
+                                        {{ schedule.created_at|date:"d M Y H:i" }}
+                                    </div>
+                                </div>
+                            </li>
+                            
+                            {% if schedule.reminder_sent %}
+                            <li>
+                                <i class="fas fa-bell bg-info"></i>
+                                <div class="timeline-item">
+                                    <h3 class="timeline-header">Reminder Sent</h3>
+                                    <div class="timeline-body">
+                                        {{ schedule.reminder_sent_at|date:"d M Y H:i" }}
+                                    </div>
+                                </div>
+                            </li>
+                            {% endif %}
+                            
+                            {% if schedule.started_at %}
+                            <li>
+                                <i class="fas fa-play bg-warning"></i>
+                                <div class="timeline-item">
+                                    <h3 class="timeline-header">Inspection Started</h3>
+                                    <div class="timeline-body">
+                                        {{ schedule.started_at|date:"d M Y H:i" }}
+                                    </div>
+                                </div>
+                            </li>
+                            {% endif %}
+                            
+                            {% if schedule.completed_at %}
+                            <li>
+                                <i class="fas fa-check bg-success"></i>
+                                <div class="timeline-item">
+                                    <h3 class="timeline-header">Inspection Completed</h3>
+                                    <div class="timeline-body">
+                                        {{ schedule.completed_at|date:"d M Y H:i" }}
+                                    </div>
+                                </div>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
