@@ -377,11 +377,11 @@ EHS Management System
         """
         Build context for Incident Investigation Report notifications
         """
+        incident = incidentinvestigationreport.incident
         incident_type = (
             incident.incident_type.name
             if incident.incident_type else 'NA'
         )
-        incident = incidentinvestigationreport.incident
         return {
             'title': f"Incident Investigation Completed | {incident.report_number}",
             'subject': f"📝 Investigation Report Submitted - {incident.report_number}",
@@ -473,11 +473,11 @@ EHS Management System
         """
         Build context for Incident Action notifications
         """
+        incident = incidnetactionitem.incident  
         incident_type = (
             incident.incident_type.name
             if incident.incident_type else 'NA'
         )
-        incident = incidnetactionitem.incident
         return {
             'title' : f"Incident Action Assigned | {incident.report_number}",
             'subject': f"✅ Incident Action Assigned - {incident.report_number}",
@@ -506,8 +506,6 @@ INCIDENT DESCRIPTION
 ACTION DESCRIPTION
 --------------------------------------------------
 {incidnetactionitem.description[:300]}{'...' if len(incidnetactionitem.description) > 300 else ''}
-
-Please review the investigation findings and proceed with action item assignment if required.
 
 Regards,
 EHS Management System

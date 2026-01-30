@@ -212,7 +212,7 @@ def generate_incident_pdf(incident):
 
     # ========================================================
     # Unsafe Acts & Conditions
-    # ========================================================
+    # ===========================================================
     selected_acts = incident.unsafe_acts or []
     selected_conditions = incident.unsafe_conditions or []
 

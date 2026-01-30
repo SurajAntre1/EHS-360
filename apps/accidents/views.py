@@ -499,8 +499,7 @@ class IncidentUpdateView(LoginRequiredMixin, UpdateView):
     
     def get_context_data(self, **kwargs):
         """
-        Adds the user's location assignments to the template context.
-        This allows the template to conditionally render fields as readonly or dropdowns.
+        Adds the user's location assignments and JSON data to the template context.
         """
         context = super().get_context_data(**kwargs)
         user = self.request.user
@@ -530,7 +529,18 @@ class IncidentUpdateView(LoginRequiredMixin, UpdateView):
         
         # Add departments for the affected person dropdown
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
+        
+        context['active_incident_types'] = IncidentType.objects.filter(is_active=True)
+
+        # ✅ START: ADDED CODE
+        # Add JSON-stringified data for safe JS initialization in the template
+        context['affected_body_parts_json'] = json.dumps(
+            self.object.affected_body_parts or []
+        )
+        # ✅ END: ADDED CODE
+        
         return context
+    
         
     #Incident Update Form
     def get_form(self, form_class=None):

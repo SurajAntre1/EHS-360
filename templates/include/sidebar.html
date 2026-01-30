@@ -262,13 +262,6 @@
           </a>
 
           <ul class="nav nav-treeview">
-            <li class="nav-item">
-              <a href="{% url 'accounts:user_list' %}"
-                 class="nav-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i>
-                <p>All Users</p>
-              </a>
-            </li>
 
             <li class="nav-item">
               <a href="{% url 'accounts:user_create' %}"
@@ -278,6 +271,15 @@
               </a>
             </li>
 
+            <li class="nav-item">
+              <a href="{% url 'accounts:user_list' %}"
+                 class="nav-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>All Users</p>
+              </a>
+            </li>
+
+            
             <li class="nav-item">
               <a href="{% url 'accounts:role-list' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'role_list' %}active{% endif %}">
@@ -323,6 +325,15 @@
               </a>
             </li>
             {% endif %}
+
+            <li class="nav-item">
+              <a href="{% url 'accidents:incident_create' %}"
+                 class="nav-link {% if request.resolver_match.url_name == 'incident_create' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Report Incident</p>
+              </a>
+            </li>
+
             <li class="nav-item">
               <a href="{% url 'accidents:incident_list' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'incident_list' %}active{% endif %}">
@@ -331,13 +342,7 @@
               </a>
             </li>
             
-            <li class="nav-item">
-              <a href="{% url 'accidents:incident_create' %}"
-                 class="nav-link {% if request.resolver_match.url_name == 'incident_create' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Report Incident</p>
-              </a>
-            </li>
+            
           </ul>
         </li>
 
@@ -357,6 +362,15 @@
               </a>
             </li>
             {% endif %}
+
+             <li class="nav-item">
+              <a href="{% url 'hazards:hazard_create' %}"
+                 class="nav-link {% if request.resolver_match.url_name == 'hazard_create' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Report Hazard</p>
+              </a>
+            </li>
+
             <li class="nav-item">
               <a href="{% url 'hazards:hazard_list' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'hazard_list' %}active{% endif %}">
@@ -365,13 +379,6 @@
               </a>
             </li>
             
-            <li class="nav-item">
-              <a href="{% url 'hazards:hazard_create' %}"
-                 class="nav-link {% if request.resolver_match.url_name == 'hazard_create' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Report Hazard</p>
-              </a>
-            </li>
           </ul>
         </li>
 
