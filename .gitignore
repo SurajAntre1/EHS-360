@@ -79,5 +79,5 @@ venv/
 **/migrations/
 !**/migrations/__init__.py
 ##
-
+#####add 
 ehs360_project/settings.py
