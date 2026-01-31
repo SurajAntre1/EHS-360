@@ -1,0 +1,211 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Notification Tracking{% endblock %}
+{% block page_title %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="#">Notification Tracking</a></li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .role-section {
+        margin-bottom: 30px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .role-header {
+        background: linear-gradient(135deg, #1f2937 0%, #4b5563 100%);
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .role-header h4 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+    .module-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-right: 5px;
+    }
+    .badge-incident { background: #dc3545; color: white; }
+    .badge-hazard { background: #fd7e14; color: white; }
+    .badge-environmental { background: #28a745; color: white; }
+    .badge-inspection { background: #17a2b8; color: white; }
+
+    .config-table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        padding: 12px;
+    }
+    .config-table td {
+        padding: 12px;
+        vertical-align: middle;
+    }
+    .summary-card {
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-chart-line"></i> Notification Tracking</h2>
+            <p class="text-muted">
+                {% if selected_role %}
+                    Showing notifications for role: <strong>{{ selected_role }}</strong>
+                {% else %}
+                    Track how many notifications were sent per role & event
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card summary-card bg-primary text-white">
+                <div class="card-body">
+                    <h6>Total Notifications Sent</h6>
+                    <h2>{{ total_sent }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card bg-success text-white">
+                <div class="card-body">
+                    <h6>Emails Sent</h6>
+                    <h2>{{ email_sent_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card bg-danger text-white">
+                <div class="card-body">
+                    <h6>Failed Notifications</h6>
+                    <h2>{{ failed_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card bg-info text-white">
+                <div class="card-body">
+                    <h6>Active Roles</h6>
+                    <h2>{{ tracking_by_role|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <form method="get">
+                <label class="font-weight-bold">Filter by Role</label>
+                <select name="role" class="form-control" onchange="this.form.submit()">
+                    <option value="">All Roles</option>
+                    {% for role in roles %}
+                        <option value="{{ role.name }}"
+                            {% if role.name == selected_role %}selected{% endif %}>
+                            {{ role.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </div>
+
+    {% for role, records in tracking_by_role.items %}
+    <div class="role-section">
+
+        <div class="role-header">
+            <div>
+                <h4><i class="fas fa-user"></i> {{ role }}</h4>
+                <small>{{ records|length }} notification event(s)</small>
+            </div>
+        </div>
+
+        <table class="table table-hover config-table mb-0">
+            <thead>
+                <tr>
+                    <th width="15%">Module</th>
+                    <th width="30%">Notification Event</th>
+                    <th width="10%">Sent</th>
+                    <th width="10%">Success</th>
+                    <th width="10%">Failed</th>
+                    <th width="15%">Last Sent At</th>
+                    <th width="10%">Channel</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in records %}
+                <tr>
+                    <td>
+                        {% if row.module == 'INCIDENT' %}
+                            <span class="module-badge badge-incident">Incident</span>
+                        {% elif row.module == 'HAZARD' %}
+                            <span class="module-badge badge-hazard">Hazard</span>
+                        {% elif row.module == 'ENVIRONMENTAL' %}
+                            <span class="module-badge badge-environmental">Environmental</span>
+                        {% elif row.module == 'INSPECTION' %}
+                            <span class="module-badge badge-inspection">Inspection</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <strong>{{ row.event_name }}</strong><br>
+                        <small class="text-muted">{{ row.event_code }}</small>
+                    </td>
+
+                    <td><span class="badge badge-primary">{{ row.total_sent }}</span></td>
+                    <td><span class="badge badge-success">{{ row.success_count }}</span></td>
+                    <td><span class="badge badge-danger">{{ row.failed_count }}</span></td>
+
+                    <td>
+                        {% if row.last_sent_at %}
+                            {{ row.last_sent_at|date:"d M Y H:i" }}
+                        {% else %}
+                            <span class="text-muted">Never</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if row.email %}
+                            <span class="badge badge-succes">
+                                <i class="fas fa-envelop"></i> Email
+                            </span>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted">
+                        No notifications found for this role.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+    {% empty %}
+    <div class="alert alert-info">
+        No notification tracking data available.
+    </div>
+    {% endfor %}
+
+</div>
+{% endblock %}

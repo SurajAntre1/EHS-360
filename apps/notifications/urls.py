@@ -10,6 +10,7 @@ urlpatterns = [
     path('master/<int:pk>/edit/', views.notification_master_edit, name='notification_master_edit'),
     path('master/<int:pk>/delete/', views.notification_master_delete, name='notification_master_delete'),
     path('master/<int:pk>/toggle/', views.notification_master_toggle, name='notification_master_toggle'),
+    path('master/tracking', views.notification_tracking_view, name='notification_tracking_view'),
     
     # AJAX endpoints
     path('get-events/', views.get_notification_events, name='get_notification_events'),
