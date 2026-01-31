@@ -2,7 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import NotificationMaster
+from .models import NotificationMaster, Notification
+from apps.accounts.models import Role
+from django.db.models import Count, Max, Q
 from apps.accounts.models import Role
 
 
@@ -202,3 +204,82 @@ def get_notification_events(request):
             events.append({'code': event_code, 'name': event_name})
     
     return JsonResponse({'events': events})
+
+@login_required
+def notification_tracking_view(request):
+    user = request.user
+
+    notifications = Notification.objects.select_related(
+        'recipient',
+        'recipient__role'
+    )
+
+    roles = Role.objects.all()
+
+    # 🔐 Non-admin users → restrict to their role
+    if not user.is_superuser and user.role and user.role.name != "ADMIN":
+        roles = roles.filter(name=user.role.name)
+        notifications = notifications.filter(
+            recipient__role__name=user.role.name
+        )
+
+    tracking_by_role = {}
+
+    for role in roles:
+        role_notifications = notifications.filter(recipient__role=role)
+
+        records = []
+        masters = NotificationMaster.objects.filter(role=role)
+
+        for master in masters:
+            event_notifications = role_notifications.filter(
+                notification_type=master.notification_event
+            )
+
+            last_notification = event_notifications.order_by('-created_at').first()
+
+            records.append({
+                'module': master.module,
+                'event_name': master.get_notification_event_display(),
+                'event_code': master.notification_event,
+                'total_sent': event_notifications.count(),
+                'success_count': event_notifications.filter(is_email_sent=True).count(),
+                'failed_count': event_notifications.filter(is_email_sent=False).count(),
+                'last_sent_at': last_notification.created_at if last_notification else None,
+                'email': master.email_enabled,
+            })
+
+        if records:
+            tracking_by_role[role.name] = records
+
+    # 📊 Summary
+    total_sent = sum(
+        r['total_sent']
+        for records in tracking_by_role.values()
+        for r in records
+    )
+
+    email_sent_count = sum(
+        r['success_count']
+        for records in tracking_by_role.values()
+        for r in records
+    )
+
+    failed_count = sum(
+        r['failed_count']
+        for records in tracking_by_role.values()
+        for r in records
+    )
+
+    context = {
+        'tracking_by_role': tracking_by_role,
+        'total_sent': total_sent,
+        'email_sent_count': email_sent_count,
+        'failed_count': failed_count,
+    }
+
+    return render(
+        request,
+        'notifications/notification_tracking.html',
+        context
+    )

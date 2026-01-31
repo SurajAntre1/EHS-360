@@ -315,7 +315,7 @@ class UserDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
-class UserDetailView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
+class UserDetailView(LoginRequiredMixin, TemplateView):
     """View user details - Only accessible by Admin"""
     template_name = 'accounts/user_detail.html'
     
@@ -579,4 +579,4 @@ class RoleCreateView(LoginRequiredMixin, TemplateView):
         role.permissions.set(permissions)
 
         messages.success(request, "Role created successfully")
-        return redirect('accounts:permissions_only')
+        return redirect('accounts:role-list')
