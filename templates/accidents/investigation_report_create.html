@@ -684,6 +684,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    const pfOtherCheckbox = document.getElementById('pf9');
+    const pfOtherInputDiv = document.getElementById('personalFactorOther');
+    const jfOtherCheckbox = document.getElementById('jf12');
+    const jfOtherInputDiv = document.getElementById('jobFactorOther');
+
+    if (pfOtherCheckbox && pfOtherInputDiv) {
+        pfOtherCheckbox.addEventListener('change', function() {
+            pfOtherInputDiv.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+
+    if (jfOtherCheckbox && jfOtherInputDiv) {
+        jfOtherCheckbox.addEventListener('change', function() {
+            jfOtherInputDiv.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+
+
 
 
     const today = new Date().toISOString().split('T')[0];

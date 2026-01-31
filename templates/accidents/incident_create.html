@@ -747,6 +747,32 @@ document.addEventListener('DOMContentLoaded', function() {
             natureOfInjuryField.removeAttribute('required');
         }
     });
+
+    // Unsafe Acts - Show/hide "Other" explanation box
+    const unsafeActOtherCheckbox = document.getElementById('ua13');
+    const unsafeActsOtherBox = document.getElementById('unsafeActsOtherBox');
+    
+    unsafeActOtherCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            unsafeActsOtherBox.classList.add('show');
+        } else {
+            unsafeActsOtherBox.classList.remove('show');
+            document.getElementById('unsafe_acts_other').value = '';
+        }
+    });
+    
+    // Unsafe Conditions - Show/hide "Other" explanation box
+    const unsafeConditionOtherCheckbox = document.getElementById('uc14');
+    const unsafeConditionsOtherBox = document.getElementById('unsafeConditionsOtherBox');
+    
+    unsafeConditionOtherCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            unsafeConditionsOtherBox.classList.add('show');
+        } else {
+            unsafeConditionsOtherBox.classList.remove('show');
+            document.getElementById('unsafe_conditions_other').value = '';
+        }
+    });
    
     // Form submission
     document.getElementById('incidentForm').addEventListener('submit', function(e) {
