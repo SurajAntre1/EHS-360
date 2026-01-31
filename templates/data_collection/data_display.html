@@ -4,6 +4,12 @@
 {% block title %}View Environmental Data{% endblock %}
 {% block page_title %}View Environmental Data{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'environmental:plant-entry' %}">Environmental Data Entry</a></li>
+<li class="breadcrumb-item active">View Enviromental Data</li>
+{% endblock %}
+
 {% block extra_css %}
 <style>
 :root {
