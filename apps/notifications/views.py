@@ -207,24 +207,28 @@ def get_notification_events(request):
 
 @login_required
 def notification_tracking_view(request):
-    selected_role = request.GET.get('role', '').strip()
+    user = request.user
 
-    roles = Role.objects.all().order_by('name')
+    notifications = Notification.objects.select_related(
+        'recipient',
+        'recipient__role'
+    )
 
-    notifications = Notification.objects.select_related('recipient', 'recipient__role')
+    roles = Role.objects.all()
+
+    # 🔐 Non-admin users → restrict to their role
+    if not user.is_superuser and user.role and user.role.name != "ADMIN":
+        roles = roles.filter(name=user.role.name)
+        notifications = notifications.filter(
+            recipient__role__name=user.role.name
+        )
 
     tracking_by_role = {}
 
-    if selected_role:
-        filtered_roles = roles.filter(name=selected_role)
-    else:
-        filtered_roles = roles
-
-    for role in filtered_roles:
+    for role in roles:
         role_notifications = notifications.filter(recipient__role=role)
 
         records = []
-
         masters = NotificationMaster.objects.filter(role=role)
 
         for master in masters:
@@ -248,31 +252,34 @@ def notification_tracking_view(request):
         if records:
             tracking_by_role[role.name] = records
 
+    # 📊 Summary
     total_sent = sum(
-        record['total_sent']
+        r['total_sent']
         for records in tracking_by_role.values()
-        for record in records
+        for r in records
     )
 
     email_sent_count = sum(
-        record['success_count']
+        r['success_count']
         for records in tracking_by_role.values()
-        for record in records
+        for r in records
     )
 
     failed_count = sum(
-        record['failed_count']
+        r['failed_count']
         for records in tracking_by_role.values()
-        for record in records
+        for r in records
     )
 
     context = {
-        'roles': roles,
-        'selected_role': selected_role,
         'tracking_by_role': tracking_by_role,
         'total_sent': total_sent,
         'email_sent_count': email_sent_count,
         'failed_count': failed_count,
     }
 
-    return render(request, 'notifications/notification_tracking.html', context)
+    return render(
+        request,
+        'notifications/notification_tracking.html',
+        context
+    )

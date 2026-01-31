@@ -579,4 +579,4 @@ class RoleCreateView(LoginRequiredMixin, TemplateView):
         role.permissions.set(permissions)
 
         messages.success(request, "Role created successfully")
-        return redirect('accounts:permissions_only')
+        return redirect('accounts:role-list')
