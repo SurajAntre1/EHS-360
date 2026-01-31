@@ -1021,7 +1021,7 @@ def send_inspection_assignment_email(schedule):
     }
     
     # HTML email
-    html_message = render_to_string('inspections/emails/inspection_assigned.html', context)
+    html_message = render_to_string('emails/inspection/inspection_assigned.html', context)
     
     # Plain text fallback
     plain_message = f"""
