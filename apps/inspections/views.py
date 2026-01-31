@@ -414,9 +414,13 @@ def template_edit(request, pk):
 
 from collections import defaultdict
 
+# apps/inspections/views.py
+
 @login_required
 def template_detail(request, pk):
     """View template details with all questions"""
+    from collections import defaultdict
+    
     template = get_object_or_404(InspectionTemplate, pk=pk)
     
     # Get all template questions with related data
@@ -438,10 +442,17 @@ def template_detail(request, pk):
         key=lambda x: x[0].display_order
     ))
     
-    # Get unique categories
-    categories = InspectionCategory.objects.filter(
-        questions__templatequestion__template=template
+    # Get unique categories - FIXED VERSION
+    # Extract category IDs from template questions
+    category_ids = template_questions.values_list(
+        'question__category_id', 
+        flat=True
     ).distinct()
+    
+    # Get categories by IDs
+    categories = InspectionCategory.objects.filter(
+        id__in=category_ids
+    ).order_by('display_order')
     
     # Count total questions
     total_questions = template_questions.count()
@@ -453,7 +464,6 @@ def template_detail(request, pk):
         'total_questions': total_questions,
     }
     return render(request, 'inspections/template_detail.html', context)
-
 
 @login_required
 def template_delete(request, pk):
@@ -522,37 +532,92 @@ def template_bulk_add_questions(request, pk):
     template = get_object_or_404(InspectionTemplate, pk=pk)
     
     if request.method == 'POST':
-        form = BulkAddQuestionsForm(request.POST, template=template)
-        if form.is_valid():
-            questions = form.cleaned_data['questions']
-            section_name = form.cleaned_data.get('section_name')
-            
-            added_count = 0
-            for question in questions:
-                # Check if already exists
-                if not TemplateQuestion.objects.filter(
+        # Get selected question IDs from form
+        question_ids = request.POST.getlist('questions')
+        section_name = request.POST.get('section_name', '').strip()
+        is_mandatory = request.POST.get('is_mandatory') == 'on'
+        
+        if not question_ids:
+            messages.error(request, 'Please select at least one question!')
+            return redirect('inspections:template_bulk_add_questions', pk=pk)
+        
+        # Get current max display order
+        max_order = TemplateQuestion.objects.filter(
+            template=template
+        ).aggregate(
+            max_order=models.Max('display_order')
+        )['max_order'] or 0
+        
+        # Add selected questions
+        added_count = 0
+        for question_id in question_ids:
+            try:
+                question = InspectionQuestion.objects.get(pk=question_id, is_active=True)
+                
+                # Check if question already exists in template
+                if TemplateQuestion.objects.filter(
                     template=template,
                     question=question
                 ).exists():
-                    TemplateQuestion.objects.create(
-                        template=template,
-                        question=question,
-                        section_name=section_name,
-                        display_order=template.template_questions.count() + 1
-                    )
-                    added_count += 1
-            
-            messages.success(request, f'{added_count} question(s) added to template successfully!')
-            return redirect('inspections:template_detail', pk=template.pk)
-    else:
-        form = BulkAddQuestionsForm(template=template)
+                    continue
+                
+                # Create new template question
+                max_order += 1
+                TemplateQuestion.objects.create(
+                    template=template,
+                    question=question,
+                    display_order=max_order,
+                    section_name=section_name if section_name else None,
+                    is_mandatory=is_mandatory
+                )
+                added_count += 1
+                
+            except InspectionQuestion.DoesNotExist:
+                continue
+        
+        if added_count > 0:
+            messages.success(
+                request,
+                f'{added_count} question(s) added to template successfully!'
+            )
+        else:
+            messages.warning(request, 'No new questions were added. They may already be in the template.')
+        
+        return redirect('inspections:template_detail', pk=template.pk)
+    
+    # GET request - show selection form
+    
+    # Get questions NOT already in this template
+    existing_question_ids = TemplateQuestion.objects.filter(
+        template=template
+    ).values_list('question_id', flat=True)
+    
+    # Get all active categories
+    categories = InspectionCategory.objects.filter(
+        is_active=True
+    ).order_by('display_order')
+    
+    # Filter by category if selected
+    selected_category = request.GET.get('category')
+    
+    available_questions = InspectionQuestion.objects.filter(
+        is_active=True
+    ).exclude(
+        id__in=existing_question_ids
+    ).select_related('category').order_by('category__display_order', 'display_order')
+    
+    if selected_category:
+        available_questions = available_questions.filter(category_id=selected_category)
     
     context = {
-        'form': form,
         'template': template,
+        'categories': categories,
+        'available_questions': available_questions,
+        'selected_category': selected_category,
         'title': f'Bulk Add Questions to {template.template_name}'
     }
     return render(request, 'inspections/template_bulk_add_questions.html', context)
+
 
 
 @login_required

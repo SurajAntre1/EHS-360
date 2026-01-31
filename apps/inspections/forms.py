@@ -186,30 +186,26 @@ class InspectionTemplateForm(forms.ModelForm):
         }
 
 class TemplateQuestionForm(forms.ModelForm):
-    """Form for adding questions to a template"""
+    """Form for adding single question to template"""
     
     class Meta:
         model = TemplateQuestion
-        fields = [
-            'question',
-            'is_mandatory',
-            'display_order',
-            'section_name'
-        ]
+        fields = ['question', 'display_order', 'section_name', 'is_mandatory']
         widgets = {
             'question': forms.Select(attrs={
-                'class': 'form-control select2'
-            }),
-            'is_mandatory': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
+                'class': 'form-control'
             }),
             'display_order': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'min': '0'
+                'min': '0',
+                'placeholder': 'Leave blank for auto-order'
             }),
             'section_name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Optional section name'
+                'placeholder': 'Optional: Section name'
+            }),
+            'is_mandatory': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
             })
         }
 

@@ -541,3 +541,129 @@ class InspectionSchedule(models.Model):
             self.status not in ['COMPLETED', 'CANCELLED'] and
             timezone.now().date() > self.due_date
         )
+    
+# apps/inspections/models.py (Add these NEW models)
+
+class InspectionSubmission(models.Model):
+    """Stores the completed inspection submission"""
+    
+    schedule = models.OneToOneField(
+        InspectionSchedule,
+        on_delete=models.CASCADE,
+        related_name='submission'
+    )
+    submitted_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='inspection_submissions'
+    )
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    compliance_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Percentage of questions answered 'Yes'"
+    )
+    remarks = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        db_table = 'inspection_submissions'
+    
+    def __str__(self):
+        return f"Submission for {self.schedule.schedule_code}"
+    
+    def calculate_compliance_score(self):
+        """Calculate compliance percentage"""
+        total_questions = self.responses.count()
+        if total_questions == 0:
+            return 0
+        
+        yes_answers = self.responses.filter(answer='Yes').count()
+        score = (yes_answers / total_questions) * 100
+        return round(score, 2)
+
+
+class InspectionResponse(models.Model):
+    """Individual question responses"""
+    
+    submission = models.ForeignKey(
+        InspectionSubmission,
+        on_delete=models.CASCADE,
+        related_name='responses'
+    )
+    question = models.ForeignKey(
+        InspectionQuestion,
+        on_delete=models.CASCADE
+    )
+    answer = models.CharField(max_length=500)  # Yes, No, or text answer
+    remarks = models.TextField(blank=True, null=True)
+    photo = models.ImageField(
+        upload_to='inspection_photos/',
+        blank=True,
+        null=True
+    )
+    answered_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'inspection_responses'
+        unique_together = ['submission', 'question']
+    
+    def __str__(self):
+        return f"{self.question.question_code}: {self.answer}"
+
+
+class InspectionFinding(models.Model):
+    """Issues found during inspection (auto-generated from 'No' answers)"""
+    
+    STATUS_CHOICES = [
+        ('OPEN', 'Open'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('RESOLVED', 'Resolved'),
+        ('CLOSED', 'Closed'),
+    ]
+    
+    PRIORITY_CHOICES = [
+        ('HIGH', 'High'),
+        ('MEDIUM', 'Medium'),
+        ('LOW', 'Low'),
+    ]
+    
+    submission = models.ForeignKey(
+        InspectionSubmission,
+        on_delete=models.CASCADE,
+        related_name='findings'
+    )
+    question = models.ForeignKey(
+        InspectionQuestion,
+        on_delete=models.CASCADE
+    )
+    finding_code = models.CharField(max_length=100, unique=True)
+    description = models.TextField()
+    priority = models.CharField(
+        max_length=20,
+        choices=PRIORITY_CHOICES,
+        default='MEDIUM'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='OPEN'
+    )
+    assigned_to = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_findings'
+    )
+    due_date = models.DateField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolution_notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'inspection_findings'
+    
+    def __str__(self):
+        return f"{self.finding_code} - {self.question.question_code}"
