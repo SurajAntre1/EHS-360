@@ -65,10 +65,10 @@
         <div class="col-md-8">
             <h2><i class="fas fa-chart-line"></i> Notification Tracking</h2>
             <p class="text-muted">
-                {% if selected_role %}
-                    Showing notifications for role: <strong>{{ selected_role }}</strong>
-                {% else %}
+                {% if request.user.is_superuser or request.user.role and request.user.role.name == 'ADMIN' %}
                     Track how many notifications were sent per role & event
+                {% else %}
+                    Showing notifications for your role: <strong>{{ selected_role }}</strong>
                 {% endif %}
             </p>
         </div>
@@ -109,23 +109,7 @@
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <form method="get">
-                <label class="font-weight-bold">Filter by Role</label>
-                <select name="role" class="form-control" onchange="this.form.submit()">
-                    <option value="">All Roles</option>
-                    {% for role in roles %}
-                        <option value="{{ role.name }}"
-                            {% if role.name == selected_role %}selected{% endif %}>
-                            {{ role.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </form>
-        </div>
-    </div>
-
+    <!-- Role Sections -->
     {% for role, records in tracking_by_role.items %}
     <div class="role-section">
 
@@ -182,8 +166,8 @@
 
                     <td>
                         {% if row.email %}
-                            <span class="badge badge-succes">
-                                <i class="fas fa-envelop"></i> Email
+                            <span class="badge badge-success">
+                                <i class="fas fa-envelope"></i> Email
                             </span>
                         {% else %}
                             <span class="text-muted">—</span>
