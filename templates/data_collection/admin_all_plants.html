@@ -4,6 +4,12 @@
 {% block title %}All Plants Data{% endblock %}
 {% block page_title %}All Plants Environmental Data{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'environmental:plant-entry' %}">Environmental Data Entry</a></li>
+<li class="breadcrumb-item"><a href="{% url 'environmental:plant-data-view' %}">View Enviromental Data</a></li>
+<li class="breadcrumb-item active">All Plants Data</li>
+{% endblock %}
+
 {% block extra_css %}
 <style>
 .admin-container {
