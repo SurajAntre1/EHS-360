@@ -1,0 +1,252 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Fill Inspection{% endblock %}
+{% block page_title %}Inspection: {{ schedule.schedule_code }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:my_inspections' %}">My Inspections</a></li>
+<li class="breadcrumb-item active">{{ schedule.schedule_code }}</li>
+{% endblock %}
+
+{% block content %}
+<form method="post" action="{% url 'inspections:inspection_submit' schedule.id %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <!-- Inspection Header -->
+    <div class="card mb-3">
+        <div class="card-header" style="background: linear-gradient(135deg, #1E90FF, #7CB342); color: white;">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h4 class="mb-0">
+                        <i class="fas fa-clipboard-check"></i> {{ schedule.template.template_name }}
+                    </h4>
+                </div>
+                <div class="col-md-4 text-right">
+                    <span class="badge badge-light" style="font-size: 1em;">
+                        {{ total_questions }} Questions
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong><i class="fas fa-industry"></i> Plant:</strong><br>
+                    {{ schedule.plant.name }}
+                </div>
+                <div class="col-md-3">
+                    <strong><i class="fas fa-calendar-alt"></i> Scheduled:</strong><br>
+                    {{ schedule.scheduled_date|date:"d M Y" }}
+                </div>
+                <div class="col-md-3">
+                    <strong><i class="fas fa-clock"></i> Due Date:</strong><br>
+                    <span class="text-danger">{{ schedule.due_date|date:"d M Y" }}</span>
+                </div>
+                <div class="col-md-3">
+                    <strong><i class="fas fa-user"></i> Assigned To:</strong><br>
+                    {{ schedule.assigned_to.get_full_name }}
+                </div>
+            </div>
+            {% if schedule.assignment_notes %}
+            <div class="alert alert-info mt-3 mb-0">
+                <strong><i class="fas fa-info-circle"></i> Instructions:</strong><br>
+                {{ schedule.assignment_notes }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Questions by Category -->
+    {% for category, questions in questions_by_category.items %}
+    <div class="card mb-3">
+        <div class="card-header" style="background: linear-gradient(135deg, var(--primary-blue), var(--primary-green)); color: white;">
+            <h5 class="mb-0">
+                {% if category.icon %}
+                <i class="fas fa-{{ category.icon }}"></i>
+                {% else %}
+                <i class="fas fa-list"></i>
+                {% endif %}
+                {{ category.category_name }}
+                <span class="badge badge-light ml-2">{{ questions|length }} questions</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            {% for tq in questions %}
+            <div class="question-block p-3 mb-3 border rounded {% if tq.is_mandatory %}border-warning{% endif %}" 
+                 style="background: #f8f9fa;">
+                
+                <!-- Question Header -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="mb-0">
+                        <span class="badge badge-info mr-2">{{ tq.question.question_code }}</span>
+                        {{ tq.question.question_text }}
+                        {% if tq.is_mandatory %}
+                        <span class="text-danger">*</span>
+                        {% endif %}
+                    </h6>
+                    <div>
+                        {% if tq.question.is_critical %}
+                        <span class="badge badge-danger">Critical</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Guidance Notes -->
+                {% if tq.question.guidance_notes %}
+                <p class="text-muted small mb-2">
+                    <i class="fas fa-lightbulb"></i> <strong>Guidance:</strong> {{ tq.question.guidance_notes }}
+                </p>
+                {% endif %}
+                
+                {% if tq.question.reference_standard %}
+                <p class="text-muted small mb-2">
+                    <i class="fas fa-book"></i> <strong>Reference:</strong> {{ tq.question.reference_standard }}
+                </p>
+                {% endif %}
+                
+                <!-- Answer Input Based on Question Type -->
+                {% if tq.question.question_type == 'YES_NO' %}
+                <div class="form-group mb-2">
+                    <label class="font-weight-bold">Answer:</label>
+                    <div class="btn-group btn-group-toggle d-block" data-toggle="buttons">
+                        <label class="btn btn-outline-success">
+                            <input type="radio" name="question_{{ tq.question.id }}" 
+                                   value="Yes" {% if tq.is_mandatory %}required{% endif %}>
+                            <i class="fas fa-check-circle"></i> Yes
+                        </label>
+                        <label class="btn btn-outline-danger ml-2">
+                            <input type="radio" name="question_{{ tq.question.id }}" 
+                                   value="No" {% if tq.is_mandatory %}required{% endif %}>
+                            <i class="fas fa-times-circle"></i> No
+                        </label>
+                        <label class="btn btn-outline-secondary ml-2">
+                            <input type="radio" name="question_{{ tq.question.id }}" 
+                                   value="N/A" {% if not tq.is_mandatory %}{% endif %}>
+                            <i class="fas fa-minus-circle"></i> N/A
+                        </label>
+                    </div>
+                </div>
+                
+                {% elif tq.question.question_type == 'TEXT' %}
+                <div class="form-group mb-2">
+                    <label class="font-weight-bold">Answer:</label>
+                    <input type="text" name="question_{{ tq.question.id }}" 
+                           class="form-control" 
+                           {% if tq.is_mandatory %}required{% endif %}>
+                </div>
+                
+                {% elif tq.question.question_type == 'NUMBER' %}
+                <div class="form-group mb-2">
+                    <label class="font-weight-bold">Answer:</label>
+                    <input type="number" name="question_{{ tq.question.id }}" 
+                           class="form-control" step="any"
+                           {% if tq.is_mandatory %}required{% endif %}>
+                </div>
+                
+                {% elif tq.question.question_type == 'RATING' %}
+                <div class="form-group mb-2">
+                    <label class="font-weight-bold">Rating (1-5):</label>
+                    <select name="question_{{ tq.question.id }}" 
+                            class="form-control" style="width: 150px;"
+                            {% if tq.is_mandatory %}required{% endif %}>
+                        <option value="">Select...</option>
+                        <option value="1">1 - Poor</option>
+                        <option value="2">2 - Fair</option>
+                        <option value="3">3 - Good</option>
+                        <option value="4">4 - Very Good</option>
+                        <option value="5">5 - Excellent</option>
+                    </select>
+                </div>
+                {% endif %}
+                
+                <!-- Remarks -->
+                <div class="form-group mb-2">
+                    <label class="font-weight-bold">
+                        Remarks 
+                        {% if tq.question.is_remarks_mandatory %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <textarea name="remarks_{{ tq.question.id }}" 
+                              class="form-control" 
+                              rows="2"
+                              placeholder="Add your observations or comments..."
+                              {% if tq.question.is_remarks_mandatory %}required{% endif %}></textarea>
+                </div>
+                
+                <!-- Photo Upload -->
+                {% if tq.question.is_photo_required %}
+                <div class="form-group mb-0">
+                    <label class="font-weight-bold">
+                        <i class="fas fa-camera"></i> Photo Evidence <span class="text-danger">*</span>
+                    </label>
+                    <input type="file" name="photo_{{ tq.question.id }}" 
+                           class="form-control-file" 
+                           accept="image/*" required>
+                    <small class="form-text text-muted">Photo is mandatory for this question</small>
+                </div>
+                {% else %}
+                <div class="form-group mb-0">
+                    <label class="font-weight-bold">
+                        <i class="fas fa-camera"></i> Photo (Optional)
+                    </label>
+                    <input type="file" name="photo_{{ tq.question.id }}" 
+                           class="form-control-file" 
+                           accept="image/*">
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+    
+    <!-- Submit Section -->
+    <div class="card">
+        <div class="card-body text-center">
+            <p class="text-muted mb-3">
+                Please ensure all mandatory questions are answered before submitting.
+            </p>
+            <button type="submit" class="btn btn-success btn-lg mr-2" onclick="return confirm('Submit this inspection? This action cannot be undone.')">
+                <i class="fas fa-check"></i> Submit Inspection
+            </button>
+            <a href="{% url 'inspections:my_inspections' %}" class="btn btn-secondary btn-lg">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Auto-resize textareas
+    $('textarea').each(function() {
+        this.setAttribute('style', 'height:' + (this.scrollHeight) + 'px;overflow-y:hidden;');
+    }).on('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+    
+    // Form validation
+    $('form').submit(function(e) {
+        var unanswered = [];
+        
+        // Check all mandatory radio button groups
+        $('input[type="radio"][required]').each(function() {
+            var name = $(this).attr('name');
+            if (!$('input[name="' + name + '"]:checked').length) {
+                unanswered.push(name);
+            }
+        });
+        
+        if (unanswered.length > 0) {
+            e.preventDefault();
+            alert('Please answer all mandatory questions before submitting!');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

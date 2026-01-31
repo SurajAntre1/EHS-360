@@ -983,6 +983,87 @@ def my_inspections(request):
     return render(request, 'inspections/my_inspections.html', context)
 
 
+########################inspection start ###################################
+@login_required
+def inspection_start(request, schedule_id):
+    """HOD starts filling the inspection"""
+    
+    schedule = get_object_or_404(InspectionSchedule, pk=schedule_id)
+    
+    # Check permission - only assigned HOD can start
+    if schedule.assigned_to != request.user:
+        messages.error(request, 'You are not authorized to access this inspection!')
+        return redirect('inspections:my_inspections')
+    
+    # Check if already completed
+    if schedule.status == 'COMPLETED':
+        messages.warning(request, 'This inspection is already completed!')
+        return redirect('inspections:schedule_detail', pk=schedule.pk)
+    
+    # Update status to IN_PROGRESS
+    if schedule.status == 'SCHEDULED':
+        schedule.status = 'IN_PROGRESS'
+        schedule.started_at = timezone.now()
+        schedule.save()
+    
+    # Get all questions from template in order
+    template_questions = TemplateQuestion.objects.filter(
+        template=schedule.template
+    ).select_related(
+        'question',
+        'question__category'
+    ).order_by('display_order')
+    
+    # Group questions by category
+    from collections import defaultdict
+    questions_by_category = defaultdict(list)
+    
+    for tq in template_questions:
+        questions_by_category[tq.question.category].append(tq)
+    
+    # Sort by category display order
+    questions_by_category = dict(sorted(
+        questions_by_category.items(),
+        key=lambda x: x[0].display_order
+    ))
+    
+    context = {
+        'schedule': schedule,
+        'questions_by_category': questions_by_category,
+        'total_questions': template_questions.count()
+    }
+    
+    return render(request, 'inspections/inspection_form.html', context)
+
+
+@login_required
+def inspection_submit(request, schedule_id):
+    """HOD submits the completed inspection"""
+    
+    schedule = get_object_or_404(InspectionSchedule, pk=schedule_id)
+    
+    # Check permission
+    if schedule.assigned_to != request.user:
+        messages.error(request, 'Unauthorized access!')
+        return redirect('inspections:my_inspections')
+    
+    if request.method == 'POST':
+        # You'll implement submission logic here later
+        # For now, just mark as completed
+        
+        schedule.status = 'COMPLETED'
+        schedule.completed_at = timezone.now()
+        schedule.save()
+        
+        messages.success(
+            request,
+            f'Inspection {schedule.schedule_code} submitted successfully!'
+        )
+        
+        return redirect('inspections:my_inspections')
+    
+    return redirect('inspections:inspection_start', schedule_id=schedule_id)
+
 # ====================================
 # AJAX/API ENDPOINTS
 # ====================================
@@ -1152,3 +1233,6 @@ def send_inspection_reminder_email(schedule):
         )
     except Exception as e:
         print(f"Error sending reminder email: {e}")
+
+
+        
