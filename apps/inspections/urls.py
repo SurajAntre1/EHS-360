@@ -51,4 +51,8 @@ urlpatterns = [
     path('ajax/locations-by-zone/', views.get_locations_by_zone, name='get_locations_by_zone'),
     path('ajax/sublocations-by-location/', views.get_sublocations_by_location, name='get_sublocations_by_location'),
     path('ajax/questions-by-category/', views.get_questions_by_category, name='get_questions_by_category'),
+
+    path('inspection/<int:schedule_id>/start/', views.inspection_start, name='inspection_start'),
+    path('inspection/<int:schedule_id>/submit/', views.inspection_submit, name='inspection_submit'),
+
 ]

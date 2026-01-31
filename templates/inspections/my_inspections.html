@@ -122,16 +122,23 @@
                             </span>
                         </td>
                         <td class="table-actions">
-                            <a href="{% url 'inspections:schedule_detail' schedule.pk %}" 
-                               class="btn btn-sm btn-info" title="View Details">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                            {% if schedule.status == 'SCHEDULED' %}
-                            <button class="btn btn-sm btn-success" title="Start Inspection">
-                                <i class="fas fa-play"></i>
-                            </button>
-                            {% endif %}
-                        </td>
+                        {% if schedule.status == 'SCHEDULED' %}
+                        <a href="{% url 'inspections:inspection_start' schedule.id %}" 
+                        class="btn btn-sm btn-success" title="Start Inspection">
+                            <i class="fas fa-play"></i> Start
+                        </a>
+                        {% elif schedule.status == 'IN_PROGRESS' %}
+                        <a href="{% url 'inspections:inspection_start' schedule.id %}" 
+                        class="btn btn-sm btn-warning" title="Continue Inspection">
+                            <i class="fas fa-edit"></i> Continue
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'inspections:schedule_detail' schedule.pk %}" 
+                        class="btn btn-sm btn-info" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
                     </tr>
                     {% endfor %}
                 </tbody>
