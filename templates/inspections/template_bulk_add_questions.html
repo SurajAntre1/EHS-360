@@ -1,0 +1,263 @@
+<!-- templates/inspections/template_bulk_add_questions.html -->
+
+{% extends 'base/base.html' %}
+
+{% block title %}Bulk Add Questions{% endblock %}
+{% block page_title %}Bulk Add Questions{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:template_list' %}">Templates</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:template_detail' template.pk %}">{{ template.template_code }}</a></li>
+<li class="breadcrumb-item active">Bulk Add Questions</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="ehs-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-plus-square"></i> Bulk Add Questions to {{ template.template_name }}
+                </h3>
+            </div>
+            <div class="card-body">
+                
+                <!-- Category Filter -->
+                <div class="card mb-3" style="background: #f0f8ff;">
+                    <div class="card-body">
+                        <div class="row align-items-end">
+                            <div class="col-md-6">
+                                <label>Filter by Category:</label>
+                                <select id="categoryFilter" class="form-control">
+                                    <option value="">All Categories</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ category.category_name }} ({{ category.get_active_questions_count }} questions)
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-primary" id="selectAll">
+                                    <i class="fas fa-check-square"></i> Select All
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="deselectAll">
+                                    <i class="fas fa-square"></i> Deselect All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Configuration for Selected Questions -->
+                    <div class="card mb-3" style="background: #fff8dc;">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-cog"></i> Configuration for Selected Questions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Section Name (Optional)</label>
+                                        <input type="text" name="section_name" class="form-control" 
+                                               placeholder="e.g., Fire Safety Section">
+                                        <small class="form-text text-muted">
+                                            Group questions into sections for better organization
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <div class="form-check mt-4">
+                                            <input type="checkbox" name="is_mandatory" id="is_mandatory" class="form-check-input">
+                                            <label class="form-check-label" for="is_mandatory">
+                                                <strong>Mark all selected questions as mandatory</strong>
+                                            </label>
+                                            <small class="form-text text-muted d-block">
+                                                Mandatory questions must be answered during inspection
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Available Questions -->
+                    {% if available_questions %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-list"></i> Available Questions 
+                                <span class="badge badge-info">{{ available_questions.count }}</span>
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th width="50" class="text-center">
+                                                <input type="checkbox" id="selectAllCheckbox" title="Select All">
+                                            </th>
+                                            <th>Code</th>
+                                            <th>Question</th>
+                                            <th>Category</th>
+                                            <th>Type</th>
+                                            <th>Flags</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for question in available_questions %}
+                                        <tr>
+                                            <td class="text-center">
+                                                <input type="checkbox" name="questions" value="{{ question.id }}" 
+                                                       class="question-checkbox">
+                                            </td>
+                                            <td>
+                                                <strong class="text-primary">{{ question.question_code }}</strong>
+                                            </td>
+                                            <td>{{ question.question_text }}</td>
+                                            <td>
+                                                <span class="badge" style="background: linear-gradient(135deg, #1E90FF, #7CB342); color: white;">
+                                                    {{ question.category.category_name }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-secondary">
+                                                    {{ question.get_question_type_display }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if question.is_critical %}
+                                                <span class="badge badge-danger" title="Critical Question">
+                                                    <i class="fas fa-exclamation-triangle"></i> Critical
+                                                </span>
+                                                {% endif %}
+                                                {% if question.is_remarks_mandatory %}
+                                                <span class="badge badge-warning" title="Remarks Required">
+                                                    <i class="fas fa-comment"></i> Remarks
+                                                </span>
+                                                {% endif %}
+                                                {% if question.is_photo_required %}
+                                                <span class="badge badge-info" title="Photo Required">
+                                                    <i class="fas fa-camera"></i> Photo
+                                                </span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="mt-4 d-flex justify-content-between">
+                        <a href="{% url 'inspections:template_detail' template.pk %}" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-check"></i> Add Selected Questions
+                        </button>
+                    </div>
+                    
+                    {% else %}
+                    <!-- No Questions Available -->
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle"></i> No Questions Available</h5>
+                        <p>All active questions have already been added to this template.</p>
+                        <p class="mb-0">
+                            You can <a href="{% url 'inspections:question_create' %}" class="alert-link">create new questions</a> 
+                            or <a href="{% url 'inspections:template_detail' template.pk %}" class="alert-link">go back to the template</a>.
+                        </p>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Category filter - reload page with category parameter
+    $('#categoryFilter').change(function() {
+        var categoryId = $(this).val();
+        var url = new URL(window.location.href);
+        
+        if (categoryId) {
+            url.searchParams.set('category', categoryId);
+        } else {
+            url.searchParams.delete('category');
+        }
+        
+        window.location.href = url.toString();
+    });
+    
+    // Select all checkbox in header
+    $('#selectAllCheckbox').change(function() {
+        $('.question-checkbox').prop('checked', this.checked);
+        updateSelectedCount();
+    });
+    
+    // Select All button
+    $('#selectAll').click(function() {
+        $('.question-checkbox').prop('checked', true);
+        $('#selectAllCheckbox').prop('checked', true);
+        updateSelectedCount();
+    });
+    
+    // Deselect All button
+    $('#deselectAll').click(function() {
+        $('.question-checkbox').prop('checked', false);
+        $('#selectAllCheckbox').prop('checked', false);
+        updateSelectedCount();
+    });
+    
+    // Update header checkbox when individual checkboxes change
+    $('.question-checkbox').change(function() {
+        var total = $('.question-checkbox').length;
+        var checked = $('.question-checkbox:checked').length;
+        $('#selectAllCheckbox').prop('checked', total === checked);
+        updateSelectedCount();
+    });
+    
+    // Update selected count
+    function updateSelectedCount() {
+        var count = $('.question-checkbox:checked').length;
+        // You can add a display for selected count if needed
+    }
+    
+    // Form validation - ensure at least one question is selected
+    $('form').submit(function(e) {
+        var checkedCount = $('.question-checkbox:checked').length;
+        
+        if (checkedCount === 0) {
+            e.preventDefault();
+            alert('Please select at least one question to add!');
+            return false;
+        }
+        
+        // Confirm before adding
+        var confirmMsg = 'Add ' + checkedCount + ' question(s) to this template?';
+        return confirm(confirmMsg);
+    });
+});
+</script>
+{% endblock %}
+```
+
+---
+
+Now create the file and try accessing:
+```
+http://127.0.0.1:8000/inspections/templates/2/bulk-add-questions/
