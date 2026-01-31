@@ -1,210 +1,243 @@
+<!-- templates/inspections/template_detail.html -->
+
 {% extends 'base/base.html' %}
-{% load static %}
 
-{% block title %}{{ template.template_name }} - Template Detail{% endblock %}
-{% block page_title %}Template Details{% endblock %}
-
-{% block extra_css %}
-<style>
-.template-header {
-    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-    color: white;
-    padding: 30px;
-    border-radius: 10px 10px 0 0;
-}
-
-.category-section {
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-    background-color: #fff;
-}
-
-.category-header {
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-left: 4px solid #17a2b8;
-    border-radius: 5px;
-    margin-bottom: 15px;
-}
-
-.inspection-point-item {
-    padding: 15px;
-    border-bottom: 1px solid #e9ecef;
-    display: flex;
-    align-items: start;
-}
-
-.inspection-point-item:last-child {
-    border-bottom: none;
-}
-
-.point-number {
-    background-color: #17a2b8;
-    color: white;
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    flex-shrink: 0;
-    margin-right: 15px;
-}
-
-.point-content {
-    flex: 1;
-}
-
-.point-badges {
-    display: flex;
-    gap: 5px;
-    margin-top: 8px;
-}
-</style>
-{% endblock %}
+{% block title %}{{ template.template_name }}{% endblock %}
+{% block page_title %}{{ template.template_name }}{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
-<li class="breadcrumb-item"><a href="{% url 'inspections:dashboard' %}">Inspection Management</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
 <li class="breadcrumb-item"><a href="{% url 'inspections:template_list' %}">Templates</a></li>
-<li class="breadcrumb-item active">{{ template.template_name }}</li>
+<li class="breadcrumb-item active">{{ template.template_code }}</li>
 {% endblock %}
 
 {% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <!-- Action Buttons -->
+        <div class="mb-3">
+            <a href="{% url 'inspections:template_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+            <a href="{% url 'inspections:template_edit' template.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Edit Template
+            </a>
+            <a href="{% url 'inspections:template_add_question' template.pk %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Add Question
+            </a>
+            <a href="{% url 'inspections:template_bulk_add_questions' template.pk %}" class="btn btn-info">
+                <i class="fas fa-plus-square"></i> Bulk Add Questions
+            </a>
+        </div>
 
-<div class="card ehs-card">
-    <!-- Template Header -->
-    <div class="template-header">
         <div class="row">
-            <div class="col-md-8">
-                <h3 class="mb-2">
-                    <i class="fas fa-clipboard-list mr-2"></i>
-                    {{ template.template_name }}
-                </h3>
-                <p class="mb-2">
-                    <strong>Template Code:</strong> {{ template.template_code }} | 
-                    <strong>Document:</strong> {{ template.document_number|default:"N/A" }}
-                </p>
-                {% if template.description %}
-                <p class="mb-0">{{ template.description }}</p>
+            <!-- Template Info Card -->
+            <div class="col-md-4">
+                <div class="ehs-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-info-circle"></i> Template Info
+                        </h3>
+                        <div class="card-tools">
+                            {% if template.is_active %}
+                            <span class="badge badge-success">Active</span>
+                            {% else %}
+                            <span class="badge badge-secondary">Inactive</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <th width="120">Code:</th>
+                                <td><strong>{{ template.template_code }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Name:</th>
+                                <td>{{ template.template_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Type:</th>
+                                <td>
+                                    <span class="badge badge-info">
+                                        {{ template.get_inspection_type_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Total Questions:</th>
+                                <td><strong class="text-primary">{{ total_questions }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Categories:</th>
+                                <td>{{ categories.count }}</td>
+                            </tr>
+                            <tr>
+                                <th>Min Score:</th>
+                                <td>{{ template.min_compliance_score }}%</td>
+                            </tr>
+                            <tr>
+                                <th>Requires Approval:</th>
+                                <td>
+                                    {% if template.requires_approval %}
+                                    <span class="badge badge-warning">Yes</span>
+                                    {% else %}
+                                    <span class="badge badge-success">No</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Created:</th>
+                                <td>{{ template.created_at|date:"d M Y" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Created By:</th>
+                                <td>{{ template.created_by.get_full_name }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Applicable Plants -->
+                {% if template.applicable_plants.count > 0 %}
+                <div class="ehs-card mt-3">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-building"></i> Applicable Plants
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            {% for plant in template.applicable_plants.all %}
+                            <li class="mb-1">
+                                <i class="fas fa-check text-success"></i> {{ plant.name }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Applicable Departments -->
+                {% if template.applicable_departments.count > 0 %}
+                <div class="ehs-card mt-3">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-users"></i> Applicable Departments
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            {% for dept in template.applicable_departments.all %}
+                            <li class="mb-1">
+                                <i class="fas fa-check text-success"></i> {{ dept.name }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
                 {% endif %}
             </div>
-            <div class="col-md-4 text-right">
-                <div class="mb-2">
-                    <span class="badge badge-light badge-lg" style="font-size: 1rem;">
-                        <i class="fas fa-calendar-alt mr-1"></i>
-                        {{ template.get_frequency_display }}
-                    </span>
-                </div>
-                <div class="mb-2">
-                    {% if template.is_active %}
-                    <span class="badge badge-success badge-lg" style="font-size: 1rem;">
-                        <i class="fas fa-check-circle mr-1"></i>Active
-                    </span>
-                    {% else %}
-                    <span class="badge badge-secondary badge-lg" style="font-size: 1rem;">
-                        <i class="fas fa-ban mr-1"></i>Inactive
-                    </span>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        
-        <div class="row mt-3">
-            <div class="col-md-4 text-center">
-                <h2 class="mb-0">{{ categories.count }}</h2>
-                <small>Categories</small>
-            </div>
-            <div class="col-md-4 text-center">
-                <h2 class="mb-0">{{ template.total_inspection_points }}</h2>
-                <small>Total Inspection Points</small>
-            </div>
-            <div class="col-md-4 text-center">
-                <h2 class="mb-0">{{ template.created_at|date:"M Y" }}</h2>
-                <small>Created</small>
-            </div>
-        </div>
-    </div>
-    
-    <div class="card-body">
-        <!-- Action Buttons -->
-        <div class="mb-4">
-            <a href="{% url 'inspections:template_list' %}" class="btn btn-secondary">
-                <i class="fas fa-arrow-left mr-1"></i>Back to Templates
-            </a>
-            {% if user.is_superuser %}
-            <a href="/admin/inspections/inspectiontemplate/{{ template.id }}/change/" 
-               class="btn btn-warning" 
-               target="_blank">
-                <i class="fas fa-edit mr-1"></i>Edit Template
-            </a>
-            {% endif %}
-        </div>
-
-        <!-- Categories and Points -->
-        <h5 class="mb-3">
-            <i class="fas fa-list mr-2"></i>Template Structure
-        </h5>
-        
-        {% for category in categories %}
-        <div class="category-section">
-            <div class="category-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-folder-open mr-2"></i>
-                    {{ forloop.counter }}. {{ category.category_name }}
-                    <span class="badge badge-info float-right">
-                        {{ category.inspection_points.count }} Points
-                    </span>
-                </h6>
-            </div>
             
-            {% for point in category.inspection_points.all %}
-            <div class="inspection-point-item">
-                <div class="point-number">
-                    {{ forloop.counter }}
-                </div>
-                
-                <div class="point-content">
-                    <p class="mb-1">{{ point.inspection_point_text }}</p>
-                    
-                    <div class="point-badges">
-                        {% if point.is_mandatory %}
-                        <span class="badge badge-danger">
-                            <i class="fas fa-exclamation-circle mr-1"></i>Mandatory
-                        </span>
-                        {% endif %}
-                        
-                        {% if point.requires_photo %}
-                        <span class="badge badge-warning">
-                            <i class="fas fa-camera mr-1"></i>Photo Required
-                        </span>
-                        {% endif %}
-                        
-                        {% if not point.is_active %}
-                        <span class="badge badge-secondary">
-                            <i class="fas fa-ban mr-1"></i>Inactive
-                        </span>
+            <!-- Questions List -->
+            <div class="col-md-8">
+                <div class="ehs-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-list"></i> Questions ({{ total_questions }})
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        {% if questions_by_category %}
+                            {% for category, questions in questions_by_category.items %}
+                            <div class="mb-4">
+                                <h5 class="text-primary mb-3">
+                                    <span class="badge" style="background: linear-gradient(135deg, var(--primary-blue), var(--primary-green)); color: white; padding: 0.5em 1em;">
+                                        {{ category.category_code }}
+                                    </span>
+                                    {{ category.category_name }}
+                                    <small class="text-muted">({{ questions|length }} questions)</small>
+                                </h5>
+                                
+                                <div class="list-group mb-3">
+                                    {% for tq in questions %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="mb-2">
+                                                    <strong class="text-info">{{ tq.question.question_code }}</strong>
+                                                    <span class="ml-2">{{ tq.question.question_text }}</span>
+                                                </div>
+                                                
+                                                <div>
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-tag"></i> {{ tq.question.get_question_type_display }}
+                                                    </small>
+                                                    
+                                                    {% if tq.question.is_critical %}
+                                                    <span class="badge badge-danger ml-2">Critical</span>
+                                                    {% endif %}
+                                                    
+                                                    {% if tq.question.is_remarks_mandatory %}
+                                                    <span class="badge badge-info ml-2">
+                                                        <i class="fas fa-comment"></i> Remarks Required
+                                                    </span>
+                                                    {% endif %}
+                                                    
+                                                    {% if tq.question.is_photo_required %}
+                                                    <span class="badge badge-warning ml-2">
+                                                        <i class="fas fa-camera"></i> Photo Required
+                                                    </span>
+                                                    {% endif %}
+                                                    
+                                                    {% if tq.is_mandatory %}
+                                                    <span class="badge badge-secondary ml-2">Mandatory</span>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                {% if tq.section_name %}
+                                                <div class="mt-1">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-folder"></i> Section: {{ tq.section_name }}
+                                                    </small>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <div class="ml-3">
+                                                <a href="{% url 'inspections:template_remove_question' template.pk tq.question.pk %}" 
+                                                   class="btn btn-sm btn-danger" 
+                                                   title="Remove Question"
+                                                   onclick="return confirm('Remove this question from template?')">
+                                                    <i class="fas fa-times"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-question-circle fa-4x text-muted mb-3"></i>
+                                <h5 class="text-muted">No Questions Added Yet</h5>
+                                <p class="text-muted">Start building your inspection template by adding questions.</p>
+                                <div class="mt-3">
+                                    <a href="{% url 'inspections:template_add_question' template.pk %}" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i> Add First Question
+                                    </a>
+                                    <a href="{% url 'inspections:template_bulk_add_questions' template.pk %}" class="btn btn-info ml-2">
+                                        <i class="fas fa-plus-square"></i> Bulk Add Questions
+                                    </a>
+                                </div>
+                            </div>
                         {% endif %}
                     </div>
                 </div>
             </div>
-            {% empty %}
-            <div class="text-center text-muted py-3">
-                <i class="fas fa-info-circle mr-1"></i>
-                No inspection points in this category
-            </div>
-            {% endfor %}
         </div>
-        {% empty %}
-        <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle mr-2"></i>
-            This template has no categories defined yet.
-        </div>
-        {% endfor %}
     </div>
 </div>
-
 {% endblock %}

@@ -1,0 +1,53 @@
+<!-- templates/inspections/category_confirm_delete.html -->
+
+{% extends 'base.html' %}
+
+{% block title %}Delete Category{% endblock %}
+{% block page_title %}Delete Category{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:category_list' %}">Categories</a></li>
+<li class="breadcrumb-item active">Delete</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger">
+                <h3 class="card-title text-white">
+                    <i class="fas fa-exclamation-triangle"></i> Confirm Deletion
+                </h3>
+            </div>
+            <div class="card-body">
+                <p>Are you sure you want to delete the category:</p>
+                <p class="lead text-center">
+                    <strong>{{ category.category_code }} - {{ category.category_name }}</strong>
+                </p>
+                
+                {% if questions_count > 0 %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle"></i> 
+                    This category has <strong>{{ questions_count }}</strong> active question(s).
+                    These questions will not be deleted but will no longer be organized under this category.
+                </div>
+                {% endif %}
+                
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'inspections:category_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Yes, Delete
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

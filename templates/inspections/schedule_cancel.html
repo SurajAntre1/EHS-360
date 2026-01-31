@@ -1,0 +1,54 @@
+<!-- templates/inspections/schedule_cancel.html -->
+
+{% extends 'base/base.html' %}
+
+{% block title %}Cancel Schedule{% endblock %}
+{% block page_title %}Cancel Schedule{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:schedule_list' %}">Schedules</a></li>
+<li class="breadcrumb-item active">Cancel</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger">
+                <h3 class="card-title text-white">
+                    <i class="fas fa-exclamation-triangle"></i> Confirm Cancellation
+                </h3>
+            </div>
+            <div class="card-body">
+                <p>Are you sure you want to cancel this inspection schedule?</p>
+                
+                <div class="alert alert-light border">
+                    <strong>{{ schedule.schedule_code }}</strong><br>
+                    Template: {{ schedule.template.template_name }}<br>
+                    Assigned To: {{ schedule.assigned_to.get_full_name }}<br>
+                    Due Date: {{ schedule.due_date|date:"d M Y" }}
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle"></i> 
+                    This action cannot be undone. The assigned HOD will be notified of the cancellation.
+                </div>
+                
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'inspections:schedule_detail' schedule.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Go Back
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-ban"></i> Yes, Cancel Schedule
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,262 @@
+<!-- templates/inspections/schedule_form.html -->
+
+{% extends 'base/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:schedule_list' %}">Schedules</a></li>
+<li class="breadcrumb-item active">{{ action }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <div class="ehs-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-calendar-plus"></i> {{ title }}
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Template Selection -->
+                    <div class="form-group">
+                        <label for="{{ form.template.id_for_label }}">
+                            Inspection Template <span class="text-danger">*</span>
+                        </label>
+                        {{ form.template }}
+                        {% if form.template.errors %}
+                        <div class="text-danger small">{{ form.template.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            Select the inspection template to be used
+                        </small>
+                    </div>
+                    
+                    <!-- HOD Assignment -->
+                    <div class="form-group">
+                        <label for="{{ form.assigned_to.id_for_label }}">
+                            Assign to (HOD) <span class="text-danger">*</span>
+                        </label>
+                        {{ form.assigned_to }}
+                        {% if form.assigned_to.errors %}
+                        <div class="text-danger small">{{ form.assigned_to.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            Select the HOD who will conduct this inspection
+                        </small>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Location Details -->
+                    <h5 class="mb-3"><i class="fas fa-map-marker-alt"></i> Location Details</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.plant.id_for_label }}">
+                                    Plant <span class="text-danger">*</span>
+                                </label>
+                                {{ form.plant }}
+                                {% if form.plant.errors %}
+                                <div class="text-danger small">{{ form.plant.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.zone.id_for_label }}">Zone</label>
+                                {{ form.zone }}
+                                {% if form.zone.errors %}
+                                <div class="text-danger small">{{ form.zone.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.location.id_for_label }}">Location</label>
+                                {{ form.location }}
+                                {% if form.location.errors %}
+                                <div class="text-danger small">{{ form.location.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.sublocation.id_for_label }}">Sub-Location</label>
+                                {{ form.sublocation }}
+                                {% if form.sublocation.errors %}
+                                <div class="text-danger small">{{ form.sublocation.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.department.id_for_label }}">Department</label>
+                        {{ form.department }}
+                        {% if form.department.errors %}
+                        <div class="text-danger small">{{ form.department.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Schedule Timing -->
+                    <h5 class="mb-3"><i class="fas fa-clock"></i> Schedule Timing</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.scheduled_date.id_for_label }}">
+                                    Scheduled Date <span class="text-danger">*</span>
+                                </label>
+                                {{ form.scheduled_date }}
+                                {% if form.scheduled_date.errors %}
+                                <div class="text-danger small">{{ form.scheduled_date.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">When should the inspection start?</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.due_date.id_for_label }}">
+                                    Due Date <span class="text-danger">*</span>
+                                </label>
+                                {{ form.due_date }}
+                                {% if form.due_date.errors %}
+                                <div class="text-danger small">{{ form.due_date.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">Deadline for completion</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Assignment Notes -->
+                    <div class="form-group">
+                        <label for="{{ form.assignment_notes.id_for_label }}">
+                            Assignment Notes
+                        </label>
+                        {{ form.assignment_notes }}
+                        {% if form.assignment_notes.errors %}
+                        <div class="text-danger small">{{ form.assignment_notes.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            Any special instructions for the inspector
+                        </small>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'inspections:schedule_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-calendar-check"></i> {{ action }} Schedule
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Cascading dropdowns for Plant -> Zone -> Location -> SubLocation
+    
+    $('#id_plant').change(function() {
+        var plantId = $(this).val();
+        
+        // Clear dependent dropdowns
+        $('#id_zone').html('<option value="">---------</option>');
+        $('#id_location').html('<option value="">---------</option>');
+        $('#id_sublocation').html('<option value="">---------</option>');
+        
+        if (plantId) {
+            $.ajax({
+                url: '{% url "inspections:get_zones_by_plant" %}',
+                data: { 'plant_id': plantId },
+                success: function(data) {
+                    $.each(data.zones, function(index, zone) {
+                        $('#id_zone').append(
+                            $('<option></option>').val(zone.id).text(zone.name)
+                        );
+                    });
+                }
+            });
+        }
+    });
+    
+    $('#id_zone').change(function() {
+        var zoneId = $(this).val();
+        
+        // Clear dependent dropdowns
+        $('#id_location').html('<option value="">---------</option>');
+        $('#id_sublocation').html('<option value="">---------</option>');
+        
+        if (zoneId) {
+            $.ajax({
+                url: '{% url "inspections:get_locations_by_zone" %}',
+                data: { 'zone_id': zoneId },
+                success: function(data) {
+                    $.each(data.locations, function(index, location) {
+                        $('#id_location').append(
+                            $('<option></option>').val(location.id).text(location.name)
+                        );
+                    });
+                }
+            });
+        }
+    });
+    
+    $('#id_location').change(function() {
+        var locationId = $(this).val();
+        
+        // Clear dependent dropdown
+        $('#id_sublocation').html('<option value="">---------</option>');
+        
+        if (locationId) {
+            $.ajax({
+                url: '{% url "inspections:get_sublocations_by_location" %}',
+                data: { 'location_id': locationId },
+                success: function(data) {
+                    $.each(data.sublocations, function(index, sublocation) {
+                        $('#id_sublocation').append(
+                            $('<option></option>').val(sublocation.id).text(sublocation.name)
+                        );
+                    });
+                }
+            });
+        }
+    });
+    
+    // Set min date for scheduled_date to today
+    var today = new Date().toISOString().split('T')[0];
+    $('#id_scheduled_date').attr('min', today);
+    
+    // Update due_date min when scheduled_date changes
+    $('#id_scheduled_date').change(function() {
+        var scheduledDate = $(this).val();
+        $('#id_due_date').attr('min', scheduledDate);
+    });
+});
+</script>
+{% endblock %}

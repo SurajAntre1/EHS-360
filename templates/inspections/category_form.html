@@ -1,0 +1,95 @@
+<!-- templates/inspections/category_form.html -->
+
+{% extends 'base/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:category_list' %}">Categories</a></li>
+<li class="breadcrumb-item active">{{ action }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="ehs-card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-folder"></i> {{ title }}</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="{{ form.category_name.id_for_label }}">
+                            Category Name <span class="text-danger">*</span>
+                        </label>
+                        {{ form.category_name }}
+                        {% if form.category_name.errors %}
+                        <div class="text-danger">{{ form.category_name.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">{{ form.category_name.help_text }}</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.category_code.id_for_label }}">
+                            Category Code <span class="text-danger">*</span>
+                        </label>
+                        {{ form.category_code }}
+                        {% if form.category_code.errors %}
+                        <div class="text-danger">{{ form.category_code.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">Short code like FS, ES, HK</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.description.id_for_label }}">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="text-danger">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.icon.id_for_label }}">Icon</label>
+                                {{ form.icon }}
+                                <small class="form-text text-muted">FontAwesome icon (e.g., fa-fire)</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.display_order.id_for_label }}">Display Order</label>
+                                {{ form.display_order }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="custom-control custom-checkbox">
+                            {{ form.is_active }}
+                            <label class="custom-control-label" for="{{ form.is_active.id_for_label }}">
+                                Active
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'inspections:category_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> {{ action }} Category
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
