@@ -146,7 +146,53 @@ class GetSourceFieldsAPIView(LoginRequiredMixin, View):
                         'success': False,
                         'error': 'Hazard module is not available'
                     }, status=400)
-            
+            elif source_type=='INSPECTION':
+                try:
+                    from apps.inspections.models import InspectionTemplate
+                    templates=InspectionTemplate.objects.filter(is_active=True).order_by('template_name')
+                    template_choices=[
+                        {'value':str(t.id),'display':f"{t.template_code}-{t.template_name}"}
+                        for t in templates
+                    ]
+                    inspection_type_choices=[
+                        {'value':choice[0],'display':choice[1]}
+                        for choice in InspectionTemplate.INSPECTION_TYPE_CHOICES
+                    ]
+                    from apps.inspections.models import InspectionSchedule
+                    status_choices=[
+                        {'value':choice[0],'display':choice[1]}
+                        for choice in InspectionSchedule.STATUS_CHOICES
+                    ]
+                    fields = [
+                        {
+                            'field_name': 'template',
+                            'field_verbose_name': 'Inspection Template',
+                            'choices': template_choices
+                        },
+                        {
+                            'field_name': 'inspection_type',
+                            'field_verbose_name': 'Inspection Type',
+                            'choices': inspection_type_choices
+                        },
+                        {
+                            'field_name': 'status',
+                            'field_verbose_name': 'Status',
+                            'choices': status_choices
+                        },
+                        {
+                            'field_name': 'plant',
+                            'field_verbose_name': 'Plant',
+                            'choices': [
+                                {'value': str(p.id), 'display': p.name}
+                                for p in Plant.objects.filter(is_active=True).order_by('name')
+                            ]
+                        }
+                    ]
+                except ImportError:
+                    return JsonResponse({
+                        'success':False,
+                        'error':'Inspection module is not available'
+                    },status=400)
             else:
                 return JsonResponse({
                     'success': False,
@@ -631,6 +677,35 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
                     except:
                         filter_value_display = q.filter_value
                 
+                # ========================================
+                # ⬇️ ADD THIS NEW SECTION FOR INSPECTION
+                # ========================================
+                elif q.filter_field == 'template':
+                    try:
+                        from apps.inspections.models import InspectionTemplate
+                        template = InspectionTemplate.objects.get(id=q.filter_value)
+                        filter_value_display = f"{template.template_code} - {template.template_name}"
+                    except:
+                        filter_value_display = q.filter_value
+                
+                elif q.filter_field == 'inspection_type':
+                    # Map inspection type codes to display names
+                    from apps.inspections.models import InspectionTemplate
+                    inspection_type_map = dict(InspectionTemplate.INSPECTION_TYPE_CHOICES)
+                    filter_value_display = inspection_type_map.get(q.filter_value, q.filter_value)
+                
+                elif q.filter_field == 'assigned_to':
+                    try:
+                        from django.contrib.auth import get_user_model
+                        User = get_user_model()
+                        user = User.objects.get(id=q.filter_value)
+                        filter_value_display = user.get_full_name()
+                    except:
+                        filter_value_display = q.filter_value
+                # ========================================
+                # ⬆️ END OF INSPECTION SECTION
+                # ========================================
+                
                 elif q.filter_field == 'status':
                     # Map status codes to display names
                     status_map = {
@@ -642,6 +717,9 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
                         'OPEN': 'Open',
                         'IN_PROGRESS': 'In Progress',
                         'RESOLVED': 'Resolved',
+                        'SCHEDULED': 'Scheduled',  # ⬅️ ADD THIS
+                        'OVERDUE': 'Overdue',      # ⬅️ ADD THIS
+                        'CANCELLED': 'Cancelled',  # ⬅️ ADD THIS
                     }
                     filter_value_display = status_map.get(q.filter_value, q.filter_value)
                 
@@ -685,6 +763,34 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
                         except:
                             filter_value_2_display = q.filter_value_2
                     
+                    # ========================================
+                    # ⬇️ ADD THIS FOR SECONDARY INSPECTION FILTER
+                    # ========================================
+                    elif q.filter_field_2 == 'template':
+                        try:
+                            from apps.inspections.models import InspectionTemplate
+                            template_2 = InspectionTemplate.objects.get(id=q.filter_value_2)
+                            filter_value_2_display = f"{template_2.template_code} - {template_2.template_name}"
+                        except:
+                            filter_value_2_display = q.filter_value_2
+                    
+                    elif q.filter_field_2 == 'inspection_type':
+                        from apps.inspections.models import InspectionTemplate
+                        inspection_type_map = dict(InspectionTemplate.INSPECTION_TYPE_CHOICES)
+                        filter_value_2_display = inspection_type_map.get(q.filter_value_2, q.filter_value_2)
+                    
+                    elif q.filter_field_2 == 'assigned_to':
+                        try:
+                            from django.contrib.auth import get_user_model
+                            User = get_user_model()
+                            user_2 = User.objects.get(id=q.filter_value_2)
+                            filter_value_2_display = user_2.get_full_name()
+                        except:
+                            filter_value_2_display = q.filter_value_2
+                    # ========================================
+                    # ⬆️ END OF SECONDARY INSPECTION FILTER
+                    # ========================================
+                    
                     elif q.filter_field_2 == 'status':
                         status_map = {
                             'REPORTED': 'Reported',
@@ -695,6 +801,9 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
                             'OPEN': 'Open',
                             'IN_PROGRESS': 'In Progress',
                             'RESOLVED': 'Resolved',
+                            'SCHEDULED': 'Scheduled',
+                            'OVERDUE': 'Overdue',
+                            'CANCELLED': 'Cancelled',
                         }
                         filter_value_2_display = status_map.get(q.filter_value_2, q.filter_value_2)
                     

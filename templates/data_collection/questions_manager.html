@@ -481,6 +481,8 @@
                     <option value="MANUAL" {% if editing_question.source_type == 'MANUAL' %}selected{% endif %}>Manual Entry</option>
                     <option value="INCIDENT" {% if editing_question.source_type == 'INCIDENT' %}selected{% endif %}>Incident Module</option>
                     <option value="HAZARD" {% if editing_question.source_type == 'HAZARD' %}selected{% endif %}>Hazard Module</option>
+                    <option value="INSPECTION" {% if editing_question.source_type == 'INSPECTION' %}selected{% endif %}>Inspection Module</option>
+
                 </select>
             </div>
 
@@ -523,10 +525,23 @@
 
                 <div class="alert alert-info">
                     <strong><i class="fas fa-lightbulb"></i> Examples:</strong><br>
+                    <!-- Incident Examples -->
+                    <strong>Incidents:</strong><br>
                     • <strong>All Fatalities:</strong> incident_type = FATALITY<br>
                     • <strong>LTI Reported:</strong> incident_type = LTI + status = REPORTED<br>
-                    • <strong>Closed MTC Cases:</strong> incident_type = MTC + status = CLOSED
-                </div>
+                    • <strong>Closed MTC Cases:</strong> incident_type = MTC + status = CLOSED<br>
+                    
+                    <!-- Hazard Examples -->
+                    <strong>Hazards:</strong><br>
+                    • <strong>High Severity Hazards:</strong> severity = HIGH<br>
+                    • <strong>Open Chemical Hazards:</strong> hazard_type = CHEMICAL + status = OPEN<br>
+                    
+                    <!-- ⬇️ ADD INSPECTION EXAMPLES -->
+                    <strong>Inspections:</strong><br>
+                    • <strong>Completed Fire Inspections:</strong> template = Fire Safety + status = COMPLETED<br>
+                    • <strong>Monthly Inspections:</strong> inspection_type = MONTHLY<br>
+                    • <strong>Overdue Inspections:</strong> status = OVERDUE
+                                </div>
             </div>
 
             <!-- UNIT CATEGORY (only for MANUAL) -->
@@ -670,7 +685,6 @@
 
 </div>
 </div>
-<!-- 🔒 JS UNCHANGED -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // --- Element References ---

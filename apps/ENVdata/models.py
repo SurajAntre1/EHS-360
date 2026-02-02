@@ -50,6 +50,7 @@ class EnvironmentalQuestion(models.Model):
         choices=[
             ('INCIDENT', 'Incident Module'),
             ('HAZARD', 'Hazard Module'),
+            ('INSPECTION', 'Fire Inspection Module'),
             ('MANUAL', 'Manual Entry'),
         ],
         default='MANUAL'
