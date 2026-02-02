@@ -1,8 +1,8 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Create Role{% endblock %}
-{% block page_title %}Create Role{% endblock %}
+{% block title %}Update Role{% endblock %}
+{% block page_title %}Update Role{% endblock %}
 
 {% block content %}
 <div class="card shadow-sm">
@@ -10,7 +10,7 @@
     <form method="post" id="role_form">
       {% csrf_token %}
 
-      <!-- Role name -->
+      <!-- Role Name -->
       <div class="mb-3">
         <label class="fw-semibold">
           Role <span class="text-danger">*</span>
@@ -20,6 +20,7 @@
           class="form-control"
           name="role_name"
           id="role_name"
+          value="{{ role.name }}"
           required
         >
       </div>
@@ -32,7 +33,7 @@
           name="description"
           id="role_description"
           rows="3"
-        ></textarea>
+        >{{ role.description }}</textarea>
       </div>
 
       <!-- Permissions -->
@@ -53,6 +54,7 @@
               name="permissions"
               value="{{ perm.id }}"
               id="perm_{{ perm.id }}"
+              {% if perm.id in role_permissions %}checked{% endif %}
             >
             <label class="form-check-label" for="perm_{{ perm.id }}">
               {{ perm.name }}
@@ -70,7 +72,7 @@
           Cancel
         </a>
         <button type="submit" class="btn btn-primary">
-          Create Role
+          Update Role
         </button>
       </div>
 

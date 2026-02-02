@@ -36,4 +36,5 @@ urlpatterns = [
     #roles and permission
     path('role-list/',views.RolePermission.as_view(), name='role-list'),
     path('createrole/', views.RoleCreateView.as_view(), name='createrole'),
+    path('updaterole/<int:role_id>', views.RoleUpdateView.as_view(), name='updaterole'),
 ]

@@ -122,85 +122,85 @@ class User(AbstractUser):
     # ============================================
     # MODULE ACCESS PERMISSIONS (Can Access/Use)
     # ============================================
-    can_access_incident_module = models.BooleanField(
-        default=False,
-        verbose_name="Can Access Incident Module",
-        help_text="User can report and view incidents"
-    )
-    can_access_hazard_module = models.BooleanField(
-        default=False,
-        verbose_name="Can Access Hazard Module",
-        help_text="User can report and view hazards"
-    )
-    can_access_inspection_module = models.BooleanField(
-        default=False,
-        verbose_name="Can Access Inspection Module",
-        help_text="User can conduct safety inspections"
-    )
-    can_access_audit_module = models.BooleanField(
-        default=False,
-        verbose_name="Can Access Audit Module",
-        help_text="User can perform safety audits"
-    )
-    can_access_training_module = models.BooleanField(
-        default=False,
-        verbose_name="Can Access Training Module",
-        help_text="User can access training materials"
-    )
-    can_access_permit_module = models.BooleanField(
-        default=False,
-        verbose_name="Can Access Permit Module",
-        help_text="User can request work permits"
-    )
-    can_access_observation_module = models.BooleanField(
-        default=False,
-        verbose_name="Can Access Observation Module",
-        help_text="User can submit safety observations"
-    )
-    can_access_reports_module = models.BooleanField(
-        default=False,
-        verbose_name="Can Access Reports Module",
-        help_text="User can view and generate reports"
-    )
+    # can_access_incident_module = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Access Incident Module",
+    #     help_text="User can report and view incidents"
+    # )
+    # can_access_hazard_module = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Access Hazard Module",
+    #     help_text="User can report and view hazards"
+    # )
+    # can_access_inspection_module = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Access Inspection Module",
+    #     help_text="User can conduct safety inspections"
+    # )
+    # can_access_audit_module = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Access Audit Module",
+    #     help_text="User can perform safety audits"
+    # )
+    # can_access_training_module = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Access Training Module",
+    #     help_text="User can access training materials"
+    # )
+    # can_access_permit_module = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Access Permit Module",
+    #     help_text="User can request work permits"
+    # )
+    # can_access_observation_module = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Access Observation Module",
+    #     help_text="User can submit safety observations"
+    # )
+    # can_access_reports_module = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Access Reports Module",
+    #     help_text="User can view and generate reports"
+    # )
     
-    # ============================================
-    # APPROVAL PERMISSIONS (Can Approve)
-    # ============================================
-    can_approve_incidents = models.BooleanField(
-        default=False,
-        verbose_name="Can Approve Incidents",
-        help_text="User can approve/reject incident reports"
-    )
-    can_approve_hazards = models.BooleanField(
-        default=False,
-        verbose_name="Can Approve Hazards",
-        help_text="User can approve/reject hazard reports"
-    )
-    can_approve_inspections = models.BooleanField(
-        default=False,
-        verbose_name="Can Approve Inspections",
-        help_text="User can approve inspection reports"
-    )
-    can_approve_permits = models.BooleanField(
-        default=False,
-        verbose_name="Can Approve Permits",
-        help_text="User can approve work permit requests"
-    )
+    # # ============================================
+    # # APPROVAL PERMISSIONS (Can Approve)
+    # # ============================================
+    # can_approve_incidents = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Approve Incidents",
+    #     help_text="User can approve/reject incident reports"
+    # )
+    # can_approve_hazards = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Approve Hazards",
+    #     help_text="User can approve/reject hazard reports"
+    # )
+    # can_approve_inspections = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Approve Inspections",
+    #     help_text="User can approve inspection reports"
+    # )
+    # can_approve_permits = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Approve Permits",
+    #     help_text="User can approve work permit requests"
+    # )
     
-    # ============================================
-    # CLOSURE PERMISSIONS
-    # ============================================
-    can_close_incidents = models.BooleanField(
-        default=False,
-        verbose_name="Can Close Incidents",
-        help_text="User can close completed incidents"
-    )
-    can_close_hazards = models.BooleanField(
-        default=False,
-        verbose_name="Can Close Hazards",
-        help_text="User can close resolved hazards"
-    )
-    
+    # # ============================================
+    # # CLOSURE PERMISSIONS
+    # # ============================================
+    # can_close_incidents = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Close Incidents",
+    #     help_text="User can close completed incidents"
+    # )
+    # can_close_hazards = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Can Close Hazards",
+    #     help_text="User can close resolved hazards"
+    # )
+ 
     class Meta:
         ordering = ['first_name', 'last_name']
         verbose_name = 'User'
@@ -464,19 +464,40 @@ class User(AbstractUser):
         if self.role:
             return self.role.name
         return "Employee"
+    
+    def has_permission(self, code):
+        if self.is_superuser:
+            return True
+        if not self.role:
+            return False
+        return self.role.permissions.filter(code=code).exists()
 
 class Permissions(models.Model):
-    permission_id = models.IntegerField(unique=True)
-    permission_name = models.CharField(max_length=20)
-    permission_description = models.TextField(blank=True,help_text="Description of the Permission",null=True)
+    code = models.CharField(
+        max_length=100,
+        unique=True,
+        help_text="System permission code (e.g. REPORT_INCIDENT)"
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text="Human readable permission name"
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Description of the permission"
+    )
+
     def __str__(self):
-        return self.permission_name
+        return self.code
 
 class Role(models.Model):
-
-    name = models.CharField(max_length=20, unique=True)
-    description = models.TextField(blank=True,help_text="Description of the roles")
-    permissions= models.ManyToManyField(Permissions,related_name='permission_role')
+    name = models.CharField(max_length=50, unique=True)
+    description = models.TextField(blank=True)
+    permissions = models.ManyToManyField(
+        Permissions,
+        related_name='roles'
+    )
 
     def __str__(self):
         return self.name

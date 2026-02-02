@@ -555,28 +555,73 @@ class RoleCreateView(LoginRequiredMixin, TemplateView):
         return context
 
     def post(self, request):
-        role_name = request.POST.get("role_name")
-        description = request.POST.get("description")
-        permission_ids = request.POST.getlist("permissions")
+        role_name = request.POST.get("role_name", "").strip()
+        description = request.POST.get("description", "").strip()
+
+        permission_ids = [
+            pid for pid in request.POST.getlist("permissions") if pid
+        ]
 
         if not role_name:
             messages.error(request, "Role name is required")
-            return redirect('accounts:permissions_only')
+            return redirect('accounts:createrole')
 
         if Role.objects.filter(name=role_name).exists():
             messages.error(request, "Role name already exists")
-            return redirect('accounts:permissions_only')
+            return redirect('accounts:createrole')
 
         role = Role.objects.create(
             name=role_name,
             description=description
         )
 
-        permissions = Permissions.objects.filter(
-            id__in=permission_ids
-        )
-
-        role.permissions.set(permissions)
+        if permission_ids:
+            permissions = Permissions.objects.filter(id__in=permission_ids)
+            role.permissions.set(permissions)
 
         messages.success(request, "Role created successfully")
+        return redirect('accounts:role-list')
+    
+class RoleUpdateView(LoginRequiredMixin, TemplateView):
+    """Update an existing role"""
+    template_name = 'roles/roleupdate.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        role_id = self.kwargs.get('role_id')
+        role = get_object_or_404(Role, id=role_id)
+
+        context['role'] = role
+        context['permission'] = Permissions.objects.all()
+        context['role_permissions'] = role.permissions.values_list('id', flat=True)
+        return context
+
+    def post(self, request, *args, **kwargs):
+        role_id = self.kwargs.get('role_id')
+        role = get_object_or_404(Role, id=role_id)
+
+        role_name = request.POST.get("role_name", "").strip()
+        description = request.POST.get("description", "").strip()
+        permission_ids = [
+            pid for pid in request.POST.getlist("permissions") if pid
+        ]
+
+        if not role_name:
+            messages.error(request, "Role name is required")
+            return redirect('accounts:updaterole', role_id=role.id)
+
+        if Role.objects.filter(name=role_name).exclude(id=role.id).exists():
+            messages.error(request, "Role name already exists")
+            return redirect('accounts:updaterole', role_id=role.id)
+
+        role.name = role_name
+        role.description = description
+        role.save()
+        if permission_ids:
+            permissions = Permissions.objects.filter(id__in=permission_ids)
+            role.permissions.set(permissions)
+        else:
+            role.permissions.clear()
+
+        messages.success(request, "Role updated successfully")
         return redirect('accounts:role-list')

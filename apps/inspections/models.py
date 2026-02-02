@@ -316,6 +316,28 @@ class InspectionTemplate(models.Model):
             questions__templatequestion__template=self,
             questions__is_active=True
         ).distinct()
+    
+    def save(self, *args, **kwargs):
+        if not self.template_code:
+            self.template_code = self.generate_template_code()
+            super().save(*args,**kwargs)
+    
+    def generate_template_code(self):
+        """Generate Unique template code for every template"""
+        prefix = f"TEMP-{self.inspection_type}"
+
+        last_template = InspectionTemplate.objects.filter(template_code__startswith=prefix).order_by('-template_code').first()
+
+        if last_template:
+            try:
+                last_num = int(last_template.template_code.split('-')[-1])
+                new_num = last_num + 1
+            except(ValueError,IndexError):
+                new_num = 1
+        else:
+            new_num = 1
+        
+        return f"{prefix}-{new_num:03d}"
 
 
 class TemplateQuestion(models.Model):
