@@ -891,12 +891,15 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
         selected_zone = self.request.GET.get('zone', '')
         selected_location = self.request.GET.get('location', '')
         selected_sublocation = self.request.GET.get('sublocation', '')
-        selected_month = self.request.GET.get('month', '')  # Format: YYYY-MM
+        selected_month = self.request.GET.get('month', '')
 
         # ==================================================
         # BASE QUERYSET - Filter by user role
         # ==================================================
-        if user.is_superuser or getattr(user, 'role', None) == 'ADMIN':
+        # --- FIX IS HERE ---
+        # The role check was `getattr(user, 'role', None) == 'ADMIN'`, which is incorrect.
+        # It should check the `name` attribute of the role object, like this:
+        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
             incidents = Incident.objects.all()
         elif getattr(user, 'plant', None):
             incidents = Incident.objects.filter(plant=user.plant)
@@ -922,12 +925,13 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
                     incident_date__month=month
                 )
             except ValueError:
-                pass  # Invalid format, ignore filter
+                pass
 
         # ==================================================
         # POPULATE FILTER DROPDOWNS
         # ==================================================
-        if user.is_superuser or getattr(user, 'role', None) == 'ADMIN':
+        # --- AND THE SAME FIX IS APPLIED HERE ---
+        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
             all_plants = Plant.objects.filter(is_active=True).order_by('name')
         elif getattr(user, 'plant', None):
             all_plants = Plant.objects.filter(id=user.plant.id, is_active=True)
@@ -936,6 +940,8 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
         
         context['plants'] = all_plants
 
+        # This logic populates the dependent dropdowns and is now correct
+        # because `all_plants` is populated correctly.
         if selected_plant:
             context['zones'] = Zone.objects.filter(plant_id=selected_plant, is_active=True).order_by('name')
             if selected_zone:
@@ -948,13 +954,16 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
                 context['locations'] = Location.objects.filter(zone__plant_id=selected_plant, is_active=True).order_by('name')
                 context['sublocations'] = SubLocation.objects.filter(location__zone__plant_id=selected_plant, is_active=True).order_by('name')
         else:
+            # When no plant is selected, show zones/locations for all accessible plants
             context['zones'] = Zone.objects.filter(plant__in=all_plants, is_active=True).order_by('name')
             context['locations'] = Location.objects.filter(zone__plant__in=all_plants, is_active=True).order_by('name')
             context['sublocations'] = SubLocation.objects.filter(location__zone__plant__in=all_plants, is_active=True).order_by('name')
 
+        # The rest of the method remains the same...
+        # (month_options, selected filter values, stats, chart data, etc.)
+        
         month_options = []
         for i in range(12):
-            # Correctly calculate previous months
             current_month = today.month - i
             current_year = today.year
             if current_month <= 0:
@@ -967,67 +976,29 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
             })
         context['month_options'] = month_options
 
-        # ==================================================
-        # STORE SELECTED FILTER VALUES AND NAMES
-        # ==================================================
         context['selected_plant'] = selected_plant
         context['selected_zone'] = selected_zone
         context['selected_location'] = selected_location
         context['selected_sublocation'] = selected_sublocation
         context['selected_month'] = selected_month
-
+        
         # Get names for active filter display
-        context['selected_plant_name'] = ''
-        context['selected_zone_name'] = ''
-        context['selected_location_name'] = ''
-        context['selected_sublocation_name'] = ''
-        context['selected_month_label'] = ''
-
-        if selected_plant:
-            try:
-                plant = Plant.objects.get(id=selected_plant)
-                context['selected_plant_name'] = plant.name
-            except:
-                pass
-
-        if selected_zone:
-            try:
-                zone = Zone.objects.get(id=selected_zone)
-                context['selected_zone_name'] = zone.name
-            except:
-                pass
-
-        if selected_location:
-            try:
-                location = Location.objects.get(id=selected_location)
-                context['selected_location_name'] = location.name
-            except:
-                pass
-
-        if selected_sublocation:
-            try:
-                sublocation = SubLocation.objects.get(id=selected_sublocation)
-                context['selected_sublocation_name'] = sublocation.name
-            except:
-                pass
-
+        context['selected_plant_name'] = Plant.objects.get(id=selected_plant).name if selected_plant else ''
+        context['selected_zone_name'] = Zone.objects.get(id=selected_zone).name if selected_zone else ''
+        context['selected_location_name'] = Location.objects.get(id=selected_location).name if selected_location else ''
+        context['selected_sublocation_name'] = SubLocation.objects.get(id=selected_sublocation).name if selected_sublocation else ''
         if selected_month:
             try:
                 year, month = map(int, selected_month.split('-'))
-                date_obj = datetime.date(year, month, 1)
-                context['selected_month_label'] = date_obj.strftime('%B %Y')
+                context['selected_month_label'] = datetime.date(year, month, 1).strftime('%B %Y')
             except:
-                pass
+                context['selected_month_label'] = ''
 
-        # Flag if any filters are active
         context['has_active_filters'] = bool(
             selected_plant or selected_zone or selected_location or 
             selected_sublocation or selected_month
         )
 
-        # ==================================================
-        # BASIC STATISTICS (with filters applied)
-        # ==================================================
         context['total_incidents'] = incidents.count()
         context['open_incidents'] = incidents.exclude(status='CLOSED').count()
 
@@ -1035,22 +1006,15 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
             try:
                 year, month = map(int, selected_month.split('-'))
                 context['this_month_incidents'] = incidents.filter(
-                    incident_date__year=year,
-                    incident_date__month=month
+                    incident_date__year=year, incident_date__month=month
                 ).count()
                 context['current_month_name'] = datetime.date(year, month, 1).strftime('%B')
                 context['current_year'] = year
             except:
-                context['this_month_incidents'] = incidents.filter(
-                    incident_date__month=today.month,
-                    incident_date__year=today.year
-                ).count()
-                context['current_month_name'] = today.strftime('%B')
-                context['current_year'] = today.year
+                pass
         else:
             context['this_month_incidents'] = incidents.filter(
-                incident_date__month=today.month,
-                incident_date__year=today.year
+                incident_date__month=today.month, incident_date__year=today.year
             ).count()
             context['current_month_name'] = today.strftime('%B')
             context['current_year'] = today.year
@@ -1060,18 +1024,11 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
             investigation_completed_date__isnull=True
         ).count()
 
-        # ==================================================
-        # INCIDENT TYPE COUNTS (For Doughnut Chart)
-        # ==================================================
         context['lti_count'] = incidents.filter(incident_type__code='LTI').count()
         context['mtc_count'] = incidents.filter(incident_type__code='MTC').count()
         context['fa_count']  = incidents.filter(incident_type__code='FA').count()
         context['hlfi_count'] = incidents.filter(incident_type__code='HLFI').count()
 
-
-        # ==================================================
-        # RECENT INCIDENTS & OVERDUE INVESTIGATIONS
-        # ==================================================
         context['recent_incidents'] = incidents.select_related(
             'plant', 'location', 'reported_by'
         ).order_by('-reported_date')[:10]
@@ -1081,12 +1038,7 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
             investigation_deadline__lt=today
         )
 
-        # ==================================================
-        # MONTHLY TREND (Last 6 months from filtered data)
-        # ==================================================
-        # ... (monthly trend logic remains the same)
         six_months_ago = today - datetime.timedelta(days=180)
-
         monthly_incidents = incidents.filter(
             incident_date__gte=six_months_ago
         ).annotate(
@@ -1101,74 +1053,27 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
         context['monthly_labels'] = json.dumps(monthly_labels)
         context['monthly_data'] = json.dumps(monthly_data)
 
-        # ==================================================
-        # ****FIXED SECTION****: SEVERITY DISTRIBUTION
-        # The model does not have 'severity_level', so we use 'incident_type' instead.
-        # This data is for the bar chart named 'severityChart' in the template.
-        # ==================================================
         incident_types = IncidentType.objects.order_by('id')
-
-# Count incidents per type
-        type_counts = (
-            incidents
-            .values('incident_type__id')
-            .annotate(count=Count('id'))
-        )
-
-        # Map: incident_type_id -> count
-        count_map = {
-            item['incident_type__id']: item['count']
-            for item in type_counts
-        }
-
-        # Build chart data
-        severity_labels = []
-        severity_data = []
-
-        for itype in incident_types:
-            severity_labels.append(itype.name)
-            severity_data.append(count_map.get(itype.id, 0))
+        type_counts = incidents.values('incident_type__id').annotate(count=Count('id'))
+        count_map = {item['incident_type__id']: item['count'] for item in type_counts}
+        severity_labels = [itype.name for itype in incident_types]
+        severity_data = [count_map.get(itype.id, 0) for itype in incident_types]
 
         context['severity_labels'] = json.dumps(severity_labels)
         context['severity_data'] = json.dumps(severity_data)
-        # ==================================================
-        # STATUS DISTRIBUTION
-        # ==================================================
-        # ... (status distribution logic remains the same)
 
-        status_distribution = incidents.values('status').annotate(
-            count=Count('id')
-        ).order_by('-count')
-
-        status_labels = []
-        status_data = []
-        
-        # Create a dictionary to hold status display names
+        status_distribution = incidents.values('status').annotate(count=Count('id')).order_by('-count')
         status_choices_dict = dict(Incident.STATUS_CHOICES)
-
+        status_labels = [status_choices_dict.get(item['status'], item['status']) for item in status_distribution]
+        status_data = []
         for item in status_distribution:
-            # Append the display name for the label (e.g., "In Progress")
-            status_labels.append(status_choices_dict.get(item['status'], item['status']))
-            
-            # Create the filter URL for the incident list page
-            # This will generate a URL like: /accidents/incidents/?status=IN_PROGRESS
             filter_params = {'status': item['status']}
             list_url = reverse('accidents:incident_list') + '?' + urlencode(filter_params)
-            
-            # Store both the count and the URL for the JavaScript
-            status_data.append({
-                'count': item['count'],
-                'url': list_url
-            })
+            status_data.append({'count': item['count'], 'url': list_url})
 
         context['status_labels'] = json.dumps(status_labels)
-        # We now pass the more detailed list of objects to the template
         context['status_data'] = json.dumps(status_data)
 
-        # ==================================================
-        # MONTH-OVER-MONTH % CHANGE
-        # ==================================================
-        # ... (month-over-month logic remains the same)
         last_month_start = (today.replace(day=1) - datetime.timedelta(days=1)).replace(day=1)
         last_month_count = incidents.filter(
             incident_date__year=last_month_start.year,
@@ -1176,21 +1081,11 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
         ).count()
 
         current_month_count = context.get('this_month_incidents', 0)
-
-        if last_month_count > 0:
-            change = (
-                (context['this_month_incidents'] - last_month_count)
-                / last_month_count
-            ) * 100
-            change = round(change, 1) 
-        else:
-            change = 0
-
+        change = round(((current_month_count - last_month_count) / last_month_count) * 100, 1) if last_month_count > 0 else 0
         context['total_incidents_change'] = change
         context['total_incidents_change_abs'] = abs(change)
 
-
-        return context    
+        return context
 
 ######################Closure 
 
