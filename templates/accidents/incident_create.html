@@ -694,6 +694,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const incidentTypeSelect = document.getElementById('id_incident_type');
     const bodyPartsSection = document.getElementById('bodyPartsSection');
     const natureOfInjuryField = document.getElementById('id_nature_of_injury');
+    const form = document.getElementById('incidentForm');
+    let isSubmitting = false;
     
     // Age calculation fields
     const dateOfBirthField = document.getElementById('id_affected_date_of_birth');
@@ -837,6 +839,17 @@ document.addEventListener('DOMContentLoaded', function() {
             unsafeConditions.push(checkbox.value);
         });
         document.getElementById('unsafeConditionsJson').value = JSON.stringify(unsafeConditions);
+        // To prevent multiple submit
+        if (isSubmitting) {
+            e.preventDefault();
+            return false;
+        }
+        isSubmitting = true;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+        }
     });
     
     // Optional: Set current date and time as default (user can change)

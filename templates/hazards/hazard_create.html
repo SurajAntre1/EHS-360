@@ -477,7 +477,7 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-
+    let isSubmitting = false;
     // =========================================================================
     // DATE & SYSTEM FIELDS
     // =========================================================================
@@ -679,7 +679,17 @@ $(document).ready(function() {
             }
         });
     }
-
+    // for multiple submit
+    $('#hazardForm').on('submit',function(e){
+        if(isSubmitting){
+            e.preventDefault();
+            return false;
+        }
+        isSubmitting = true;
+        const $submitBtn = $(this).find('button[type="submit"]');
+        $submitBtn.prop('disabled',true);
+        $submitBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...');
+    });
 });
 </script>
 {% endblock %}
