@@ -83,17 +83,13 @@ class InspectionQuestionForm(forms.ModelForm):
             'is_active'
         ]
         widgets = {
-            'category': forms.Select(attrs={
-                'class': 'form-control'
-            }),
+            'category': forms.Select(attrs={'class': 'form-control'}),
             'question_text': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
                 'placeholder': 'Enter the inspection question'
             }),
-            'question_type': forms.Select(attrs={
-                'class': 'form-control'
-            }),
+            'question_type': forms.Select(attrs={'class': 'form-control'}),
             'weightage': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'min': '0',
@@ -115,32 +111,26 @@ class InspectionQuestionForm(forms.ModelForm):
                 'rows': 2,
                 'placeholder': 'Additional guidance for inspectors'
             }),
-            'is_remarks_mandatory': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            }),
-            'is_photo_required': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            }),
-            'is_critical': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            }),
-            'auto_generate_finding': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            }),
-            'is_active': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            })
+            'is_remarks_mandatory': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_photo_required': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_critical': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'auto_generate_finding': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'})
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['category'].empty_label = "Select Category"
+        self.fields['question_type'].choices = [('', 'Select Question Type')] + list(
+            self.fields['question_type'].choices
+        )
 
-# apps/inspections/forms.py
 
 class InspectionTemplateForm(forms.ModelForm):
     class Meta:
         model = InspectionTemplate
         fields = [
             'template_name',
-            # 'template_code',  # REMOVE THIS - auto-generated
             'inspection_type',
             'description',
             'applicable_plants',
@@ -154,9 +144,7 @@ class InspectionTemplateForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'e.g., Monthly Plant Safety Inspection'
             }),
-            'inspection_type': forms.Select(attrs={
-                'class': 'form-control'
-            }),
+            'inspection_type': forms.Select(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
@@ -177,24 +165,23 @@ class InspectionTemplateForm(forms.ModelForm):
                 'step': '0.01',
                 'value': '80.00'
             }),
-            'requires_approval': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            }),
-            'is_active': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            })
+            'requires_approval': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'})
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['inspection_type'].choices = [('', 'Select Inspection Type')] + list(
+            self.fields['inspection_type'].choices
+        )
+
+
 class TemplateQuestionForm(forms.ModelForm):
-    """Form for adding single question to template"""
-    
     class Meta:
         model = TemplateQuestion
         fields = ['question', 'display_order', 'section_name', 'is_mandatory']
         widgets = {
-            'question': forms.Select(attrs={
-                'class': 'form-control'
-            }),
+            'question': forms.Select(attrs={'class': 'form-control'}),
             'display_order': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'min': '0',
@@ -204,32 +191,33 @@ class TemplateQuestionForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Optional: Section name'
             }),
-            'is_mandatory': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            })
+            'is_mandatory': forms.CheckboxInput(attrs={'class': 'form-check-input'})
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['question'].empty_label = "Select Question"
 
 
 class BulkAddQuestionsForm(forms.Form):
-    """Form for bulk adding questions to template"""
-    
     category = forms.ModelChoiceField(
         queryset=InspectionCategory.objects.filter(is_active=True),
         required=False,
+        empty_label="All Categories",
         widget=forms.Select(attrs={
             'class': 'form-control',
             'id': 'id_bulk_category'
         }),
         label="Filter by Category"
     )
-    
+
     questions = forms.ModelMultipleChoiceField(
         queryset=InspectionQuestion.objects.filter(is_active=True),
         widget=forms.CheckboxSelectMultiple,
         required=True,
         label="Select Questions"
     )
-    
+
     section_name = forms.CharField(
         max_length=200,
         required=False,
@@ -239,14 +227,15 @@ class BulkAddQuestionsForm(forms.Form):
         }),
         label="Section Name (Optional)"
     )
-    
+
     def __init__(self, *args, **kwargs):
         template = kwargs.pop('template', None)
         super().__init__(*args, **kwargs)
-        
+
         if template:
-            # Exclude questions already in template
-            existing_question_ids = template.template_questions.values_list('question_id', flat=True)
+            existing_question_ids = template.template_questions.values_list(
+                'question_id', flat=True
+            )
             self.fields['questions'].queryset = InspectionQuestion.objects.filter(
                 is_active=True
             ).exclude(id__in=existing_question_ids)
@@ -268,98 +257,76 @@ class InspectionScheduleForm(forms.ModelForm):
             'assignment_notes'
         ]
         widgets = {
-            'template': forms.Select(attrs={
-                'class': 'form-control'
-            }),
+            'template': forms.Select(attrs={'class': 'form-control'}),
             'assigned_to': forms.Select(attrs={
                 'class': 'form-control select2',
                 'data-placeholder': 'Select HOD'
             }),
-            'plant': forms.Select(attrs={
-                'class': 'form-control',
-                'id': 'id_plant'
-            }),
-            'zone': forms.Select(attrs={
-                'class': 'form-control',
-                'id': 'id_zone'
-            }),
-            'location': forms.Select(attrs={
-                'class': 'form-control',
-                'id': 'id_location'
-            }),
-            'sublocation': forms.Select(attrs={
-                'class': 'form-control',
-                'id': 'id_sublocation'
-            }),
-            'department': forms.Select(attrs={
-                'class': 'form-control'
-            }),
-            'scheduled_date': forms.DateInput(attrs={
-                'class': 'form-control',
-                'type': 'date'
-            }),
-            'due_date': forms.DateInput(attrs={
-                'class': 'form-control',
-                'type': 'date'
-            }),
+            'plant': forms.Select(attrs={'class': 'form-control', 'id': 'id_plant'}),
+            'zone': forms.Select(attrs={'class': 'form-control', 'id': 'id_zone'}),
+            'location': forms.Select(attrs={'class': 'form-control', 'id': 'id_location'}),
+            'sublocation': forms.Select(attrs={'class': 'form-control', 'id': 'id_sublocation'}),
+            'department': forms.Select(attrs={'class': 'form-control'}),
+            'scheduled_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'assignment_notes': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
                 'placeholder': 'Any special instructions for the inspector'
             })
         }
-    
+
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        
-        # Filter HODs only
+
+        self.fields['template'].queryset = InspectionTemplate.objects.filter(is_active=True)
+        self.fields['template'].empty_label = "Select Inspection Template"
+
         self.fields['assigned_to'].queryset = User.objects.filter(
             role__name='HOD',
             is_active_employee=True
         ).order_by('first_name', 'last_name')
-        
-        # Filter active templates
-        self.fields['template'].queryset = InspectionTemplate.objects.filter(
-            is_active=True
-        )
-        
+        self.fields['assigned_to'].empty_label = "Select HOD"
+
+        self.fields['plant'].empty_label = "Select Plant"
+        self.fields['zone'].empty_label = "Select Zone"
+        self.fields['location'].empty_label = "Select Location"
+        self.fields['sublocation'].empty_label = "Select Sub-Location"
+        self.fields['department'].empty_label = "Select Department"
+
         if user and not user.is_superuser:
-            # Filter plants based on user access
             self.fields['plant'].queryset = Plant.objects.filter(
                 id__in=[p.id for p in user.get_all_plants()]
             )
-    
+
     def clean(self):
         cleaned_data = super().clean()
         scheduled_date = cleaned_data.get('scheduled_date')
         due_date = cleaned_data.get('due_date')
-        
-        if scheduled_date and due_date:
-            if due_date < scheduled_date:
-                raise ValidationError({
-                    'due_date': 'Due date cannot be before scheduled date.'
-                })
-        
+
+        if scheduled_date and due_date and due_date < scheduled_date:
+            raise ValidationError({
+                'due_date': 'Due date cannot be before scheduled date.'
+            })
+
         return cleaned_data
 
 
 class QuestionFilterForm(forms.Form):
-    """Filter form for question list"""
-    
     category = forms.ModelChoiceField(
         queryset=InspectionCategory.objects.filter(is_active=True),
         required=False,
         empty_label="All Categories",
         widget=forms.Select(attrs={'class': 'form-control'})
     )
-    
+
     question_type = forms.ChoiceField(
         choices=[('', 'All Types')] + InspectionQuestion.QUESTION_TYPE_CHOICES,
         required=False,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
-    
+
     is_critical = forms.NullBooleanField(
         required=False,
         widget=forms.Select(
@@ -371,7 +338,7 @@ class QuestionFilterForm(forms.Form):
             attrs={'class': 'form-control'}
         )
     )
-    
+
     search = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={
