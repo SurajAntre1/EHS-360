@@ -331,6 +331,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Age Calculation
     var dobInput = document.getElementById('id_date_of_birth');
     var ageDisplay = document.getElementById('id_age_display');
+    const form = document.getElementById('userForm');
+    let isSubmitting = false;
 
     if (dobInput) {
         dobInput.addEventListener('change', function() {
@@ -360,6 +362,24 @@ document.addEventListener('DOMContentLoaded', function() {
     if (joiningDateInput) {
         var today = new Date();
         joiningDateInput.max = today.toISOString().split('T')[0];
+    }
+    if (form) {
+        form.addEventListener('submit', function (e) {
+
+            if (isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+
+            isSubmitting = true;
+
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML =
+                    '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
+            }
+        });
     }
 });
 
