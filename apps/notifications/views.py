@@ -74,8 +74,10 @@ def notification_master_create(request):
             elif event_code.startswith('HAZARD'):
                 module = 'HAZARD'
             elif event_code.startswith('ENV'):
-                module = 'ENVIRONMENTAL'
+                module = 'ENV'
             elif event_code.startswith('INSPECTION'):
+                module = 'INSPECTION'
+            elif event_code.startswith('INSPECTION') or event_code == 'NOTIFY_INSPECTION':
                 module = 'INSPECTION'
             else:
                 continue

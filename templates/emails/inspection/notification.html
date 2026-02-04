@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Inspection Assigned</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body
+    style="
+        margin: 0;
+        padding: 0;
+        background-color: #f2f4f7;
+        font-family: Arial, Helvetica, sans-serif;
+    "
+>
+    <table
+        width="100%"
+        cellpadding="0"
+        cellspacing="0"
+        style="background-color:#f2f4f7; padding:20px 0;"
+    >
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+                    <tr>
+                        <td style="background: linear-gradient(135deg,#1E90FF,#4CAF50); padding:25px; text-align:center; color:#ffffff;">
+                            <h1 style="margin:0; font-size:22px;">
+                                🔍 Inspection Assigned
+                            </h1>
+                            <p style="margin:8px 0 0; font-size:14px; opacity:0.95;">
+                                EHS-360 Inspection Management
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:30px; color:#333333; font-size:14px; line-height:1.6;">
+                            <p>
+                                Dear
+                                <strong>{{ schedule.assigned_to.get_full_name }}</strong>,
+                            </p>
+
+                            <p>
+                                You have been assigned a new inspection.
+                                Please review the details below and ensure completion
+                                before the due date.
+                            </p>
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                                <tr>
+                                    <td style="background:#f9fafb; padding:18px; border-left:4px solid #1E90FF; border-radius:4px;">
+                                        <h3 style="margin:0 0 12px; color:#1E90FF; font-size:16px;">📋 Inspection Details</h3>
+                                        <p><strong>Schedule Code:</strong> {{ schedule.schedule_code }}</p>
+                                        <p><strong>Template:</strong> {{ schedule.template.template_name }}</p>
+                                        <p>
+                                            <strong>Inspection Type:</strong>
+                                            {{ schedule.template.get_inspection_type_display }}
+                                        </p>
+                                        <p>
+                                            <strong>Total Questions:</strong>
+                                            {{ schedule.template.get_total_questions }}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                                <tr>
+                                    <td style="background:#f9fafb; padding:18px; border-left:4px solid #4CAF50; border-radius:4px;">
+                                        <h3 style="margin:0 0 12px; color:#4CAF50; font-size:16px;">
+                                            📍 Location Details
+                                        </h3>
+                                        <p><strong>Plant:</strong> {{ schedule.plant.name }}</p>
+                                        {% if schedule.zone %}
+                                            <p><strong>Zone:</strong> {{ schedule.zone.name }}</p>
+                                        {% endif %}
+                                        {% if schedule.location %}
+                                            <p><strong>Location:</strong> {{ schedule.location.name }}</p>
+                                        {% endif %}
+                                        {% if schedule.department %}
+                                            <p><strong>Department:</strong> {{ schedule.department.name }}</p>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                                <tr>
+                                    <td
+                                        style="
+                                            background:#fff4e5;
+                                            padding:18px;
+                                            border-left:4px solid #ff9800; border-radius:4px;">
+                                        <h3
+                                            style="
+                                                margin:0 0 10px;
+                                                color:#ff9800;
+                                                font-size:16px;
+                                            "
+                                        >
+                                            ⏰ Important Dates
+                                        </h3>
+
+                                        <p>
+                                            <strong>Scheduled Date:</strong>
+                                            {{ schedule.scheduled_date|date:"d M Y" }}
+                                        </p>
+
+                                        <p style="color:#dc3545;">
+                                            <strong>Due Date:</strong>
+                                            {{ schedule.due_date|date:"d M Y" }}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- ========= SPECIAL INSTRUCTIONS ========= -->
+                            {% if schedule.assignment_notes %}
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                                    <tr>
+                                        <td
+                                            style="
+                                                background:#f9fafb;
+                                                padding:18px;
+                                                border-left:4px solid #6c757d;
+                                                border-radius:4px;
+                                            "
+                                        >
+                                            <h3
+                                                style="
+                                                    margin:0 0 10px;
+                                                    color:#6c757d;
+                                                    font-size:16px;
+                                                "
+                                            >
+                                                📝 Special Instructions
+                                            </h3>
+
+                                            <p style="margin:0;">
+                                                {{ schedule.assignment_notes }}
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            {% endif %}
+                            <p style="margin-top:30px; font-size:13px; color:#555;">
+                                <strong>Assigned by:</strong>
+                                {{ schedule.assigned_by.get_full_name }}<br>
+                                <strong>Assigned on:</strong>
+                                {{ schedule.created_at|date:"d M Y H:i" }}
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background:#f2f4f7; padding:20px; text-align:center; font-size:12px; color:#777;">
+                            <p>This is an automated message from EHS-360</p>
+                            <p>Please do not reply to this email</p>
+                            <p>© {{ current_year }} EHS-360. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -285,10 +285,8 @@
                             <label>
                                  <i class="fas fa-flag"></i> Initial Status
                             </label>
-                            <input type="text" id="initialStatus" class="form-control" value="Completed" readonly style="background-color: #e9ecef;">
+                            <input type="text" id="initialStatus" class="form-control" value="Pending" readonly style="background-color: #e9ecef;">
                         </div>
-
-                    <input type="hidden" name="initial_status" id="initialStatusValue" value="completed">
 
 
                         <!-- Submit Buttons -->
@@ -337,7 +335,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const emailCount = document.getElementById('emailCount');
     const targetDateInput = document.getElementById('id_target_date');
     const initialStatusInput = document.getElementById('initialStatus');
-    const initialStatusValue = document.getElementById('initialStatusValue');
     const statusHelpText = document.getElementById('statusHelpText');
 
     
@@ -355,27 +352,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     targetDateInput.setAttribute('min', today);
     
+    function updateInitialStatusByDate() {
+    if (!targetDateInput.value) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(targetDateInput.value);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    if (selectedDate > today) {
+        initialStatusInput.value = 'Pending';
+        initialStatusValue.value = 'pending';
+    } else {
+        initialStatusInput.value = 'Completed';
+        initialStatusValue.value = 'completed';
+    }
+}
+
     // Toggle assignment type
     function toggleAssignmentType() {
     if (assignSelf.checked) {
         emailAssignmentSection.style.display = 'none';
-        initialStatusInput.value = 'Completed';
-        initialStatusValue.value = 'completed';
-
         emails = [];
         updateUI();
     } else {
         emailAssignmentSection.style.display = 'block';
-        initialStatusInput.value = 'Pending';
-        initialStatusValue.value = 'pending';
-        statusHelpText.innerHTML = `
-            <i class="fas fa-info-circle"></i>
-            This action will start in <strong>Pending</strong> status until completed.
-        `;
     }
+    updateInitialStatusByDate();
 }
 
-    
+    targetDateInput.addEventListener('change', updateInitialStatusByDate);
     assignSelf.addEventListener('change', toggleAssignmentType);
     assignOthers.addEventListener('change', toggleAssignmentType);
     

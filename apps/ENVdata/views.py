@@ -13,6 +13,7 @@ from apps.organizations.models import Plant
 from .models import *
 from .utils import EnvironmentalDataFetcher
 from django.shortcuts import render, redirect, get_object_or_404
+from apps.notifications.services import NotificationService
 # =========================================================
 # API ENDPOINTS FOR QUESTIONS MANAGER
 # =========================================================
@@ -590,6 +591,13 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                 except (ValueError, Decimal.InvalidOperation):
                     messages.warning(request, f"Invalid value for {q.question_text} in {month_name}")
                     continue
+                
+        if saved_count > 0:
+            NotificationService.notify(
+            content_object = selected_plant,
+            notification_type = 'ENV_DATA_SUBMITTED',
+            module='ENV'
+            )
 
         messages.success(request, f"✓ Data saved successfully! {saved_count} entries updated for {selected_plant.name}")
         return redirect(f"{request.path}?plant_id={selected_plant.id}&saved=1")
