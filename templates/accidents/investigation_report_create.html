@@ -185,15 +185,25 @@
           </div>
 
           <div class="row">
-            <div class="col-md-12 mb-3">
-              <label for="{{ form.investigation_team.id_for_label }}">Investigation Team Members <span class="text-danger">*</span></label>
-              {{ form.investigation_team }}
-              <small class="form-text text-muted">Names of all team members involved in investigation</small>
-              {% if form.investigation_team.errors %}
-                <div class="text-danger">{{ form.investigation_team.errors }}</div>
-              {% endif %}
-            </div>
+          <div class="col-md-12 mb-3">
+            <label for="{{ form.investigation_team.id_for_label }}">
+              Investigation Team Emails <span class="text-danger">*</span>
+            </label>
+
+            {{ form.investigation_team }}
+
+            <small class="form-text text-muted">
+              Enter one or more email addresses separated by commas.
+            </small>
+
+            {% if form.investigation_team.errors %}
+              <div class="invalid-feedback d-block">
+                {{ form.investigation_team.errors }}
+              </div>
+            {% endif %}
           </div>
+        </div>
+
 
           <hr>
 
