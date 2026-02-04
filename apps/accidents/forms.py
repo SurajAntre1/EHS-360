@@ -477,33 +477,52 @@ class IncidentInvestigationReportForm(forms.ModelForm):
             'completed_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
 
-class IncidentActionItemForm(forms.ModelForm):
-    """Form for action items with email validation."""
 
-    responsible_person_emails = forms.CharField(
-        label="Responsible Person (Email Addresses)",
+# Custom form field to display user's full name and email.
+class UserChoiceField(forms.ModelMultipleChoiceField):
+    """
+    Custom field to display user choices as 'Full Name (email)'.
+    """
+    def label_from_instance(self, obj):
+        # This method controls how each user object is displayed in the dropdown.
+        full_name = obj.get_full_name()
+        if full_name and full_name.strip():
+            return f"{full_name} ({obj.email})"
+        return obj.email # Fallback to email if full name is not available.
+
+
+class IncidentActionItemForm(forms.ModelForm):
+    """
+    Form for action items, using the custom UserChoiceField for responsible persons.
+    """
+    # Use the new UserChoiceField to get the desired display format.
+    responsible_person = UserChoiceField(
+        queryset=User.objects.order_by('first_name', 'last_name'), # Ordering users by name
+        widget=forms.SelectMultiple(attrs={
+            'class': 'form-control select2-responsible-person', # Class for Select2 JS
+            'data-placeholder': 'Search and select person(s)...'
+        }),
         required=True,
-        widget=forms.TextInput(attrs={
-            'placeholder': 'Type email and press Enter or comma...'
-        })
+        label="Responsible Person(s)"
     )
 
     class Meta:
         model = IncidentActionItem
         fields = [
             'action_description',
+            'responsible_person',
             'target_date',
             'status',
             'completion_date',
         ]
-
         widgets = {
             'action_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'target_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
             'completion_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
-
+        
+        
     def clean_responsible_person_emails(self):
         """
         Custom validation to ensure all provided emails belong to existing users.

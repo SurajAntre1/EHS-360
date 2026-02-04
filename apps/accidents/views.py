@@ -653,134 +653,105 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         """Add the incident and action item formset to the context."""
         context = super().get_context_data(**kwargs)
         context['incident'] = self.incident
-        
+
         ActionItemFormSet = inlineformset_factory(
-            Incident, 
-            IncidentActionItem, 
-            form=IncidentActionItemForm, 
+            Incident,
+            IncidentActionItem,
+            form=IncidentActionItemForm,
             extra=1,
-            can_delete=False,
-            exclude=['responsible_person'] # This is correct
+            can_delete=False
+            # responsible_person is now INCLUDED
         )
-        
+
         if self.request.POST:
-            context['action_item_formset'] = ActionItemFormSet(self.request.POST, instance=self.incident, prefix='actionitems')
+            context['action_item_formset'] = ActionItemFormSet(
+                self.request.POST,
+                instance=self.incident,
+                prefix='actionitems'
+            )
         else:
-            context['action_item_formset'] = ActionItemFormSet(instance=self.incident, prefix='actionitems')
-            
+            context['action_item_formset'] = ActionItemFormSet(
+                instance=self.incident,
+                prefix='actionitems'
+            )
+
         return context
 
     def form_valid(self, form):
-        """
-        Process the main form and the action item formset.
-        This version is more robust for handling formset processing.
-        """
+        """Process the main form and the action item formset."""
         context = self.get_context_data()
         action_item_formset = context['action_item_formset']
 
-        # First, validate both the main form and the formset
         if not action_item_formset.is_valid():
-            messages.error(self.request, "There was an error with the action items. Please check the details.")
+            messages.error(
+                self.request,
+                "There was an error with the action items. Please check the details."
+            )
             return self.form_invalid(form)
 
-        # 1. Save the main investigation report
+        # 1. Save investigation report
         investigation = form.save(commit=False)
         investigation.investigator = self.request.user
         investigation.completed_by = self.request.user
         investigation.incident = self.incident
-        
-        # Process personal and job factors from hidden inputs
+
+        # Process personal & job factors JSON
         personal_factors_json = self.request.POST.get('personal_factors_json', '[]')
         job_factors_json = self.request.POST.get('job_factors_json', '[]')
+
         try:
             investigation.personal_factors = json.loads(personal_factors_json)
             investigation.job_factors = json.loads(job_factors_json)
         except json.JSONDecodeError:
             investigation.personal_factors = []
             investigation.job_factors = []
-        
+
         investigation.save()
 
-        # 2. Process and save each action item form individually
-        # We iterate over the forms in the formset directly.
-        for action_form in action_item_formset:
-            # We only process forms that have data entered into them
-            if action_form.has_changed():
-                action_item = action_form.save(commit=False)
-                action_item.incident = self.incident
-                action_item.save()  # Save the action item instance to get an ID
+        # 2. Save action items (ManyToMany handled by formset)
+        action_items = action_item_formset.save(commit=False)
+        for action_item in action_items:
+            action_item.incident = self.incident
+            action_item.save()
 
-                # Get the emails from this specific form's cleaned data
-                emails_string = action_form.cleaned_data.get('responsible_person_emails')
-                
-                if emails_string:
-                    # Split the string of emails into a list
-                    email_list = [email.strip() for email in emails_string.split(',') if email.strip()]
-                    
-                    # Find User objects that match the emails.
-                    # Our new form validation guarantees that these users exist.
-                    users = User.objects.filter(email__in=email_list)
-                    
-                    # Set the many-to-many relationship for the responsible persons
-                    action_item.responsible_person.set(users)
-        
-        # Update incident status after investigation is complete
+        # Save M2M relationships (responsible_person)
+        action_item_formset.save_m2m()
+
+        # 3. Update incident status
         self.incident.status = 'ACTION_IN_PROGRESS'
         self.incident.investigation_completed_date = investigation.completed_date
         self.incident.save()
-        # ===== ADD NOTIFICATION: Investigation Completed =====
+
+        # 4. Notifications
         try:
             from apps.notifications.services import NotificationService
-            
-            # Notify that investigation was completed
-            # You'll need to add 'INCIDENT_INVESTIGATION_COMPLETED' to your NotificationMaster
+
             NotificationService.notify(
                 content_object=investigation,
                 notification_type='INCIDENT_INVESTIGATION_COMPLETED',
                 module='INCIDENT_INVESTIGATION_REPORTED'
             )
-            
+
             print("✅ Investigation completion notifications sent")
         except Exception as e:
             print(f"❌ Error sending investigation notifications: {e}")
 
-        messages.success(self.request, "Investigation report and action items have been created successfully.")
-        return redirect(self.get_success_url())
-
-        messages.success(self.request, "Investigation report and action items have been created successfully.")
+        messages.success(
+            self.request,
+            "Investigation report and action items have been created successfully."
+        )
         return redirect(self.get_success_url())
 
     def form_invalid(self, form):
-        """
-        If the main form is invalid, or if the formset is invalid (handled in form_valid),
-        re-render the page with appropriate error messages.
-        """
-        # The error message for an invalid formset is now added in form_valid.
-        # This will show errors from our new email validation.
+        """Handle invalid form or formset."""
         messages.error(self.request, "Please correct the errors in the form below.")
         return super().form_invalid(form)
-        
-    def get_success_url(self):
-        """Return the URL to redirect to after successful submission."""
-        return reverse('accidents:incident_detail', kwargs={'pk': self.incident.pk})
 
-    def form_invalid(self, form):
-        """
-        If the form is invalid, re-render the page with error messages.
-        This also handles the case where the action_item_formset might be invalid.
-        """
-        context = self.get_context_data()
-        action_item_formset = context['action_item_formset']
-        
-        # Add a generic error message if the formset is the one with errors
-        if not action_item_formset.is_valid():
-             messages.error(self.request, "Please correct the errors in the action items section below.")
-
-        return super().form_invalid(form)
-        
     def get_success_url(self):
-        """Return the URL to redirect to after successful submission."""
-        return reverse_lazy('accidents:incident_detail', kwargs={'pk': self.incident.pk})
+        return reverse_lazy(
+            'accidents:incident_detail',
+            kwargs={'pk': self.incident.pk}
+        )
     
 class ActionItemCreateView(LoginRequiredMixin, CreateView):
     """Create action item"""
