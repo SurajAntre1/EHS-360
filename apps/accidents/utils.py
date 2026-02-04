@@ -247,7 +247,7 @@ def generate_incident_pdf(incident):
         
         invest_details_data = [
             [Paragraph("<b>Investigation Date:</b>", styles['Label']), Paragraph(investigation.investigation_date.strftime('%d/%m/%Y'), styles['Value']), Paragraph("<b>Lead Investigator:</b>", styles['Label']), Paragraph(get_val(investigation.investigator.get_full_name()), styles['Value'])],
-            [Paragraph("<b>Investigation Team:</b>", styles['Label']), Paragraph(get_val(investigation.investigation_team), styles['Value']), '', ''],
+            [Paragraph("<b>Investigation Team Members Emails:</b>", styles['Label']), Paragraph(get_val(investigation.investigation_team), styles['Value']), '', ''],
         ]
         invest_details_table = Table(invest_details_data, colWidths=[col_width] * 4)
         invest_details_table.setStyle(TableStyle([('GRID', (0,0),(-1,-1),1,border_color), ('VALIGN',(0,0),(-1,-1),'TOP'), ('SPAN', (1, 1), (3, 1)), ('LEFTPADDING', (0, 0), (-1, -1), 6), ('TOPPADDING', (0, 0), (-1, -1), 4), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))

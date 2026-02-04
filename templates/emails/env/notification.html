@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ subject }}</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f8;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #333;
+        }
+        .container {
+            max-width: 720px;
+            margin: 30px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .header {
+            background-color: #5cb85c;
+            color: #ffffff;
+            padding: 20px 30px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .content p {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .details {
+            margin: 20px 0;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+        }
+        .details table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .details th,
+        .details td {
+            padding: 12px 15px;
+            font-size: 14px;
+            text-align: left;
+        }
+        .details th {
+            width: 35%;
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .details tr:not(:last-child) th,
+        .details tr:not(:last-child) td {
+            border-bottom: 1px solid #e5e5e5;
+        }
+        .description {
+            margin-top: 25px;
+        }
+        .description h3 {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .description p {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: pre-line;
+        }
+        .footer {
+            background-color: #f1f1f1;
+            padding: 15px 30px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            background-color: #5cb85c;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>🌱 Environmental Data Submitted</h1>
+    </div>
+
+    <div class="content">
+        <p>Hello {{ recipient.get_full_name|default:recipient.username }},</p>
+
+        <p>
+            Environmental data has been successfully submitted in the system.
+            Please review the details below.
+        </p>
+
+        <div class="details">
+            <table>
+                <tr>
+                    <th>Plant Name</th>
+                    <td>{{ plant.name }}</td>
+                </tr>
+                <tr>
+                    <th>Status</th>
+                    <td>
+                        <span class="badge">Submitted</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Submitted On</th>
+                    <td>{{ plant.updated_at|date:"d M Y, H:i"|default:"N/A" }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="description">
+            <h3>Next Steps</h3>
+            <p>
+                Please log in to the EHS Management System to review the submitted
+                environmental data and take any required action.
+            </p>
+        </div>
+
+        <p>
+            Regards,<br>
+            <strong>EHS Management System</strong>
+        </p>
+    </div>
+
+    <div class="footer">
+        This is an automated email. Please do not reply.
+    </div>
+</div>
+
+</body>
+</html>

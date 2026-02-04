@@ -417,6 +417,11 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
     template_name = 'hazards/action_item_create.html'
     fields = []  # We are handling fields manually in the post method.
 
+    @staticmethod
+    def get_action_item_status(target_date):
+        today = timezone.now().date()
+        return 'PENDING' if target_date > today else 'COMPLETED' 
+
     def dispatch(self, request, *args, **kwargs):
         """
         Ensure the hazard exists before proceeding.
@@ -438,6 +443,9 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
         """
         Handle the POST request to create a new action item.
         """
+        assignment_type = request.POST.get('assignment_type')
+        is_self_assigned = assignment_type == 'self'
+
         try:
             # *** MODIFIED: Check for attachment first ***
             if 'attachment' not in request.FILES:
@@ -452,22 +460,25 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
 
             # Handle assignment type (self or others)
             assignment_type = request.POST.get('assignment_type', 'self')
-            
-            if assignment_type == 'self':
-                action_item.responsible_emails = request.user.email
-                action_item.status = 'COMPLETED'
-                action_item.completion_date = datetime.date.today()
-                is_self_assigned = True
-            else:
-                responsible_emails = request.POST.get('responsible_emails', '').strip()
-                action_item.responsible_emails = responsible_emails
-                action_item.status = 'PENDING'
-                is_self_assigned = False
 
             # Handle target date
             target_date_str = request.POST.get('target_date')
-            if target_date_str:
-                action_item.target_date = datetime.datetime.strptime(target_date_str, '%Y-%m-%d').date()
+            if not target_date_str:
+                messages.error(request, 'Target date is required')
+                return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
+
+            target_date = datetime.datetime.strptime(target_date_str, '%Y-%m-%d').date()
+            action_item.target_date = target_date
+
+            if assignment_type == 'self':
+                action_item.responsible_emails = request.user.email
+            else:
+                action_item.responsible_emails = request.POST.get('responsible_emails', '').strip()
+
+            action_item.status = self.get_action_item_status(target_date)
+
+            if action_item.status == 'COMPLETED':
+                action_item.completion_date = timezone.now().date()
 
             # Handle file attachment
             action_item.attachment = request.FILES['attachment']

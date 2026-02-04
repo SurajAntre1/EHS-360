@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 700px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 22px;
+            color: #F77C2B; /* Safety Orange */
+        }
+        p {
+            margin: 10px 0;
+        }
+        .details {
+            background-color: #f1f1f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .details h2 {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .details p {
+            margin: 5px 0;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #666;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #6DBF4B; /* Green */
+            color: #fff;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ title }}</h1>
+        <p>Hello {{ recipient.get_full_name }},</p>
+        <p>This is a reminder regarding the upcoming inspection. Please find the details below:</p>
+
+        <div class="details">
+            <h2>Inspection Details</h2>
+            <p><strong>Schedule Code:</strong> {{ schedule.schedule_code }}</p>
+            <p><strong>Template:</strong> {{ schedule.template.template_name }}</p>
+            <p><strong>Inspection Type:</strong> {{ schedule.template.get_inspection_type_display }}</p>
+            <p><strong>Plant:</strong> {{ schedule.plant.name }}</p>
+            <p><strong>Department:</strong> {{ schedule.department.name|default:"N/A" }}</p>
+            <p><strong>Assigned By:</strong> {{ schedule.assigned_by.get_full_name }}</p>
+            <p><strong>Scheduled Date:</strong> {{ schedule.scheduled_date }}</p>
+            <p><strong>Due Date:</strong> {{ schedule.due_date }}</p>
+            <p><strong>Status:</strong> {{ schedule.get_status_display }}</p>
+        </div>
+
+        <p>Please ensure the inspection is completed within the scheduled timeframe.</p>
+
+        <a href="{{ site_url }}" class="button">View in EHS System</a>
+
+        <div class="footer">
+            <p>Regards,</p>
+            <p>EHS Management System</p>
+        </div>
+    </div>
+</body>
+</html>
