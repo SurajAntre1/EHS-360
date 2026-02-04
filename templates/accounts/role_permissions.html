@@ -1,0 +1,259 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Manage Role Permissions - {{ role.name }}{% endblock %}
+{% block page_title %}Manage Permissions: {{ role.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .permission-card {
+        border-left: 4px solid #007bff;
+        margin-bottom: 15px;
+    }
+    .permission-checkbox {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+    .category-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 10px 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="content">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Role Info Card -->
+            <div class="card">
+                <div class="card-header bg-primary">
+                    <h3 class="card-title text-white">
+                        <i class="fas fa-user-tag"></i> {{ role.name }}
+                    </h3>
+                    <div class="card-tools">
+                        <a href="{% url 'accounts:role-list' %}" class="btn btn-sm btn-light">
+                            <i class="fas fa-arrow-left"></i> Back to Roles
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> {{ role.description|default:"No description" }}</p>
+                    <p><strong>Users with this role:</strong> 
+                        <span class="badge badge-info">{{ role.role_user.count }}</span>
+                    </p>
+                    <p><strong>Total Permissions:</strong> 
+                        <span class="badge badge-success" id="permissionCount">{{ role.permissions.count }}</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Permissions Management -->
+            <div class="card">
+                <div class="card-header bg-success">
+                    <h3 class="card-title text-white">
+                        <i class="fas fa-key"></i> Assign Permissions
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form id="permissionForm">
+                        {% csrf_token %}
+                        
+                        <!-- Module Access Permissions -->
+                        <div class="category-header">
+                            <h5 class="mb-0"><i class="fas fa-th-large"></i> Module Access Permissions</h5>
+                        </div>
+                        <div class="row mb-4">
+                            {% for perm in module_permissions %}
+                            <div class="col-md-6">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" 
+                                           class="custom-control-input permission-checkbox" 
+                                           id="perm_{{ perm.id }}"
+                                           data-permission-id="{{ perm.id }}"
+                                           data-permission-code="{{ perm.code }}"
+                                           {% if perm.id in role_permission_ids %}checked{% endif %}>
+                                    <label class="custom-control-label" for="perm_{{ perm.id }}">
+                                        <strong>{{ perm.name }}</strong>
+                                        <br><small class="text-muted">{{ perm.description }}</small>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- CRUD Permissions -->
+                        <div class="category-header">
+                            <h5 class="mb-0"><i class="fas fa-edit"></i> Create/Edit/Delete Permissions</h5>
+                        </div>
+                        <div class="row mb-4">
+                            {% for perm in crud_permissions %}
+                            <div class="col-md-6">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" 
+                                           class="custom-control-input permission-checkbox" 
+                                           id="perm_{{ perm.id }}"
+                                           data-permission-id="{{ perm.id }}"
+                                           data-permission-code="{{ perm.code }}"
+                                           {% if perm.id in role_permission_ids %}checked{% endif %}>
+                                    <label class="custom-control-label" for="perm_{{ perm.id }}">
+                                        <strong>{{ perm.name }}</strong>
+                                        <br><small class="text-muted">{{ perm.description }}</small>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Approval Permissions -->
+                        <div class="category-header">
+                            <h5 class="mb-0"><i class="fas fa-check-circle"></i> Approval Permissions</h5>
+                        </div>
+                        <div class="row mb-4">
+                            {% for perm in approval_permissions %}
+                            <div class="col-md-6">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" 
+                                           class="custom-control-input permission-checkbox" 
+                                           id="perm_{{ perm.id }}"
+                                           data-permission-id="{{ perm.id }}"
+                                           data-permission-code="{{ perm.code }}"
+                                           {% if perm.id in role_permission_ids %}checked{% endif %}>
+                                    <label class="custom-control-label" for="perm_{{ perm.id }}">
+                                        <strong>{{ perm.name }}</strong>
+                                        <br><small class="text-muted">{{ perm.description }}</small>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Closure Permissions -->
+                        <div class="category-header">
+                            <h5 class="mb-0"><i class="fas fa-lock"></i> Closure Permissions</h5>
+                        </div>
+                        <div class="row mb-4">
+                            {% for perm in closure_permissions %}
+                            <div class="col-md-6">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" 
+                                           class="custom-control-input permission-checkbox" 
+                                           id="perm_{{ perm.id }}"
+                                           data-permission-id="{{ perm.id }}"
+                                           data-permission-code="{{ perm.code }}"
+                                           {% if perm.id in role_permission_ids %}checked{% endif %}>
+                                    <label class="custom-control-label" for="perm_{{ perm.id }}">
+                                        <strong>{{ perm.name }}</strong>
+                                        <br><small class="text-muted">{{ perm.description }}</small>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                    </form>
+                </div>
+                <div class="card-footer">
+                    <button type="button" class="btn btn-success" id="syncUsersBtn">
+                        <i class="fas fa-sync"></i> Sync Permissions to All Users with this Role
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roleId = {{ role.id }};
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // Real-time permission toggle
+    document.querySelectorAll('.permission-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const permissionId = this.dataset.permissionId;
+            const isChecked = this.checked;
+            
+            // Disable checkbox while processing
+            this.disabled = true;
+            
+            // Send AJAX request
+            fetch(`/accounts/role/${roleId}/toggle-permission/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: `permission_id=${permissionId}&action=${isChecked ? 'add' : 'remove'}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update permission count
+                    document.getElementById('permissionCount').textContent = data.permission_count;
+                    
+                    // Show success feedback
+                    const label = this.nextElementSibling;
+                    label.style.backgroundColor = isChecked ? '#d4edda' : '#f8d7da';
+                    setTimeout(() => {
+                        label.style.backgroundColor = '';
+                    }, 1000);
+                } else {
+                    // Revert on error
+                    this.checked = !isChecked;
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.checked = !isChecked;
+                alert('Error updating permission');
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+    });
+    
+    // Sync permissions to users
+    document.getElementById('syncUsersBtn').addEventListener('click', function() {
+        if (!confirm('This will update all users with this role. Continue?')) {
+            return;
+        }
+        
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+        
+        fetch(`/accounts/role/${roleId}/sync-users/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Successfully synced permissions for ${data.users_updated} user(s)`);
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error syncing permissions');
+        })
+        .finally(() => {
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-sync"></i> Sync Permissions to All Users with this Role';
+        });
+    });
+});
+</script>
+{% endblock %}

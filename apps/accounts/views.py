@@ -625,3 +625,100 @@ class RoleUpdateView(LoginRequiredMixin, TemplateView):
 
         messages.success(request, "Role updated successfully")
         return redirect('accounts:role-list')
+    
+
+###########################Role-permissin#############################
+class RolePermissionsView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
+    """Manage permissions for a specific role"""
+    template_name = 'roles/role_permissions.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        role_id = self.kwargs.get('role_id')
+        role = get_object_or_404(Role, id=role_id)
+        
+        context['role'] = role
+        context['role_permission_ids'] = list(role.permissions.values_list('id', flat=True))
+        
+        # Categorize permissions
+        context['module_permissions'] = Permissions.objects.filter(
+            code__startswith='ACCESS_'
+        ).order_by('name')
+        
+        context['crud_permissions'] = Permissions.objects.filter(
+            Q(code__startswith='CREATE_') |
+            Q(code__startswith='EDIT_') |
+            Q(code__startswith='DELETE_') |
+            Q(code__startswith='VIEW_')
+        ).order_by('name')
+        
+        context['approval_permissions'] = Permissions.objects.filter(
+            code__startswith='APPROVE_'
+        ).order_by('name')
+        
+        context['closure_permissions'] = Permissions.objects.filter(
+            code__startswith='CLOSE_'
+        ).order_by('name')
+        
+        return context
+
+
+def toggle_role_permission(request, role_id):
+    """AJAX endpoint to add/remove permission from role"""
+    if not (request.user.is_superuser or (request.user.role and request.user.role.name == 'ADMIN')):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    if request.method == 'POST':
+        role = get_object_or_404(Role, id=role_id)
+        permission_id = request.POST.get('permission_id')
+        action = request.POST.get('action')  # 'add' or 'remove'
+        
+        try:
+            permission = Permissions.objects.get(id=permission_id)
+            
+            if action == 'add':
+                role.permissions.add(permission)
+                message = f"Added '{permission.name}' to {role.name}"
+            elif action == 'remove':
+                role.permissions.remove(permission)
+                message = f"Removed '{permission.name}' from {role.name}"
+            else:
+                return JsonResponse({'success': False, 'error': 'Invalid action'}, status=400)
+            
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'permission_count': role.permissions.count()
+            })
+            
+        except Permissions.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Permission not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+
+
+def sync_role_permissions_to_users(request, role_id):
+    """Sync role permissions to all users with this role"""
+    if not (request.user.is_superuser or (request.user.role and request.user.role.name == 'ADMIN')):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    if request.method == 'POST':
+        role = get_object_or_404(Role, id=role_id)
+        
+        # Get all users with this role
+        users = User.objects.filter(role=role)
+        users_updated = 0
+        
+        for user in users:
+            user.sync_permissions_to_flags()
+            users_updated += 1
+        
+        return JsonResponse({
+            'success': True,
+            'users_updated': users_updated,
+            'message': f'Synced permissions for {users_updated} user(s)'
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)    

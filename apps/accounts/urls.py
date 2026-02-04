@@ -33,6 +33,10 @@ urlpatterns = [
     
     # Bulk Actions
     # path('permissions/bulk-grant/', views.bulk_grant_permissions, name='bulk_grant_permissions'),
+    path('role/<int:role_id>/permissions/', views.RolePermissionsView.as_view(), name='role-permissions'),
+    path('role/<int:role_id>/toggle-permission/', views.toggle_role_permission, name='toggle-role-permission'),
+    path('role/<int:role_id>/sync-users/', views.sync_role_permissions_to_users, name='sync-role-users'),
+    
     #roles and permission
     path('role-list/',views.RolePermission.as_view(), name='role-list'),
     path('createrole/', views.RoleCreateView.as_view(), name='createrole'),
