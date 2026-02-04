@@ -68,7 +68,7 @@
                 {% if request.user.is_superuser or request.user.role and request.user.role.name == 'ADMIN' %}
                     Track how many notifications were sent per role & event
                 {% else %}
-                    Showing notifications for your role: <strong>{{ selected_role }}</strong>
+                    Showing notifications for your role: <strong>{{ user.role.name }}</strong>
                 {% endif %}
             </p>
         </div>

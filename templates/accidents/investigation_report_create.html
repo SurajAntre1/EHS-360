@@ -137,6 +137,17 @@
 .select2-selection--multiple {
     outline: none !important;
 }
+.select2-container--default .select2-search__field:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+.select2-container--default.select2-container--open
+.select2-selection--multiple {
+    border-color: #ced4da !important;
+    box-shadow: none !important;
+}
+
 </style>
 {% endblock %}
 
@@ -518,6 +529,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (document.activeElement) {
                   document.activeElement.blur();
               }
+              const formToRemove = removeBtn.closest('.action-item-form');
                 
                 // Before removing the form, find the Select2 element and properly destroy it
                 const selectElement = $(formToRemove).find(responsiblePersonSelector);
@@ -527,6 +539,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Now, remove the form element from the DOM
                 formToRemove.remove();
+                totalForms.value = parseInt(totalForms.value) - 1;
             }
         });
     }

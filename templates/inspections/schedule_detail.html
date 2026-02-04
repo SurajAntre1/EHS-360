@@ -34,7 +34,7 @@
             {% endif %}
             
             {% if schedule.status not in 'COMPLETED,CANCELLED' %}
-            <a href="{% url 'inspections:schedule_send_reminder' schedule.pk %}" class="btn btn-info">
+            <a href="{% url 'inspections:schedule_send_reminder' schedule.pk %}" class="btn btn-info" id="sendReminderBtn">
                 <i class="fas fa-bell"></i> Send Reminder
             </a>
             {% endif %}
@@ -219,4 +219,18 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    document.getElementById('sendReminderBtn')?.addEventListener('click',function(e){
+        if(this.dataset.clicked){
+            e.preventDefault();
+            return;
+        }
+
+        this.dataset.clicked = true;
+        this.classList.add('disabled');
+        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+    });
+</script>
 {% endblock %}
