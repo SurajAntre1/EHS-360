@@ -244,10 +244,14 @@ class NotificationService:
             context = NotificationService._build_hazard_action_context(content_object)
         elif module == 'HAZARD':
             context = NotificationService._build_hazard_context(content_object)
-        elif module == 'ENVIRONMENT':
+        elif module == 'ENV':
             context = NotificationService._build_environment_context(content_object)
         elif module == 'INCIDENT_CLOSED':    
             context = NotificationService._build_incident_close_context(content_object)
+        elif module == 'INSPECTION' and notification_type == 'NOTIFY_INSPECTION':
+            context = NotificationService._build_notify_inspection_context(content_object)
+        elif module == 'INSPECTION':
+            context = NotificationService._build_inspection_context(content_object)
         else:
             context = NotificationService._build_incident_context(content_object)
 
@@ -552,3 +556,92 @@ EHS Management System
             'hazard': hazard,
             'action_item': action_item,
         }
+    
+    def _build_environment_context(plant):
+        return{
+            'title': f"Enviromental Data Submitted | {plant.name}",
+            'subject': f"🌱 Environmental Data Submitted - {plant.name}",
+            'message': f"""
+Hello,
+
+Monthly environmental data has been submitted successfully.
+
+PLANT DETAILS
+--------------------------------------------------
+Plant Name : {plant.name}
+
+Please review the submitted enviromental data.
+
+Regards,
+EHS Management System
+""",
+            'plant':plant,
+        }
+    
+    def _build_inspection_context(schedule):
+        return{
+            'title': f"Inspection {schedule.get_status_display()} | {schedule.schedule_code}",
+            'subject': f"📝 Inspection {schedule.get_status_display()} - {schedule.schedule_code}",
+            'message': f"""
+Hello,
+
+An inspection update has occurred.
+
+INSPECTION DETAILS
+--------------------------------------------------
+Schedule Code      : {schedule.schedule_code}
+Template           : {schedule.template.template_name}
+Inspection Type    : {schedule.template.get_inspection_type_display()}
+Plant              : {schedule.plant.name}
+Department         : {schedule.department.name if schedule.department else 'N/A'}
+
+ASSIGNED DETAILS
+--------------------------------------------------
+Assigned To        : {schedule.assigned_to.get_full_name()}
+Assigned By        : {schedule.assigned_by.get_full_name()}
+Scheduled Date     : {schedule.scheduled_date}
+Due Date           : {schedule.due_date}
+
+STATUS
+--------------------------------------------------
+Current Status     : {schedule.get_status_display()}
+
+Please log in to the EHS system for more details.
+
+Regards,
+EHS Management System
+""",
+        'schedule': schedule,
+    }
+
+
+    def _build_notify_inspection_context(schedule):
+        return{
+            'title': f"Inspection Reminder | {schedule.schedule_code}",
+            'subject': f"⏰ Reminder: Inspection {schedule.get_status_display()} - {schedule.schedule_code}",
+            'message': f"""
+
+Hello {schedule.assigned_to.get_full_name()},
+
+This is a reminder regarding the upcoming inspection.
+
+INSPECTION DETAILS
+--------------------------------------------------
+Schedule Code      : {schedule.schedule_code}
+Template           : {schedule.template.template_name}
+Inspection Type    : {schedule.template.get_inspection_type_display()}
+Plant              : {schedule.plant.name}
+Department         : {schedule.department.name if schedule.department else 'N/A'}
+Assigned By        : {schedule.assigned_by.get_full_name()}
+Scheduled Date     : {schedule.scheduled_date}
+Due Date           : {schedule.due_date}
+Current Status     : {schedule.get_status_display()}
+
+Please ensure the inspection is completed within the scheduled timeframe.
+
+Regards,
+EHS Management System
+""",
+        'schedule': schedule,
+        'recipient': schedule.assigned_to,
+    }

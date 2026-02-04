@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from .models import *
 from .forms import *
+from apps.notifications.services import NotificationService
 
 # ====================================
 # DASHBOARD
@@ -799,7 +800,12 @@ def schedule_create(request):
             schedule.save()
             
             # Send notification email
-            send_inspection_assignment_email(schedule)
+            # send_inspection_assignment_email(schedule)
+            NotificationService.notify(
+                content_object=schedule,
+                notification_type='INSPECTION_SCHEDULE',
+                module='INSPECTION'
+            )
             
             messages.success(
                 request,
@@ -920,11 +926,17 @@ def schedule_send_reminder(request, pk):
         return redirect('inspections:schedule_detail', pk=pk)
     
     # Send reminder email
-    send_inspection_reminder_email(schedule)
+    # send_inspection_reminder_email(schedule)
     
     schedule.reminder_sent = True
     schedule.reminder_sent_at = timezone.now()
     schedule.save()
+
+    NotificationService.notify(
+        content_object=schedule,
+        notification_type='NOTIFY_INSPECTION',
+        module='INSPECTION'
+    )
     
     messages.success(request, f'Reminder sent to {schedule.assigned_to.get_full_name()}!')
     return redirect('inspections:schedule_detail', pk=pk)
@@ -1147,92 +1159,92 @@ def get_questions_by_category(request):
 # EMAIL NOTIFICATION FUNCTIONS
 # ====================================
 
-def send_inspection_assignment_email(schedule):
-    """Send email notification when inspection is assigned"""
+# def send_inspection_assignment_email(schedule):
+#     """Send email notification when inspection is assigned"""
     
-    from django.core.mail import send_mail
-    from django.conf import settings
-    from django.template.loader import render_to_string
+#     from django.core.mail import send_mail
+#     from django.conf import settings
+#     from django.template.loader import render_to_string
     
-    subject = f'New Inspection Assigned: {schedule.template.template_name}'
+#     subject = f'New Inspection Assigned: {schedule.template.template_name}'
     
-    context = {
-        'schedule': schedule,
-        'hod_name': schedule.assigned_to.get_full_name(),
-        'safety_officer': schedule.assigned_by.get_full_name(),
-        'template_name': schedule.template.template_name,
-        'scheduled_date': schedule.scheduled_date,
-        'due_date': schedule.due_date,
-        'plant': schedule.plant.name,
-    }
+#     context = {
+#         'schedule': schedule,
+#         'hod_name': schedule.assigned_to.get_full_name(),
+#         'safety_officer': schedule.assigned_by.get_full_name(),
+#         'template_name': schedule.template.template_name,
+#         'scheduled_date': schedule.scheduled_date,
+#         'due_date': schedule.due_date,
+#         'plant': schedule.plant.name,
+#     }
     
-    # HTML email
-    html_message = render_to_string('emails/inspection/inspection_assigned.html', context)
+#     # HTML email
+#     html_message = render_to_string('emails/inspection/inspection_assigned.html', context)
     
-    # Plain text fallback
-    plain_message = f"""
-    Dear {context['hod_name']},
+#     # Plain text fallback
+#     plain_message = f"""
+#     Dear {context['hod_name']},
     
-    You have been assigned a new inspection:
+#     You have been assigned a new inspection:
     
-    Template: {context['template_name']}
-    Scheduled Date: {context['scheduled_date']}
-    Due Date: {context['due_date']}
-    Plant: {context['plant']}
+#     Template: {context['template_name']}
+#     Scheduled Date: {context['scheduled_date']}
+#     Due Date: {context['due_date']}
+#     Plant: {context['plant']}
     
-    Please complete this inspection before the due date.
+#     Please complete this inspection before the due date.
     
-    Best regards,
-    EHS-360 Team
-    """
+#     Best regards,
+#     EHS-360 Team
+#     """
     
-    try:
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[schedule.assigned_to.email],
-            html_message=html_message,
-            fail_silently=False
-        )
-    except Exception as e:
-        print(f"Error sending email: {e}")
+#     try:
+#         send_mail(
+#             subject=subject,
+#             message=plain_message,
+#             from_email=settings.DEFAULT_FROM_EMAIL,
+#             recipient_list=[schedule.assigned_to.email],
+#             html_message=html_message,
+#             fail_silently=False
+#         )
+#     except Exception as e:
+#         print(f"Error sending email: {e}")
 
 
-def send_inspection_reminder_email(schedule):
-    """Send reminder email for pending inspection"""
+# def send_inspection_reminder_email(schedule):
+#     """Send reminder email for pending inspection"""
     
-    from django.core.mail import send_mail
-    from django.conf import settings
+#     from django.core.mail import send_mail
+#     from django.conf import settings
     
-    subject = f'Reminder: Pending Inspection - {schedule.template.template_name}'
+#     subject = f'Reminder: Pending Inspection - {schedule.template.template_name}'
     
-    message = f"""
-    Dear {schedule.assigned_to.get_full_name()},
+#     message = f"""
+#     Dear {schedule.assigned_to.get_full_name()},
     
-    This is a reminder for your pending inspection:
+#     This is a reminder for your pending inspection:
     
-    Schedule Code: {schedule.schedule_code}
-    Template: {schedule.template.template_name}
-    Due Date: {schedule.due_date}
-    Status: {schedule.get_status_display()}
+#     Schedule Code: {schedule.schedule_code}
+#     Template: {schedule.template.template_name}
+#     Due Date: {schedule.due_date}
+#     Status: {schedule.get_status_display()}
     
-    Please complete this inspection as soon as possible.
+#     Please complete this inspection as soon as possible.
     
-    Best regards,
-    EHS-360 Team
-    """
+#     Best regards,
+#     EHS-360 Team
+#     """
     
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[schedule.assigned_to.email],
-            fail_silently=False
-        )
-    except Exception as e:
-        print(f"Error sending reminder email: {e}")
+#     try:
+#         send_mail(
+#             subject=subject,
+#             message=message,
+#             from_email=settings.DEFAULT_FROM_EMAIL,
+#             recipient_list=[schedule.assigned_to.email],
+#             fail_silently=False
+#         )
+#     except Exception as e:
+#         print(f"Error sending reminder email: {e}")
 
 
         
