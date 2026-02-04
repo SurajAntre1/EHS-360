@@ -4,6 +4,7 @@ from .models import *
 from datetime import date
 from .models import Incident, IncidentType
 from apps.organizations.models import Plant, Zone, Location, SubLocation, Department
+from django.core.validators import validate_email
 
 
 class IncidentTypeForm(forms.ModelForm):
@@ -442,7 +443,18 @@ class IncidentUpdateForm(forms.ModelForm):
 
 class IncidentInvestigationReportForm(forms.ModelForm):
     """Form for investigation reports"""
-    
+
+    investigation_team = forms.CharField(
+        required=True,
+        widget=forms.Textarea(
+            attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Enter email(s), separated by commas. e.g. user1@example.com, user2@example.com'
+            }
+        )
+    )
+
     class Meta:
         model = IncidentInvestigationReport
         fields = [
@@ -453,10 +465,9 @@ class IncidentInvestigationReportForm(forms.ModelForm):
             'immediate_corrective_actions', 'preventive_measures', 
             'completed_date',
         ]
-        
+
         widgets = {
             'investigation_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'investigation_team': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'sequence_of_events': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'root_cause_analysis': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'evidence_collected': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
@@ -465,7 +476,6 @@ class IncidentInvestigationReportForm(forms.ModelForm):
             'preventive_measures': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'completed_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
-
 
 class IncidentActionItemForm(forms.ModelForm):
     """Form for action items with email validation."""

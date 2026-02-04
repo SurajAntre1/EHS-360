@@ -354,7 +354,7 @@ class IncidentInvestigationReport(models.Model):
     # Investigation Details
     investigation_date = models.DateField()
     investigator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='investigations_conducted')
-    investigation_team = models.TextField(help_text="Names of investigation team members")
+    investigation_team = models.TextField(help_text="Names of investigation team members Emails")
     
     # Findings
     sequence_of_events = models.TextField()
