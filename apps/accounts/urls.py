@@ -1,5 +1,6 @@
-from django.urls import path
+from django.urls import path,reverse_lazy
 from . import views
+from django.contrib.auth import views as auth_views
 
 app_name = 'accounts'
 
@@ -7,6 +8,13 @@ urlpatterns = [
     path('login/', views.CustomLoginView.as_view(), name='login'),
     path('logout/', views.CustomLogoutView.as_view(), name='logout'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
+    path('forget-password/',views.ForgetPasswordView.as_view(), name='forget-password'),
+    path('reset-password/',auth_views.PasswordResetView.as_view(),name='password_reset'),
+    path('reset-password/done/',auth_views.PasswordResetDoneView.as_view(),name='password_reset_done'),
+    path('reset-password-confirm/<uidb64>/<token>/',auth_views.PasswordResetConfirmView.as_view(template_name='accounts/password_reset_confirm.html',success_url=reverse_lazy('accounts:password_reset_complete')),
+        name='password_reset_confirm'),
+    path('reset-password-complete/',auth_views.PasswordResetCompleteView.as_view(template_name='accounts/password_reset_complete.html'),
+        name='password_reset_complete'),
 
     # User Management (Admin Only)
     path('users/', views.UserListView.as_view(), name='user_list'),
