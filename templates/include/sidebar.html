@@ -298,8 +298,8 @@
             </a>
         </li>
         {% endif %}
-
-        <!-- ✅ INCIDENT MANAGEMENT -->
+      
+        <!-- ✅ INCIDENT MANAGEMENT changes-->
         {% if user.can_access_incident_module %}
         <li class="nav-item {% if 'incidents' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'incidents' in request.path %}active{% endif %}">
