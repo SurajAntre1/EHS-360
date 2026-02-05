@@ -932,29 +932,6 @@
   </div>
   {% endif %}
 
-    <!-- Notifications -->
-    <div class="ehs-card mb-3 mt-3">
-      <div class="card-header">
-        <h5 class="card-title mb-0">
-          <i class="fas fa-bell mr-2"></i>Notifications Sent
-        </h5>
-      </div>
-      <div class="card-body">
-        <div class="mb-2">
-          <i class="fas {% if incident.safety_manager_notified %}fa-check-circle text-success{% else %}fa-times-circle text-muted{% endif %} mr-2"></i>
-          Safety Manager
-        </div>
-        <div class="mb-2">
-          <i class="fas {% if incident.location_head_notified %}fa-check-circle text-success{% else %}fa-times-circle text-muted{% endif %} mr-2"></i>
-          Location Head
-        </div>
-        <div class="mb-2">
-          <i class="fas {% if incident.plant_head_notified %}fa-check-circle text-success{% else %}fa-times-circle text-muted{% endif %} mr-2"></i>
-          Plant Head
-        </div>
-      </div>
-    </div>
-
   </div> <!-- End Right Column -->
 </div>
 {% endblock %}
