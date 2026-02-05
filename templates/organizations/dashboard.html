@@ -14,6 +14,20 @@
 <div class="row mb-4">
   <div class="col-lg-3 col-md-6 mb-3">
     <div class="ehs-stat-card">
+      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #FF9800, #F57C00);">
+        <i class="fas fa-building"></i>
+      </div>
+      <div class="ehs-stat-content">
+        <div class="ehs-stat-title">Departments</div>
+        <div class="ehs-stat-value">{{ total_departments }}</div>
+        <div class="ehs-stat-trend">
+          <span>{{ active_departments }} Active</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-md-6 mb-3">
+    <div class="ehs-stat-card">
       <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #1E90FF, #1565C0);">
         <i class="fas fa-industry"></i>
       </div>
@@ -42,20 +56,6 @@
     </div>
   </div>
   
-  <div class="col-lg-3 col-md-6 mb-3">
-    <div class="ehs-stat-card">
-      <div class="ehs-stat-icon" style="background: linear-gradient(135deg, #FF9800, #F57C00);">
-        <i class="fas fa-building"></i>
-      </div>
-      <div class="ehs-stat-content">
-        <div class="ehs-stat-title">Departments</div>
-        <div class="ehs-stat-value">{{ total_departments }}</div>
-        <div class="ehs-stat-trend">
-          <span>{{ active_departments }} Active</span>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <div class="col-lg-3 col-md-6 mb-3">
     <div class="ehs-stat-card">
@@ -75,6 +75,27 @@
 
 <!-- Quick Actions -->
 <div class="row">
+  <div class="col-lg-4 col-md-6 mb-4">
+    <div class="card h-100 border-0 shadow-sm d-flex flex-column">
+      <div class="card-body text-center d-flex flex-column">
+        <div class="mb-3">
+          <i class="fas fa-building fa-3x text-warning"></i>
+        </div>
+  
+        <h5 class="card-title">Departments Management</h5>
+        <p class="card-text text-muted">Manage organizational departments</p>
+  
+        <div class="mt-auto d-flex justify-content-center flex-wrap">
+          <a href="{% url 'organizations:department_list' %}" class="btn btn-primary btn-sm mr-2 mb-2">
+            <i class="fas fa-list mr-1"></i> View
+          </a>
+          <a href="{% url 'organizations:department_create' %}" class="btn btn-success btn-sm mb-2">
+            <i class="fas fa-plus mr-1"></i> Add
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="col-lg-4 col-md-6 mb-4">
     <div class="card h-100 border-0 shadow-sm d-flex flex-column">
       <div class="card-body text-center d-flex flex-column">
@@ -120,27 +141,6 @@
     </div>
   </div>
 
-  <div class="col-lg-4 col-md-6 mb-4">
-    <div class="card h-100 border-0 shadow-sm d-flex flex-column">
-      <div class="card-body text-center d-flex flex-column">
-        <div class="mb-3">
-          <i class="fas fa-building fa-3x text-warning"></i>
-        </div>
-
-        <h5 class="card-title">Departments Management</h5>
-        <p class="card-text text-muted">Manage organizational departments</p>
-
-        <div class="mt-auto d-flex justify-content-center flex-wrap">
-          <a href="{% url 'organizations:department_list' %}" class="btn btn-primary btn-sm mr-2 mb-2">
-            <i class="fas fa-list mr-1"></i> View
-          </a>
-          <a href="{% url 'organizations:department_create' %}" class="btn btn-success btn-sm mb-2">
-            <i class="fas fa-plus mr-1"></i> Add
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
 
 <!-- Organizational Hierarchy Visualization -->

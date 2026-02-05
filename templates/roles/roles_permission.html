@@ -4,6 +4,11 @@
 {% block title %}Create Role{% endblock %}
 {% block page_title %}Create Role{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accounts:role-list' %}">Role List</a></li>
+<li class="breadcrumb-item active">Create Role</li>
+{% endblock %}
 {% block content %}
 <div class="card shadow-sm">
   <div class="card-body">
