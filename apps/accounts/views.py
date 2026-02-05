@@ -105,7 +105,7 @@ class UserListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
     
     def get_queryset(self):
         # Exclude superuser accounts - they are NOT employees
-        queryset = User.objects.filter(is_superuser=False).order_by('-date_joined')
+        queryset = User.objects.filter(is_superuser=False).select_related('role').order_by('-date_joined')
         
         # Search functionality
         search = self.request.GET.get('search')
@@ -118,10 +118,10 @@ class UserListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
                 Q(employee_id__icontains=search)
             )
         
-        # Filter by role
-        role = self.request.GET.get('role')
-        if role:
-            queryset = queryset.filter(role__name=role)
+        # Filter by role (now using Role model, not ROLE_CHOICES)
+        role_id = self.request.GET.get('role')
+        if role_id:
+            queryset = queryset.filter(role_id=role_id)
         
         # Filter by active status
         status = self.request.GET.get('status')
@@ -134,14 +134,19 @@ class UserListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
         # Count only employees (exclude superuser)
         context['total_users'] = User.objects.filter(is_superuser=False).count()
         context['active_users'] = User.objects.filter(is_superuser=False, is_active=True).count()
         context['inactive_users'] = User.objects.filter(is_superuser=False, is_active=False).count()
-        context['role_choices'] = User.ROLE_CHOICES
+        
+        # ✅ FIX: Use Role model instead of ROLE_CHOICES
+        context['roles'] = Role.objects.all()
+        
         context['search_query'] = self.request.GET.get('search', '')
         context['selected_role'] = self.request.GET.get('role', '')
         context['selected_status'] = self.request.GET.get('status', '')
+        
         return context
 
 
