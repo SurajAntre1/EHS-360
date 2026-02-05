@@ -37,7 +37,7 @@ def inspection_dashboard(request):
     
     # User-specific data
     if request.user.can_access_inspection_module or request.user.is_superuser:
-        if request.user.is_hod:
+        if request.user.has_permission('VIEW_INSPECTION'):
             # HOD sees their assigned inspections
             context['my_pending_inspections'] = InspectionSchedule.objects.filter(
                 assigned_to=request.user,
@@ -727,7 +727,7 @@ def schedule_list(request):
     
     # User-based filtering
     if not request.user.is_superuser:
-        if request.user.is_hod:
+        if request.user.has_permission('CONDUCT_INSPECTION'):
             # HOD sees only their assigned inspections
             schedules = schedules.filter(assigned_to=request.user)
         elif request.user.is_safety_manager or request.user.is_plant_head:
@@ -879,7 +879,7 @@ def schedule_detail(request, pk):
     
     # Check access
     if not request.user.is_superuser:
-        if request.user.is_hod and schedule.assigned_to != request.user:
+        if request.user.has_permission('VIEW_INSPECTION') and schedule.assigned_to != request.user:
             messages.error(request, 'You do not have permission to view this inspection!')
             return redirect('inspections:schedule_list')
     
@@ -946,7 +946,7 @@ def schedule_send_reminder(request, pk):
 def my_inspections(request):
     """View for HOD to see their assigned inspections"""
     
-    if not request.user.is_hod:
+    if not request.user.has_permission('VIEW_INSPECTION'):
         messages.error(request, 'This page is only for HODs!')
         return redirect('inspections:inspection_dashboard')
     
