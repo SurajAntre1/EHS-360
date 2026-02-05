@@ -1,0 +1,119 @@
+from django.core.management.base import BaseCommand
+from apps.accounts.models import Permissions
+
+class Command(BaseCommand):
+    help = 'Seeds Permission Master with hierarchical structure'
+
+    def handle(self, *args, **kwargs):
+        self.stdout.write(self.style.WARNING('Starting permission seed...'))
+        
+        permissions_data = [
+            # (code, name, description, module, permission_type, display_order)
+            
+            # === INCIDENT MODULE ===
+            ('ACCESS_INCIDENT_MODULE', 'Access Incident Module', 'Can access incident module', 
+             'INCIDENT', 'MODULE_ACCESS', 0),
+            ('CREATE_INCIDENT', 'Create Incident', 'Can create incidents', 
+             'INCIDENT', 'CREATE', 1),
+            ('EDIT_INCIDENT', 'Edit Incident', 'Can edit incidents', 
+             'INCIDENT', 'EDIT', 2),
+            ('VIEW_INCIDENT', 'View Incident', 'Can view incidents', 
+             'INCIDENT', 'VIEW', 3),
+            ('DELETE_INCIDENT', 'Delete Incident', 'Can delete incidents', 
+             'INCIDENT', 'DELETE', 4),
+            ('INVESTIGATE_INCIDENT', 'Investigate Incident', 'Can investigate incidents', 
+             'INCIDENT', 'MANAGE', 5),
+            ('ADD_INCIDENT_ACTION', 'Add Incident Action', 'Can add action items', 
+             'INCIDENT', 'MANAGE', 6),
+            ('APPROVE_INCIDENT', 'Approve Incident', 'Can approve incidents', 
+             'INCIDENT', 'APPROVE', 7),
+            ('CLOSE_INCIDENT', 'Close Incident', 'Can close incidents', 
+             'INCIDENT', 'CLOSE', 8),
+            
+            # === HAZARD MODULE ===
+            ('ACCESS_HAZARD_MODULE', 'Access Hazard Module', 'Can access hazard module', 
+             'HAZARD', 'MODULE_ACCESS', 0),
+            ('CREATE_HAZARD', 'Create Hazard', 'Can create hazards', 
+             'HAZARD', 'CREATE', 1),
+            ('EDIT_HAZARD', 'Edit Hazard', 'Can edit hazards', 
+             'HAZARD', 'EDIT', 2),
+            ('VIEW_HAZARD', 'View Hazard', 'Can view hazards', 
+             'HAZARD', 'VIEW', 3),
+            ('DELETE_HAZARD', 'Delete Hazard', 'Can delete hazards', 
+             'HAZARD', 'DELETE', 4),
+            ('ADD_HAZARD_ACTION', 'Add Hazard Action', 'Can add action items', 
+             'HAZARD', 'MANAGE', 5),
+            ('EDIT_HAZARD_ACTION', 'Edit Hazard Action', 'Can edit action items', 
+             'HAZARD', 'MANAGE', 6),
+            ('DELETE_HAZARD_ACTION', 'Delete Hazard Action', 'Can delete action items', 
+             'HAZARD', 'MANAGE', 7),
+            ('APPROVE_HAZARD', 'Approve Hazard', 'Can approve hazards', 
+             'HAZARD', 'APPROVE', 8),
+            ('CLOSE_HAZARD', 'Close Hazard', 'Can close hazards', 
+             'HAZARD', 'CLOSE', 9),
+            
+            # === INSPECTION MODULE ===
+            ('ACCESS_INSPECTION_MODULE', 'Access Inspection Module', 'Can access inspection module', 
+             'INSPECTION', 'MODULE_ACCESS', 0),
+            ('CREATE_INSPECTION', 'Create Inspection', 'Can create inspections', 
+             'INSPECTION', 'CREATE', 1),
+            ('CONDUCT_INSPECTION', 'Conduct Inspection', 'Can conduct inspections', 
+             'INSPECTION', 'MANAGE', 2),
+            ('VIEW_INSPECTION', 'View Inspection', 'Can view inspections', 
+             'INSPECTION', 'VIEW', 3),
+            ('APPROVE_INSPECTION', 'Approve Inspection', 'Can approve inspections', 
+             'INSPECTION', 'APPROVE', 4),
+            
+            # === REPORTS MODULE ===
+            ('ACCESS_REPORTS_MODULE', 'Access Reports Module', 'Can access reports module', 
+             'REPORTS', 'MODULE_ACCESS', 0),
+            ('GENERATE_REPORTS', 'Generate Reports', 'Can generate reports', 
+             'REPORTS', 'MANAGE', 1),
+            ('VIEW_REPORTS', 'View Reports', 'Can view reports', 
+             'REPORTS', 'VIEW', 2),
+            ('EXPORT_REPORTS', 'Export Reports', 'Can export reports', 
+             'REPORTS', 'EXPORT', 3),
+            
+            # === ENV DATA MODULE ===
+            ('ACCESS_ENV_DATA_MODULE', 'Access Env Data Module', 'Can access environmental data module', 
+             'ENV_DATA', 'MODULE_ACCESS', 0),
+            ('CREATE_ENV_DATA', 'Enter Env Data', 'Can enter environmental data', 
+             'ENV_DATA', 'CREATE', 1),
+            ('EDIT_ENV_DATA', 'Edit Env Data', 'Can edit environmental data', 
+             'ENV_DATA', 'EDIT', 2),
+            ('VIEW_ENV_DATA', 'View Env Data', 'Can view environmental data', 
+             'ENV_DATA', 'VIEW', 3),
+            ('DELETE_ENV_DATA', 'Delete Env Data', 'Can delete environmental data', 
+             'ENV_DATA', 'DELETE', 4),
+            ('MANAGE_ENV_QUESTIONS', 'Manage Env Questions', 'Can manage questions', 
+             'ENV_DATA', 'MANAGE', 5),
+            ('MANAGE_ENV_UNITS', 'Manage Units', 'Can manage units', 
+             'ENV_DATA', 'MANAGE', 6),
+            ('EXPORT_ENV_DATA', 'Export Env Data', 'Can export data', 
+             'ENV_DATA', 'EXPORT', 7),
+        ]
+
+        created = 0
+        updated = 0
+        
+        for code, name, desc, module, perm_type, order in permissions_data:
+            perm, is_created = Permissions.objects.update_or_create(
+                code=code,
+                defaults={
+                    'name': name,
+                    'description': desc,
+                    'module': module,
+                    'permission_type': perm_type,
+                    'display_order': order
+                }
+            )
+            if is_created:
+                created += 1
+                self.stdout.write(self.style.SUCCESS(f'✓ Created: {code}'))
+            else:
+                updated += 1
+                self.stdout.write(self.style.WARNING(f'⟳ Updated: {code}'))
+        
+        self.stdout.write(self.style.SUCCESS(f'\n✓ Created: {created}'))
+        self.stdout.write(self.style.WARNING(f'⟳ Updated: {updated}'))
+        self.stdout.write(self.style.SUCCESS(f'━ Total: {created + updated}\n'))

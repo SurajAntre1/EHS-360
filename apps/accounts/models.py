@@ -5,15 +5,6 @@ from apps.organizations.models import *
 
 class User(AbstractUser):
     """Custom User Model for EHS-360"""
-    
-    ROLE_CHOICES = [
-        ('ADMIN', 'Administrator'),
-        ('EMPLOYEE', 'Employee'),
-        ('SAFETY_MANAGER', 'Safety Manager'),
-        ('LOCATION_HEAD', 'Location Head'),
-        ('PLANT_HEAD', 'Plant Head'),
-        ('HOD', 'Head of Department'),
-    ]
     GENDER_CHOICES = [
         ('MALE', 'Male'),
         ('FEMALE', 'Female'),
@@ -387,26 +378,133 @@ class User(AbstractUser):
         """Check if this is an employee account (not superadmin)"""
         return not self.is_superuser
     
-    @property
-    def is_safety_manager(self):
-        return self.role and self.role.name == 'SAFETY MANAGER'
     
-    @property
-    def is_location_head(self):
-        return self.role and self.role.name == 'LOCATION HEAD'
+class Permissions(models.Model):
+    """Permission Master with Module Hierarchy"""
+    code = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
     
-    @property
-    def is_plant_head(self):
-        return self.role and self.role.name == 'PLANT HEAD'
+    # NEW: Module grouping
+    module = models.CharField(
+        max_length=50,
+        choices=[
+            ('INCIDENT', 'Incident Module'),
+            ('HAZARD', 'Hazard Module'),
+            ('INSPECTION', 'Inspection Module'),
+            ('REPORTS', 'Reports Module'),
+            ('ENV_DATA', 'Environmental Data Module'),
+            ('USER_MGMT', 'User Management'),
+            ('ORG_MGMT', 'Organization Management'),
+        ],
+        null=True,
+        blank=True,
+        help_text="Which module this permission belongs to"
+    )
     
-    @property
-    def is_hod(self):
-        return self.role.name == 'HOD'
+    # NEW: Permission type
+    permission_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('MODULE_ACCESS', 'Module Access'),  # Parent permission
+            ('CREATE', 'Create'),
+            ('EDIT', 'Edit'),
+            ('VIEW', 'View'),
+            ('DELETE', 'Delete'),
+            ('APPROVE', 'Approve'),
+            ('CLOSE', 'Close'),
+            ('MANAGE', 'Manage'),
+            ('EXPORT', 'Export'),
+        ],
+        default='VIEW',
+        help_text="Type of permission"
+    )
     
-    @property
-    def is_employee(self):
-        return self.role.name == 'EMPLOYEE'
+    # NEW: Display order
+    display_order = models.IntegerField(
+        default=0,
+        help_text="Order to display in UI (lower = first)"
+    )
     
+    class Meta:
+        ordering = ['module', 'display_order', 'code']
+        verbose_name = 'Permission'
+        verbose_name_plural = 'Permissions'
+    
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+    def sync_permissions_to_flags(self):
+        """
+        Sync role permissions to user's boolean permission fields
+        Call this after assigning/changing a user's role
+        """
+        if not self.role:
+            self._reset_all_permissions()
+            self.save()
+            return 0
+        
+        # Get all permission codes from user's role
+        permission_codes = list(self.role.permissions.values_list('code', flat=True))
+        
+        # Map permission codes to boolean fields
+        permission_mapping = {
+            # Module Access
+            'ACCESS_INCIDENT_MODULE': 'can_access_incident_module',
+            'ACCESS_HAZARD_MODULE': 'can_access_hazard_module',
+            'ACCESS_INSPECTION_MODULE': 'can_access_inspection_module',
+            'ACCESS_REPORTS_MODULE': 'can_access_reports_module',
+            'ACCESS_ENV_DATA_MODULE': 'can_access_env_data_module',
+            
+            # Approvals
+            'APPROVE_INCIDENT': 'can_approve_incidents',
+            'APPROVE_HAZARD': 'can_approve_hazards',
+            'APPROVE_INSPECTION': 'can_approve_inspections',
+            
+            # Closures
+            'CLOSE_INCIDENT': 'can_close_incidents',
+            'CLOSE_HAZARD': 'can_close_hazards',
+        }
+        
+        # Reset all permissions first
+        self._reset_all_permissions()
+        
+        # Set permissions based on role
+        updated_count = 0
+        for code in permission_codes:
+            if code in permission_mapping:
+                field_name = permission_mapping[code]
+                setattr(self, field_name, True)
+                updated_count += 1
+        
+        self.save()
+        return updated_count
+
+    def _reset_all_permissions(self):
+        """Helper: Reset all permission flags to False"""
+        self.can_access_incident_module = False
+        self.can_access_hazard_module = False
+        self.can_access_inspection_module = False
+        self.can_access_reports_module = False
+        self.can_access_env_data_module = False
+        self.can_approve_incidents = False
+        self.can_approve_hazards = False
+        self.can_approve_inspections = False
+        self.can_close_incidents = False
+        self.can_close_hazards = False
+
+    def has_permission(self, code):
+        """Check if user has a specific permission by code"""
+        if self.is_superuser:
+            return True
+        if not self.role:
+            return False
+        return self.role.permissions.filter(code=code).exists()
+
+    @property
+    def role_name(self):
+        """Get user's role name dynamically"""
+        return self.role.name if self.role else None
+
     @property
     def can_approve(self):
         """Check if user can approve anything"""
@@ -414,82 +512,13 @@ class User(AbstractUser):
             self.is_superuser or 
             self.can_approve_incidents or 
             self.can_approve_hazards or
-            self.can_approve_inspections or
-            self.can_approve_permits
+            self.can_approve_inspections
         )
-    
-    def get_accessible_modules(self):
-        """Get list of modules user can access"""
-        modules = []
-        if self.can_access_incident_module:
-            modules.append('Incident Management')
-        if self.can_access_hazard_module:
-            modules.append('Hazard Management')
-        if self.can_access_inspection_module:
-            modules.append('Safety Inspections')
-        if self.can_access_audit_module:
-            modules.append('Safety Audits')
-        if self.can_access_training_module:
-            modules.append('Training')
-        if self.can_access_permit_module:
-            modules.append('Work Permits')
-        if self.can_access_observation_module:
-            modules.append('Safety Observations')
-        if self.can_access_reports_module:
-            modules.append('Reports & Analytics')
-        return modules
-    
-    def get_pending_approvals_count(self):
-        """Get total count of pending approvals for this user"""
-        from apps.hazards.models import Hazard
-        
-        count = 0
-        
-        # Count pending hazards
-        if self.can_approve_hazards or self.is_superuser:
-            hazards_query = Hazard.objects.filter(
-                status='PENDING_APPROVAL',
-                approval_status='PENDING'
-            )
-            if not self.is_superuser and self.plant:
-                hazards_query = hazards_query.filter(plant=self.plant)
-            count += hazards_query.count()
-        
-        return count
-    
-    @property
-    def role_display(self):
-        if self.is_superuser:
-            return "Super Admin"
-        if self.role:
-            return self.role.name
-        return "Employee"
-    
-    def has_permission(self, code):
-        if self.is_superuser:
-            return True
-        if not self.role:
-            return False
-        return self.role.permissions.filter(code=code).exists()
+        @property
+        def is_module_access(self):
+            """Check if this is a module access permission"""
+            return self.permission_type == 'MODULE_ACCESS'
 
-class Permissions(models.Model):
-    code = models.CharField(
-        max_length=100,
-        unique=True,
-        help_text="System permission code (e.g. REPORT_INCIDENT)"
-    )
-    name = models.CharField(
-        max_length=100,
-        help_text="Human readable permission name"
-    )
-    description = models.TextField(
-        blank=True,
-        null=True,
-        help_text="Description of the permission"
-    )
-
-    def __str__(self):
-        return self.code
 
 class Role(models.Model):
     name = models.CharField(max_length=50, unique=True)

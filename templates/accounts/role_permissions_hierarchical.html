@@ -1,0 +1,155 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Manage Permissions - {{ role.name }}{% endblock %}
+{% block page_title %}Hierarchical Permissions: {{ role.name }}{% endblock %}
+
+{% block content %}
+<section class="content">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Info Alert -->
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>How it works:</strong> Enable <strong>Module Access</strong> first, then select specific permissions within that module.
+            </div>
+
+            <!-- Module Cards -->
+            {% for module_code, module_data in modules.items %}
+            <div class="card mb-3" style="border-left: 4px solid #007bff;">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-folder-open"></i> {{ module_data.name }}
+                        </h5>
+                        
+                        <!-- Module Access Toggle -->
+                        {% if module_data.access_permission %}
+                        <div class="custom-control custom-switch">
+                            <input 
+                                type="checkbox" 
+                                class="custom-control-input" 
+                                id="module_{{ module_code }}"
+                                {% if module_data.has_access %}checked{% endif %}
+                                onchange="toggleModuleAccess('{{ module_code }}', this.checked)"
+                            >
+                            <label class="custom-control-label" for="module_{{ module_code }}">
+                                <strong>Grant Module Access</strong>
+                            </label>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card-body {% if not module_data.has_access %}bg-light{% endif %}">
+                    {% if not module_data.has_access %}
+                    <p class="text-muted text-center mb-0">
+                        <i class="fas fa-lock"></i> Enable module access to configure permissions
+                    </p>
+                    {% else %}
+                    <div class="row">
+                        {% for perm in module_data.permissions %}
+                        <div class="col-md-6 mb-3">
+                            <div class="custom-control custom-checkbox">
+                                <input 
+                                    type="checkbox" 
+                                    class="custom-control-input" 
+                                    id="perm_{{ perm.id }}"
+                                    {% if perm.id in role_permission_ids %}checked{% endif %}
+                                    onchange="togglePermission({{ perm.id }}, this.checked)"
+                                >
+                                <label class="custom-control-label" for="perm_{{ perm.id }}">
+                                    <strong>{{ perm.name }}</strong>
+                                    <br><small class="text-muted">{{ perm.description }}</small>
+                                    <br><span class="badge badge-secondary">{{ perm.permission_type }}</span>
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Sync Button -->
+            <div class="card">
+                <div class="card-footer">
+                    <button class="btn btn-primary" onclick="syncToUsers()">
+                        <i class="fas fa-sync-alt"></i> Sync Permissions to All Users
+                    </button>
+                    <a href="{% url 'accounts:role-list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+const csrfToken = '{{ csrf_token }}';
+const roleId = {{ role.id }};
+
+function toggleModuleAccess(moduleCode, isGranted) {
+    const action = isGranted ? 'grant' : 'revoke';
+    
+    fetch(`/accounts/toggle-module-access/${roleId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken
+        },
+        body: `module_code=${moduleCode}&action=${action}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function togglePermission(permissionId, isAdding) {
+    const action = isAdding ? 'add' : 'remove';
+    
+    fetch(`/accounts/toggle-permission-in-module/${roleId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken
+        },
+        body: `permission_id=${permissionId}&action=${action}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success
+        } else {
+            alert('Error: ' + data.error);
+            location.reload();
+        }
+    });
+}
+
+function syncToUsers() {
+    if (!confirm('Sync permissions to all users with this role?')) return;
+    
+    fetch(`/accounts/role/${roleId}/sync-users/`, {
+        method: 'POST',
+        headers: {'X-CSRFToken': csrfToken}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+</script>
+{% endblock %}

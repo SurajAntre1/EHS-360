@@ -350,163 +350,163 @@ class UserToggleActiveView(LoginRequiredMixin, AdminRequiredMixin, TemplateView)
     
 
 ######## permission module i am creating   ###########################
-class UserPermissionsOnlyView(LoginRequiredMixin, AdminRequiredMixin, ListView):
-    """
-    Separate page ONLY for managing permissions
-    Shows users with checkboxes for module access and approval permissions
-    """
-    model = User
-    template_name = 'accounts/permissions_only.html'
-    context_object_name = 'users'
-    paginate_by = 15
+# class UserPermissionsOnlyView(LoginRequiredMixin, AdminRequiredMixin, ListView):
+#     """
+#     Separate page ONLY for managing permissions
+#     Shows users with checkboxes for module access and approval permissions
+#     """
+#     model = User
+#     template_name = 'accounts/permissions_only.html'
+#     context_object_name = 'users'
+#     paginate_by = 15
     
-    def get_queryset(self):
-        queryset = User.objects.filter(is_active=True).exclude(
-            is_superuser=True
-        ).select_related('plant', 'department').order_by('first_name', 'last_name')
+#     def get_queryset(self):
+#         queryset = User.objects.filter(is_active=True).exclude(
+#             is_superuser=True
+#         ).select_related('plant', 'department').order_by('first_name', 'last_name')
         
-        # Search filter
-        search = self.request.GET.get('search')
-        if search:
-            queryset = queryset.filter(
-                Q(first_name__icontains=search) |
-                Q(last_name__icontains=search) |
-                Q(username__icontains=search) |
-                Q(email__icontains=search) |
-                Q(employee_id__icontains=search)
-            )
+#         # Search filter
+#         search = self.request.GET.get('search')
+#         if search:
+#             queryset = queryset.filter(
+#                 Q(first_name__icontains=search) |
+#                 Q(last_name__icontains=search) |
+#                 Q(username__icontains=search) |
+#                 Q(email__icontains=search) |
+#                 Q(employee_id__icontains=search)
+#             )
         
-        # Role filter
-        role = self.request.GET.get('role')
-        if role:
-            queryset = queryset.filter(role__name=role)
+#         # Role filter
+#         role = self.request.GET.get('role')
+#         if role:
+#             queryset = queryset.filter(role__name=role)
         
-        # Plant filter
-        plant_id = self.request.GET.get('plant')
-        if plant_id:
-            queryset = queryset.filter(plant_id=plant_id)
+#         # Plant filter
+#         plant_id = self.request.GET.get('plant')
+#         if plant_id:
+#             queryset = queryset.filter(plant_id=plant_id)
         
-        return queryset
+#         return queryset
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        from apps.organizations.models import Plant
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         from apps.organizations.models import Plant
         
-        context['roles'] = Role.objects.all()
-        context['plants'] = Plant.objects.filter(is_active=True)
-        context['search_query'] = self.request.GET.get('search', '')
+#         context['roles'] = Role.objects.all()
+#         context['plants'] = Plant.objects.filter(is_active=True)
+#         context['search_query'] = self.request.GET.get('search', '')
         
-        # Statistics
-        context['total_users'] = User.objects.filter(is_active=True).exclude(is_superuser=True).count()
-        context['users_with_incident_access'] = User.objects.filter(can_access_incident_module=True).count()
-        context['users_with_hazard_access'] = User.objects.filter(can_access_hazard_module=True).count()
-        context['hazard_approvers'] = User.objects.filter(can_approve_hazards=True).count()
-        context['incident_approvers'] = User.objects.filter(can_approve_incidents=True).count()
+#         # Statistics
+#         context['total_users'] = User.objects.filter(is_active=True).exclude(is_superuser=True).count()
+#         context['users_with_incident_access'] = User.objects.filter(can_access_incident_module=True).count()
+#         context['users_with_hazard_access'] = User.objects.filter(can_access_hazard_module=True).count()
+#         context['hazard_approvers'] = User.objects.filter(can_approve_hazards=True).count()
+#         context['incident_approvers'] = User.objects.filter(can_approve_incidents=True).count()
         
-        return context
+#         return context
 
 
-def update_user_permission(request, user_id):
-    """
-    AJAX endpoint to update a single permission for a user
-    """
-    if not (request.user.is_superuser or request.user.role.name == 'ADMIN' and request.user.role.name == 'ADMIN'):
-        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+# def update_user_permission(request, user_id):
+#     """
+#     AJAX endpoint to update a single permission for a user
+#     """
+#     if not (request.user.is_superuser or request.user.role.name == 'ADMIN' and request.user.role.name == 'ADMIN'):
+#         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     
-    if request.method == 'POST':
-        user = get_object_or_404(User, pk=user_id)
-        permission_field = request.POST.get('permission_field')
-        value = request.POST.get('value') == 'true'
+#     if request.method == 'POST':
+#         user = get_object_or_404(User, pk=user_id)
+#         permission_field = request.POST.get('permission_field')
+#         value = request.POST.get('value') == 'true'
         
-        # List of valid permission fields
-        valid_fields = [
-            'can_access_incident_module',
-            'can_access_hazard_module',
-            'can_access_inspection_module',
-            'can_access_audit_module',
-            'can_access_training_module',
-            'can_access_permit_module',
-            'can_access_observation_module',
-            'can_access_reports_module',
-            'can_approve_incidents',
-            'can_approve_hazards',
-            'can_approve_inspections',
-            'can_approve_permits',
-            'can_close_incidents',
-            'can_close_hazards',
-        ]
+#         # List of valid permission fields
+#         valid_fields = [
+#             'can_access_incident_module',
+#             'can_access_hazard_module',
+#             'can_access_inspection_module',
+#             'can_access_audit_module',
+#             'can_access_training_module',
+#             'can_access_permit_module',
+#             'can_access_observation_module',
+#             'can_access_reports_module',
+#             'can_approve_incidents',
+#             'can_approve_hazards',
+#             'can_approve_inspections',
+#             'can_approve_permits',
+#             'can_close_incidents',
+#             'can_close_hazards',
+#         ]
         
-        if permission_field in valid_fields:
-            setattr(user, permission_field, value)
-            user.save()
+#         if permission_field in valid_fields:
+#             setattr(user, permission_field, value)
+#             user.save()
             
-            messages.success(
-                request, 
-                f"{'Granted' if value else 'Revoked'} {permission_field.replace('_', ' ').title()} for {user.get_full_name()}"
-            )
+#             messages.success(
+#                 request, 
+#                 f"{'Granted' if value else 'Revoked'} {permission_field.replace('_', ' ').title()} for {user.get_full_name()}"
+#             )
             
-            return JsonResponse({
-                'success': True,
-                'message': f"Permission updated for {user.get_full_name()}"
-            })
-        else:
-            return JsonResponse({'success': False, 'error': 'Invalid permission field'}, status=400)
+#             return JsonResponse({
+#                 'success': True,
+#                 'message': f"Permission updated for {user.get_full_name()}"
+#             })
+#         else:
+#             return JsonResponse({'success': False, 'error': 'Invalid permission field'}, status=400)
     
-    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+#     return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
 
 
-def bulk_update_permissions(request):
-    """
-    Bulk update permissions for multiple users
-    """
-    if not (request.user.is_superuser or request.user.role.name == 'ADMIN'):
-        messages.error(request, "You don't have permission to perform this action.")
-        return redirect('accounts:permissions_only')
+# def bulk_update_permissions(request):
+#     """
+#     Bulk update permissions for multiple users
+#     """
+#     if not (request.user.is_superuser or request.user.role.name == 'ADMIN'):
+#         messages.error(request, "You don't have permission to perform this action.")
+#         return redirect('accounts:permissions_only')
     
-    if request.method == 'POST':
-        user_ids = request.POST.getlist('user_ids')
-        permission_field = request.POST.get('permission_field')
-        action = request.POST.get('action')  # 'grant' or 'revoke'
+#     if request.method == 'POST':
+#         user_ids = request.POST.getlist('user_ids')
+#         permission_field = request.POST.get('permission_field')
+#         action = request.POST.get('action')  # 'grant' or 'revoke'
         
-        if not user_ids:
-            messages.error(request, "No users selected")
-            return redirect('accounts:permissions_only')
+#         if not user_ids:
+#             messages.error(request, "No users selected")
+#             return redirect('accounts:permissions_only')
         
-        users = User.objects.filter(id__in=user_ids)
+#         users = User.objects.filter(id__in=user_ids)
         
-        # List of valid permission fields
-        valid_fields = [
-            'can_access_incident_module',
-            'can_access_hazard_module',
-            'can_access_inspection_module',
-            'can_access_audit_module',
-            'can_access_training_module',
-            'can_access_permit_module',
-            'can_access_observation_module',
-            'can_access_reports_module',
-            'can_approve_incidents',
-            'can_approve_hazards',
-            'can_approve_inspections',
-            'can_approve_permits',
-            'can_close_incidents',
-            'can_close_hazards',
-        ]
+#         # List of valid permission fields
+#         valid_fields = [
+#             'can_access_incident_module',
+#             'can_access_hazard_module',
+#             'can_access_inspection_module',
+#             'can_access_audit_module',
+#             'can_access_training_module',
+#             'can_access_permit_module',
+#             'can_access_observation_module',
+#             'can_access_reports_module',
+#             'can_approve_incidents',
+#             'can_approve_hazards',
+#             'can_approve_inspections',
+#             'can_approve_permits',
+#             'can_close_incidents',
+#             'can_close_hazards',
+#         ]
         
-        if permission_field in valid_fields:
-            value = action == 'grant'
-            users.update(**{permission_field: value})
+#         if permission_field in valid_fields:
+#             value = action == 'grant'
+#             users.update(**{permission_field: value})
             
-            perm_name = permission_field.replace('_', ' ').replace('can ', '').title()
-            messages.success(
-                request, 
-                f"{action.title()}ed {perm_name} permission for {len(user_ids)} user(s)"
-            )
-        else:
-            messages.error(request, "Invalid permission field")
+#             perm_name = permission_field.replace('_', ' ').replace('can ', '').title()
+#             messages.success(
+#                 request, 
+#                 f"{action.title()}ed {perm_name} permission for {len(user_ids)} user(s)"
+#             )
+#         else:
+#             messages.error(request, "Invalid permission field")
         
-        return redirect('accounts:permissions_only')
+#         return redirect('accounts:permissions_only')
     
-    return redirect('accounts:permissions_only')  
+#     return redirect('accounts:permissions_only')  
 
 
 
@@ -628,9 +628,10 @@ class RoleUpdateView(LoginRequiredMixin, TemplateView):
     
 
 ###########################Role-permissin#############################
-class RolePermissionsView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
-    """Manage permissions for a specific role"""
-    template_name = 'roles/role_permissions.html'
+
+class RolePermissionsHierarchicalView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
+    """Hierarchical permission management with module grouping"""
+    template_name = 'roles/role_permissions_hierarchical.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -640,31 +641,94 @@ class RolePermissionsView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
         context['role'] = role
         context['role_permission_ids'] = list(role.permissions.values_list('id', flat=True))
         
-        # Categorize permissions
-        context['module_permissions'] = Permissions.objects.filter(
-            code__startswith='ACCESS_'
-        ).order_by('name')
+        # Group permissions by module
+        modules = {}
+        module_choices = dict(Permissions._meta.get_field('module').choices)
         
-        context['crud_permissions'] = Permissions.objects.filter(
-            Q(code__startswith='CREATE_') |
-            Q(code__startswith='EDIT_') |
-            Q(code__startswith='DELETE_') |
-            Q(code__startswith='VIEW_')
-        ).order_by('name')
+        for module_code, module_name in module_choices.items():
+            # Get all permissions for this module
+            module_perms = Permissions.objects.filter(
+                module=module_code
+            ).order_by('display_order')
+            
+            if module_perms.exists():
+                # Separate module access from other permissions
+                access_perm = module_perms.filter(permission_type='MODULE_ACCESS').first()
+                other_perms = module_perms.exclude(permission_type='MODULE_ACCESS')
+                
+                # Check if role has access
+                has_access = access_perm and (access_perm.id in context['role_permission_ids'])
+                
+                modules[module_code] = {
+                    'name': module_name,
+                    'access_permission': access_perm,
+                    'has_access': has_access,
+                    'permissions': other_perms
+                }
         
-        context['approval_permissions'] = Permissions.objects.filter(
-            code__startswith='APPROVE_'
-        ).order_by('name')
-        
-        context['closure_permissions'] = Permissions.objects.filter(
-            code__startswith='CLOSE_'
-        ).order_by('name')
+        context['modules'] = modules
         
         return context
 
 
-def toggle_role_permission(request, role_id):
-    """AJAX endpoint to add/remove permission from role"""
+def toggle_module_access(request, role_id):
+    """Toggle module access - grants/revokes parent permission"""
+    if not (request.user.is_superuser or (request.user.role and request.user.role.name == 'ADMIN')):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    if request.method == 'POST':
+        role = get_object_or_404(Role, id=role_id)
+        module_code = request.POST.get('module_code')
+        action = request.POST.get('action')  # 'grant' or 'revoke'
+        
+        try:
+            # Get module access permission
+            access_perm = Permissions.objects.get(
+                module=module_code,
+                permission_type='MODULE_ACCESS'
+            )
+            
+            if action == 'grant':
+                # Grant module access
+                role.permissions.add(access_perm)
+                message = f"Granted access to {access_perm.name}"
+                
+            elif action == 'revoke':
+                # Revoke module access AND all child permissions
+                role.permissions.remove(access_perm)
+                
+                # Remove ALL permissions in this module
+                module_perms = Permissions.objects.filter(module=module_code)
+                role.permissions.remove(*module_perms)
+                
+                message = f"Revoked access to {access_perm.name} and all related permissions"
+            else:
+                return JsonResponse({'success': False, 'error': 'Invalid action'}, status=400)
+            
+            # Count users affected
+            user_count = role.role_user.count()
+            
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'module_code': module_code,
+                'has_access': action == 'grant',
+                'affected_users': user_count
+            })
+            
+        except Permissions.DoesNotExist:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Module access permission not found'
+            }, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+
+
+def toggle_permission_in_module(request, role_id):
+    """Toggle individual permission - only works if module access granted"""
     if not (request.user.is_superuser or (request.user.role and request.user.role.name == 'ADMIN')):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     
@@ -676,12 +740,24 @@ def toggle_role_permission(request, role_id):
         try:
             permission = Permissions.objects.get(id=permission_id)
             
+            # Check if role has module access
+            has_module_access = role.permissions.filter(
+                module=permission.module,
+                permission_type='MODULE_ACCESS'
+            ).exists()
+            
+            if not has_module_access and action == 'add':
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Must grant "{permission.module}" module access first'
+                }, status=400)
+            
             if action == 'add':
                 role.permissions.add(permission)
-                message = f"Added '{permission.name}' to {role.name}"
+                message = f"Added '{permission.name}'"
             elif action == 'remove':
                 role.permissions.remove(permission)
-                message = f"Removed '{permission.name}' from {role.name}"
+                message = f"Removed '{permission.name}'"
             else:
                 return JsonResponse({'success': False, 'error': 'Invalid action'}, status=400)
             
@@ -697,28 +773,3 @@ def toggle_role_permission(request, role_id):
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
     return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
-
-
-def sync_role_permissions_to_users(request, role_id):
-    """Sync role permissions to all users with this role"""
-    if not (request.user.is_superuser or (request.user.role and request.user.role.name == 'ADMIN')):
-        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
-    
-    if request.method == 'POST':
-        role = get_object_or_404(Role, id=role_id)
-        
-        # Get all users with this role
-        users = User.objects.filter(role=role)
-        users_updated = 0
-        
-        for user in users:
-            user.sync_permissions_to_flags()
-            users_updated += 1
-        
-        return JsonResponse({
-            'success': True,
-            'users_updated': users_updated,
-            'message': f'Synced permissions for {users_updated} user(s)'
-        })
-    
-    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)    

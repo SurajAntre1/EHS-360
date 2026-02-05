@@ -1,4 +1,5 @@
 {% load static %}
+
 <style>
   :root {
     /* EHS Theme Colors */
@@ -197,21 +198,12 @@
     </div>
   </a>
 
-  <!-- Sidebar -->
   <div class="sidebar">
     <nav class="mt-2">
       <ul class="nav nav-pills nav-sidebar flex-column"
           data-widget="treeview" role="menu" data-accordion="false">
 
-        <!-- Dashboard -->
-        <!-- <li class="nav-item">
-          <a href="{% url 'dashboards:home' %}"
-             class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-            <i class="nav-icon fas fa-tachometer-alt"></i>
-            <p>Dashboard</p>
-          </a>
-        </li> -->
-
+        <!-- Dashboard (Always visible) -->
         <li class="nav-item has-treeview {% if url in 'home IncidentAccidentDashboardView hazard_dashboard' %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if url in 'home IncidentAccidentDashboardView hazard_dashboard' %}active{% endif %}">
             <i class="nav-icon fas fa-tachometer-alt"></i>
@@ -225,13 +217,16 @@
               </a>
             </li>
 
-            {% if user.role.name != 'EMPLOYEE' %}
+            <!-- ✅ Simple boolean check -->
+            {% if user.can_access_incident_module %}
             <li class="nav-item">
               <a href="{% url 'accidents:IncidentAccidentDashboardView' %}" class="nav-link {% if url == 'IncidentAccidentDashboardView' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i><p>Incident Dashboard</p>
               </a>
             </li>
+            {% endif %}
 
+            {% if user.can_access_hazard_module %}
             <li class="nav-item">
               <a href="{% url 'hazards:hazard_dashboard' %}" class="nav-link {% if url == 'hazard_dashboard' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i><p>Hazard Dashboard</p>
@@ -241,28 +236,25 @@
           </ul>
         </li>
 
-        <!-- Administration Section -->
-        {% if user.is_admin_user %}
+        <!-- Organization Setup - Admin only -->
+        {% if user.is_superuser or user.is_admin_user %}
         <li class="nav-item">
           <a href="{% url 'organizations:dashboard' %}" class="nav-link">
             <i class="nav-icon fas fa-sitemap"></i>
             <p>Organization Setup</p>
           </a>
         </li>
+        {% endif %}
 
-        <!-- User Management -->
+        <!-- User Management - Admin only -->
         {% if user.is_superuser or user.is_admin_user %}
         <li class="nav-item {% if 'accounts' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-users-cog"></i>
-            <p>
-              User Management
-              <i class="right fas fa-angle-left"></i>
-            </p>
+            <p>User Management<i class="right fas fa-angle-left"></i></p>
           </a>
 
           <ul class="nav nav-treeview">
-
             <li class="nav-item">
               <a href="{% url 'accounts:user_create' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'user_create' %}active{% endif %}">
@@ -279,7 +271,6 @@
               </a>
             </li>
 
-            
             <li class="nav-item">
               <a href="{% url 'accounts:role-list' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'role_list' %}active{% endif %}">
@@ -290,9 +281,8 @@
           </ul>
         </li>
         {% endif %}
-        {% endif %}
 
-        <!-- Add this near the top of the sidebar for approvers -->
+        <!-- Approvals -->
         {% if user.can_approve %}
         <li class="nav-item">
             <a href="{% url 'dashboards:approvals' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals' %}active{% endif %}">
@@ -309,14 +299,14 @@
         </li>
         {% endif %}
 
-        <!--Incident-->
+        <!-- ✅ INCIDENT MANAGEMENT -->
+        {% if user.can_access_incident_module %}
         <li class="nav-item {% if 'incidents' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'incidents' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-exclamation-triangle"></i>
             <p>Incident Management <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
-            {% if user.role.name != 'EMPLOYEE' %}
             <li class="nav-item">
               <a href="{% url 'accidents:dashboard' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'dashboard' and 'accidents' in request.path %}active{% endif %}">
@@ -324,7 +314,6 @@
                 <p>Dashboard</p>
               </a>
             </li>
-            {% endif %}
 
             <li class="nav-item">
               <a href="{% url 'accidents:incident_create' %}"
@@ -341,19 +330,18 @@
                 <p>All Incidents</p>
               </a>
             </li>
-            
-            
           </ul>
         </li>
+        {% endif %}
 
-        <!-- Hazards Management -->
+        <!-- ✅ HAZARD MANAGEMENT -->
+        {% if user.can_access_hazard_module %}
         <li class="nav-item {% if 'hazards' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'hazards' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-biohazard"></i>
             <p>Hazards Management <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
-            {% if user.role.name != 'EMPLOYEE' %}
             <li class="nav-item">
               <a href="{% url 'hazards:dashboard' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'dashboard' and 'hazards' in request.path %}active{% endif %}">
@@ -361,9 +349,8 @@
                 <p>Dashboard</p>
               </a>
             </li>
-            {% endif %}
 
-             <li class="nav-item">
+            <li class="nav-item">
               <a href="{% url 'hazards:hazard_create' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'hazard_create' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
@@ -378,18 +365,18 @@
                 <p>All Hazards</p>
               </a>
             </li>
-            
           </ul>
         </li>
+        {% endif %}
 
-        <!-- Data Collection -->
+        <!-- ✅ ENVIRONMENTAL DATA -->
+        {% if user.can_access_env_data_module %}
         <li class="nav-item {% if 'env-data' in request.path or 'data_collection' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'env-data' in request.path or 'data_collection' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-chart-line"></i>
             <p>Environmental Data <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
-            <!-- For All Users - Data Entry -->
             <li class="nav-item">
               <a href="{% url 'environmental:plant-entry' %}"
                 class="nav-link {% if request.resolver_match.url_name == 'plant-entry' %}active{% endif %}">
@@ -398,7 +385,6 @@
               </a>
             </li>
             
-            <!-- For All Users - View Their Data -->
             <li class="nav-item">
               <a href="{% url 'environmental:plant-data-view' %}"
                 class="nav-link {% if request.resolver_match.url_name == 'plant-data-view' %}active{% endif %}">
@@ -407,8 +393,8 @@
               </a>
             </li>
             
-            <!-- Admin/Staff Only Options -->
-            {% if user.is_superuser or user.is_staff or user.is_admin_user %}
+            <!-- Admin options -->
+            {% if user.is_superuser or user.is_admin_user %}
             <li class="nav-item">
               <a href="{% url 'environmental:admin-all-plants' %}"
                 class="nav-link {% if request.resolver_match.url_name == 'admin-all-plants' %}active{% endif %}">
@@ -435,75 +421,88 @@
             {% endif %}
           </ul>
         </li>
+        {% endif %}
 
-
-    <!-- Inspection Module -->
-    {% if user.is_hod or user.is_safety_manager or user.is_admin_user or user.is_superuser %}
-    <li class="nav-item {% if 'inspections' in request.path %}menu-open{% endif %}">
-      <a href="#" class="nav-link {% if 'inspections' in request.path %}active{% endif %}">
-        <i class="nav-icon fas fa-clipboard-check"></i>
-        <p>Inspection Management <i class="right fas fa-angle-left"></i></p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="{% url 'inspections:inspection_dashboard' %}" class="nav-link">
-            <i class="nav-icon far fa-circle"></i>
-            <p>Dashboard</p>
+        <!-- ✅ INSPECTION MODULE -->
+        {% if user.can_access_inspection_module %}
+        <li class="nav-item {% if 'inspections' in request.path %}menu-open{% endif %}">
+          <a href="#" class="nav-link {% if 'inspections' in request.path %}active{% endif %}">
+            <i class="nav-icon fas fa-clipboard-check"></i>
+            <p>Inspection Management <i class="right fas fa-angle-left"></i></p>
           </a>
-        </li>
-
-        <li class="nav-item">
-          <a href="{% url 'inspections:my_inspections' %}" class="nav-link">
-            <i class="nav-icon far fa-circle"></i>
-            <p>My Inspections</p>
-          </a>
-        </li>
-
-        <li class="nav-item">
-          <a href="{% url 'inspections:schedule_create' %}" class="nav-link">
-            <i class="nav-icon far fa-circle"></i>
-            <p>Schedule Inspection</p>
-          </a>
-        </li>
-        
-        <li class="nav-item">
-          <a href="{% url 'inspections:schedule_list' %}" class="nav-link">
-            <i class="nav-icon far fa-circle"></i>
-            <p>All Schedules</p>
-          </a>
-        </li>
-
-        <!-- Configuration Submenu (Admin/Superuser only) -->
-        <li class="nav-item">
-          <a href="#" class="nav-link">
-            <i class="nav-icon fas fa-cog"></i>
-            <p>Configuration <i class="right fas fa-angle-left"></i></p>
-          </a>
-          <ul class="nav nav-treeview" style="padding-left: 15px;">
+          <ul class="nav nav-treeview">
             <li class="nav-item">
-              <a href="{% url 'inspections:category_list' %}" class="nav-link">
-                <i class="nav-icon far fa-dot-circle"></i>
-                <p>Categories</p>
+              <a href="{% url 'inspections:inspection_dashboard' %}" class="nav-link">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Dashboard</p>
               </a>
             </li>
+
             <li class="nav-item">
-              <a href="{% url 'inspections:question_list' %}" class="nav-link">
-                <i class="nav-icon far fa-dot-circle"></i>
-                <p>Questions</p>
+              <a href="{% url 'inspections:my_inspections' %}" class="nav-link">
+                <i class="nav-icon far fa-circle"></i>
+                <p>My Inspections</p>
               </a>
             </li>
+
             <li class="nav-item">
-              <a href="{% url 'inspections:template_list' %}" class="nav-link">
-                <i class="nav-icon far fa-dot-circle"></i>
-                <p>Templates</p>
+              <a href="{% url 'inspections:schedule_create' %}" class="nav-link">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Schedule Inspection</p>
               </a>
             </li>
+            
+            <li class="nav-item">
+              <a href="{% url 'inspections:schedule_list' %}" class="nav-link">
+                <i class="nav-icon far fa-circle"></i>
+                <p>All Schedules</p>
+              </a>
+            </li>
+
+            <!-- Configuration - Admin only -->
+            {% if user.is_superuser or user.is_admin_user %}
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <i class="nav-icon fas fa-cog"></i>
+                <p>Configuration <i class="right fas fa-angle-left"></i></p>
+              </a>
+              <ul class="nav nav-treeview" style="padding-left: 15px;">
+                <li class="nav-item">
+                  <a href="{% url 'inspections:category_list' %}" class="nav-link">
+                    <i class="nav-icon far fa-dot-circle"></i>
+                    <p>Categories</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="{% url 'inspections:question_list' %}" class="nav-link">
+                    <i class="nav-icon far fa-dot-circle"></i>
+                    <p>Questions</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="{% url 'inspections:template_list' %}" class="nav-link">
+                    <i class="nav-icon far fa-dot-circle"></i>
+                    <p>Templates</p>
+                  </a>
+                </li>
+              </ul>
+            </li>
+            {% endif %}
           </ul>
         </li>
+        {% endif %}
+
+        <!-- ✅ REPORTS MODULE (if you have it) -->
+        {% if user.can_access_reports_module %}
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="nav-icon fas fa-chart-bar"></i>
+            <p>Reports & Analytics</p>
+          </a>
+        </li>
+        {% endif %}
+
       </ul>
-    </li>
-    {% endif %}     
-    </ul>
     </nav>
   </div>
 </aside>

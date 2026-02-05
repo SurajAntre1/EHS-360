@@ -25,7 +25,7 @@
                         <th>Description</th>
                         <th>Permissions Count</th>
                         <th>Users Count</th>
-                        <th>Actions</th>
+                        <th style="width: 150px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -35,26 +35,50 @@
                         <td>{{ role.description|default:"No description" }}</td>
                         <td>
                             <span class="badge badge-info">
-                                {{ role.permissions.count }} permissions
+                                {{ role.permissions.count }}
                             </span>
                         </td>
                         <td>
                             <span class="badge badge-secondary">
-                                {{ role.role_user.count }} users
+                                {{ role.role_user.count }}
                             </span>
                         </td>
                         <td>
-                            <a href="{% url 'accounts:updaterole' role.id %}" class="btn btn-sm btn-warning">
-                                <i class="fas fa-edit"></i> Edit
-                            </a>
-                            <a href="{% url 'accounts:role-permissions' role.id %}" class="btn btn-sm btn-primary">
-                                <i class="fas fa-key"></i> Manage Permissions
-                            </a>
+                            <div class="btn-group">
+                                <!-- Edit Button -->
+                                <a href="{% url 'accounts:updaterole' role.id %}" 
+                                   class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                
+                                <!-- Permissions Dropdown -->
+                                <button type="button" 
+                                        class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split" 
+                                        data-toggle="dropdown">
+                                    <i class="fas fa-key"></i> Permissions
+                                </button>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item" 
+                                       href="{% url 'accounts:role_permissions_hierarchical' role.id %}">
+                                        <i class="fas fa-sitemap text-success"></i> 
+                                        Module-Based (Recommended)
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" 
+                                       href="{% url 'accounts:role-permissions' role.id %}">
+                                        <i class="fas fa-list text-secondary"></i> 
+                                        Flat View (Old)
+                                    </a>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center">No roles found</td>
+                        <td colspan="5" class="text-center text-muted">
+                            <i class="fas fa-inbox"></i> No roles found. 
+                            <a href="{% url 'accounts:createrole' %}">Create your first role</a>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

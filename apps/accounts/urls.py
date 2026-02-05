@@ -23,9 +23,9 @@ urlpatterns = [
     # path('permissions/<int:pk>/edit/', views.UserPermissionUpdateView.as_view(), name='permission_edit'),
     
     # NEW: Separate Permissions-Only Page
-    path('permissions-only/', views.UserPermissionsOnlyView.as_view(), name='permissions_only'),
-    path('permissions-only/<int:user_id>/update/', views.update_user_permission, name='update_permission'),
-    path('permissions-only/bulk-update/', views.bulk_update_permissions, name='bulk_update_permissions'),
+    # path('permissions-only/', views.UserPermissionsOnlyView.as_view(), name='permissions_only'),
+    # path('permissions-only/<int:user_id>/update/', views.update_user_permission, name='update_permission'),
+    # path('permissions-only/bulk-update/', views.bulk_update_permissions, name='bulk_update_permissions'),
     
     # # Quick Actions
     # path('permissions/<int:user_id>/grant/<str:permission_type>/', views.quick_grant_permission, name='grant_permission'),
@@ -33,9 +33,18 @@ urlpatterns = [
     
     # Bulk Actions
     # path('permissions/bulk-grant/', views.bulk_grant_permissions, name='bulk_grant_permissions'),
-    path('role/<int:role_id>/permissions/', views.RolePermissionsView.as_view(), name='role-permissions'),
-    path('role/<int:role_id>/toggle-permission/', views.toggle_role_permission, name='toggle-role-permission'),
-    path('role/<int:role_id>/sync-users/', views.sync_role_permissions_to_users, name='sync-role-users'),
+     # Hierarchical permission management
+    path('role/<int:role_id>/permissions-hierarchical/', 
+         views.RolePermissionsHierarchicalView.as_view(), 
+         name='role_permissions_hierarchical'),
+    
+    path('toggle-module-access/<int:role_id>/', 
+         views.toggle_module_access, 
+         name='toggle_module_access'),
+    
+    path('toggle-permission-in-module/<int:role_id>/', 
+         views.toggle_permission_in_module, 
+         name='toggle_permission_in_module'),
     
     #roles and permission
     path('role-list/',views.RolePermission.as_view(), name='role-list'),
