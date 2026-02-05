@@ -5,7 +5,6 @@
 {% block page_title %}Create Action Item{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
 <li class="breadcrumb-item"><a href="{% url 'hazards:dashboard' %}">Hazard Management</a></li>
 <li class="breadcrumb-item"><a href="{% url 'hazards:hazard_list' %}">All Hazards</a></li>
 <li class="breadcrumb-item"><a href="{% url 'hazards:hazard_detail' hazard.pk %}">{{ hazard.report_number }}</a></li>
@@ -121,16 +120,12 @@
 <section class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1><i class="fas fa-tasks"></i> Create Action Item</h1>
+        <div class="col-12 d-flex justify-content-end">
+            <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-secondary" id="backBtn">
+                <i class="fas fa-arrow-left"></i> Back to Hazard
+            </a>
             </div>
-            <div class="col-sm-6">
-                <div class="float-sm-right">
-                    <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to Hazard
-                    </a>
-                </div>
-            </div>
+        </div>
         </div>
     </div>
 </section>

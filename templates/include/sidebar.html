@@ -256,6 +256,14 @@
 
           <ul class="nav nav-treeview">
             <li class="nav-item">
+              <a href="{% url 'accounts:role-list' %}"
+                 class="nav-link {% if request.resolver_match.url_name == 'role_list' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Role & Permission</p>
+              </a>
+            </li>
+            
+            <li class="nav-item">
               <a href="{% url 'accounts:user_create' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'user_create' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
@@ -268,14 +276,6 @@
                  class="nav-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
                 <p>All Users</p>
-              </a>
-            </li>
-
-            <li class="nav-item">
-              <a href="{% url 'accounts:role-list' %}"
-                 class="nav-link {% if request.resolver_match.url_name == 'role_list' %}active{% endif %}">
-                <i class="nav-icon far fa-circle"></i>
-                <p>Role & Permission</p>
               </a>
             </li>
           </ul>
