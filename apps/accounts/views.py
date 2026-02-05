@@ -166,24 +166,20 @@ class UserCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
         assigned_plants = self.request.POST.getlist('assigned_plants')
         if assigned_plants:
             user.assigned_plants.set(assigned_plants)
-            # Set first plant as primary
             user.plant = Plant.objects.get(id=assigned_plants[0])
         
         # Handle MULTIPLE ZONE ASSIGNMENTS (from checkboxes)
         assigned_zones = self.request.POST.getlist('assigned_zones')
         if assigned_zones:
             user.assigned_zones.set(assigned_zones)
-            # Set first zone as primary
             user.zone = Zone.objects.get(id=assigned_zones[0])
         
-        # Save user with primary plant/zone
         user.save()
         
         # Handle MULTIPLE LOCATION ASSIGNMENTS (from checkboxes)
         assigned_locations = self.request.POST.getlist('assigned_locations')
         if assigned_locations:
             user.assigned_locations.set(assigned_locations)
-            # Set first location as primary
             user.location = Location.objects.get(id=assigned_locations[0])
             user.save()
         
@@ -191,9 +187,13 @@ class UserCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
         assigned_sublocations = self.request.POST.getlist('assigned_sublocations')
         if assigned_sublocations:
             user.assigned_sublocations.set(assigned_sublocations)
-            # Set first sublocation as primary
             user.sublocation = SubLocation.objects.get(id=assigned_sublocations[0])
             user.save()
+        
+        # ✅ NEW: Auto-sync permissions if role assigned
+        if user.role:
+            updated = user.sync_permissions_to_flags()
+            messages.info(self.request, f'Synced {updated} permissions from {user.role.name} role')
         
         # Success message
         plant_count = user.assigned_plants.count()
@@ -213,6 +213,7 @@ class UserCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
     def form_invalid(self, form):
         messages.error(self.request, 'Please correct the errors below.')
         return super().form_invalid(form)
+
     
 class UserUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
     """Update user - Only accessible by Admin"""
@@ -236,6 +237,10 @@ class UserUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
         return context
     
     def form_valid(self, form):
+        # ✅ NEW: Store old role to detect changes
+        old_user = User.objects.get(pk=self.object.pk)
+        old_role = old_user.role
+        
         # Save user first
         user = form.save(commit=False)
         user.save()
@@ -244,7 +249,6 @@ class UserUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
         assigned_plants = self.request.POST.getlist('assigned_plants')
         if assigned_plants:
             user.assigned_plants.set(assigned_plants)
-            # Set first plant as primary
             user.plant = Plant.objects.get(id=assigned_plants[0])
         else:
             user.assigned_plants.clear()
@@ -254,20 +258,17 @@ class UserUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
         assigned_zones = self.request.POST.getlist('assigned_zones')
         if assigned_zones:
             user.assigned_zones.set(assigned_zones)
-            # Set first zone as primary
             user.zone = Zone.objects.get(id=assigned_zones[0])
         else:
             user.assigned_zones.clear()
             user.zone = None
         
-        # Save user with primary plant/zone
         user.save()
         
         # Handle MULTIPLE LOCATION ASSIGNMENTS (from checkboxes)
         assigned_locations = self.request.POST.getlist('assigned_locations')
         if assigned_locations:
             user.assigned_locations.set(assigned_locations)
-            # Set first location as primary
             user.location = Location.objects.get(id=assigned_locations[0])
             user.save()
         else:
@@ -279,13 +280,21 @@ class UserUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
         assigned_sublocations = self.request.POST.getlist('assigned_sublocations')
         if assigned_sublocations:
             user.assigned_sublocations.set(assigned_sublocations)
-            # Set first sublocation as primary
             user.sublocation = SubLocation.objects.get(id=assigned_sublocations[0])
             user.save()
         else:
             user.assigned_sublocations.clear()
             user.sublocation = None
             user.save()
+        
+        # ✅ NEW: Auto-sync if role changed
+        if old_role != user.role:
+            if user.role:
+                updated = user.sync_permissions_to_flags()
+                messages.info(self.request, f'Role changed! Synced {updated} permissions from {user.role.name}')
+            else:
+                user.sync_permissions_to_flags()  # This will reset all permissions
+                messages.info(self.request, 'Role removed. All permissions reset.')
         
         messages.success(
             self.request, 
@@ -300,9 +309,8 @@ class UserUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
         return super().form_invalid(form)
     
     def get_queryset(self):
-        queryset = get_incidents_for_user(self.request.user)
-        queryset = queryset.select_related('plant','zone','location','reported_by')
         return User.objects.filter(is_superuser=False)
+
 
 class UserDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
     """Delete user - Only accessible by Admin"""
@@ -622,11 +630,22 @@ class RoleUpdateView(LoginRequiredMixin, TemplateView):
         role.name = role_name
         role.description = description
         role.save()
+        
         if permission_ids:
             permissions = Permissions.objects.filter(id__in=permission_ids)
             role.permissions.set(permissions)
         else:
             role.permissions.clear()
+
+        # ✅ NEW: Sync permissions to all users with this role
+        affected_users = role.role_user.all()
+        synced_count = 0
+        for user in affected_users:
+            user.sync_permissions_to_flags()
+            synced_count += 1
+        
+        if synced_count > 0:
+            messages.info(request, f"Synced permissions to {synced_count} user(s) with this role")
 
         messages.success(request, "Role updated successfully")
         return redirect('accounts:role-list')
@@ -710,15 +729,23 @@ def toggle_module_access(request, role_id):
             else:
                 return JsonResponse({'success': False, 'error': 'Invalid action'}, status=400)
             
+            # ✅ NEW: Sync permissions to all users with this role
+            affected_users = role.role_user.all()
+            synced_count = 0
+            for user in affected_users:
+                user.sync_permissions_to_flags()
+                synced_count += 1
+            
             # Count users affected
             user_count = role.role_user.count()
             
             return JsonResponse({
                 'success': True,
-                'message': message,
+                'message': f"{message}. Synced permissions for {synced_count} user(s).",
                 'module_code': module_code,
                 'has_access': action == 'grant',
-                'affected_users': user_count
+                'affected_users': user_count,
+                'synced_users': synced_count
             })
             
         except Permissions.DoesNotExist:
@@ -730,7 +757,6 @@ def toggle_module_access(request, role_id):
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
     
     return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
-
 
 def toggle_permission_in_module(request, role_id):
     """Toggle individual permission - only works if module access granted"""
@@ -766,10 +792,18 @@ def toggle_permission_in_module(request, role_id):
             else:
                 return JsonResponse({'success': False, 'error': 'Invalid action'}, status=400)
             
+            # ✅ NEW: Sync permissions to all users with this role
+            affected_users = role.role_user.all()
+            synced_count = 0
+            for user in affected_users:
+                user.sync_permissions_to_flags()
+                synced_count += 1
+            
             return JsonResponse({
                 'success': True,
-                'message': message,
-                'permission_count': role.permissions.count()
+                'message': f"{message}. Synced to {synced_count} user(s).",
+                'permission_count': role.permissions.count(),
+                'synced_users': synced_count
             })
             
         except Permissions.DoesNotExist:

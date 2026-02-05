@@ -78,14 +78,12 @@
         <div class="col-md-3">
           <select name="role" class="form-control">
             <option value="">All Roles</option>
-            {% for role_key, role_name in role_choices %}
-              {% if role_key != 'SUPERADMIN' %}
-              <option value="{{ role_key }}" {% if selected_role == role_key %}selected{% endif %}>
-                {{ role_name }}
-              </option>
-              {% endif %}
+            {% for role in roles %}
+            <option value="{{ role.id }}" {% if selected_role == role.id|stringformat:"s" %}selected{% endif %}>
+                {{ role.name }}
+            </option>
             {% endfor %}
-          </select>
+        </select>
         </div>
         <div class="col-md-3">
           <select name="status" class="form-control">
@@ -123,7 +121,13 @@
             <td>{{ user.get_full_name }}</td>
             <td>{{ user.username }}</td>
             <td>{{ user.email }}</td>
-            <td><span class="badge badge-info">{{ user.role_display }}</span></td>
+            <td>
+              {%if user.role%}
+              <span class="badge badge-info">{{user.role.name}}</span>
+              {%else%}
+              <span class=" badge badge-info">No Role</span>
+              {% endif %}
+
             <td>
               {% if user.is_active %}
                 <span class="badge badge-success">Active</span>
