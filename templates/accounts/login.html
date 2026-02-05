@@ -262,10 +262,7 @@
       text-align: center;
       font-size: 13px;
       color: var(--text-secondary);
-      position: fixed;
-      bottom: 15px;
-      width: 100%;
-      z-index: 2;
+      margin-top: 25px;
       font-weight: 500;
     }
 
@@ -392,7 +389,7 @@
           </div>
         </div>
 
-        <a href="#" class="forgot-password">Forgot password?</a>
+        <a href="{% url 'accounts:forget-password' %}" class="forgot-password">Forgot password?</a>
 
         <div class="d-grid mt-4">
           <button type="submit" class="btn btn-signin" id="signInBtn">
@@ -400,15 +397,15 @@
           </button>
         </div>
       </form>
+      <footer>
+        <strong>
+          &copy; <span id="currentYear"></span>
+          <a href="https://protegk.com">PROTEGK IT Solutions</a>.
+        </strong> All rights reserved.
+      </footer>
     </div>
   </div>
 
-  <footer>
-    <strong>
-      &copy; <span id="currentYear"></span>
-      <a href="https://protegk.com">PROTEGK IT Solutions</a>.
-    </strong> All rights reserved.
-  </footer>
 
   <script>
     // Set current year

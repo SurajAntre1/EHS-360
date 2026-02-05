@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="{% static 'img/ehs_logo.png' %}" type="image/png">
+  <title>Forgot Password | EHS-360</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary-blue: #1E90FF;
+      --primary-green: #7CB342;
+      --dark-blue: #1565C0;
+      --dark-green: #558B2F;
+      --gradient-start: #E3F2FD;
+      --gradient-end: #F1F8E9;
+      --text-primary: #1565C0;
+      --text-secondary: #37474F;
+      --card-shadow: rgba(30, 144, 255, 0.15);
+      --bubble-color: rgba(30, 144, 255, 0.3);
+    }
+
+    body {
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .bubbles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: var(--bubble-color);
+      animation: floatUp 25s linear infinite;
+      opacity: 0;
+    }
+
+    .bubble:nth-child(odd) {
+      background: rgba(124, 179, 66, 0.25);
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(100vh) scale(0.3); opacity: 0; }
+      15%, 85% { opacity: 1; }
+      100% { transform: translateY(-20vh) scale(1.3); opacity: 0; }
+    }
+
+    .login-wrapper {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 25px;
+      box-shadow: 0 15px 35px var(--card-shadow);
+      padding: 45px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .logo {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      padding: 8px;
+      background: #fff;
+      border: 3px solid rgba(30,144,255,.2);
+      margin-bottom: 20px;
+    }
+
+    .login-title {
+      font-weight: 700;
+      font-size: 26px;
+      background: linear-gradient(45deg, var(--primary-blue), var(--primary-green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .login-subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-bottom: 30px;
+    }
+
+    .form-control {
+      border-radius: 12px;
+      padding: 12px 15px;
+      border: 2px solid rgba(30,144,255,.2);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-blue), var(--primary-green));
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-weight: 600;
+    }
+
+    .btn-primary.loading {
+      color: transparent;
+      position: relative;
+    }
+
+    .btn-primary.loading::after {
+      content: "";
+      width: 20px;
+      height: 20px;
+      border: 2px solid #fff;
+      border-top-color: transparent;
+      border-radius: 50%;
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .back-login {
+      font-size: 14px;
+      margin-top: 15px;
+      display: inline-block;
+    }
+    footer {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 25px;
+    font-weight: 500;
+   }
+
+  </style>
+</head>
+
+<body>
+  
+  <div class="bubbles">
+    <div class="bubble" style="width:80px; left:10%; animation-delay:0s;"></div>
+    <div class="bubble" style="width:120px; left:30%; animation-delay:4s;"></div>
+    <div class="bubble" style="width:60px; left:60%; animation-delay:6s;"></div>
+    <div class="bubble" style="width:100px; left:80%; animation-delay:2s;"></div>
+  </div>
+
+  <div class="login-wrapper">
+    <div class="login-card">
+
+      <img src="{% static 'img/EHS.png' %}" class="logo" alt="EHS-360">
+
+      <div class="login-title">Forgot Password</div>
+      <div class="login-subtitle">
+        Enter your registered email and we’ll send you a reset link
+      </div>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <form method="POST" id="forgotForm">
+        {% csrf_token %}
+
+        <div class="mb-3 text-start">
+          <label class="form-label">Email Address</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="bi bi-envelope-fill"></i>
+            </span>
+            <input type="email" name="email" class="form-control"
+                   placeholder="Enter your registered email" required>
+          </div>
+        </div>
+
+        <div class="d-grid mt-4">
+          <button type="submit" class="btn btn-primary" id="resetBtn">
+            Send Reset Link
+          </button>
+        </div>
+      </form>
+
+      <a href="{% url 'accounts:login' %}" class="back-login">
+        <i class="bi bi-arrow-left"></i> Back to Login
+      </a>
+      <footer>
+          <strong>
+            &copy; <span id="currentYear"></span>
+            <a href="https://protegk.com">PROTEGK IT Solutions</a>.
+          </strong> All rights reserved.
+      </footer>
+    </div>
+  </div>
+
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    const form = document.getElementById('forgotForm');
+    const btn = document.getElementById('resetBtn');
+
+    form.addEventListener('submit', () => {
+      btn.classList.add('loading');
+      btn.disabled = true;
+    });
+  </script>
+
+</body>
+</html>

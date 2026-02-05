@@ -11,13 +11,33 @@ from .models import User,Role,Permissions
 from .forms import UserCreationFormCustom, UserUpdateForm
 from apps.organizations.models import *
 from apps.accidents.utils import get_incidents_for_user
+from django.contrib.auth.forms import PasswordResetForm
 
 
 class CustomLoginView(LoginView):
     """Custom Login View for EHS-360"""
     template_name = 'accounts/login.html'
     redirect_authenticated_user = True
-    
+
+    def post(self, request, *args, **kwargs):
+        username_or_email = request.POST.get('username')
+        password = request.POST.get('password')
+
+        if not username_or_email or not password:
+            messages.error(request, 'Both fields are required.')
+            return self.get(request, *args, **kwargs)
+
+        if '@' in username_or_email:
+            try:
+                user_obj = User.objects.get(email__iexact=username_or_email)
+                request.POST = request.POST.copy()
+                request.POST['username'] = user_obj.username
+            except User.DoesNotExist:
+                messages.error(request, 'Invalid username/email or password.')
+                return self.get(request, *args, **kwargs)
+
+        return super().post(request, *args, **kwargs)
+
     def get_success_url(self):
         user = self.request.user
         
@@ -51,6 +71,35 @@ class CustomLoginView(LoginView):
             'Invalid username or password. Please try again.'
         )
         return super().form_invalid(form)
+
+class ForgetPasswordView(View):
+    template_name = 'accounts/forget_pass.html'
+
+    def get(self, request):
+        return render(request, self.template_name)
+
+    def post(self, request):
+        email = request.POST.get('email')
+
+        if not email:
+            messages.error(request, "Please enter your registered email address.")
+            return redirect('forget_password')
+
+        form = PasswordResetForm({'email': email})
+        if form.is_valid():
+            form.save(
+                request=request,
+                use_https=request.is_secure(),
+                from_email=None,
+                email_template_name='accounts/password_reset_email.html',
+                subject_template_name='accounts/password_reset_subject.txt',
+            )
+
+        messages.success(
+            request,
+            "If an account exists with this email, a password reset link has been sent."
+        )
+        return redirect('accounts:login')
 
 
 class CustomLogoutView(LogoutView):
