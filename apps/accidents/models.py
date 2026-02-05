@@ -37,12 +37,44 @@ class Incident(models.Model):
     STATUS_CHOICES = [
         ('REPORTED', 'Reported'),
         ('INVESTIGATION_PENDING', 'Investigation Pending'),
+        ('PENDING_APPROVAL', 'Pending Approval'),         # NEW
+        ('REJECTED', 'Investigation Rejected'),         # NEW
         ('UNDER_INVESTIGATION', 'Under Investigation'),
         ('ACTION_PLAN_PENDING', 'Action Plan Pending'),
         ('ACTION_IN_PROGRESS', 'Action in Progress'),
         ('COMPLETED', 'Completed'),
         ('CLOSED', 'Closed'),
+    ]   
+    
+    APPROVAL_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
     ]
+    approval_status = models.CharField(
+        max_length=20,
+        choices=APPROVAL_STATUS_CHOICES,
+        default='PENDING',
+        help_text="Approval status of the investigation report"
+    )
+    approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='incidents_approved',
+        help_text="User who approved the investigation"
+    )
+    approved_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Date and time of approval"
+    )
+    rejection_remarks = models.TextField(
+        blank=True,
+        help_text="Remarks if the investigation is rejected"
+    )
+        
     # Employment Category
     EMPLOYMENT_CATEGORY_CHOICES = [
         ('PERMANENT', 'Permanent'),

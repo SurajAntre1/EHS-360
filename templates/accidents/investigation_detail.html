@@ -76,6 +76,27 @@
                 </div>
             </div>
 
+            <!-- Approval Status Alert Box -->
+            {% with incident=investigation.incident %}
+                {% if incident.approval_status == 'PENDING' %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-clock mr-2"></i>
+                    <strong>Status:</strong> This investigation report is currently pending approval.
+                </div>
+                {% elif incident.approval_status == 'APPROVED' %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <strong>Status:</strong> Approved by <strong>{{ incident.approved_by.get_full_name }}</strong> on {{ incident.approved_date|date:"d M Y" }}.
+                </div>
+                {% elif incident.approval_status == 'REJECTED' %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-times-circle mr-2"></i>
+                    <strong>Status:</strong> This report has been rejected.
+                    <p class="mb-0 mt-2"><strong>Remarks:</strong> {{ incident.rejection_remarks|linebreaks }}</p>
+                </div>
+                {% endif %}
+            {% endwith %}
+
             <!-- Findings -->
             <div class="card mt-3">
                 <div class="card-header bg-danger text-white">

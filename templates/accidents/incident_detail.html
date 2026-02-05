@@ -877,6 +877,45 @@
         </div>
     </div>
 
+  
+<!-- Approval Status Card -->
+  {% if incident.status == 'PENDING_APPROVAL' or incident.status == 'REJECTED' or incident.approval_status == 'APPROVED' %}
+  <div class="card shadow mb-3">
+      <div class="card-header py-3 
+          {% if incident.approval_status == 'APPROVED' %}bg-success text-white
+          {% elif incident.approval_status == 'REJECTED' %}bg-danger text-white
+          {% else %}bg-warning text-dark{% endif %}">
+          <h5 class="card-title mb-0">
+              <i class="fas fa-check-double mr-2"></i>Investigation Approval Status
+          </h5>
+      </div>
+      <div class="card-body">
+          {% if incident.approval_status == 'PENDING' %}
+              <div class="alert alert-warning mb-0">
+                  <h6 class="alert-heading"><i class="fas fa-clock mr-2"></i>Pending Approval</h6>
+                  <p class="mb-0">The investigation report is awaiting approval.</p>
+                  <!-- Optional: Link for approvers to go to the approval page -->
+                  <hr>
+                  <a href="{% url 'accidents:incident_approve' incident.pk %}" class="btn btn-sm btn-warning">Review & Approve</a>
+              </div>
+          {% elif incident.approval_status == 'APPROVED' %}
+              <div class="alert alert-success mb-0">
+                  <h6 class="alert-heading"><i class="fas fa-check-circle mr-2"></i>Approved</h6>
+                  <p class="mb-0">
+                      Approved by: <strong>{{ incident.approved_by.get_full_name }}</strong><br>
+                      Date: {{ incident.approved_date|date:"d M Y, H:i" }}
+                  </p>
+              </div>
+          {% elif incident.approval_status == 'REJECTED' %}
+              <div class="alert alert-danger mb-0">
+                  <h6 class="alert-heading"><i class="fas fa-times-circle mr-2"></i>Rejected</h6>
+                  <p><strong>Reason for Rejection:</strong><br>{{ incident.rejection_remarks|linebreaks }}</p>
+              </div>
+          {% endif %}
+      </div>
+  </div>
+  {% endif %}
+
     <!-- Notifications -->
     <div class="ehs-card mb-3 mt-3">
       <div class="card-header">

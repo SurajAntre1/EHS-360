@@ -639,7 +639,10 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
-    """Create investigation report and its associated action items"""
+    """
+    Create investigation report and its associated action items.
+    On successful submission, redirects to approval page.
+    """
     model = IncidentInvestigationReport
     form_class = IncidentInvestigationReportForm
     template_name = 'accidents/investigation_report_create.html'
@@ -660,7 +663,6 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
             form=IncidentActionItemForm,
             extra=1,
             can_delete=False
-            # responsible_person is now INCLUDED
         )
 
         if self.request.POST:
@@ -678,7 +680,7 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         return context
 
     def form_valid(self, form):
-        """Process the main form and the action item formset."""
+        """Process investigation report + action items."""
         context = self.get_context_data()
         action_item_formset = context['action_item_formset']
 
@@ -689,13 +691,13 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
             )
             return self.form_invalid(form)
 
-        # 1. Save investigation report
+        # 1️⃣ Save Investigation Report
         investigation = form.save(commit=False)
+        investigation.incident = self.incident
         investigation.investigator = self.request.user
         investigation.completed_by = self.request.user
-        investigation.incident = self.incident
 
-        # Process personal & job factors JSON
+        # Handle JSON fields
         personal_factors_json = self.request.POST.get('personal_factors_json', '[]')
         job_factors_json = self.request.POST.get('job_factors_json', '[]')
 
@@ -708,21 +710,21 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
 
         investigation.save()
 
-        # 2. Save action items (ManyToMany handled by formset)
+        # 2️⃣ Save Action Items
         action_items = action_item_formset.save(commit=False)
         for action_item in action_items:
             action_item.incident = self.incident
             action_item.save()
 
-        # Save M2M relationships (responsible_person)
         action_item_formset.save_m2m()
 
-        # 3. Update incident status
-        self.incident.status = 'ACTION_IN_PROGRESS'
+        # 3️⃣ Update Incident Status (NEW LOGIC)
+        self.incident.status = 'PENDING_APPROVAL'
+        self.incident.approval_status = 'PENDING'
         self.incident.investigation_completed_date = investigation.completed_date
         self.incident.save()
 
-        # 4. Notifications
+        # 4️⃣ Notifications
         try:
             from apps.notifications.services import NotificationService
 
@@ -731,28 +733,27 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
                 notification_type='INCIDENT_INVESTIGATION_COMPLETED',
                 module='INCIDENT_INVESTIGATION_REPORTED'
             )
-
             print("✅ Investigation completion notifications sent")
         except Exception as e:
-            print(f"❌ Error sending investigation notifications: {e}")
+            print(f"❌ Notification error: {e}")
 
         messages.success(
             self.request,
-            "Investigation report and action items have been created successfully."
+            "Investigation report submitted successfully and is now pending approval."
         )
-        return redirect(self.get_success_url())
+
+        # 5️⃣ Redirect to Approval Page (NEW)
+        return redirect(
+            reverse_lazy(
+                'accidents:incident_approve',
+                kwargs={'pk': self.incident.pk}
+            )
+        )
 
     def form_invalid(self, form):
-        """Handle invalid form or formset."""
         messages.error(self.request, "Please correct the errors in the form below.")
         return super().form_invalid(form)
-
-    def get_success_url(self):
-        return reverse_lazy(
-            'accidents:incident_detail',
-            kwargs={'pk': self.incident.pk}
-        )
-    
+        
 class ActionItemCreateView(LoginRequiredMixin, CreateView):
     """Create action item"""
     model = IncidentActionItem
@@ -793,6 +794,59 @@ class ActionItemCreateView(LoginRequiredMixin, CreateView):
         return reverse_lazy('accidents:incident_detail', kwargs={'pk': self.incident.pk})
 
 
+class IncidentApprovalView(LoginRequiredMixin, DetailView):
+    """
+    Displays incident and investigation summaries for approval.
+    This view also handles the POST requests for approving or rejecting.
+    """
+    model = Incident
+    template_name = 'accidents/incident_approval.html'
+    context_object_name = 'incident'
+    
+    def get_context_data(self, **kwargs):
+        """
+        Adds the related investigation report to the context.
+        """
+        context = super().get_context_data(**kwargs)
+        # This page is only accessed after a report is created, so we can
+        # safely assume the investigation_report object exists.
+        context['investigation_report'] = self.object.investigation_report
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """
+        Handles the 'approve' and 'reject' form submissions.
+        """
+        incident = self.get_object()
+        
+        # Check which button was clicked based on its 'name' attribute in the form
+        if 'approve_action' in request.POST:
+            # Handle the approval logic
+            incident.status = 'ACTION_PLAN_PENDING'  # Set next logical status
+            incident.approval_status = 'APPROVED'
+            incident.approved_by = request.user
+            incident.approved_date = timezone.now()
+            incident.rejection_remarks = ""  # Clear any previous remarks
+            incident.save()
+            messages.success(request, f"Incident {incident.report_number} investigation has been approved.")
+            
+        elif 'reject_action' in request.POST:
+            # Handle the rejection logic
+            rejection_remarks = request.POST.get('rejection_remarks', '').strip()
+            if not rejection_remarks:
+                messages.error(request, "Rejection remarks are required to reject the report.")
+                return redirect('accidents:incident_approve', pk=incident.pk)
+            
+            incident.status = 'REJECTED'
+            incident.approval_status = 'REJECTED'
+            incident.rejection_remarks = rejection_remarks
+            incident.approved_by = None
+            incident.approved_date = None
+            incident.save()
+            messages.warning(request, f"Incident {incident.report_number} investigation has been rejected.")
+            
+        return redirect('accidents:incident_detail', pk=incident.pk)
+    
 # AJAX Views
 class GetZonesForPlantAjaxView(LoginRequiredMixin, TemplateView):
     """AJAX view to get zones for selected plant"""

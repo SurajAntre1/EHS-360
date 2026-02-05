@@ -1,0 +1,188 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Approve Investigation - {{ incident.report_number }}{% endblock %}
+{% block page_title %}Investigation Approval{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:incident_list' %}">All Incidents</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:incident_detail' incident.pk %}">{{ incident.report_number }}</a></li>
+<li class="breadcrumb-item active">Approval</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            
+            <!-- 1. Main Incident Header Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-file-alt mr-2"></i>Incident Overview
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <!-- Main details with action buttons -->
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-8">
+                            <h4 class="mb-1 font-weight-bold">{{ incident.report_number }}</h4>
+                            <div class="d-flex flex-wrap">
+                                <span class="badge badge-dark mr-2 mb-1">{{ incident.incident_type.name }}</span>
+                                <span class="badge badge-warning mr-2 mb-1">Status: {{ incident.get_status_display }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-right mt-2 mt-md-0">
+                            <a href="{% url 'accidents:incident_detail' incident.pk %}" class="btn btn-sm btn-info" target="_blank"><i class="fas fa-eye mr-1"></i> View Full Details</a>
+                            <a href="{% url 'accidents:incident_update' incident.pk %}" class="btn btn-sm btn-secondary"><i class="fas fa-edit mr-1"></i> Edit Incident</a>
+                        </div>
+                    </div>
+
+                    <!-- Light background summary row -->
+                    <div class="row bg-light p-3 rounded mx-0">
+                        <div class="col-sm-6 col-md-3 border-right mb-2 mb-md-0">
+                            <small class="text-muted d-block">Incident Date & Time</small>
+                            <span class="font-weight-bold">{{ incident.incident_date|date:"d M Y" }} | {{ incident.incident_time|time:"H:i" }}</span>
+                        </div>
+                        <div class="col-sm-6 col-md-3 border-right mb-2 mb-md-0">
+                            <small class="text-muted d-block">Location / Plant</small>
+                            <span class="font-weight-bold">{{ incident.plant.name }} - {{ incident.location.name }}</span>
+                        </div>
+                        <div class="col-sm-6 col-md-3 border-right mb-2 mb-md-0">
+                            <small class="text-muted d-block">Affected Person</small>
+                            <span class="font-weight-bold text-primary">{{ incident.affected_person_name }}</span>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <small class="text-muted d-block">Department</small>
+                            <span class="font-weight-bold">{{ incident.affected_person_department.name|default:"N/A" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Investigation Summary Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-warning d-flex align-items-center">
+    <h4 class="card-title text-dark mb-0">
+        <i class="fas fa-search mr-2"></i> Investigation Findings
+    </h4>
+
+    <a href="{% url 'accidents:investigation_detail' investigation_report.pk %}"
+       class="btn btn-sm btn-info ml-auto"
+       target="_blank">
+        <i class="fas fa-eye mr-1"></i> View Full Report
+    </a>
+</div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3 text-muted">Investigator</dt>
+                        <dd class="col-sm-9 font-weight-bold">{{ investigation_report.investigator.get_full_name }}</dd>
+
+                        <dt class="col-sm-3 text-muted">Investigation Date</dt>
+                        <dd class="col-sm-9">{{ investigation_report.investigation_date|date:"d M Y" }}</dd>
+
+                        <dt class="col-sm-3 text-muted">Sequence of Events</dt>
+                        <dd class="col-sm-9">{{ investigation_report.sequence_of_events|linebreaks }}</dd>
+
+                        <dt class="col-sm-3 text-muted">Root Cause Analysis</dt>
+                        <dd class="col-sm-9">{{ investigation_report.root_cause_analysis|linebreaks }}</dd>
+
+                        <dt class="col-sm-3 text-muted">Preventive Measures</dt>
+                        <dd class="col-sm-9">{{ investigation_report.preventive_measures|linebreaks }}</dd>
+                    </dl>
+                </div>
+            </div>
+            
+            <!-- 3. Action Items Summary Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info">
+                    <h4 class="card-title text-white mb-0">
+                        <i class="fas fa-tasks mr-2"></i>Proposed Action Items
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if incident.action_items.all %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Action Description</th>
+                                        <th>Responsible Person(s)</th>
+                                        <th>Target Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for action in incident.action_items.all %}
+                                    <tr>
+                                        <td>{{ action.action_description }}</td>
+                                        <td>
+                                            {% for user in action.responsible_person.all %}
+                                                <span class="badge badge-pill badge-secondary font-weight-normal">{{ user.email }}</span>
+                                            {% empty %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>{{ action.target_date|date:"d M Y" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-secondary">No action items were created during the investigation.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 4. Approval Action Card -->
+            <div class="card mt-4 border-success shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-check-double mr-2"></i>Final Approval
+                    </h4>
+                </div>
+                <div class="card-body text-center">
+                    <p class="lead">Please review all information carefully before taking an action.</p>
+                    <p>Approving this report will move the incident to the next stage. Rejecting it will require the investigator to make corrections.</p>
+                    <hr>
+                    <!-- Action Buttons -->
+                    <form method="POST" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" name="approve_action" class="btn btn-success btn-lg">
+                            <i class="fas fa-check-circle mr-2"></i>Approve Investigation
+                        </button>
+                    </form>
+                    <button type="button" class="btn btn-danger btn-lg ml-2" data-toggle="modal" data-target="#rejectModal">
+                        <i class="fas fa-times-circle mr-2"></i>Reject Investigation
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Modal (No changes needed here) -->
+<div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <form method="POST">
+        {% csrf_token %}
+        <div class="modal-header"><h5 class="modal-title" id="rejectModalLabel">Reject Investigation Report</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+        <div class="modal-body">
+          <p>Please provide the reason for rejecting this investigation report. This is a required field.</p>
+          <div class="form-group">
+            <label for="rejection_remarks">Rejection Remarks</label>
+            <textarea class="form-control" id="rejection_remarks" name="rejection_remarks" rows="4" required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" name="reject_action" class="btn btn-danger">Submit Rejection</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

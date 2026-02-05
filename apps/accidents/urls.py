@@ -41,6 +41,7 @@ urlpatterns = [
     path('incidents/<int:pk>/reopen/', views.IncidentReopenView.as_view(), name='incident_reopen'),
     # In apps/accidents/urls.py
     path('investigations/<int:pk>/', views.InvestigationDetailView.as_view(), name='investigation_detail'),
+    path('incidents/<int:pk>/approve/', views.IncidentApprovalView.as_view(), name='incident_approve'),
 
 
 
