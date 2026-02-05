@@ -4,6 +4,11 @@
 {% block title %}Role List{% endblock %}
 {% block page_title %}Role List{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item active">Role List</li>
+{% endblock %}
+
 {% block extra_css %}
 <style>
   .breadcrumb {
