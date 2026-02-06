@@ -84,38 +84,30 @@ class HazardListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        # Get the current logged-in user
         user = self.request.user
         
-        # Start with the base queryset, fetching related objects to optimize queries
         queryset = Hazard.objects.select_related('plant', 'location', 'reported_by').order_by('-incident_datetime')
 
-        # --- ROLE-BASED DATA FILTERING ---
-        # Check if the user is a superuser or has an ADMIN role
+        # Role-based filtering
         if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
-            # No filtering needed; they can see all records
             pass
-        # Check if the user has an EMPLOYEE role
         elif hasattr(user, 'role') and user.role and user.role.name == 'EMPLOYEE':
-            # Filter the queryset to show only records reported by the current user
             queryset = queryset.filter(reported_by=user)
-        # Check if the user is associated with a specific plant (for roles like PLANT HEAD, etc.)
         elif user.plant:
             queryset = queryset.filter(plant=user.plant)
         else:
-            # As a fallback, if no specific role logic applies, show only self-reported records
             queryset = queryset.filter(reported_by=user)
 
-        # --- SEARCH AND FILTER LOGIC ---
-        # This part remains the same and applies on top of the role-filtered queryset
-
+        # Get filter parameters
         search = self.request.GET.get('search', '')
         hazard_type = self.request.GET.get('hazard_type', '')
         risk_level = self.request.GET.get('risk_level', '')
         status = self.request.GET.get('status', '')
+        approval_status = self.request.GET.get('approval_status', '')  # ✅ NEW
         date_from = self.request.GET.get('date_from', '')
         date_to = self.request.GET.get('date_to', '')
 
+        # Apply filters
         if search:
             queryset = queryset.filter(
                 Q(report_number__icontains=search) |
@@ -127,6 +119,11 @@ class HazardListView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(severity=risk_level)
         if status:
             queryset = queryset.filter(status=status)
+        
+        # ✅ NEW: Apply approval status filter
+        if approval_status:
+            queryset = queryset.filter(approval_status=approval_status)
+        
         if date_from:
             queryset = queryset.filter(incident_datetime__date__gte=date_from)
         if date_to:
@@ -135,7 +132,6 @@ class HazardListView(LoginRequiredMixin, ListView):
         return queryset
 
     def get_context_data(self, **kwargs):
-        # This method provides additional context to the template
         context = super().get_context_data(**kwargs)
         
         # Add choices for dropdown filters
@@ -148,6 +144,7 @@ class HazardListView(LoginRequiredMixin, ListView):
         context['selected_hazard_type'] = self.request.GET.get('hazard_type', '')
         context['selected_risk_level'] = self.request.GET.get('risk_level', '')
         context['selected_status'] = self.request.GET.get('status', '')
+        context['selected_approval_status'] = self.request.GET.get('approval_status', '')  # ✅ NEW
 
         return context
 class HazardCreateView(LoginRequiredMixin, CreateView):
