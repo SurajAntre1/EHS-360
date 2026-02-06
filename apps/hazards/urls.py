@@ -16,6 +16,7 @@ urlpatterns = [
     path('hazards/<int:pk>/', views.HazardDetailView.as_view(), name='hazard_detail'),
     path('hazards/<int:pk>/edit/', views.HazardUpdateView.as_view(), name='hazard_update'),
     path('hazards/<int:pk>/pdf/', views.HazardPDFView.as_view(), name='hazard_pdf'),
+    path('hazards/<int:pk>/approve/', views.HazardApprovalView.as_view(), name='hazard_approve'),
     
     # Action Items URLs
     path('hazards/<int:hazard_pk>/action-items/create/', views.HazardActionItemCreateView.as_view(), name='action_item_create'),

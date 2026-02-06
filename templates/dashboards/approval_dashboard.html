@@ -6,225 +6,82 @@
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
-<li class="breadcrumb-item active">Approval Dashboard</li>
+<li class="breadcrumb-item active">Approvals</li>
 {% endblock %}
 
 {% block content %}
-<section class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1><i class="fas fa-clipboard-check"></i> Approval Dashboard</h1>
-                <p class="text-muted">Welcome, {{ user.get_full_name }}!</p>
-            </div>
-            <div class="col-sm-6">
-                <div class="float-sm-right">
-                    <span class="badge badge-warning badge-lg" style="font-size: 18px;">
-                        {{ total_pending }} Total Pending
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="content">
-    <!-- Statistics Cards -->
+<div class="container-fluid">
+    <!-- Top Stats Cards -->
     <div class="row">
-        {% if user.can_approve_hazards or user.is_superuser %}
-        <div class="col-lg-6 col-6">
-            <div class="small-box bg-warning">
-                <div class="inner">
-                    <h3>{{ hazards_count }}</h3>
-                    <p>Pending Hazard Approvals</p>
+        <div class="col-md-4">
+            <div class="info-box bg-warning">
+                <span class="info-box-icon"><i class="fas fa-clock"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Total Pending</span>
+                    <span class="info-box-number">{{ total_pending }}</span>
                 </div>
-                <div class="icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <a href="{% url 'hazards:pending_approvals' %}" class="small-box-footer">
-                    View All <i class="fas fa-arrow-circle-right"></i>
-                </a>
             </div>
         </div>
-        {% endif %}
-        
-        {% if user.can_approve_incidents or user.is_superuser %}
-        <div class="col-lg-6 col-6">
-            <div class="small-box bg-danger">
-                <div class="inner">
-                    <h3>{{ incidents_count }}</h3>
-                    <p>Pending Incident Approvals</p>
+        <div class="col-md-4">
+            <div class="info-box bg-success">
+                <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Hazards Pending</span>
+                    <span class="info-box-number">{{ pending_hazards_count }}</span>
                 </div>
-                <div class="icon">
-                    <i class="fas fa-ambulance"></i>
-                </div>
-                <a href="{% url 'incidents:pending_approvals' %}" class="small-box-footer">
-                    View All <i class="fas fa-arrow-circle-right"></i>
-                </a>
             </div>
         </div>
-        {% endif %}
+        <div class="col-md-4">
+            <div class="info-box bg-danger">
+                <span class="info-box-icon"><i class="fas fa-exclamation-circle"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Incidents Pending</span>
+                    <span class="info-box-number">{{ pending_incidents_count }}</span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Pending Hazards -->
-    {% if user.can_approve_hazards or user.is_superuser %}
-    <div class="card">
-        <div class="card-header bg-warning">
-            <h3 class="card-title">
-                <i class="fas fa-exclamation-triangle"></i> Pending Hazard Approvals ({{ hazards_count }})
-            </h3>
-            <div class="card-tools">
-                <a href="{% url 'hazards:pending_approvals' %}" class="btn btn-sm btn-light">
-                    View All <i class="fas fa-arrow-right"></i>
-                </a>
-            </div>
+    <!-- Main Tabbed Interface -->
+    <div class="card card-primary card-outline card-tabs">
+        <div class="card-header p-0 pt-1 border-bottom-0">
+            <ul class="nav nav-tabs" id="approval-tabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="pending-tab" data-toggle="pill" href="#pending" role="tab">
+                        <i class="fas fa-clock mr-2"></i>Pending <span class="badge badge-warning">{{ total_pending }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="approved-tab" data-toggle="pill" href="#approved" role="tab">
+                        <i class="fas fa-check-circle mr-2"></i>Approved
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="rejected-tab" data-toggle="pill" href="#rejected" role="tab">
+                        <i class="fas fa-times-circle mr-2"></i>Rejected
+                    </a>
+                </li>
+            </ul>
         </div>
-        <div class="card-body p-0">
-            {% if pending_hazards %}
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th>Report No.</th>
-                            <th>Title</th>
-                            <th>Category</th>
-                            <th>Severity</th>
-                            <th>Location</th>
-                            <th>Reported By</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for hazard in pending_hazards %}
-                        <tr>
-                            <td><strong>{{ hazard.report_number }}</strong></td>
-                            <td>{{ hazard.hazard_title|truncatewords:6 }}</td>
-                            <td>
-                                <i class="fas {{ hazard.category_icon }}"></i>
-                                {{ hazard.get_hazard_category_display }}
-                            </td>
-                            <td>
-                                <span class="badge {{ hazard.severity_badge_class }}">
-                                    {{ hazard.get_severity_display }}
-                                </span>
-                            </td>
-                            <td>{{ hazard.plant.name }} / {{ hazard.location.name }}</td>
-                            <td>{{ hazard.reported_by.get_full_name }}</td>
-                            <td>{{ hazard.reported_date|date:"d M Y" }}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'hazards:hazard_detail' hazard.pk %}" 
-                                       class="btn btn-info" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{% url 'hazards:approve_hazard' hazard.pk %}" 
-                                       class="btn btn-success" title="Approve">
-                                        <i class="fas fa-check"></i>
-                                    </a>
-                                    <a href="{% url 'hazards:reject_hazard' hazard.pk %}" 
-                                       class="btn btn-danger" title="Reject">
-                                        <i class="fas fa-times"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div class="card-body">
+            <div class="tab-content" id="approval-tabs-content">
+                <!-- Pending Tab Content -->
+                <div class="tab-pane fade show active" id="pending" role="tabpanel">
+                    {% include 'dashboards/partials/approval_tab_content.html' with items=pending_hazards item_type='Hazard' detail_url_name='hazards:hazard_detail' approve_url_name='hazards:hazard_approve' %}
+                    {% include 'dashboards/partials/approval_tab_content.html' with items=pending_incidents item_type='Incident' detail_url_name='accidents:incident_detail' approve_url_name='accidents:incident_approve' %}
+                </div>
+                <!-- Approved Tab Content -->
+                <div class="tab-pane fade" id="approved" role="tabpanel">
+                    {% include 'dashboards/partials/approval_tab_content.html' with items=approved_hazards item_type='Hazard' detail_url_name='hazards:hazard_detail' hide_actions=True %}
+                    {% include 'dashboards/partials/approval_tab_content.html' with items=approved_incidents item_type='Incident' detail_url_name='accidents:incident_detail' hide_actions=True %}
+                </div>
+                <!-- Rejected Tab Content -->
+                <div class="tab-pane fade" id="rejected" role="tabpanel">
+                    {% include 'dashboards/partials/approval_tab_content.html' with items=rejected_hazards item_type='Hazard' detail_url_name='hazards:hazard_detail' hide_actions=True %}
+                    {% include 'dashboards/partials/approval_tab_content.html' with items=rejected_incidents item_type='Incident' detail_url_name='accidents:incident_detail' hide_actions=True %}
+                </div>
             </div>
-            {% else %}
-            <div class="text-center py-4">
-                <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
-                <p class="text-muted">No pending hazard approvals</p>
-            </div>
-            {% endif %}
         </div>
     </div>
-    {% endif %}
-
-    <!-- Pending Incidents -->
-    {% if user.can_approve_incidents or user.is_superuser %}
-    <div class="card">
-        <div class="card-header bg-danger">
-            <h3 class="card-title text-white">
-                <i class="fas fa-ambulance"></i> Pending Incident Approvals ({{ incidents_count }})
-            </h3>
-            <div class="card-tools">
-                <a href="{% url 'incidents:pending_approvals' %}" class="btn btn-sm btn-light">
-                    View All <i class="fas fa-arrow-right"></i>
-                </a>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            {% if pending_incidents %}
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th>Report No.</th>
-                            <th>Type</th>
-                            <th>Title</th>
-                            <th>Severity</th>
-                            <th>Location</th>
-                            <th>Reported By</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for incident in pending_incidents %}
-                        <tr>
-                            <td><strong>{{ incident.report_number }}</strong></td>
-                            <td><span class="badge badge-primary">{{ incident.get_incident_type_display }}</span></td>
-                            <td>{{ incident.incident_title|truncatewords:6 }}</td>
-                            <td>
-                                <span class="badge badge-danger">
-                                    {{ incident.get_severity_display }}
-                                </span>
-                            </td>
-                            <td>{{ incident.plant.name }} / {{ incident.location.name }}</td>
-                            <td>{{ incident.reported_by.get_full_name }}</td>
-                            <td>{{ incident.incident_date|date:"d M Y" }}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'incidents:incident_detail' incident.pk %}" 
-                                       class="btn btn-info" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{% url 'incidents:approve_incident' incident.pk %}" 
-                                       class="btn btn-success" title="Approve">
-                                        <i class="fas fa-check"></i>
-                                    </a>
-                                    <a href="{% url 'incidents:reject_incident' incident.pk %}" 
-                                       class="btn btn-danger" title="Reject">
-                                        <i class="fas fa-times"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-4">
-                <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
-                <p class="text-muted">No pending incident approvals</p>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-
-    {% if total_pending == 0 %}
-    <div class="card">
-        <div class="card-body text-center py-5">
-            <i class="fas fa-check-double fa-5x text-success mb-3"></i>
-            <h3>All Caught Up!</h3>
-            <p class="text-muted">You have no pending approvals at this time.</p>
-        </div>
-    </div>
-    {% endif %}
-</section>
+</div>
 {% endblock %}
