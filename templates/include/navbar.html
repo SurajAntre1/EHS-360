@@ -1,119 +1,131 @@
 {% load static %}
 <style>
 .navbar-esg {
-      background: linear-gradient(135deg, #58C4DC, #6DBF4B);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
-    }
+  background: linear-gradient(180deg, #f0f1f2, #e4e6e6);
+  border-bottom: 1px solid #d0d3d4;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(6px);
+}
 
-    .navbar-esg .nav-link {
-      color: #fff !important;
-      transition: all 0.3s ease;
-    }
+/* ===== Nav Links ===== */
+.navbar-esg .nav-link {
+  color: #2f2f2f !important;
+  font-weight: 500;
+  transition: all 0.25s ease;
+}
 
-    .navbar-esg .nav-link:hover {
-      color: rgba(255, 255, 255, 0.85) !important;
-      transform: translateY(-1px);
-    }
+.navbar-esg .nav-link:hover {
+  color: #000 !important;
+  transform: translateY(-1px);
+}
 
-    .navbar-search .form-control {
-      border-radius: 20px;
-      border: none;
-      background: rgba(255, 255, 255, 0.95);
-      padding-left: 16px;
-      height: 36px;
-      font-size: 14px;
-    }
+/* ===== Icon Buttons ===== */
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.25s ease;
+}
 
-    .navbar-search .btn {
-      background: transparent;
-      border: none;
-      color: #58C4DC;
-    }
+.icon-btn i {
+  color: #2f2f2f;
+  font-size: 15px;
+  transition: transform 0.25s ease;
+}
 
-    .icon-btn {
-      width: 38px;
-      height: 38px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.15);
-      position: relative;
-      transition: all 0.3s ease;
-    }
+.icon-btn:hover {
+  background: rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px) scale(1.08);
+}
 
-    .icon-btn i {
-      color: #fff;
-      font-size: 15px;
-    }
+.icon-btn:hover i {
+  transform: rotate(-8deg);
+}
 
-    .icon-btn:hover {
-      background: rgba(255, 255, 255, 0.25);
-      transform: scale(1.08);
-    }
+/* ===== Notification Badge ===== */
+.navbar-badge {
+  font-size: 10px;
+  padding: 3px 6px;
+  border-radius: 50%;
+  background-color: #dc3545;
+  color: #fff;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  animation: pulse 1.8s infinite;
+}
 
-    .navbar-badge {
-      font-size: 10px;
-      padding: 3px 6px;
-      border-radius: 50%;
-    }
+@keyframes pulse {
+  0%   { transform: scale(1);   }
+  50%  { transform: scale(1.15); }
+  100% { transform: scale(1);   }
+}
 
-    .dropdown-menu-lg {
-      min-width: 270px;
-      border-radius: 14px;
-      border: none;
-      padding: 0;
-      margin-top: 12px;
-      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
-      animation: dropdownFade 0.25s ease-in-out;
-    }
+/* ===== Dropdown Menu ===== */
+.dropdown-menu-lg {
+  min-width: 280px;
+  border-radius: 14px;
+  border: none;
+  padding: 0;
+  margin-top: 10px;
+  box-shadow: 0 18px 35px rgba(0, 0, 0, 0.18);
+  animation: dropdownFade 0.25s ease-in-out;
+}
 
-    @keyframes dropdownFade {
-      from {
-        opacity: 0;
-        transform: translateY(6px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
+/* ===== Dropdown Header ===== */
 .dropdown-item.dropdown-header {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: #f8f9fa;
+  padding: 16px;
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
 }
 
 .dropdown-item.dropdown-header strong {
-    display: block;
-    font-size: 15px;
-    font-weight: 600;
-    color: #343a40;
-    margin-bottom: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2f2f2f;
+  margin-bottom: 4px;
 }
 
-.dropdown-item.dropdown-header p:nth-of-type(1) {
-    display: block;
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: #6c757d;
-    margin-bottom: 2px;
+.dropdown-item.dropdown-header p {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 2px;
 }
 
-.dropdown-item.dropdown-header p:nth-of-type(2) {
-    display: block;
-    font-size: 12px;
-    color: #868e96;
-    line-height: 1.4;
-    max-width: 220px;
-    word-wrap: break-word;
+/* ===== Dropdown Items ===== */
+.dropdown-item {
+  font-size: 14px;
+  padding: 11px 16px;
+  transition: all 0.2s ease;
 }
 
+.dropdown-item:hover {
+  background-color: #f1f3f5;
+  padding-left: 20px;
+}
+
+/* ===== Structure Fixes ===== */
 .main-header.navbar {
   display: flex;
   align-items: center;
@@ -130,14 +142,6 @@
   padding-top: 0;
   padding-bottom: 0;
 }
-
-.icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 0;
-}
-
 </style>
 
 <!-- Navbar -->
@@ -151,70 +155,55 @@
     </li>
   </ul>
 
-  <!-- Center - Search Form -->
-  <form class="form-inline ml-3 mr-auto navbar-search">
-    <div class="input-group">
-      <!-- <input class="form-control" type="search" placeholder="Search hazards, incidents..." aria-label="Search"> -->
-      <div class="input-group-append">
-        <button class="btn" type="submit">
-          <i class="fas fa-search"></i>
-        </button>
-      </div>
-    </div>
-  </form>
-
   <!-- Right navbar links -->
-  <ul class="navbar-nav">
-    <!-- Notifications -->
-    <li class="nav-item dropdown">
-      <a class="nav-link" data-toggle="dropdown" href="#">
-        <div class="icon-btn">
-          <i class="fas fa-bell"></i>
-          <span class="badge badge-danger navbar-badge" style="position: absolute; top: 5px; right: 5px;">3</span>
-        </div>
-      </a>
-      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-        <span class="dropdown-item dropdown-header">3 Notifications</span>
-        <div class="dropdown-divider"></div>
-        <a href="#" class="dropdown-item">
-          <i class="fas fa-exclamation-triangle mr-2 text-warning"></i> High Priority Hazard
-          <span class="float-right text-muted text-sm">3 mins</span>
-        </a>
-        <div class="dropdown-divider"></div>
-        <a href="#" class="dropdown-item dropdown-footer">See All Notifications</a>
+<ul class="navbar-nav ml-auto">
+  <!-- Notifications -->
+  <li class="nav-item dropdown">
+    <a class="nav-link" data-toggle="dropdown" href="#">
+      <div class="icon-btn">
+        <i class="fas fa-bell"></i>
+        <span class="badge badge-danger navbar-badge"
+              style="position: absolute; top: 5px; right: 5px;">3</span>
       </div>
-    </li>
-
-    <!-- Settings -->
-    <!-- <li class="nav-item">
-      <a class="nav-link" href="{% url 'dashboards:settings' %}">
-        <div class="icon-btn"><i class="fas fa-cog"></i></div>
+    </a>
+    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+      <span class="dropdown-item dropdown-header">3 Notifications</span>
+      <div class="dropdown-divider"></div>
+      <a href="#" class="dropdown-item">
+        <i class="fas fa-exclamation-triangle mr-2 text-warning"></i>
+        High Priority Hazard
+        <span class="float-right text-muted text-sm">3 mins</span>
       </a>
-    </li> -->
+      <div class="dropdown-divider"></div>
+      <a href="#" class="dropdown-item dropdown-footer">See All Notifications</a>
+    </div>
+  </li>
 
-    <!-- Profile -->
-    <li class="nav-item dropdown">
-      <a class="nav-link" data-toggle="dropdown" href="#">
-        <div class="icon-btn"><i class="fas fa-user"></i></div>
-      </a>
-      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-        <div class="dropdown-item dropdown-header">
-          <strong>{{ user.get_full_name|default:user.username }}</strong>
-          <p class="text-sm text-muted mb-0">{{ user.role.name }}</p>
-          {% if user.plant %}
-          <p class="text-sm text-muted mb-0">{{ user.plant.name }}</p>
-          {% endif %}
-        </div>
-        <div class="dropdown-divider"></div>
-        <a href="{% url 'accounts:user_detail' user.pk %}" class="dropdown-item">
-          <i class="fas fa-user mr-2"></i> My Profile
-        </a>
-        <div class="dropdown-divider"></div>
-        <a href="{% url 'accounts:logout' %}" class="dropdown-item">
-          <i class="fas fa-sign-out-alt mr-2"></i> Logout
-        </a>
+  <!-- Profile -->
+  <li class="nav-item dropdown">
+    <a class="nav-link" data-toggle="dropdown" href="#">
+      <div class="icon-btn">
+        <i class="fas fa-user"></i>
       </div>
-    </li>
-  </ul>
+    </a>
+    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+      <div class="dropdown-item dropdown-header">
+        <strong>{{ user.get_full_name|default:user.username }}</strong>
+        <p class="text-sm text-muted mb-0">{{ user.role.name }}</p>
+        {% if user.plant %}
+        <p class="text-sm text-muted mb-0">{{ user.plant.name }}</p>
+        {% endif %}
+      </div>
+      <div class="dropdown-divider"></div>
+      <a href="{% url 'accounts:user_detail' user.pk %}" class="dropdown-item">
+        <i class="fas fa-user mr-2"></i> My Profile
+      </a>
+      <div class="dropdown-divider"></div>
+      <a href="{% url 'accounts:logout' %}" class="dropdown-item">
+        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+      </a>
+    </div>
+  </li>
+</ul>
 </nav>
 <!-- /.navbar -->

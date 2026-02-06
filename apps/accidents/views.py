@@ -669,12 +669,14 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
             context['action_item_formset'] = ActionItemFormSet(
                 self.request.POST,
                 instance=self.incident,
-                prefix='actionitems'
+                prefix='actionitems',
+                form_kwargs={'incident': self.incident}
             )
         else:
             context['action_item_formset'] = ActionItemFormSet(
                 instance=self.incident,
-                prefix='actionitems'
+                prefix='actionitems',
+                form_kwargs={'incident': self.incident}
             )
 
         return context
@@ -792,6 +794,12 @@ class ActionItemCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
     def get_success_url(self):
         return reverse_lazy('accidents:incident_detail', kwargs={'pk': self.incident.pk})
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['incident'] = self.incident
+        return kwargs
+
 
 
 class IncidentApprovalView(LoginRequiredMixin, DetailView):

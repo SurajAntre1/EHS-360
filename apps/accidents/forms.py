@@ -5,7 +5,11 @@ from datetime import date
 from .models import Incident, IncidentType
 from apps.organizations.models import Plant, Zone, Location, SubLocation, Department
 from django.core.validators import validate_email
+from django.db.models import Q
+from django.contrib.auth import get_user_model
+from django.utils import timezone
 
+User = get_user_model()
 
 class IncidentTypeForm(forms.ModelForm):
     class Meta:
@@ -497,14 +501,28 @@ class IncidentActionItemForm(forms.ModelForm):
     """
     # Use the new UserChoiceField to get the desired display format.
     responsible_person = UserChoiceField(
-        queryset=User.objects.order_by('first_name', 'last_name'), # Ordering users by name
+        queryset=User.objects.none(),
         widget=forms.SelectMultiple(attrs={
-            'class': 'form-control select2-responsible-person', # Class for Select2 JS
+            'class': 'form-control select2-responsible-person',
             'data-placeholder': 'Search and select person(s)...'
         }),
         required=True,
         label="Responsible Person(s)"
     )
+
+    def __init__(self, *args, **kwargs):
+        incident = kwargs.pop('incident', None)
+        super().__init__(*args, **kwargs)
+
+        if incident and incident.plant:
+            self.fields['responsible_person'].queryset = User.objects.filter(
+                assigned_plants=incident.plant,
+                is_active=True,
+                is_active_employee=True
+            ).distinct().order_by('first_name', 'last_name')
+
+        else:
+            self.fields['responsible_person'].queryset = User.objects.none()
 
     class Meta:
         model = IncidentActionItem
@@ -516,38 +534,40 @@ class IncidentActionItemForm(forms.ModelForm):
             'completion_date',
         ]
         widgets = {
-            'action_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'target_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'status': forms.Select(attrs={'class': 'form-control'}),
-            'completion_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'action_description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2
+            }),
+            'target_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'completion_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
         }
-        
-        
-    def clean_responsible_person_emails(self):
-        """
-        Custom validation to ensure all provided emails belong to existing users.
-        """
-        emails_string = self.cleaned_data.get('responsible_person_emails', '')
-        if not emails_string:
-            return ''
 
-        email_list = [email.strip().lower() for email in emails_string.split(',') if email.strip()]
-        unique_emails = list(set(email_list))
-        
-        if not unique_emails:
-            raise forms.ValidationError("Please provide at least one valid email address.")
+    def clean_target_date(self):
+        target_date = self.cleaned_data.get('target_date')
+        if target_date and target_date < timezone.now().date():
+            raise ValidationError("Target date cannot be in the past.")
+        return target_date
 
-        found_users = User.objects.filter(email__in=unique_emails)
-        found_emails = [user.email.lower() for user in found_users]
-        missing_emails = [email for email in unique_emails if email not in found_emails]
+    def clean(self):
+        cleaned_data = super().clean()
+        target_date = cleaned_data.get('target_date')
+        completion_date = cleaned_data.get('completion_date')
 
-        if missing_emails:
-            raise forms.ValidationError(
-                f"The following users could not be found: {', '.join(missing_emails)}. "
-                "Please ensure all email addresses are correct and belong to registered users."
-            )
-        
-        return emails_string
+        if target_date and completion_date and completion_date < target_date:
+            raise ValidationError({
+                'completion_date': "Completion date cannot be before target date."
+            })
+
+        return cleaned_data
 
 
 class IncidentPhotoForm(forms.ModelForm):

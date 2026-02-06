@@ -6,11 +6,11 @@ from . import views
 app_name = 'hazards'
 
 urlpatterns = [
-    # IMPORTANT: Dashboard URL ko HazardDashboardViews (plural) se link karein
+    # IMPORTANT: Dashboard URL ko HazardDashboardViews 
     path('', views.HazardDashboardView.as_view(), name='dashboard'),
     path('hazards/dashboard/', views.HazardDashboardViews.as_view(), name='hazard_dashboard'),
     
-    # ... (Aapke baki CRUD URLs) ...
+    
     path('hazards/', views.HazardListView.as_view(), name='hazard_list'),
     path('hazards/create/', views.HazardCreateView.as_view(), name='hazard_create'),
     path('hazards/<int:pk>/', views.HazardDetailView.as_view(), name='hazard_detail'),
