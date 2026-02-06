@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load permission_tags %}
 
 {% block title %}Incident Reports{% endblock %}
 {% block page_title %}Incident Reports{% endblock %}
@@ -54,7 +55,7 @@
           <i class="fas fa-file-medical mr-2"></i>All Incident Reports
         </h3>
       </div>
-      {% if user.role.name != 'EMPLOYEE' %}
+      {% if user|has_perm:'CREATE_INCIDENT' %}
       <div class="col-auto">
         <a href="{% url 'accidents:incident_create' %}" class="btn btn-light">
           <i class="fas fa-plus mr-1"></i> Report New Incident
@@ -174,11 +175,7 @@
             <th style="width: 12%;">Date & Time</th>
             <th style="width: 15%;">Plant / Location</th>
             <th style="width: 12%;">Status</th>
-            {% if user.role.name != 'EMPLOYEE' %}
             <th style="width: 14%;" class="text-center">Actions</th>
-            {% else %}
-            <th style="width: 14%;" class="text-center">Actions</th>
-            {% endif %}
           </tr>
         </thead>
 
@@ -236,12 +233,14 @@
             
             <!-- Actions -->
             <td class="text-center btn-actions">
+              {% if user|has_perm:'VIEW_INCIDENT' %}
               <a href="{% url 'accidents:incident_detail' incident.pk %}" 
                  class="btn btn-sm btn-info" 
                  title="View Details">
                 <i class="fas fa-eye"></i>
               </a>
-              {% if user.role.name != 'EMPLOYEE' %}
+              {% endif %}
+              {% if user|has_perm:'EDIT_INCIDENT' %}
               <a href="{% url 'accidents:incident_update' incident.pk %}" 
                  class="btn btn-sm btn-warning" 
                  title="Edit">

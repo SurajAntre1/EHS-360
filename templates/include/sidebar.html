@@ -1,3 +1,4 @@
+{% load permission_tags  %}
 {% load static %}
 
 <style>
@@ -315,6 +316,7 @@
               </a>
             </li>
 
+            {% if user|has_perm:"CREATE_INCIDENT" %}
             <li class="nav-item">
               <a href="{% url 'accidents:incident_create' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'incident_create' %}active{% endif %}">
@@ -322,7 +324,9 @@
                 <p>Report Incident</p>
               </a>
             </li>
+            {% endif %}
 
+            {% if user|has_perm:'VIEW_INCIDENT' %}
             <li class="nav-item">
               <a href="{% url 'accidents:incident_list' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'incident_list' %}active{% endif %}">
@@ -330,6 +334,7 @@
                 <p>All Incidents</p>
               </a>
             </li>
+            {% endif %}
           </ul>
         </li>
         {% endif %}
@@ -350,6 +355,7 @@
               </a>
             </li>
 
+            {% if user|has_perm:'CREATE_HAZARD' %}
             <li class="nav-item">
               <a href="{% url 'hazards:hazard_create' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'hazard_create' %}active{% endif %}">
@@ -357,7 +363,9 @@
                 <p>Report Hazard</p>
               </a>
             </li>
+            {% endif %}
 
+            {% if user|has_perm:'VIEW_HAZARD' %}
             <li class="nav-item">
               <a href="{% url 'hazards:hazard_list' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'hazard_list' %}active{% endif %}">
@@ -365,6 +373,7 @@
                 <p>All Hazards</p>
               </a>
             </li>
+            {% endif %}
           </ul>
         </li>
         {% endif %}
@@ -377,6 +386,7 @@
             <p>Environmental Data <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
+            {% if user|has_perm:'CREATE_ENV_DATA' %}
             <li class="nav-item">
               <a href="{% url 'environmental:plant-entry' %}"
                 class="nav-link {% if request.resolver_match.url_name == 'plant-entry' %}active{% endif %}">
@@ -384,7 +394,9 @@
                 <p class="menu-title-small">Enter Data</p>
               </a>
             </li>
+            {% endif %}
             
+            {% if user|has_perm:'VIEW_ENV_DATA' %}
             <li class="nav-item">
               <a href="{% url 'environmental:plant-data-view' %}"
                 class="nav-link {% if request.resolver_match.url_name == 'plant-data-view' %}active{% endif %}">
@@ -392,6 +404,7 @@
                 <p class="menu-title-small">View My Data</p>
               </a>
             </li>
+            {% endif %}
             
             <!-- Admin options -->
             {% if user.is_superuser or user.is_admin_user %}
@@ -438,26 +451,32 @@
               </a>
             </li>
 
+            {% if user|has_perm:'CONDUCT_INSPECTION' %}
             <li class="nav-item">
               <a href="{% url 'inspections:my_inspections' %}" class="nav-link">
                 <i class="nav-icon far fa-circle"></i>
                 <p>My Inspections</p>
               </a>
             </li>
+            {% endif %}
 
+            {% if user|has_perm:'CREATE_INSPECTION' %}
             <li class="nav-item">
               <a href="{% url 'inspections:schedule_create' %}" class="nav-link">
                 <i class="nav-icon far fa-circle"></i>
                 <p>Schedule Inspection</p>
               </a>
             </li>
+            {% endif %}
             
+            {% if user|has_perm:'VIEW_INSPECTION' %}
             <li class="nav-item">
               <a href="{% url 'inspections:schedule_list' %}" class="nav-link">
                 <i class="nav-icon far fa-circle"></i>
                 <p>All Schedules</p>
               </a>
             </li>
+            {% endif %}
 
             <!-- Configuration - Admin only -->
             {% if user.is_superuser or user.is_admin_user %}

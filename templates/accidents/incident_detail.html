@@ -179,7 +179,7 @@
           
           <!-- Closure/Reopen Buttons -->
           {% if incident.status == 'CLOSED' %}
-            {% if user.can_access_incident_module and user.can_close_incidents %}
+            {% if user|has_perm:'CLOSE_INCIDENT' %}
             <div class="col-auto">
               <form method="POST" action="{% url 'accidents:incident_reopen' incident.pk %}" style="display: inline;">
                 {% csrf_token %}
@@ -190,7 +190,7 @@
             </div>
             {% endif %}
           {% else %}
-            {% if user.can_access_incident_module and user.can_close_incidents %}
+            {% if user|has_perm:'CLOSE_INCIDENT' %}
             <div class="col-auto">
               <a href="{% url 'accidents:incident_closure_check' incident.pk %}" class="btn btn-success">
                 <i class="fas fa-check-circle mr-1"></i> Close Incident
@@ -848,7 +848,7 @@
 
     <!-- Investigation Status -->
     <!-- Investigation Status -->
-{% if user.can_access_incident_module %}
+{% if user|has_perm:'INVESTIGATE_INCIDENT' %}
 <div class="card mt-3">
     <div class="card-header bg-primary">
         <h5 class="card-title text-white mb-0">

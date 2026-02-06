@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load permission_tags %}
 
 {% block title %}Incident Management Dashboard{% endblock %}
 {% block page_title %}Incident Management Dashboard{% endblock %}
@@ -124,6 +125,7 @@
 
 <div class="row mb-4">
   <!-- Left Card -->
+   {% if user|has_perm:'CREATE_INCIDENT' %}
   <div class="col-md-6 mb-3">
     <div class="card h-100 border-0 shadow-sm text-center">
       <div class="card-body d-flex flex-column justify-content-center">
@@ -145,8 +147,10 @@
       </div>
     </div>
   </div>
+  {% endif %}
 
   <!-- Right Card -->
+   {% if user|has_perm:'VIEW_INCIDENT' %}
   <div class="col-md-6 mb-3">
     <div class="card h-100 border-0 shadow-sm text-center">
       <div class="card-body d-flex flex-column justify-content-center">
@@ -168,6 +172,7 @@
       </div>
     </div>
   </div>
+  {% endif %}
 </div>
 
 <!-- Overdue Investigations Alert -->

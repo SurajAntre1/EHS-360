@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load permission_tags %}
 
 {% block title %}Hazard Reports{% endblock %}
 {% block page_title %}Hazard Reports{% endblock %}
@@ -20,7 +21,7 @@
         </h3>
       </div>
 
-      {% if user.role.name != 'EMPLOYEE' %}
+      {% if user|has_perm:'CREATE_HAZARD' %}
       <div class="col-auto">
         <a href="{% url 'hazards:hazard_create' %}" class="btn btn-warning">
           <i class="fas fa-plus mr-1"></i> Report New Hazard
@@ -110,9 +111,7 @@
             <th>Plant / Location</th>
             <th>Risk Level</th>
             <th>Status</th>
-            {% if user.role.name != 'EMPLOYEE' %}
             <th>Actions</th>
-            {% endif %}
           </tr>
         </thead>
 
@@ -167,21 +166,23 @@
               </span>
             </td>
 
-            {% if user.role.name != 'EMPLOYEE' %}
             <td>
               <div class="btn-group" role="group">
+                {% if user|has_perm:'VIEW_HAZARD' %}
                 <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-sm btn-info">
                   <i class="fas fa-eye"></i>
                 </a>
+                {% endif %}
+                {% if user|has_perm:'EDIT_HAZARD' %}
                 <a href="{% url 'hazards:hazard_update' hazard.pk %}" class="btn btn-sm btn-primary">
                   <i class="fas fa-edit"></i>
                 </a>
+                {% endif %}
                 <a href="{% url 'hazards:hazard_pdf' hazard.pk %}" class="btn btn-sm btn-danger" target="_blank">
                   <i class="fas fa-file-pdf"></i>
                 </a>
               </div>
             </td>
-            {% endif %}
           </tr>
 
           {% empty %}
