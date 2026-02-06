@@ -1,0 +1,84 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Pending {{ item_type }} Approvals{% endblock %}
+{% block page_title %}Pending {{ item_type }} Approvals{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'dashboards:approval_dashboard' %}">Approvals</a></li>
+<li class="breadcrumb-item active">Pending {{ item_type }}s</li>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">All Pending {{ item_type }}s</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Report No.</th>
+                        <th>Title / Type</th>
+                        <th>Location</th>
+                        <th>Reported By</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td><strong><a href="{% url detail_url_name pk=item.pk %}">{{ item.report_number }}</a></strong></td>
+                        <td>
+                            {% if item_type == 'Hazard' %}
+                                {{ item.hazard_title|truncatewords:10 }}
+                            {% else %}
+                                {{ item.incident_type.name }}
+                            {% endif %}
+                        </td>
+                        <td>{{ item.plant.name }}/{{ item.location.name }}</td>
+                        <td>{{ item.reported_by.get_full_name }}</td>
+                        <td>
+                            {% if item_type == 'Hazard' %}
+                                {{ item.reported_date|date:"d M Y" }}
+                            {% else %}
+                                {{ item.incident_date|date:"d M Y" }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url approve_url_name pk=item.pk %}" class="btn btn-sm btn-success">
+                                <i class="fas fa-check-double"></i> Review & Approve
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">No pending approvals found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page=1">&laquo; First</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+                        <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

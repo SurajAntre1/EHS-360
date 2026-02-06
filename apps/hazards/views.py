@@ -466,6 +466,8 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             if not target_date_str:
                 messages.error(request, 'Target date is required')
                 return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
+            
+            # is_first_action_item = self.hazard.action_items.count() == 0
 
             target_date = datetime.datetime.strptime(target_date_str, '%Y-%m-%d').date()
             action_item.target_date = target_date
@@ -610,6 +612,7 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
                 self.object.completion_remarks = request.POST.get('completion_remarks', '').strip()
             
             self.object.save()
+            # self.object.hazard.update_status_from_action_items()
             
             # Prepare success message
             email_count = self.object.get_emails_count()
@@ -631,7 +634,7 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
 
 # AJAX Views for cascading dropdowns
 class GetZonesForPlantAjaxView(LoginRequiredMixin, TemplateView):
-    """AJAX view to get zones for selected plant"""
+    """AJAX view to get zones for selected plant""" 
     
     def get(self, request, *args, **kwargs):
         plant_id = request.GET.get('plant_id')
@@ -1049,3 +1052,58 @@ class HazardPDFView(LoginRequiredMixin, View):
         
         # Call the PDF generation utility function and return its response.
         return generate_hazard_pdf(hazard)
+    
+    
+class HazardApprovalView(LoginRequiredMixin, DetailView):
+    """
+    Displays hazard summary for approval and handles the POST requests
+    for approving or rejecting the hazard report.
+    """
+    model = Hazard
+    template_name = 'hazards/hazard_approval.html'
+    context_object_name = 'hazard'
+
+    def get_context_data(self, **kwargs):
+        """Adds related action items to the context."""
+        context = super().get_context_data(**kwargs)
+        # Fetch all action items related to this hazard to display them.
+        context['action_items'] = self.object.action_items.all()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        """Handles the 'approve' and 'reject' form submissions."""
+        hazard = self.get_object()
+
+        # Check which button was clicked based on its 'name' attribute in the form.
+        if 'approve_action' in request.POST:
+            # Handle the approval logic.
+            hazard.status = 'APPROVED'
+            hazard.approval_status = 'APPROVED'
+            hazard.approved_by = request.user
+            hazard.approved_date = timezone.now()
+            hazard.approved_remarks = ""  # Clear any previous remarks.
+            hazard.save()
+            
+            # The `update_status_from_action_items` method will now set the status
+            # to ACTION_ASSIGNED, IN_PROGRESS, or RESOLVED correctly.
+            hazard.update_status_from_action_items()
+
+            messages.success(request, f"Hazard {hazard.report_number} has been approved and is now active.")
+
+        elif 'reject_action' in request.POST:
+            # Handle the rejection logic.
+            rejection_remarks = request.POST.get('rejection_remarks', '').strip()
+            if not rejection_remarks:
+                messages.error(request, "Rejection remarks are required to reject the report.")
+                return redirect('hazards:hazard_approve', pk=hazard.pk)
+
+            hazard.status = 'REJECTED'
+            hazard.approval_status = 'REJECTED'
+            # Use 'approved_remarks' field to store rejection comments as per your model.
+            hazard.approved_remarks = rejection_remarks
+            hazard.approved_by = None
+            hazard.approved_date = None
+            hazard.save()
+            messages.warning(request, f"Hazard {hazard.report_number} has been rejected.")
+
+        return redirect('hazards:hazard_detail', pk=hazard.pk)
