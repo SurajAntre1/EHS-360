@@ -1,0 +1,65 @@
+{% if items %}
+<div class="card mb-4">
+    <div class="card-header {% if item_type == 'Hazard' %}bg-warning{% else %}bg-danger{% endif %}">
+        <h3 class="card-title {% if item_type != 'Hazard' %}text-white{% endif %}">
+            <i class="fas {% if item_type == 'Hazard' %}fa-exclamation-triangle{% else %}fa-medkit{% endif %}"></i>
+            {{ item_type }}s
+        </h3>
+        {% if not hide_actions %}
+        <div class="card-tools">
+            <a href="{% if item_type == 'Hazard' %}{% url 'dashboards:pending_hazards_list' %}{% else %}{% url 'dashboards:pending_incidents_list' %}{% endif %}" class="btn btn-sm btn-light">View All</a>
+        </div>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Report No.</th>
+                        <th>Title / Type</th>
+                        <th>Location</th>
+                        <th>Reported By</th>
+                        <th>Date</th>
+                        {% if not hide_actions %}<th>Action</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td><strong>{{ item.report_number }}</strong></td>
+                        <td>
+                            {% if item_type == 'Hazard' %}
+                                {{ item.hazard_title|truncatewords:5 }}
+                            {% else %}
+                                {{ item.incident_type.name }}
+                            {% endif %}
+                        </td>
+                        <td>{{ item.plant.name }}/{{ item.location.name }}</td>
+                        <td>{{ item.reported_by.get_full_name }}</td>
+                        <td>
+                            {% if item_type == 'Hazard' %}
+                                {{ item.reported_date|date:"d M Y" }}
+                            {% else %}
+                                {{ item.incident_date|date:"d M Y" }}
+                            {% endif %}
+                        </td>
+                        {% if not hide_actions %}
+                        <td>
+                            <a href="{% url approve_url_name pk=item.pk %}" class="btn btn-sm btn-success" title="Review & Approve">
+                                <i class="fas fa-check-double"></i> Review
+                            </a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-light text-center">
+    <i class="fas fa-check-circle text-success"></i> No {{ item_type.lower }}s in this category.
+</div>
+{% endif %}

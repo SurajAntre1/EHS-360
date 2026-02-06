@@ -1,0 +1,140 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Approve Hazard - {{ hazard.report_number }}{% endblock %}
+{% block page_title %}Hazard Approval{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hazards:hazard_list' %}">All Hazards</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hazards:hazard_detail' hazard.pk %}">{{ hazard.report_number }}</a></li>
+<li class="breadcrumb-item active">Approval</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            
+            <!-- 1. Main Hazard Header Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0"><i class="fas fa-file-alt mr-2"></i>Hazard Overview</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-8">
+                            <h4 class="mb-1 font-weight-bold">{{ hazard.report_number }}</h4>
+                            <div class="d-flex flex-wrap">
+                                <span class="badge badge-dark mr-2 mb-1">{{ hazard.get_hazard_category_display }}</span>
+                                <span class="badge {{ hazard.severity_badge_class }} mr-2 mb-1">{{ hazard.get_severity_display }}</span>
+                                <span class="badge badge-warning mr-2 mb-1">Status: {{ hazard.get_status_display }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-right mt-2 mt-md-0">
+                            <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-sm btn-info"><i class="fas fa-eye mr-1"></i> View Full Details</a>
+                        </div>
+                    </div>
+                    <div class="row bg-light p-3 rounded mx-0">
+                        <div class="col-sm-6 col-md-4 border-right mb-2 mb-md-0">
+                            <small class="text-muted d-block">Identified Date & Time</small>
+                            <span class="font-weight-bold">{{ hazard.incident_datetime|date:"d M Y, H:i" }}</span>
+                        </div>
+                        <div class="col-sm-6 col-md-4 border-right mb-2 mb-md-0">
+                            <small class="text-muted d-block">Location / Plant</small>
+                            <span class="font-weight-bold">{{ hazard.plant.name }} - {{ hazard.location.name }}</span>
+                        </div>
+                        <div class="col-sm-6 col-md-4">
+                            <small class="text-muted d-block">Reported By</small>
+                            <span class="font-weight-bold text-primary">{{ hazard.reporter_name }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Action Items Summary Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info">
+                    <h4 class="card-title text-white mb-0"><i class="fas fa-tasks mr-2"></i>Proposed Action Item(s)</h4>
+                </div>
+                <div class="card-body">
+                    {% if action_items %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Action Description</th>
+                                        <th>Assigned To (Emails)</th>
+                                        <th>Target Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for action in action_items %}
+                                    <tr>
+                                        <td>{{ action.action_description }}</td>
+                                        <td>
+                                            {% for email in action.get_emails_list %}
+                                                <span class="badge badge-pill badge-secondary font-weight-normal">{{ email }}</span>
+                                            {% empty %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>{{ action.target_date|date:"d M Y" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-secondary">No action items found for this hazard.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 3. Approval Action Card -->
+            <div class="card mt-4 border-success shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="card-title mb-0"><i class="fas fa-check-double mr-2"></i>Final Approval</h4>
+                </div>
+                <div class="card-body text-center">
+                    <p class="lead">Please review all information before taking action.</p>
+                    <hr>
+                    <form method="POST" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" name="approve_action" class="btn btn-success btn-lg">
+                            <i class="fas fa-check-circle mr-2"></i>Approve Hazard
+                        </button>
+                    </form>
+                    <button type="button" class="btn btn-danger btn-lg ml-2" data-toggle="modal" data-target="#rejectModal">
+                        <i class="fas fa-times-circle mr-2"></i>Reject Hazard
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <form method="POST">
+        {% csrf_token %}
+        <div class="modal-header"><h5 class="modal-title" id="rejectModalLabel">Reject Hazard Report</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+        <div class="modal-body">
+          <p>Please provide the reason for rejecting this hazard report. This is a required field.</p>
+          <div class="form-group">
+            <label for="rejection_remarks">Rejection Remarks</label>
+            <textarea class="form-control" id="rejection_remarks" name="rejection_remarks" rows="4" required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" name="reject_action" class="btn btn-danger">Submit Rejection</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
