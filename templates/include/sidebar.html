@@ -7,7 +7,7 @@
     --primary-green: #6DBF4B;  /* Environment (green) */
     --dark-orange: #F77C2B;    /* Safety (orange) */
     --dark-green: #4CAF50;
-
+    
     /* Sidebar Specific Colors */
     --sidebar-bg: #F8FBFD;
     --sidebar-text-color: #37474F;
@@ -31,20 +31,22 @@
   }
 
   /* Brand Logo Area */
-  .brand-link {
-    display: flex;
-    align-items: center;
-    background: linear-gradient(135deg, var(--dark-orange), var(--dark-green));
-    padding: 6px;
-    text-decoration: none !important;
-    flex-shrink: 0;
-    transition: background 0.3s ease;
-    height: 100px;
-  }
-  
-  .brand-link:hover {
-    background: linear-gradient(135deg, #e66a1a, #43a047);
-  }
+  /* Brand Logo Area - Everest Industries Brand Colors */
+.brand-link {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #E31E24, #B71C1C);
+  padding: 6px;
+  text-decoration: none !important;
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+  height: 100px;
+  box-shadow: 0 2px 8px rgba(227, 30, 36, 0.3);
+}
+
+.brand-link:hover {
+  background: linear-gradient(135deg, #FF4447, #E31E24);
+}
   
   .brand-image {
     max-height: 54px !important;
