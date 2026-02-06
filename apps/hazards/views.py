@@ -248,15 +248,15 @@ class HazardCreateView(LoginRequiredMixin, CreateView):
                 photos_uploaded += 1
         
         # Add Notification 
-        print("\n\n" + "#" * 70)
-        print("VIEW: HAZARD SAVED SUCCESSFULLY")
-        print("#" * 70)
-        print(f"Report Number: {self.object.report_number}")
-        print(f"Incident ID: {self.object.id}")
-        print(f"Plant: {self.object.plant}")
-        print(f"Location: {self.object.plant}")
-        print("#" * 70)
-        print("\nVIEW: Calling notify_hazard_reported()")
+        # print("\n\n" + "#" * 70)
+        # print("VIEW: HAZARD SAVED SUCCESSFULLY")
+        # print("#" * 70)
+        # print(f"Report Number: {self.object.report_number}")
+        # print(f"Incident ID: {self.object.id}")
+        # print(f"Plant: {self.object.plant}")
+        # print(f"Location: {self.object.plant}")
+        # print("#" * 70)
+        # print("\nVIEW: Calling notify_hazard_reported()")
 
         try:
             from apps.notifications.services import NotificationService
@@ -447,18 +447,14 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
         is_self_assigned = assignment_type == 'self'
 
         try:
-            # *** MODIFIED: Check for attachment first ***
+            # Check for attachment
             if 'attachment' not in request.FILES:
                 messages.error(request, 'An attachment is required to create an action item.')
-                # Redirect back to the form, preserving other submitted data is complex
-                # without a Django Form, so we just show an error.
                 return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
 
             action_item = HazardActionItem()
             action_item.hazard = self.hazard
             action_item.action_description = request.POST.get('action_description', '').strip()
-
-            # Handle assignment type (self or others)
             assignment_type = request.POST.get('assignment_type', 'self')
 
             # Handle target date
@@ -467,8 +463,6 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
                 messages.error(request, 'Target date is required')
                 return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
             
-            # is_first_action_item = self.hazard.action_items.count() == 0
-
             target_date = datetime.datetime.strptime(target_date_str, '%Y-%m-%d').date()
             action_item.target_date = target_date
 
@@ -485,25 +479,19 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             # Handle file attachment
             action_item.attachment = request.FILES['attachment']
             action_item.save()
-            # Prepare success message
-
-            self.object = action_item  
-            # --- Debug logging like HazardCreateView ---
-            print("\n\n" + "#" * 70)
-            print("VIEW: ACTION ITEM SAVED SUCCESSFULLY")
-            print("#" * 70)
-            print(f"Action Item ID: {self.object.id}")
-            print(f"Hazard ID: {self.object.hazard.id}")
-            print(f"Hazard Report Number: {self.object.hazard.report_number}")
-            print(f"Responsible Emails: {self.object.responsible_emails}")
-            print(f"Target Date: {self.object.target_date}")
-            print("#" * 70)
-            print("\nVIEW: Calling notify_hazard_action_item_assigned()")
-
-            # --- SEND NOTIFICATIONS ---
+            
+            self.object = action_item
+            
+            # ✅ NEW: Update hazard status when action item is added
+            # If hazard is still in REPORTED status, move it to PENDING_APPROVAL
+            if self.hazard.status == 'REPORTED':
+                self.hazard.status = 'PENDING_APPROVAL'
+                self.hazard.save(update_fields=['status'])
+            
+            # Notification code...
+           
             try:
                 from apps.notifications.services import NotificationService
-
                 NotificationService.notify(
                     content_object=action_item,  
                     notification_type='HAZARD_ACTION_ASSIGNED',  
@@ -520,12 +508,14 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             if is_self_assigned:
                 message = mark_safe(
                     f'✅ <strong>Action item created successfully!</strong><br>'
-                    f'Assigned to: <strong>You ({request.user.email})</strong>'
+                    f'Assigned to: <strong>You ({request.user.email})</strong><br>'
+                    f'Hazard status updated to: <strong>Pending Approval</strong>'
                 )
             else:
                 message = mark_safe(
                     f'✅ <strong>Action item created successfully!</strong><br>'
-                    f'Assigned to <strong>{email_count}</strong> email(s) with Pending status.'
+                    f'Assigned to <strong>{email_count}</strong> email(s) with Pending status.<br>'
+                    f'Hazard status updated to: <strong>Pending Approval</strong>'
                 )
             
             messages.success(request, message)
@@ -535,7 +525,6 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             print(f"Error creating action item: {e}")
             messages.error(request, f'Error creating action item: {str(e)}')
             return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
-
     def get_success_url(self):
         """
         Redirect to the hazard detail page on successful creation.
@@ -1077,15 +1066,25 @@ class HazardApprovalView(LoginRequiredMixin, DetailView):
         # Check which button was clicked based on its 'name' attribute in the form.
         if 'approve_action' in request.POST:
             # Handle the approval logic.
-            hazard.status = 'APPROVED'
             hazard.approval_status = 'APPROVED'
             hazard.approved_by = request.user
             hazard.approved_date = timezone.now()
             hazard.approved_remarks = ""  # Clear any previous remarks.
+            
+            # ✅ CRITICAL FIX: Check if action items exist
+            action_items_exist = hazard.action_items.exists()
+            
+            if action_items_exist:
+                # If action items exist, set status to ACTION_ASSIGNED
+                hazard.status = 'ACTION_ASSIGNED'
+            else:
+                # If no action items, set to APPROVED
+                hazard.status = 'APPROVED'
+            
             hazard.save()
             
-            # The `update_status_from_action_items` method will now set the status
-            # to ACTION_ASSIGNED, IN_PROGRESS, or RESOLVED correctly.
+            # ✅ NOW call update to ensure correct status based on action item progress
+            # This will only work because status is no longer PENDING_APPROVAL
             hazard.update_status_from_action_items()
 
             messages.success(request, f"Hazard {hazard.report_number} has been approved and is now active.")
@@ -1099,7 +1098,6 @@ class HazardApprovalView(LoginRequiredMixin, DetailView):
 
             hazard.status = 'REJECTED'
             hazard.approval_status = 'REJECTED'
-            # Use 'approved_remarks' field to store rejection comments as per your model.
             hazard.approved_remarks = rejection_remarks
             hazard.approved_by = None
             hazard.approved_date = None

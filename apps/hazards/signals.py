@@ -5,15 +5,16 @@ from django.dispatch import receiver
 from .models import HazardActionItem
 
 @receiver(post_save, sender=HazardActionItem)
-def update_hazard_status_on_action_save(sender, instance, **kwargs):
+def update_hazard_status_on_action_item_save(sender, instance, created, **kwargs):
     """
-    Signal receiver triggered after a HazardActionItem is saved.
+    Update hazard status when action item is created or updated,
+    but only if hazard is already approved
+    """
+    hazard = instance.hazard
     
-    This function calls the parent hazard's method to re-evaluate and update its status
-    based on the collective status of all its action items.
-    """
-    if instance.hazard:
-        instance.hazard.update_status_from_action_items()
+    # Only update if hazard is in post-approval stages
+    if hazard.status not in ['REPORTED', 'PENDING_APPROVAL', 'CLOSED', 'REJECTED']:
+        hazard.update_status_from_action_items()
 
 
 @receiver(post_delete, sender=HazardActionItem)

@@ -323,17 +323,20 @@ class Hazard(models.Model):
         # Do not automatically change the status if it's in a final state.
         if self.status in ['CLOSED', 'REJECTED']:
             return
+        
+        # ✅ NEW: Don't auto-update if still in pre-approval stages
+        # Let the approval process handle the transition to post-approval statuses
+        if self.status in ['REPORTED', 'PENDING_APPROVAL']:
+            return
 
         action_items = self.action_items.all()
         total_items = action_items.count()
         new_status = self.status  # Default to the current status
 
         if total_items == 0:
-            # If all action items have been removed, revert the status.
-            # Revert to 'APPROVED' if the hazard has passed the approval stage.
-            # Otherwise, revert to its initial 'REPORTED' state.
+            # If all action items have been removed, revert to APPROVED
             if self.status in ['ACTION_ASSIGNED', 'IN_PROGRESS', 'RESOLVED']:
-                new_status = 'APPROVED' if self.approval_status == 'APPROVED' else 'REPORTED'
+                new_status = 'APPROVED'
         else:
             # Action items exist, so determine the status based on their progress.
             completed_items = action_items.filter(status='COMPLETED').count()
@@ -354,9 +357,8 @@ class Hazard(models.Model):
         # To prevent recursion and unnecessary database writes, only save if the status has changed.
         if self.status != new_status:
             self.status = new_status
-            self.save(update_fields=['status'])
-          
-    
+            self.save(update_fields=['status'])  
+        
     @property
     def is_action_overdue(self):
         """Check if action is overdue"""
