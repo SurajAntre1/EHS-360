@@ -317,46 +317,26 @@ class Hazard(models.Model):
         
     def update_status_from_action_items(self):
         """
-        Updates the hazard's status based on the state of its action items.
-        This logic respects final states (CLOSED, REJECTED) and the approval workflow.
+        Update hazard status based on action items progress
         """
-        # Do not automatically change the status if it's in a final state.
-        if self.status in ['CLOSED', 'REJECTED']:
-            return
-
         action_items = self.action_items.all()
-        total_items = action_items.count()
-        new_status = self.status  # Default to the current status
-
-        if total_items == 0:
-            # If all action items have been removed, revert the status.
-            # Revert to 'APPROVED' if the hazard has passed the approval stage.
-            # Otherwise, revert to its initial 'REPORTED' state.
-            if self.status in ['ACTION_ASSIGNED', 'IN_PROGRESS', 'RESOLVED']:
-                new_status = 'APPROVED' if self.approval_status == 'APPROVED' else 'REPORTED'
-        else:
-            # Action items exist, so determine the status based on their progress.
-            completed_items = action_items.filter(status='COMPLETED').count()
-            in_progress_items = action_items.filter(status='IN_PROGRESS').count()
-            overdue_items = action_items.filter(status='OVERDUE').count()
-
-            if completed_items == total_items:
-                # All action items are completed, so the hazard is resolved.
-                new_status = 'RESOLVED'
-            elif in_progress_items > 0 or overdue_items > 0:
-                # If any action item is 'In Progress' or 'Overdue', the hazard is 'In Progress'.
-                new_status = 'IN_PROGRESS'
-            else:
-                # If items exist but none are 'In Progress' (i.e., they are all 'PENDING'),
-                # the status is 'Action Assigned'.
-                new_status = 'ACTION_ASSIGNED'
         
-        # To prevent recursion and unnecessary database writes, only save if the status has changed.
-        if self.status != new_status:
-            self.status = new_status
+        if not action_items.exists():
+            return
+        
+        # Check if all action items are completed
+        all_completed = all(item.status == 'COMPLETED' for item in action_items)
+        
+        if all_completed:
+            self.status = 'RESOLVED'
             self.save(update_fields=['status'])
-          
-    
+        elif action_items.filter(status='IN_PROGRESS').exists():
+            self.status = 'IN_PROGRESS'
+            self.save(update_fields=['status'])
+        elif action_items.filter(status='PENDING').exists() and self.status == 'REPORTED':
+            self.status = 'ACTION_ASSIGNED'
+            self.save(update_fields=['status'])      
+        
     @property
     def is_action_overdue(self):
         """Check if action is overdue"""
@@ -618,10 +598,10 @@ class HazardActionItem(models.Model):
     @property
     def is_overdue(self):
         """Check if action item is overdue"""
-        if self.status != 'COMPLETED' and self.target_date:
-            return datetime.date.today() > self.target_date
-        return False
-    
+        if self.status == 'COMPLETED':
+            return False
+        return self.target_date < timezone.now().date()
+        
     @property
     def days_until_deadline(self):
         """Calculate days until deadline"""

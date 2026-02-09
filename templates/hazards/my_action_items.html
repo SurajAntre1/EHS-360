@@ -1,0 +1,290 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}My Action Items{% endblock %}
+{% block page_title %}My Action Items{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'hazards:dashboard' %}">Hazard Management</a></li>
+<li class="breadcrumb-item active">My Action Items</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white shadow">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-uppercase mb-1">Total Assigned</h6>
+                            <h2 class="mb-0">{{ total_assigned }}</h2>
+                        </div>
+                        <i class="fas fa-clipboard-list fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white shadow">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-uppercase mb-1">Pending</h6>
+                            <h2 class="mb-0">{{ pending_count }}</h2>
+                        </div>
+                        <i class="fas fa-clock fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white shadow">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-uppercase mb-1">In Progress</h6>
+                            <h2 class="mb-0">{{ in_progress_count }}</h2>
+                        </div>
+                        <i class="fas fa-spinner fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-danger text-white shadow">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h6 class="text-uppercase mb-1">Overdue</h6>
+                            <h2 class="mb-0">{{ overdue_count }}</h2>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="card shadow">
+        <div class="card-header bg-light">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-tasks text-primary mr-2"></i>
+                        My Assigned Action Items
+                    </h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <!-- Filters -->
+            <form method="GET" class="mb-4">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <label class="small">Status:</label>
+                        <select name="status" class="form-control">
+                            <option value="">All Status</option>
+                            {% for key, value in status_choices %}
+                                <option value="{{ key }}" {% if selected_status == key %}selected{% endif %}>
+                                    {{ value }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4 mb-2">
+                        <label class="small">Hazard Severity:</label>
+                        <select name="severity" class="form-control">
+                            <option value="">All Severities</option>
+                            {% for key, value in severity_choices %}
+                                <option value="{{ key }}" {% if selected_severity == key %}selected{% endif %}>
+                                    {{ value }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4 mb-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary mr-2">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
+                        <a href="{% url 'hazards:my_action_items' %}" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i> Reset
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Action Items Table -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Hazard</th>
+                            <th>Action Description</th>
+                            <th>Severity</th>
+                            <th>Target Date</th>
+                            <th>Status</th>
+                            <th>Created By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in action_items %}
+                        <tr {% if item.is_overdue %}class="table-danger"{% endif %}>
+                            <!-- Hazard Info -->
+                            <td>
+                                <a href="{% url 'hazards:hazard_detail' item.hazard.pk %}" class="text-primary font-weight-bold">
+                                    {{ item.hazard.report_number }}
+                                </a>
+                                <br>
+                                <small class="text-muted">
+                                    {{ item.hazard.plant.code }} - {{ item.hazard.location.name }}
+                                </small>
+                            </td>
+                            
+                            <!-- Action Description -->
+                            <td>
+                                {{ item.action_description|truncatewords:10 }}
+                            </td>
+                            
+                            <!-- Severity -->
+                            <td>
+                                <span class="badge 
+                                    {% if item.hazard.severity == 'critical' %}badge-dark
+                                    {% elif item.hazard.severity == 'high' %}badge-danger
+                                    {% elif item.hazard.severity == 'medium' %}badge-warning
+                                    {% else %}badge-success{% endif %}">
+                                    {{ item.hazard.get_severity_display }}
+                                </span>
+                            </td>
+                            
+                            <!-- Target Date -->
+                            <td>
+                                {{ item.target_date|date:"d M Y" }}
+                                {% if item.is_overdue and item.status != 'COMPLETED' %}
+                                    <br><span class="badge badge-danger badge-sm">
+                                        <i class="fas fa-exclamation-triangle"></i> Overdue
+                                    </span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Status -->
+                            <td>
+                                <span class="badge 
+                                    {% if item.status == 'COMPLETED' %}badge-success
+                                    {% elif item.status == 'IN_PROGRESS' %}badge-info
+                                    {% else %}badge-warning{% endif %}">
+                                    {{ item.get_status_display }}
+                                </span>
+                            </td>
+                            
+                            <!-- Created By -->
+                            <td>
+                                {% if item.created_by %}
+                                    {{ item.created_by.get_full_name }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Actions -->
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'hazards:hazard_detail' item.hazard.pk %}" 
+                                       class="btn btn-sm btn-info" 
+                                       title="View Hazard">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    
+                                    {% if item.status != 'COMPLETED' %}
+                                        <a href="{% url 'hazards:action_item_complete' item.pk %}" 
+                                           class="btn btn-sm btn-success" 
+                                           title="Mark as Complete">
+                                            <i class="fas fa-check-circle"></i>
+                                        </a>
+                                    {% endif %}
+                                    
+                                    {% if item.attachment %}
+                                        <a href="{{ item.attachment.url }}" 
+                                           class="btn btn-sm btn-secondary" 
+                                           target="_blank"
+                                           title="View Attachment">
+                                            <i class="fas fa-paperclip"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    No action items assigned to you.
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_severity %}&severity={{ selected_severity }}{% endif %}">
+                            Previous
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_severity %}&severity={{ selected_severity }}{% endif %}">
+                            Next
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.opacity-50 {
+    opacity: 0.5;
+}
+
+.table-danger {
+    background-color: #f8d7da !important;
+}
+
+.card {
+    border-radius: 8px;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+</style>
+{% endblock %}
