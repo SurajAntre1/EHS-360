@@ -1361,3 +1361,153 @@ def get_sublocations_by_location(request, location_id):
         return JsonResponse(list(sublocations), safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)    
+    
+
+class MyActionItemsView(LoginRequiredMixin, ListView):
+    """
+    Display action items assigned to the logged-in user
+    """
+    model = HazardActionItem
+    template_name = 'hazards/my_action_items.html'
+    context_object_name = 'action_items'
+    paginate_by = 20
+
+    def get_queryset(self):
+        user = self.request.user
+        
+        # Get action items where user's email is in responsible_emails
+        queryset = HazardActionItem.objects.filter(
+            responsible_emails__icontains=user.email
+        ).select_related(
+            'hazard', 
+            'hazard__plant', 
+            'hazard__location',
+            'created_by'
+        ).order_by('-created_at')
+        
+        # Apply filters
+        status_filter = self.request.GET.get('status', '')
+        severity_filter = self.request.GET.get('severity', '')
+        
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        if severity_filter:
+            queryset = queryset.filter(hazard__severity=severity_filter)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        user = self.request.user
+        
+        # Statistics
+        all_my_items = HazardActionItem.objects.filter(
+            responsible_emails__icontains=user.email
+        )
+        
+        context['total_assigned'] = all_my_items.count()
+        context['pending_count'] = all_my_items.filter(status='PENDING').count()
+        context['in_progress_count'] = all_my_items.filter(status='IN_PROGRESS').count()
+        context['completed_count'] = all_my_items.filter(status='COMPLETED').count()
+        context['overdue_count'] = all_my_items.filter(
+            status__in=['PENDING', 'IN_PROGRESS'],
+            target_date__lt=timezone.now().date()
+        ).count()
+        
+        # Filter values
+        context['selected_status'] = self.request.GET.get('status', '')
+        context['selected_severity'] = self.request.GET.get('severity', '')
+        
+        # Choices for filters
+        context['status_choices'] = HazardActionItem.STATUS_CHOICES
+        context['severity_choices'] = Hazard.SEVERITY_CHOICES
+        
+        return context
+
+
+class ActionItemCompleteView(LoginRequiredMixin, UpdateView):
+    """
+    Allow assigned users to mark action item as complete
+    """
+    model = HazardActionItem
+    template_name = 'hazards/action_item_complete.html'
+    fields = []
+    
+    def dispatch(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        
+        # Check if user is assigned to this action item
+        user_email = request.user.email
+        if user_email not in self.object.responsible_emails:
+            messages.error(request, 'You are not assigned to this action item.')
+            return redirect('hazards:my_action_items')
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['action_item'] = self.object
+        context['hazard'] = self.object.hazard
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        action_item = self.get_object()
+        
+        try:
+            # Get completion data
+            completion_remarks = request.POST.get('completion_remarks', '').strip()
+            completion_date_str = request.POST.get('completion_date')
+            
+            if not completion_remarks:
+                messages.error(request, 'Completion remarks are required.')
+                return redirect('hazards:action_item_complete', pk=action_item.pk)
+            
+            # Parse completion date
+            if completion_date_str:
+                completion_date = datetime.datetime.strptime(completion_date_str, '%Y-%m-%d').date()
+            else:
+                completion_date = timezone.now().date()
+            
+            # Update action item
+            action_item.status = 'COMPLETED'
+            action_item.completion_date = completion_date
+            action_item.completion_remarks = completion_remarks
+            
+            # Handle attachment if provided
+            if 'completion_attachment' in request.FILES:
+                action_item.attachment = request.FILES['completion_attachment']
+            
+            action_item.save()
+            
+            # Update hazard status
+            action_item.hazard.update_status_from_action_items()
+            
+            # Send notification
+            try:
+                from apps.notifications.services import NotificationService
+                NotificationService.notify(
+                    content_object=action_item,
+                    notification_type='HAZARD_ACTION_COMPLETED',
+                    module='HAZARD_ACTION'
+                )
+            except Exception as e:
+                print(f"Notification error: {e}")
+            
+            messages.success(
+                request,
+                mark_safe(
+                    f'✅ <strong>Action item marked as completed!</strong><br>'
+                    f'Hazard: {action_item.hazard.report_number}'
+                )
+            )
+            
+            return redirect('hazards:my_action_items')
+            
+        except Exception as e:
+            print(f"Error completing action item: {e}")
+            messages.error(request, f'Error: {str(e)}')
+            return redirect('hazards:action_item_complete', pk=action_item.pk)
+
+
