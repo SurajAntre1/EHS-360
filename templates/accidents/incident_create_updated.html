@@ -1,8 +1,8 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Report New Incident{% endblock %}
-{% block page_title %}Report New Incident{% endblock %}
+{% block title %}Report New Injury{% endblock %}
+{% block page_title %}Report New Injury{% endblock %}
 {% block extra_css %}
 <style>
 /* ... existing styles ... */
@@ -93,8 +93,8 @@
 {% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
-<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Incident Management</a></li>
-<li class="breadcrumb-item active">Report New Incident</li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Injury Management</a></li>
+<li class="breadcrumb-item active">Report New Injury </li>
 {% endblock %}
 
 {% block content %}
@@ -103,7 +103,7 @@
     <div class="ehs-card">
       <div class="card-header bg-danger text-white">
         <h3 class="card-title mb-0">
-          <i class="fas fa-file-medical mr-2"></i>Report New Incident/Accident
+          <i class="fas fa-file-medical mr-2"></i>Report New Injury/Accident
         </h3>
       </div>
       
@@ -117,29 +117,29 @@
           <!-- Alert Info -->
           <div class="alert alert-info">
             <i class="fas fa-info-circle mr-2"></i>
-            <strong>Note:</strong> Investigation report is required within 7 days of incident occurrence.
+            <strong>Note:</strong> Investigation report is required within 7 days of injury occurrence.
             All fields marked with <span class="text-danger">*</span> are mandatory.
           </div>
 
           <!-- Incident Type & Date/Time -->
-          <h5 class="mb-3"><i class="fas fa-calendar-alt mr-2"></i>Incident Information</h5>
+          <h5 class="mb-3"><i class="fas fa-calendar-alt mr-2"></i>Injury Information</h5>
           <div class="row">
             <div class="col-md-3 mb-3">
-              <label for="{{ form.incident_type.id_for_label }}">Type of Incident <span class="text-danger">*</span></label>
+              <label for="{{ form.incident_type.id_for_label }}">Type of Injury <span class="text-danger">*</span></label>
               {{ form.incident_type }}
               {% if form.incident_type.errors %}
                 <div class="text-danger">{{ form.incident_type.errors }}</div>
               {% endif %}
             </div>
             <div class="col-md-3 mb-3">
-              <label for="{{ form.incident_date.id_for_label }}">Date of Incident <span class="text-danger">*</span></label>
+              <label for="{{ form.incident_date.id_for_label }}">Date of Injury <span class="text-danger">*</span></label>
               {{ form.incident_date }}
               {% if form.incident_date.errors %}
                 <div class="text-danger">{{ form.incident_date.errors }}</div>
               {% endif %}
             </div>
             <div class="col-md-3 mb-3">
-              <label for="{{ form.incident_time.id_for_label }}">Time of Incident <span class="text-danger">*</span></label>
+              <label for="{{ form.incident_time.id_for_label }}">Time of Injury <span class="text-danger">*</span></label>
               {{ form.incident_time }}
               {% if form.incident_time.errors %}
                 <div class="text-danger">{{ form.incident_time.errors }}</div>
@@ -194,10 +194,10 @@
           <hr>
 
           <!-- Incident Details -->
-          <h5 class="mb-3"><i class="fas fa-file-alt mr-2"></i>Incident Details</h5>
+          <h5 class="mb-3"><i class="fas fa-file-alt mr-2"></i>Injury Details</h5>
           <div class="row">
             <div class="col-md-12 mb-3">
-              <label for="{{ form.incident_title.id_for_label }}">Incident Title <span class="text-danger">*</span></label>
+              <label for="{{ form.incident_title.id_for_label }}">Injury Title <span class="text-danger">*</span></label>
               {{ form.incident_title }}
               {% if form.incident_title.errors %}
                 <div class="text-danger">{{ form.incident_title.errors }}</div>
@@ -537,7 +537,7 @@
                   <div class="custom-control custom-switch custom-switch-lg">
                       <input type="checkbox" class="custom-control-input" id="id_is_reported_on_behalf" name="is_reported_on_behalf">
                       <label class="custom-control-label" for="id_is_reported_on_behalf">
-                          <strong>I am reporting this incident on behalf of someone else</strong>
+                          <strong>I am reporting this Injury on behalf of someone else</strong>
                           <br><small class="text-muted">Check this if you are filing this report for another person (as supervisor, witness, or safety officer)</small>
                       </label>
                   </div>
@@ -604,7 +604,7 @@
         
         <div class="card-footer">
           <button type="submit" class="btn btn-danger btn-lg">
-            <i class="fas fa-paper-plane mr-2"></i>Submit Incident Report
+            <i class="fas fa-paper-plane mr-2"></i>Submit Injury Report
           </button>
           <a href="{% url 'accidents:incident_list' %}" class="btn btn-secondary btn-lg ml-2">
             <i class="fas fa-times mr-2"></i>Cancel
