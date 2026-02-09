@@ -24,6 +24,7 @@ import json
 from django.db.models import Count
 from django.db.models.functions import TruncMonth
 from .forms import HazardForm
+from apps.notifications.services import NotificationService
 
 # Make sure all models are imported
 from apps.organizations.models import Plant, Zone, Location, SubLocation
@@ -642,10 +643,11 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
         
         try:
             # Check for attachment
-            if 'attachment' not in request.FILES:
-                messages.error(request, 'An attachment is required to create an action item.')
-                return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
-
+            if assignment_type == 'self':
+                if 'attachment' not in request.FILES:
+                    messages.error(request, 'An attachment is required to create an action item.')
+                    return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
+            
             # Create action item
             action_item = HazardActionItem()
             action_item.hazard = self.hazard
@@ -692,8 +694,10 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
                 print(f"⏳ Status: PENDING")
 
             # Handle file attachment
-            action_item.attachment = request.FILES['attachment']
-            
+            attachment = request.FILES.get('attachment')
+            if attachment:
+                action_item.attachment = attachment
+
             # Save action item
             action_item.save()
             print(f"💾 Action item saved with ID: {action_item.id}")
@@ -714,13 +718,16 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             
             # Send notifications
             try:
-                from apps.notifications.services import NotificationService
-                NotificationService.notify(
-                    content_object=action_item,  
-                    notification_type='HAZARD_ACTION_ASSIGNED',  
-                    module='HAZARD_ACTION'
-                )
-                print("🔔 Notifications sent")
+                if assignment_type != 'self':
+                    emails = action_item.responsible_emails.split(',')
+                    responsible_users = User.objects.filter(email__in=emails, is_active=True)
+
+                    NotificationService.notify(
+                        content_object=action_item,
+                        notification_type='HAZARD_ACTION_ASSIGNED',
+                        module='HAZARD_ACTION',
+                        extra_recipients=list(responsible_users)
+                    )
             except Exception as e:
                 print(f"⚠️ Notification error: {e}")
 

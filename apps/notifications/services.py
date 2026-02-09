@@ -186,7 +186,7 @@ class NotificationService:
     
     
     @staticmethod
-    def notify(content_object, notification_type, module='INCIDENT'):
+    def notify(content_object, notification_type, module='INCIDENT', extra_recipients=None):
         """
         Main notification function - finds stakeholders and sends notifications
 
@@ -231,6 +231,30 @@ class NotificationService:
             zone=zone
         )
 
+        # For responsible person
+        if extra_recipients:
+            for user in extra_recipients:
+                if user not in stakeholders:
+                    stakeholders.append(user)
+
+        if hasattr(content_object, 'responsible_emails'):
+            emails = [
+                e.strip()
+                for e in content_object.responsible_emails.split(',')
+                if e.strip()
+            ]
+
+            responsible_users = User.objects.filter(
+                email__in=emails,
+                is_active=True
+            )
+
+            for user in responsible_users:
+                if user not in stakeholders:
+                    stakeholders.append(user)
+       
+
+
         if not stakeholders:
             # print("\n❌ ERROR: No stakeholders found!")
             return
@@ -257,11 +281,8 @@ class NotificationService:
 
 
         for stakeholder in stakeholders:
-            # print(f"\n{'='*70}")
-            # print(f"STAKEHOLDER: {stakeholder.username}")
-            # print(f"{'='*70}")
+            print("📨 Processing stakeholder:", stakeholder.email)
 
-            # Create in-app notification
             notification = NotificationService.create_notification(
                 recipient=stakeholder,
                 content_object=content_object,
@@ -270,17 +291,18 @@ class NotificationService:
                 message=context.get('message', '')
             )
 
-            if notification:
-                notifications_created += 1
+            is_responsible_user = (
+                hasattr(content_object, 'responsible_emails')
+                and stakeholder.email in content_object.responsible_emails
+            )
 
-            # Check role config for email
             role_config = NotificationMaster.objects.filter(
                 notification_event=notification_type,
                 role=stakeholder.role,
                 is_active=True
             ).first()
 
-            if role_config and getattr(role_config, 'email_enabled', False):
+            if is_responsible_user or (role_config and role_config.email_enabled):
                 context['recipient'] = stakeholder
                 email_sent = NotificationService.send_email(
                     recipient=stakeholder,
@@ -290,12 +312,11 @@ class NotificationService:
                     context=context
                 )
 
-                if email_sent:
+                if email_sent and notification:
                     emails_sent += 1
-                    if notification:
-                        notification.is_email_sent = True
-                        notification.email_sent_at = timezone.now()
-                        notification.save()
+                    notification.is_email_sent = True
+                    notification.email_sent_at = timezone.now()
+                    notification.save()
 
         # print(f"\n{'='*70}")
         # print("NOTIFICATION SUMMARY")
@@ -557,6 +578,7 @@ EHS Management System
             'action_item': action_item,
         }
     
+    @staticmethod
     def _build_environment_context(plant):
         return{
             'title': f"Enviromental Data Submitted | {plant.name}",
@@ -578,6 +600,7 @@ EHS Management System
             'plant':plant,
         }
     
+    @staticmethod
     def _build_inspection_context(schedule):
         return{
             'title': f"Inspection {schedule.get_status_display()} | {schedule.schedule_code}",
@@ -614,7 +637,7 @@ EHS Management System
         'schedule': schedule,
     }
 
-
+    @staticmethod
     def _build_notify_inspection_context(schedule):
         return{
             'title': f"Inspection Reminder | {schedule.schedule_code}",
