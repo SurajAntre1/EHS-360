@@ -356,7 +356,6 @@
                 <p>Dashboard</p>
               </a>
             </li>
-            {% endif %}
 
             {% if user|has_perm:'CREATE_HAZARD' %}
             <li class="nav-item">
@@ -376,6 +375,7 @@
                 <p>All Hazards</p>
               </a>
             </li>
+            {% endif %}
             <li class="nav-item">
               <a href="{% url 'hazards:my_action_items' %}"
                 class="nav-link {% if request.resolver_match.url_name == 'my_action_items' %}active{% endif %}">
@@ -390,7 +390,6 @@
                   </p>
               </a>
             </li>
-
           </ul>
         </li>
         {% endif %}
