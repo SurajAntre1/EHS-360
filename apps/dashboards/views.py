@@ -48,11 +48,11 @@ class HomeView(LoginRequiredMixin, TemplateView):
         if user.is_superuser or getattr(user.role, 'name', None) == 'ADMIN':
             pass
         elif getattr(user.role, 'name', None) == 'EMPLOYEE':
-            inspections = inspections.filter(assigned_to=user)
+            inspections = inspection.filter(assigned_to=user)
         elif user.plant:
             inspections = inspection.filter(plant=user.plant)
         else:
-            inspections = inspections.filter(assigned_to=user)
+            inspections = inspection.filter(assigned_to=user)
 
 
         context['total_hazards'] = hazards.count()
