@@ -367,6 +367,21 @@
                 <p>All Hazards</p>
               </a>
             </li>
+            <li class="nav-item">
+              <a href="{% url 'hazards:my_action_items' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'my_action_items' %}active{% endif %}">
+                  <i class="nav-icon fas fa-tasks"></i>
+                  <p>
+                      My Action Items
+                      {% if my_pending_actions_count > 0 %}
+                          <span class="badge badge-danger right">
+                              {{ my_pending_actions_count }}
+                          </span>
+                      {% endif %}
+                  </p>
+              </a>
+            </li>
+
           </ul>
         </li>
         {% endif %}
