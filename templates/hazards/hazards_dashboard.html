@@ -52,69 +52,73 @@
 <div class="filter-section">
     <form method="GET" action="{% url 'hazards:hazard_dashboard' %}" id="filterForm">
         <div class="row align-items-end">
-            <!-- Plant -->
-            <div class="col-md-2 mb-3">
+            <!-- Row 1 -->
+            <div class="col-md-3 mb-3">
                 <label for="plant_filter" class="form-label small font-weight-bold"><i class="fas fa-industry mr-1"></i> Plant</label>
                 <select name="plant" id="plant_filter" class="form-control">
                     <option value="">All Plants</option>
                     {% for plant in plants %}
-                    <option value="{{ plant.id }}" {% if selected_plant == plant.id|stringformat:"s" %}selected{% endif %}>
-                        {{ plant.name }}
-                    </option>
+                    <option value="{{ plant.id }}" {% if selected_plant == plant.id|stringformat:"s" %}selected{% endif %}>{{ plant.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <!-- Zone -->
-            <div class="col-md-2 mb-3">
+            <div class="col-md-3 mb-3">
                 <label for="zone_filter" class="form-label small font-weight-bold"><i class="fas fa-map-marker-alt mr-1"></i> Zone</label>
                 <select name="zone" id="zone_filter" class="form-control">
                     <option value="">All Zones</option>
                     {% for zone in zones %}
-                    <option value="{{ zone.id }}" {% if selected_zone == zone.id|stringformat:"s" %}selected{% endif %}>
-                        {{ zone.name }}
-                    </option>
+                    <option value="{{ zone.id }}" {% if selected_zone == zone.id|stringformat:"s" %}selected{% endif %}>{{ zone.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <!-- Location -->
-            <div class="col-md-2 mb-3">
+            <div class="col-md-3 mb-3">
                 <label for="location_filter" class="form-label small font-weight-bold"><i class="fas fa-location-arrow mr-1"></i> Location</label>
                 <select name="location" id="location_filter" class="form-control">
                     <option value="">All Locations</option>
                     {% for location in locations %}
-                    <option value="{{ location.id }}" {% if selected_location == location.id|stringformat:"s" %}selected{% endif %}>
-                        {{ location.name }}
-                    </option>
+                    <option value="{{ location.id }}" {% if selected_location == location.id|stringformat:"s" %}selected{% endif %}>{{ location.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <!-- Sub-Location -->
-            <div class="col-md-2 mb-3">
+            <div class="col-md-3 mb-3">
                 <label for="sublocation_filter" class="form-label small font-weight-bold"><i class="fas fa-map-pin mr-1"></i> Sub-Location</label>
                 <select name="sublocation" id="sublocation_filter" class="form-control">
                     <option value="">All Sub-Locations</option>
                     {% for sublocation in sublocations %}
-                    <option value="{{ sublocation.id }}" {% if selected_sublocation == sublocation.id|stringformat:"s" %}selected{% endif %}>
-                        {{ sublocation.name }}
-                    </option>
+                    <option value="{{ sublocation.id }}" {% if selected_sublocation == sublocation.id|stringformat:"s" %}selected{% endif %}>{{ sublocation.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <!-- Month -->
-            <div class="col-md-2 mb-3">
+            <!-- Row 2 -->
+            <!-- <div class="col-md-3 mb-3">
+                <label for="department_filter" class="form-label small font-weight-bold"><i class="fas fa-building mr-1"></i> Department</label>
+                <select name="department" id="department_filter" class="form-control">
+                    <option value="">All Departments</option>
+                    {% for dept in all_departments %}
+                    <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div> -->
+            <div class="col-md-3 mb-3">
+                <label for="category_filter" class="form-label small font-weight-bold"><i class="fas fa-tags mr-1"></i> Category</label>
+                <select name="category" id="category_filter" class="form-control">
+                    <option value="">All Categories</option>
+                    {% for cat_val, cat_name in all_categories %}
+                    <option value="{{ cat_val }}" {% if selected_category == cat_val %}selected{% endif %}>{{ cat_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 mb-3">
                 <label for="month_filter" class="form-label small font-weight-bold"><i class="fas fa-calendar mr-1"></i> Month</label>
                 <select name="month" id="month_filter" class="form-control">
                     <option value="">All Time</option>
                     {% for month in month_options %}
-                    <option value="{{ month.value }}" {% if selected_month == month.value %}selected{% endif %}>
-                        {{ month.label }}
-                    </option>
+                    <option value="{{ month.value }}" {% if selected_month == month.value %}selected{% endif %}>{{ month.label }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <!-- Apply Button -->
-            <div class="col-md-2 mb-3">
-                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter mr-1"></i> Apply</button>
+            <div class="col-md-3 mb-3">
+                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter mr-1"></i> Apply Filters</button>
             </div>
         </div>
 
@@ -126,6 +130,8 @@
                 {% if selected_zone_name %}<span class="active-filter-badge">Zone: {{ selected_zone_name }}<i class="fas fa-times" onclick="removeFilter('zone')"></i></span>{% endif %}
                 {% if selected_location_name %}<span class="active-filter-badge">Location: {{ selected_location_name }}<i class="fas fa-times" onclick="removeFilter('location')"></i></span>{% endif %}
                 {% if selected_sublocation_name %}<span class="active-filter-badge">Sub-Location: {{ selected_sublocation_name }}<i class="fas fa-times" onclick="removeFilter('sublocation')"></i></span>{% endif %}
+                {% if selected_department_name %}<span class="active-filter-badge">Dept: {{ selected_department_name }}<i class="fas fa-times" onclick="removeFilter('department')"></i></span>{% endif %}
+                {% if selected_category_name %}<span class="active-filter-badge">Category: {{ selected_category_name }}<i class="fas fa-times" onclick="removeFilter('category')"></i></span>{% endif %}
                 {% if selected_month_label %}<span class="active-filter-badge">Month: {{ selected_month_label }}<i class="fas fa-times" onclick="removeFilter('month')"></i></span>{% endif %}
                 {% if selected_severity %}<span class="active-filter-badge">Risk: {{ selected_severity|capfirst }}<i class="fas fa-times" onclick="removeFilter('severity')"></i></span>{% endif %}
                 {% if selected_status %}<span class="active-filter-badge">Status: {{ selected_status|capfirst }}<i class="fas fa-times" onclick="removeFilter('status')"></i></span>{% endif %}
@@ -205,7 +211,7 @@
     </div>
 </div>
 <!-- NEW: Top 3 Hazard Categories -->
-<div class="row mb-4">
+<!-- <div class="row mb-4">
     <div class="col-12">
         <div class="dashboard-card">
             <div class="card-body">
@@ -228,6 +234,51 @@
                     </div>
                     {% endfor %}
                 </div>
+            </div>
+        </div>
+    </div>
+</div> -->
+
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="dashboard-card">
+            <div class="card-body">
+                <div class="section-header"><h5><i class="fas fa-star mr-2"></i>Top 3 Hazard Categories</h5></div>
+                
+                {# The 'if' condition now correctly checks if the top_hazard_categories queryset has any data #}
+                {% if top_hazard_categories %}
+                    <div class="chart-container" style="height: 320px;">
+                        <canvas id="topCategoriesChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="col-12 text-center text-muted py-5">
+                        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                        No hazard data available to determine top categories.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="dashboard-card">
+            <div class="card-body">
+                <div class="section-header">
+                    <h5><i class="fas fa-building mr-2"></i>Hazards by Department</h5>
+                </div>
+                {% if department_chart_data %}
+                    <div class="chart-container">
+                        <canvas id="departmentChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="col-12 text-center text-muted py-5">
+                        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                        No department-specific hazard data is available for the selected filters.
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -291,12 +342,13 @@
 {% endblock %}
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     
     // --- CASCADING DROPDOWNS LOGIC ---
-    
     const plantSelect = document.getElementById('plant_filter');
     const zoneSelect = document.getElementById('zone_filter');
     const locationSelect = document.getElementById('location_filter');
@@ -318,13 +370,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    document.getElementById('exportReportBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        const currentParams = window.location.search;
-        const exportUrl = "{% url 'hazards:export_hazards' %}" + currentParams;
-        window.location.href = exportUrl;
-    });
-
     document.getElementById('zone_filter').addEventListener('change', function() {
         const zoneId = this.value;
         locationSelect.innerHTML = '<option value="">All Locations</option>';
@@ -343,12 +388,6 @@ document.addEventListener('DOMContentLoaded', function() {
     locationSelect.addEventListener('change', function() {
         const locationId = this.value;
         const sublocationSelect = document.getElementById('sublocation_filter');
-        
-        // When Location changes, clear its child
-        sublocationSelect.innerHTML = '<option value="">All Sub-Locations</option>';
-        
-
-        // Sub-Location ko clear karo
         sublocationSelect.innerHTML = '<option value="">All Sub-Locations</option>';
         if (locationId) {
             fetch(`{% url 'hazards:ajax_get_sublocations' %}?location_id=${locationId}`)
@@ -361,7 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- EXPORT BUTTON LOGIC (No changes here) ---
+    // --- EXPORT BUTTON LOGIC ---
     document.getElementById('exportReportBtn').addEventListener('click', function(e) {
         e.preventDefault();
         const currentParams = window.location.search;
@@ -372,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- CHART INITIALIZATION ---
     const colors = {danger: '#dc3545', warning: '#ffc107', info: '#17a2b8', success: '#28a745', primary: '#007bff'};
     
-    // Severity Chart (No changes here)
+    // Severity Chart
     const severityCtx = document.getElementById('severityChart').getContext('2d');
     const severityChart = new Chart(severityCtx, {
         type: 'doughnut',
@@ -390,10 +429,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Monthly Trend Chart (No changes here)
+    // Monthly Trend Chart
     new Chart(document.getElementById('monthlyTrendChart').getContext('2d'), { type: 'line', data: { labels: {{ monthly_labels|safe }}, datasets: [{ label: 'Hazards', data: {{ monthly_data|safe }}, borderColor: colors.primary, backgroundColor: 'rgba(0,123,255,0.1)', tension: 0.4, fill: true }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
     
-    // --- UPDATED: Status Chart with onClick event ---
+    // Status Chart
     const statusChartCtx = document.getElementById('statusChart').getContext('2d');
     new Chart(statusChartCtx, { 
         type: 'bar', 
@@ -402,49 +441,113 @@ document.addEventListener('DOMContentLoaded', function() {
             datasets: [{ 
                 label: 'Hazards', 
                 data: {{ status_data|safe }}, 
-                backgroundColor: '#563d7c', // Changed color for better distinction
+                backgroundColor: '#563d7c',
                 barPercentage: 0.4
             }] 
         }, 
         options: { 
-            responsive: true, 
-            maintainAspectRatio: false, 
-            plugins: { 
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return ` Count: ${context.parsed.y}`;
-                        }
-                    }
-                }
-            }, 
+            responsive: true, maintainAspectRatio: false, 
+            plugins: { legend: { display: false } }, 
             scales: { y: { beginAtZero: true } },
-            // NEW: This makes the chart bars clickable
             onClick: (e, elements) => {
                 if (elements.length > 0) {
-                    // Get the internal status keys passed from the view
                     const statusKeys = {{ status_keys|safe }};
-                    // Find the key corresponding to the clicked bar using its index
                     const clickedStatusKey = statusKeys[elements[0].index];
-                    
-                    // Build the new URL with the status filter
                     const currentParams = new URLSearchParams(window.location.search);
                     currentParams.set('status', clickedStatusKey);
-                    
-                    // Redirect to the new filtered URL
                     window.location.href = window.location.pathname + '?' + currentParams.toString();
                 }
             }
         } 
     });
-});
 
-// --- REMOVE FILTER FUNCTION (No changes here) ---
+    // ✅ **FIX:** Top Categories Pie Chart ko DOMContentLoaded ke ANDAR move kiya gaya hai.
+    const topCategoriesCtx = document.getElementById('topCategoriesChart');
+    if (topCategoriesCtx) {
+        const topCategoryLabels = {{ top_category_labels|safe }};
+        const topCategoryValues = {{ top_category_values|safe }}; // Internal values for filtering
+
+        new Chart(topCategoriesCtx.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: topCategoryLabels,
+                datasets: [{
+                    data: {{ top_category_data|safe }},
+                    backgroundColor: ['#17a2b8', '#563d7c', '#007bff'],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    datalabels: {
+                        color: '#fff',
+                        font: {
+                            weight: 'bold',
+                            size: 20
+                        },
+                        formatter: (value) => value   // 👈 COUNT SHOW HOGA
+                    }
+                },
+                onClick: (e, elements) => {
+                    if (elements.length > 0) {
+                        const clickedCategoryValue = topCategoryValues[elements[0].index];
+                        const currentParams = new URLSearchParams(window.location.search);
+                        currentParams.set('category', clickedCategoryValue);
+                        window.location.href = window.location.pathname + '?' + currentParams.toString();
+                    }
+                }
+            },
+            plugins: [ChartDataLabels] // 👈 IMPORTANT
+        });
+    }
+
+     const departmentChartCtx = document.getElementById('departmentChart');
+    if (departmentChartCtx) {
+        new Chart(departmentChartCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: {{ department_labels|safe }},
+                datasets: [{
+                    label: 'Hazards',
+                    data: {{ department_data|safe }},
+                    backgroundColor: '#6f42c1', // Indigo color
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false // Ek hi dataset hai, isliye legend ki zaroorat nahi
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            // Y-axis par decimal values na dikhaye agar count kam ho
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+}); // DOMContentLoaded listener yahan band hota hai.
+
+// --- REMOVE FILTER FUNCTION ---
 function removeFilter(filterName) {
     const urlParams = new URLSearchParams(window.location.search);
     urlParams.delete(filterName);
     
+    // Agar plant remove ho to uske child filters bhi remove karein
     if (filterName === 'plant') {
         urlParams.delete('zone');
         urlParams.delete('location'); 
@@ -460,5 +563,8 @@ function removeFilter(filterName) {
     
     window.location.href = window.location.pathname + '?' + urlParams.toString();
 }
+
+
+
 </script>
 {% endblock %}

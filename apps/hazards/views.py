@@ -874,6 +874,8 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
         selected_month = self.request.GET.get('month', '')
         selected_severity = self.request.GET.get('severity', '')
         selected_status = self.request.GET.get('status', '')
+        selected_category = self.request.GET.get('category', '')    # <-- NEW
+        selected_department = self.request.GET.get('department', '') # <-- NEW
 
         # 2. Build the base queryset based on user role
         if user.is_superuser or getattr(user, 'role', None) and user.role.name == 'ADMIN':
@@ -886,17 +888,13 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
             base_hazards = Hazard.objects.filter(reported_by=user)
             all_plants = Plant.objects.none()
 
-        # --- FIX STARTS HERE ---
         # 3. Calculate top-level stats BEFORE applying any filters.
-        # This ensures the main dashboard cards always show the total numbers.
         context['total_hazards'] = base_hazards.count()
         context['open_hazards'] = base_hazards.exclude(status__in=['RESOLVED', 'CLOSED']).count()
         context['overdue_hazards_count'] = base_hazards.filter(action_deadline__lt=today).exclude(status__in=['RESOLVED', 'CLOSED']).count()
-        
-        # This month's count should also be based on the unfiltered set unless a month is selected.
         this_month_total = base_hazards.filter(incident_datetime__year=today.year, incident_datetime__month=today.month).count()
 
-        # 4. Now, apply filters to a new queryset for charts and lists.
+        # 4. Apply filters to a new queryset for charts and lists.
         filtered_hazards = base_hazards
         if selected_plant:
             filtered_hazards = filtered_hazards.filter(plant_id=selected_plant)
@@ -908,7 +906,14 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
             filtered_hazards = filtered_hazards.filter(sublocation_id=selected_sublocation)
         if selected_severity:
             filtered_hazards = filtered_hazards.filter(severity=selected_severity)
-        
+        if selected_category: # <-- NEW
+            filtered_hazards = filtered_hazards.filter(hazard_category=selected_category)
+        if selected_department: # <-- NEW
+            # NOTE: Yeh filter maanta hai ki aapke Hazard model mein 'department' naam ki ek ForeignKey hai.
+            # Agar aapka structure alag hai (jaise behalf_person_dept), to aapko is line ko adjust karna hoga.
+            # Example: .filter(Q(department_id=selected_department) | Q(behalf_person_dept_id=selected_department))
+            filtered_hazards = filtered_hazards.filter(department_id=selected_department)
+            
         if selected_status:
             if selected_status == 'open':
                 filtered_hazards = filtered_hazards.exclude(status__in=['RESOLVED', 'CLOSED'])
@@ -922,20 +927,9 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
             except (ValueError, TypeError):
                 pass
         
-        date_from = self.request.GET.get('date_from')
-        date_to = self.request.GET.get('date_to')
-
-        if date_from:
-            filtered_hazards = filtered_hazards.filter(incident_datetime__date__gte=date_from)
-        if date_to:
-            filtered_hazards = filtered_hazards.filter(incident_datetime__date__lte=date_to)
-
-        # The "This Month" card should show the filtered count if a month is selected,
-        # otherwise, it shows the total for the current month.
         context['this_month_hazards'] = filtered_hazards.count() if selected_month else this_month_total
-        # --- FIX ENDS HERE ---
 
-        # 5. Prepare filter dropdown options (this part remains the same)
+        # 5. Prepare filter dropdown options
         context['plants'] = all_plants
         
         zone_qs = Zone.objects.filter(is_active=True)
@@ -962,47 +956,63 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
             'label': (today - datetime.timedelta(days=i*30)).strftime('%B %Y')
         } for i in range(12)]
 
+        context['all_departments'] = Department.objects.filter(is_active=True).order_by('name') # <-- NEW
+        context['all_categories'] = Hazard.HAZARD_CATEGORIES # <-- NEW
+
+        # Pass selected filter values and names back to the template
         context.update({
             'selected_plant': selected_plant, 'selected_zone': selected_zone,
             'selected_location': selected_location, 'selected_sublocation': selected_sublocation,
             'selected_month': selected_month, 'selected_severity': selected_severity,
             'selected_status': selected_status,
-            'date_from': date_from,
-            'date_to': date_to,
+            'selected_category': selected_category, # <-- NEW
+            'selected_department': selected_department, # <-- NEW
         })
         try:
             if selected_plant: context['selected_plant_name'] = Plant.objects.get(id=selected_plant).name
             if selected_zone: context['selected_zone_name'] = Zone.objects.get(id=selected_zone).name
             if selected_location: context['selected_location_name'] = Location.objects.get(id=selected_location).name
             if selected_sublocation: context['selected_sublocation_name'] = SubLocation.objects.get(id=selected_sublocation).name
+            if selected_department: context['selected_department_name'] = Department.objects.get(id=selected_department).name # <-- NEW
+            if selected_category: context['selected_category_name'] = dict(Hazard.HAZARD_CATEGORIES).get(selected_category) # <-- NEW
             if selected_month:
                 year, month = map(int, selected_month.split('-'))
                 context['selected_month_label'] = datetime.date(year, month, 1).strftime('%B %Y')
         except:
              pass
-        context['has_active_filters'] = any(context.get(key) for key in ['selected_plant', 'selected_zone', 'selected_location', 'selected_sublocation', 'selected_month', 'selected_severity', 'selected_status'])
+        context['has_active_filters'] = any(context.get(key) for key in ['selected_plant', 'selected_zone', 'selected_location', 'selected_sublocation', 'selected_month', 'selected_severity', 'selected_status', 'selected_category', 'selected_department'])
 
         # 6. Prepare data for lists and charts using the FILTERED queryset
         context['recent_hazards'] = filtered_hazards.select_related('plant', 'location').order_by('-incident_datetime')[:10]
 
+        # --- PIE CHART DATA ---
         top_categories_query = filtered_hazards.values('hazard_category').annotate(count=Count('hazard_category')).order_by('-count')[:3]
         category_display_map = dict(Hazard.HAZARD_CATEGORIES)
-        top_categories_list = []
+        
+        # Data for Pie Chart JavaScript
+        top_category_labels, top_category_data, top_category_values = [], [], []
         for item in top_categories_query:
-            top_categories_list.append({
-                'value': item['hazard_category'],
-                'display_name': category_display_map.get(item['hazard_category'], 'Unknown'),
-                'count': item['count']
-            })
-        context['top_hazard_categories'] = top_categories_list
+            top_category_labels.append(category_display_map.get(item['hazard_category'], 'Unknown'))
+            top_category_data.append(item['count'])
+            top_category_values.append(item['hazard_category'])
+            
+        context['top_category_labels'] = json.dumps(top_category_labels)
+        context['top_category_data'] = json.dumps(top_category_data)
+        context['top_category_values'] = json.dumps(top_category_values)
+        
+        # ✅ *** THE CRITICAL FIX IS HERE ***
+        # We must pass the actual data (the queryset) to the template, NOT a boolean.
+        context['top_hazard_categories'] = top_categories_query  
+        # context['top_hazard_categories'] = top_categories_query.exists() # Check if data exists for chart
 
-        # Monthly Trend (from filtered data)
+        # ... (Monthly Trend, Severity, and Status charts ka code waise hi rahega) ...
+        # Monthly Trend ...
         six_months_ago = today - datetime.timedelta(days=180)
         monthly_hazards = filtered_hazards.filter(incident_datetime__gte=six_months_ago).annotate(month=TruncMonth('incident_datetime')).values('month').annotate(count=Count('id')).order_by('month')
         context['monthly_labels'] = json.dumps([item['month'].strftime('%b %Y') for item in monthly_hazards])
         context['monthly_data'] = json.dumps([item['count'] for item in monthly_hazards])
 
-        # Severity Distribution (from filtered data)
+        # Severity Distribution ...
         severity_distribution = filtered_hazards.values('severity').annotate(count=Count('id'))
         severity_dict = {item['severity']: item['count'] for item in severity_distribution}
         severity_labels = [choice[1] for choice in Hazard.SEVERITY_CHOICES]
@@ -1010,24 +1020,35 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
         context['severity_labels'] = json.dumps(severity_labels)
         context['severity_data'] = json.dumps([severity_dict.get(val, 0) for val in severity_values])
 
-        # Status Distribution (from filtered data)
+        # Status Distribution ...
         status_distribution = filtered_hazards.values('status').annotate(count=Count('id')).order_by('-count')
-        status_labels = []
-        status_keys = []
-        status_data = []
+        status_labels, status_keys, status_data = [], [], []
         status_choices_dict = dict(Hazard.STATUS_CHOICES)
-
         for item in status_distribution:
             status_labels.append(status_choices_dict.get(item['status'], item['status']))
             status_keys.append(item['status'])
             status_data.append(item['count'])
-
         context['status_labels'] = json.dumps(status_labels)
         context['status_keys'] = json.dumps(status_keys)
         context['status_data'] = json.dumps(status_data)
+        
+        department_distribution = filtered_hazards.filter(
+            behalf_person_dept__isnull=False  # Filter out hazards with no department
+        ).values(
+            'behalf_person_dept__name'        # Group by the name of the related department
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')
 
-        return context    
+        department_labels = [item['behalf_person_dept__name'] for item in department_distribution]
+        department_data = [item['count'] for item in department_distribution]
+        
+        context['department_labels'] = json.dumps(department_labels)
+        context['department_data'] = json.dumps(department_data)
+        context['department_chart_data'] = department_distribution.exists()
 
+        return context
+    
 # ==================================================
 # AJAX VIEWS for Cascading Dropdowns
 # These views must exist to support the dashboard filters.
