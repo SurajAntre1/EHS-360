@@ -103,7 +103,6 @@ class HazardListView(LoginRequiredMixin, ListView):
         hazard_type = self.request.GET.get('hazard_type', '')
         risk_level = self.request.GET.get('risk_level', '')
         status = self.request.GET.get('status', '')
-        approval_status = self.request.GET.get('approval_status', '')  # ✅ NEW
         date_from = self.request.GET.get('date_from', '')
         date_to = self.request.GET.get('date_to', '')
 
@@ -119,10 +118,6 @@ class HazardListView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(severity=risk_level)
         if status:
             queryset = queryset.filter(status=status)
-        
-        # ✅ NEW: Apply approval status filter
-        if approval_status:
-            queryset = queryset.filter(approval_status=approval_status)
         
         if date_from:
             queryset = queryset.filter(incident_datetime__date__gte=date_from)
@@ -144,7 +139,6 @@ class HazardListView(LoginRequiredMixin, ListView):
         context['selected_hazard_type'] = self.request.GET.get('hazard_type', '')
         context['selected_risk_level'] = self.request.GET.get('risk_level', '')
         context['selected_status'] = self.request.GET.get('status', '')
-        context['selected_approval_status'] = self.request.GET.get('approval_status', '')  # ✅ NEW
 
         return context
 class HazardCreateView(LoginRequiredMixin, CreateView):
@@ -178,114 +172,232 @@ class HazardCreateView(LoginRequiredMixin, CreateView):
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
         return context
 
-    def form_valid(self, form):
-        hazard = form.save(commit=False)
-        user = self.request.user
-
-        # Reporter & System Fields
-        hazard.reported_by = user
-        hazard.reporter_email = user.email
-        hazard.reporter_phone = getattr(user, 'phone', '')
-        hazard.report_timestamp = timezone.now()
-        hazard.report_source = 'web_portal'
-
-        # Location fallback
-        hazard.plant = hazard.plant or user.plant
-        hazard.zone = hazard.zone or user.zone
-        hazard.location = hazard.location or user.location
-        hazard.sublocation = hazard.sublocation or user.sublocation
-
-        # Incident datetime fallback
-        if not hazard.incident_datetime:
-            hazard.incident_datetime = timezone.now()
-
-        # On behalf logic
-        if not self.request.POST.get('behalf_checkbox'):
-            hazard.behalf_person_name = None
-            hazard.behalf_person_dept = None
-
-        # Title
-        hazard.hazard_title = f"{hazard.get_hazard_type_display()} - {hazard.get_hazard_category_display()}"
-
-        # Status
-        hazard.status = 'REPORTED'
-        hazard.approval_status = 'PENDING'
-
-        # Deadline
-        severity_days = {'low': 30, 'medium': 15, 'high': 7, 'critical': 1}
-        base_date = timezone.now().date()
-        hazard.action_deadline = base_date + timezone.timedelta(
-            days=severity_days.get(hazard.severity, 15)
-        )
-
-        # Save first (for report number)
-        hazard.save()
-        self.object = hazard
-
-        # Report Number
-        today = timezone.now().date()
-        plant_code = hazard.plant.code if hazard.plant else 'UNKN'
-        count = Hazard.objects.filter(created_at__date=today).count()
-        hazard.report_number = f"HAZ-{plant_code}-{today:%Y%m%d}-{count:03d}"
-        hazard.save(update_fields=['report_number'])
-
-        # Photos
-        photos_uploaded = 0
-        photo_count = int(self.request.POST.get('photo_count', 1))
-        for i in range(photo_count + 5):
-            photo = self.request.FILES.get(f'photo_{i}')
-            if photo:
-                compressed_photo = compress_image(photo)
-                HazardPhoto.objects.create(
-                    hazard=hazard,
-                    photo=compressed_photo,
-                    photo_type='evidence',
-                    uploaded_by=user
-                )
-                photos_uploaded += 1
+    def post(self, request, *args, **kwargs):
+        """Override post to handle hazard submissions - bypasses form validation"""
+        self.object = None
+        # Always use handle_multiple_hazards since template uses custom field names
+        return self.handle_multiple_hazards(request)
+    
+    def handle_multiple_hazards(self, request):
+        """Handle single or multiple hazard submissions"""
+        user = request.user
+        hazard_count = int(request.POST.get('hazard_count', 1))
         
-        # Add Notification 
-        # print("\n\n" + "#" * 70)
-        # print("VIEW: HAZARD SAVED SUCCESSFULLY")
-        # print("#" * 70)
-        # print(f"Report Number: {self.object.report_number}")
-        # print(f"Incident ID: {self.object.id}")
-        # print(f"Plant: {self.object.plant}")
-        # print(f"Location: {self.object.plant}")
-        # print("#" * 70)
-        # print("\nVIEW: Calling notify_hazard_reported()")
-
-        try:
-            from apps.notifications.services import NotificationService
-
-            NotificationService.notify(
-                content_object= self.object,
-                notification_type= 'HAZARD_REPORTED',
-                module='HAZARD'
+        created_hazards = []
+        photos_uploaded_total = 0
+        
+        print(f"\n{'='*80}")
+        print(f"🔄 Processing {hazard_count} hazard(s)")
+        print(f"{'='*80}\n")
+        
+        for hazard_index in range(hazard_count):
+            print(f"\n--- Processing Hazard #{hazard_index + 1} ---")
+            
+            # Create new hazard instance
+            hazard = Hazard()
+            prefix = f'hazard_{hazard_index}_'
+            
+            # Reporter fields
+            hazard.reported_by = user
+            hazard.reporter_name = user.get_full_name()
+            hazard.reporter_email = user.email
+            hazard.reporter_phone = getattr(user, 'phone', '')
+            hazard.report_timestamp = timezone.now()
+            hazard.report_source = 'web_portal'
+            
+            # Get hazard-specific fields
+            hazard_type = request.POST.get(f'{prefix}hazard_type')
+            hazard_category = request.POST.get(f'{prefix}hazard_category')
+            severity = request.POST.get(f'{prefix}severity')
+            hazard_description = request.POST.get(f'{prefix}hazard_description')
+            immediate_action = request.POST.get(f'{prefix}immediate_action', '')
+            
+            print(f"  Type: {hazard_type}, Category: {hazard_category}, Severity: {severity}")
+            
+            # Validate required fields
+            if not hazard_type or not hazard_category or not severity or not hazard_description:
+                messages.error(request, f'Missing required fields for Hazard #{hazard_index + 1}')
+                return redirect('hazards:hazard_create')
+            
+            hazard.hazard_type = hazard_type
+            hazard.hazard_category = hazard_category
+            hazard.severity = severity
+            hazard.hazard_description = hazard_description
+            hazard.immediate_action = immediate_action
+            
+            # Get location fields - try all possible variations
+            plant_id = (
+                request.POST.get('plant') or 
+                request.POST.get('id_plant') or
+                request.POST.get(f'{prefix}plant') or
+                request.POST.get(f'{prefix}id_plant')
             )
-
-            print("\nVIEW: ✅ Notifications sent successfully")
-        except Exception as e:
-            print(f"\nVIEW: ❌ ERROR in notification system: {e}")
-            import traceback
-            traceback.print_exc()
-        print("\n" + "#" * 70 + "\n\n")
-
-        # Success Message (Old Style)
-        messages.success(
-            self.request,
-            mark_safe(
-                f"""
-                <strong>✅ Hazard Report Submitted Successfully!</strong><br>
-                <strong>Report No:</strong> {hazard.report_number}<br>
-                <strong>Severity:</strong> {hazard.get_severity_display()}<br>
-                <strong>Action Deadline:</strong> {hazard.action_deadline:%d %B %Y}<br>
-                <strong>Photos Uploaded:</strong> {photos_uploaded}
-                """
+            
+            zone_id = (
+                request.POST.get('zone') or 
+                request.POST.get('id_zone') or
+                request.POST.get(f'{prefix}zone') or
+                request.POST.get(f'{prefix}id_zone')
             )
-        )
-
+            
+            location_id = (
+                request.POST.get('location') or 
+                request.POST.get('id_location') or
+                request.POST.get(f'{prefix}location') or
+                request.POST.get(f'{prefix}id_location')
+            )
+            
+            sublocation_id = (
+                request.POST.get('sublocation') or 
+                request.POST.get('id_sublocation') or
+                request.POST.get(f'{prefix}sublocation') or
+                request.POST.get(f'{prefix}id_sublocation')
+            )
+            
+            # Fallback to user's assigned locations
+            if not plant_id and user.plant:
+                plant_id = user.plant.id
+            if not zone_id and hasattr(user, 'zone') and user.zone:
+                zone_id = user.zone.id
+            if not location_id and hasattr(user, 'location') and user.location:
+                location_id = user.location.id
+            
+            print(f"  Plant: {plant_id}, Zone: {zone_id}, Location: {location_id}")
+            
+            # Validate required location fields
+            if not plant_id:
+                messages.error(request, f'Plant is required for Hazard #{hazard_index + 1}')
+                return redirect('hazards:hazard_create')
+            
+            if not location_id:
+                messages.error(request, f'Location is required for Hazard #{hazard_index + 1}')
+                return redirect('hazards:hazard_create')
+            
+            hazard.plant_id = plant_id
+            hazard.zone_id = zone_id if zone_id else None
+            hazard.location_id = location_id
+            hazard.sublocation_id = sublocation_id if sublocation_id else None
+            
+            # Incident datetime
+            incident_datetime_str = request.POST.get('incident_datetime')
+            if incident_datetime_str:
+                try:
+                    hazard.incident_datetime = datetime.datetime.fromisoformat(incident_datetime_str)
+                    if timezone.is_naive(hazard.incident_datetime):
+                        hazard.incident_datetime = timezone.make_aware(hazard.incident_datetime)
+                except:
+                    hazard.incident_datetime = timezone.now()
+            else:
+                hazard.incident_datetime = timezone.now()
+            
+            # On behalf logic
+            behalf_checkbox = request.POST.get(f'{prefix}behalf_checkbox')
+            if behalf_checkbox:
+                hazard.behalf_person_name = request.POST.get(f'{prefix}behalf_person_name', '')
+                behalf_dept_id = request.POST.get(f'{prefix}behalf_person_dept')
+                if behalf_dept_id:
+                    hazard.behalf_person_dept_id = behalf_dept_id
+            
+            # Title
+            type_display = dict(Hazard.HAZARD_TYPE_CHOICES).get(hazard_type, hazard_type)
+            category_display = dict(Hazard.HAZARD_CATEGORIES).get(hazard_category, hazard_category)
+            hazard.hazard_title = f"{type_display} - {category_display}"
+            
+            # Status
+            hazard.status = 'REPORTED'
+            hazard.approval_status = 'PENDING'
+            
+            # Deadline
+            severity_days = {'low': 30, 'medium': 15, 'high': 7, 'critical': 1}
+            base_date = timezone.now().date()
+            hazard.action_deadline = base_date + timezone.timedelta(
+                days=severity_days.get(severity, 15)
+            )
+            
+            # Save hazard
+            try:
+                hazard.save()
+                print(f"  ✅ Saved with ID: {hazard.id}")
+            except Exception as e:
+                print(f"  ❌ Save error: {e}")
+                import traceback
+                traceback.print_exc()
+                messages.error(request, f'Error saving Hazard #{hazard_index + 1}: {str(e)}')
+                continue
+            
+            # Generate report number
+            today = timezone.now().date()
+            plant_code = hazard.plant.code if hazard.plant else 'UNKN'
+            count = Hazard.objects.filter(created_at__date=today).count()
+            hazard.report_number = f"HAZ-{plant_code}-{today:%Y%m%d}-{count:03d}"
+            hazard.save(update_fields=['report_number'])
+            print(f"  📋 Report: {hazard.report_number}")
+            
+            # Handle photos
+            photos_uploaded = 0
+            photo_count = int(request.POST.get(f'{prefix}photo_count', 1))
+            
+            for i in range(photo_count + 5):
+                photo_key = f'{prefix}photo_{i}'
+                if photo_key in request.FILES:
+                    try:
+                        photo = request.FILES[photo_key]
+                        compressed_photo = compress_image(photo)
+                        HazardPhoto.objects.create(
+                            hazard=hazard,
+                            photo=compressed_photo,
+                            photo_type='evidence',
+                            uploaded_by=user
+                        )
+                        photos_uploaded += 1
+                    except Exception as e:
+                        print(f"  Photo error: {e}")
+            
+            photos_uploaded_total += photos_uploaded
+            created_hazards.append(hazard)
+            
+            # Send notifications
+            try:
+                from apps.notifications.services import NotificationService
+                NotificationService.notify(
+                    content_object=hazard,
+                    notification_type='HAZARD_REPORTED',
+                    module='HAZARD'
+                )
+            except Exception as e:
+                print(f"  Notification error: {e}")
+        
+        print(f"\n✅ Total created: {len(created_hazards)}")
+        
+        # Success messages
+        if not created_hazards:
+            messages.error(request, 'No hazards were created. Please try again.')
+            return redirect('hazards:hazard_create')
+        
+        if len(created_hazards) == 1:
+            hazard = created_hazards[0]
+            messages.success(
+                request,
+                mark_safe(
+                    f'<strong>✅ Hazard Report Submitted!</strong><br>'
+                    f'Report No: {hazard.report_number}<br>'
+                    f'Severity: {hazard.get_severity_display()}<br>'
+                    f'Photos: {photos_uploaded_total}'
+                )
+            )
+        else:
+            report_numbers = ', '.join([h.report_number for h in created_hazards])
+            messages.success(
+                request,
+                mark_safe(
+                    f'<strong>✅ {len(created_hazards)} Hazards Submitted!</strong><br>'
+                    f'Reports: {report_numbers}<br>'
+                    f'Photos: {photos_uploaded_total}'
+                )
+            )
+        
         return redirect(self.success_url)
+
     
     
 class HazardDetailView(LoginRequiredMixin, DetailView):
@@ -339,70 +451,124 @@ class HazardUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse_lazy('hazards:hazard_detail', kwargs={'pk': self.object.pk})
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        # Get user's assigned locations for autofill logic
+        context['user_assigned_plants'] = user.assigned_plants.filter(is_active=True)
+        
+        # Get the current hazard
+        hazard = self.object
+        
+        # Get departments for behalf dropdown
+        context['departments'] = Department.objects.filter(is_active=True).order_by('name')
+        
+        # If user has only one assigned plant, show it as readonly
+        if context['user_assigned_plants'].count() == 1:
+            plant = context['user_assigned_plants'].first()
+            context['user_assigned_zones'] = user.assigned_zones.filter(is_active=True, plant=plant)
+            if context['user_assigned_zones'].count() == 1:
+                zone = context['user_assigned_zones'].first()
+                context['user_assigned_locations'] = user.assigned_locations.filter(is_active=True, zone=zone)
+                if context['user_assigned_locations'].count() == 1:
+                    location = context['user_assigned_locations'].first()
+                    context['user_assigned_sublocations'] = user.assigned_sublocations.filter(
+                        is_active=True, location=location
+                    )
+        
+        return context
+
     def form_valid(self, form):
         hazard = form.save(commit=False)
+        user = self.request.user
 
-        if not self.request.POST.get('behalf_checkbox'):
-            hazard.behalf_person_name = None
-            hazard.behalf_person_dept = None
+        print(f"\n{'='*80}")
+        print(f"🔄 UPDATING HAZARD: {hazard.report_number}")
+        print(f"{'='*80}\n")
 
-        hazard.hazard_title = f"{hazard.get_hazard_type_display()} - {hazard.get_hazard_category_display()}"
-
+        # Update reporter fields
+        hazard.reporter_name = user.get_full_name()
+        hazard.reporter_email = user.email
+        hazard.reporter_phone = getattr(user, 'phone', '')
+        
+        # Update title based on type and category
+        type_display = dict(Hazard.HAZARD_TYPE_CHOICES).get(hazard.hazard_type, hazard.hazard_type)
+        category_display = dict(Hazard.HAZARD_CATEGORIES).get(hazard.hazard_category, hazard.hazard_category)
+        hazard.hazard_title = f"{type_display} - {category_display}"
+        
+        # Update deadline based on severity
         severity_days = {'low': 30, 'medium': 15, 'high': 7, 'critical': 1}
-        base_date = hazard.reported_date.date()
+        base_date = hazard.incident_datetime.date() if hazard.incident_datetime else timezone.now().date()
         hazard.action_deadline = base_date + timezone.timedelta(
             days=severity_days.get(hazard.severity, 15)
         )
-
+        
+        # Handle behalf logic
+        behalf_checkbox = self.request.POST.get('behalf_checkbox')
+        if behalf_checkbox:
+            hazard.behalf_person_name = self.request.POST.get('behalf_person_name', '')
+            behalf_dept_id = self.request.POST.get('behalf_person_dept')
+            if behalf_dept_id:
+                hazard.behalf_person_dept_id = behalf_dept_id
+        else:
+            hazard.behalf_person_name = None
+            hazard.behalf_person_dept = None
+        
+        # Save the hazard
         hazard.save()
-        self.object = hazard
-
-        # Photo deletion
+        print(f"✅ Hazard updated: {hazard.report_number}")
+        
+        # Handle photo deletion
         for key in self.request.POST:
             if key.startswith('keep_photo_') and self.request.POST[key] == '0':
                 photo_id = key.split('_')[-1]
                 HazardPhoto.objects.filter(id=photo_id, hazard=hazard).delete()
+                print(f"🗑️ Deleted photo: {photo_id}")
 
-        # New photos
-        photo_count = int(self.request.POST.get('photo_count', 1))
-        for i in range(photo_count + 5):
-            photo = self.request.FILES.get(f'photo_{i}')
-            if photo:
-                compressed_photo = compress_image(photo)
-                HazardPhoto.objects.create(
-                    hazard=hazard,
-                    photo=compressed_photo,
-                    photo_type='evidence',
-                    uploaded_by=self.request.user
-                )
-
-        messages.success(self.request, f"Hazard Report {hazard.report_number} updated successfully!")
+        # Handle new photo uploads
+        photo_index = 0
+        while True:
+            photo_key = f'photo_{photo_index}'
+            if photo_key in self.request.FILES:
+                try:
+                    photo = self.request.FILES[photo_key]
+                    compressed_photo = compress_image(photo)
+                    HazardPhoto.objects.create(
+                        hazard=hazard,
+                        photo=compressed_photo,
+                        photo_type='evidence',
+                        uploaded_by=user
+                    )
+                    print(f"📸 Added new photo: {photo_key}")
+                except Exception as e:
+                    print(f"❌ Error uploading photo {photo_key}: {e}")
+                photo_index += 1
+            else:
+                break
+        
+        # Success message
+        messages.success(
+            self.request,
+            mark_safe(
+                f'<strong>✅ Hazard Report Updated!</strong><br>'
+                f'Report No: {hazard.report_number}<br>'
+                f'Severity: {hazard.get_severity_display()}'
+            )
+        )
+        
+        print(f"\n✅ Update complete for {hazard.report_number}")
+        print("="*80 + "\n")
+        
         return redirect(self.get_success_url())
 
+    def form_invalid(self, form):
+        """Handle form validation errors"""
+        for field, errors in form.errors.items():
+            print(f"  {field}: {errors}")
+        return super().form_invalid(form)
 
-def get_zones_by_plant(request, plant_id):
-    """Fetch zones for a given plant ID. Returns a JSON response."""
-    try:
-        zones = Zone.objects.filter(plant_id=plant_id, is_active=True).values('id', 'name', 'code')
-        return JsonResponse(list(zones), safe=False)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
 
-def get_locations_by_zone(request, zone_id):
-    """Fetch locations for a given zone ID. Returns a JSON response."""
-    try:
-        locations = Location.objects.filter(zone_id=zone_id, is_active=True).values('id', 'name', 'code')
-        return JsonResponse(list(locations), safe=False)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-def get_sublocations_by_location(request, location_id):
-    """Fetch sub-locations for a given location ID. Returns a JSON response."""
-    try:
-        sublocations = SubLocation.objects.filter(location_id=location_id, is_active=True).values('id', 'name', 'code')
-        return JsonResponse(list(sublocations), safe=False)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
                  
 class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
     """
@@ -412,47 +578,80 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
     """
     model = HazardActionItem
     template_name = 'hazards/action_item_create.html'
-    fields = []  # We are handling fields manually in the post method.
-
-    @staticmethod
-    def get_action_item_status(target_date):
-        today = timezone.now().date()
-        return 'PENDING' if target_date > today else 'COMPLETED' 
+    fields = []
 
     def dispatch(self, request, *args, **kwargs):
-        """
-        Ensure the hazard exists before proceeding.
-        """
+        """Ensure the hazard exists before proceeding."""
         self.hazard = get_object_or_404(Hazard, pk=self.kwargs['hazard_pk'])
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        """
-        Add the hazard object to the template context.
-        """
         context = super().get_context_data(**kwargs)
         context['hazard'] = self.hazard
-        if self.hazard.action_deadline:
-            context['action_deadline_date'] = self.hazard.action_deadline.strftime('%Y-%m-%d')
+        
+        # Calculate auto target date based on severity
+        if hasattr(self.hazard, 'get_severity_deadline_days'):
+            severity_days = self.hazard.get_severity_deadline_days()
+        else:
+            severity_map = {'low': 30, 'medium': 15, 'high': 7, 'critical': 1}
+            severity_days = severity_map.get(self.hazard.severity, 15)
+        
+        auto_target_date = (timezone.now().date() + timezone.timedelta(days=severity_days))
+        context['auto_target_date'] = auto_target_date.strftime('%Y-%m-%d')
+        context['severity_days'] = severity_days
+        
+        # Get plant users
+        user = self.request.user
+        
+        if self.hazard.plant:
+            from django.db.models import Q
+            
+            # Get users from the same plant
+            plant_users = User.objects.filter(
+                Q(plant=self.hazard.plant) | Q(assigned_plants=self.hazard.plant),
+                is_active=True,
+                is_active_employee=True
+            ).exclude(
+                id=user.id  # Exclude current user
+            ).distinct().select_related(
+                'department', 'role'
+            ).order_by('first_name', 'last_name')
+            
+            context['plant_users'] = plant_users
+            context['plant_name'] = self.hazard.plant.name
+            
+            # Debug print
+            print(f"\n🔍 Plant Users Found: {plant_users.count()}")
+            for u in plant_users:
+                print(f"  - {u.get_full_name()} ({u.email}) - Plant: {u.plant}")
+        else:
+            context['plant_users'] = []
+            context['plant_name'] = 'Unknown Plant'
+        
         return context
 
     def post(self, request, *args, **kwargs):
-        """
-        Handle the POST request to create a new action item.
-        """
+        """Handle the POST request to create a new action item."""
+        
+        print("\n" + "="*80)
+        print("🎯 ACTION ITEM CREATION")
+        print("="*80)
+        
         assignment_type = request.POST.get('assignment_type')
-        is_self_assigned = assignment_type == 'self'
-
+        print(f"Assignment Type: {assignment_type}")
+        
         try:
             # Check for attachment
             if 'attachment' not in request.FILES:
                 messages.error(request, 'An attachment is required to create an action item.')
                 return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
 
+            # Create action item
             action_item = HazardActionItem()
             action_item.hazard = self.hazard
             action_item.action_description = request.POST.get('action_description', '').strip()
-            assignment_type = request.POST.get('assignment_type', 'self')
+            action_item.created_by = request.user  # Track who created it
+            action_item.is_self_assigned = (assignment_type == 'self')
 
             # Handle target date
             target_date_str = request.POST.get('target_date')
@@ -463,30 +662,57 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             target_date = datetime.datetime.strptime(target_date_str, '%Y-%m-%d').date()
             action_item.target_date = target_date
 
+            # Handle assignment
             if assignment_type == 'self':
+                # ✅ SELF ASSIGNMENT - Complete immediately and close hazard
                 action_item.responsible_emails = request.user.email
-            else:
-                action_item.responsible_emails = request.POST.get('responsible_emails', '').strip()
-
-            action_item.status = self.get_action_item_status(target_date)
-
-            if action_item.status == 'COMPLETED':
+                action_item.status = 'COMPLETED'
                 action_item.completion_date = timezone.now().date()
+                action_item.completion_remarks = 'Self-assigned and completed by reporter'
+                
+                print(f"✅ Self-assigned to: {request.user.email}")
+                print(f"✅ Status: COMPLETED")
+                
+            else:
+                # ✅ FORWARD ASSIGNMENT - Set to pending
+                responsible_emails = request.POST.getlist('responsible_emails')
+                
+                print(f"📧 Responsible emails from POST: {responsible_emails}")
+                
+                if not responsible_emails:
+                    messages.error(request, 'Please select at least one user to assign this action to.')
+                    return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
+                
+                action_item.responsible_emails = ','.join(responsible_emails)
+                action_item.status = 'PENDING'
+                action_item.completion_date = None
+                action_item.completion_remarks = ''
+                
+                print(f"📤 Forwarded to: {action_item.responsible_emails}")
+                print(f"⏳ Status: PENDING")
 
             # Handle file attachment
             action_item.attachment = request.FILES['attachment']
+            
+            # Save action item
             action_item.save()
+            print(f"💾 Action item saved with ID: {action_item.id}")
             
             self.object = action_item
             
-            # ✅ NEW: Update hazard status when action item is added
-            # If hazard is still in REPORTED status, move it to PENDING_APPROVAL
-            if self.hazard.status == 'REPORTED':
-                self.hazard.status = 'PENDING_APPROVAL'
+            # ✅ UPDATE HAZARD STATUS
+            if assignment_type == 'self':
+                # Self-assigned and completed - CLOSE the hazard
+                self.hazard.status = 'CLOSED'
                 self.hazard.save(update_fields=['status'])
+                print(f"🔒 Hazard status updated to: CLOSED")
+            else:
+                # Forwarded to others - Set to ACTION_ASSIGNED
+                self.hazard.status = 'ACTION_ASSIGNED'
+                self.hazard.save(update_fields=['status'])
+                print(f"📋 Hazard status updated to: ACTION_ASSIGNED")
             
-            # Notification code...
-           
+            # Send notifications
             try:
                 from apps.notifications.services import NotificationService
                 NotificationService.notify(
@@ -494,38 +720,40 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
                     notification_type='HAZARD_ACTION_ASSIGNED',  
                     module='HAZARD_ACTION'
                 )
-                print("\nVIEW: ✅ Action item notifications sent successfully")
+                print("🔔 Notifications sent")
             except Exception as e:
-                print(f"\nVIEW: ❌ ERROR in action item notification system: {e}")
-                import traceback
-                traceback.print_exc()
+                print(f"⚠️ Notification error: {e}")
 
             # Success message
-            email_count = action_item.get_emails_count()
-            if is_self_assigned:
+            email_count = len(action_item.responsible_emails.split(','))
+            
+            if assignment_type == 'self':
                 message = mark_safe(
-                    f'✅ <strong>Action item created successfully!</strong><br>'
+                    f'✅ <strong>Action item created and completed!</strong><br>'
                     f'Assigned to: <strong>You ({request.user.email})</strong><br>'
-                    f'Hazard status updated to: <strong>Pending Approval</strong>'
+                    f'Hazard status: <strong>CLOSED</strong>'
                 )
             else:
                 message = mark_safe(
                     f'✅ <strong>Action item created successfully!</strong><br>'
-                    f'Assigned to <strong>{email_count}</strong> email(s) with Pending status.<br>'
-                    f'Hazard status updated to: <strong>Pending Approval</strong>'
+                    f'Assigned to <strong>{email_count}</strong> user(s)<br>'
+                    f'Status: <strong>PENDING</strong><br>'
+                    f'Hazard status: <strong>ACTION_ASSIGNED</strong>'
                 )
             
             messages.success(request, message)
+            print("="*80 + "\n")
             return redirect('hazards:hazard_detail', pk=self.hazard.pk)
 
         except Exception as e:
-            print(f"Error creating action item: {e}")
+            print(f"❌ Error creating action item: {e}")
+            import traceback
+            traceback.print_exc()
             messages.error(request, f'Error creating action item: {str(e)}')
             return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
+    
     def get_success_url(self):
-        """
-        Redirect to the hazard detail page on successful creation.
-        """
+        """Redirect to the hazard detail page on successful creation."""
         return reverse_lazy('hazards:hazard_detail', kwargs={'pk': self.hazard.pk})
      
 
@@ -618,26 +846,6 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
             messages.error(request, f'Error updating action-item: {str(e)}')
             return redirect('hazards:action_item_update', pk=self.object.pk)
 
-# AJAX Views for cascading dropdowns
-class GetZonesForPlantAjaxView(LoginRequiredMixin, TemplateView):
-    """AJAX view to get zones for selected plant""" 
-    
-    def get(self, request, *args, **kwargs):
-        plant_id = request.GET.get('plant_id')
-        zones = Zone.objects.filter(plant_id=plant_id, is_active=True).values('id', 'name', 'code')
-        return JsonResponse(list(zones), safe=False)
-
-
-class GetLocationsForZoneAjaxView(LoginRequiredMixin, TemplateView):
-    """AJAX view to get locations for selected zone"""
-    
-    def get(self, request, *args, **kwargs):
-        zone_id = request.GET.get('zone_id')
-        locations = Location.objects.filter(zone_id=zone_id, is_active=True).values('id', 'name', 'code')
-        return JsonResponse(list(locations), safe=False)
-    
-    
-    
 
 
 class HazardDashboardViews(LoginRequiredMixin, TemplateView):
@@ -840,7 +1048,6 @@ class GetSubLocationsForLocationAjaxView(LoginRequiredMixin, TemplateView):
         sublocations = SubLocation.objects.filter(location_id=location_id, is_active=True).values('id', 'name')
         return JsonResponse(list(sublocations), safe=False)
 
-# NOTE: Your other views like HazardListView, HazardCreateView, etc. can remain as they are.
 
 class GetSubLocationsForLocationAjaxView(LoginRequiredMixin, TemplateView):
     """
@@ -1102,3 +1309,55 @@ class HazardApprovalView(LoginRequiredMixin, DetailView):
             messages.warning(request, f"Hazard {hazard.report_number} has been rejected.")
 
         return redirect('hazards:hazard_detail', pk=hazard.pk)
+    
+
+# Add these RIGHT AFTER your imports, BEFORE the class-based views
+
+from django.views.decorators.http import require_GET
+
+@require_GET
+def get_zones_by_plant(request, plant_id):
+    """
+    Function-based view for cascading dropdown
+    URL: /hazards/api/get-zones/<plant_id>/
+    """
+    try:
+        zones = Zone.objects.filter(
+            plant_id=plant_id, 
+            is_active=True
+        ).values('id', 'name', 'code').order_by('name')
+        return JsonResponse(list(zones), safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_GET
+def get_locations_by_zone(request, zone_id):
+    """
+    Function-based view for cascading dropdown
+    URL: /hazards/api/get-locations/<zone_id>/
+    """
+    try:
+        locations = Location.objects.filter(
+            zone_id=zone_id, 
+            is_active=True
+        ).values('id', 'name', 'code').order_by('name')
+        return JsonResponse(list(locations), safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_GET
+def get_sublocations_by_location(request, location_id):
+    """
+    Function-based view for cascading dropdown
+    URL: /hazards/api/get-sublocations/<location_id>/
+    """
+    try:
+        sublocations = SubLocation.objects.filter(
+            location_id=location_id,
+            is_active=True
+        ).values('id', 'name', 'code').order_by('name')
+        return JsonResponse(list(sublocations), safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)    

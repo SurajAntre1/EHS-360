@@ -1,516 +1,551 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Create Action Item - {{ hazard.report_number }}{% endblock %}
-{% block page_title %}Create Action Item{% endblock %}
-
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'hazards:dashboard' %}">Hazard Management</a></li>
-<li class="breadcrumb-item"><a href="{% url 'hazards:hazard_list' %}">All Hazards</a></li>
-<li class="breadcrumb-item"><a href="{% url 'hazards:hazard_detail' hazard.pk %}">{{ hazard.report_number }}</a></li>
-<li class="breadcrumb-item active">Create Action Item</li>
-{% endblock %}
+{% block title %}Create Action Item{% endblock %}
 
 {% block extra_css %}
 <style>
-    .breadcrumb{
-        justify-content:flex-end;
-        margin-bottom:0;
-    }
-    /* Email input styling */
-    .email-tags-input {
-        min-height: 60px;
-        padding: 8px;
-        border: 2px solid #ced4da;
-        border-radius: 0.25rem;
-        cursor: text;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        align-items: center;
+    .info-box {
+        background: #e7f3ff;
+        border-left: 4px solid #2196F3;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
     }
     
-    .email-tags-input:focus-within {
-        border-color: #007bff;
-        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    .deadline-info {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
     }
     
-    .email-tag {
-        background-color: #007bff;
-        color: white;
-        padding: 5px 10px;
+    .severity-badge {
+        padding: 8px 15px;
         border-radius: 20px;
-        display: inline-flex;
-        align-items: center;
-        font-size: 14px;
+        font-weight: 600;
+        font-size: 0.9rem;
     }
     
-    .email-tag .remove-tag {
-        margin-left: 8px;
+    .severity-critical { background: #dc3545; color: white; }
+    .severity-high { background: #fd7e14; color: white; }
+    .severity-medium { background: #ffc107; color: #000; }
+    .severity-low { background: #28a745; color: white; }
+    
+    .assignment-option {
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
         cursor: pointer;
-        font-weight: bold;
-        color: white;
+        transition: all 0.3s;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
     }
     
-    .email-tag .remove-tag:hover {
-        color: #ffcccc;
-    }
-    
-    .email-input-field {
-        border: none;
-        outline: none;
-        flex: 1;
-        min-width: 200px;
-        padding: 5px;
-        font-size: 14px;
-    }
-    
-    .email-count {
-        color: #6c757d;
-        font-size: 12px;
-        margin-top: 5px;
-    }
-    
-    /* File upload styling */
-    .file-upload-wrapper {
-        position: relative;
-        overflow: hidden;
-        display: inline-block;
-        width: 100%;
-    }
-    
-    .file-upload-input {
-        position: absolute;
-        left: -9999px;
-    }
-    
-    .file-upload-label {
-        display: block;
-        padding: 10px 15px;
+    .assignment-option:hover {
+        border-color: #007bff;
         background-color: #f8f9fa;
-        border: 2px dashed #ced4da;
-        border-radius: 0.25rem;
-        cursor: pointer; 
-        text-align: center;
+    }
+    
+    .assignment-option.active {
+        border-color: #007bff;
+        background-color: #e7f3ff;
+    }
+    
+    .option-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 1.2rem;
+    }
+    
+    .self-icon {
+        background-color: #d4edda;
+        color: #28a745;
+    }
+    
+    .forward-icon {
+        background-color: #d1ecf1;
+        color: #17a2b8;
+    }
+    
+    .user-card {
+        border: 2px solid #dee2e6;
+        cursor: pointer;
         transition: all 0.3s;
     }
     
-    .file-upload-label:hover {
-        background-color: #e9ecef;
+    .user-card:hover {
         border-color: #007bff;
+        box-shadow: 0 2px 8px rgba(0,123,255,0.2);
     }
     
-    .file-upload-label.has-file {
-        background-color: #d4edda;
+    .user-card.selected {
         border-color: #28a745;
-        border-style: solid;
+        background-color: #d4edda;
     }
     
-    .close-hazard-box {
+    .user-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    
+    .attachment-optional {
+        background-color: #f8f9fa;
+        border-left: 4px solid #6c757d;
+        padding: 10px 15px;
+        border-radius: 4px;
+        margin-top: 5px;
+    }
+    
+    .attachment-required {
         background-color: #fff3cd;
-        border: 2px solid #ffc107;
-        border-radius: 0.25rem;
-        padding: 15px;
-        margin-top: 15px;
+        border-left: 4px solid #ffc107;
+        padding: 10px 15px;
+        border-radius: 4px;
+        margin-top: 5px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-        <div class="col-12 d-flex justify-content-end">
-            <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-secondary" id="backBtn">
-                <i class="fas fa-arrow-left"></i> Back to Hazard
-            </a>
-            </div>
-        </div>
-        </div>
-    </div>
-</section>
-
-<section class="content">
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
-                {{ message|safe }}
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-        {% endfor %}
-    {% endif %}
-
+<div class="container-fluid py-4">
     <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <!-- Hazard Info Card -->
-            <div class="card bg-light mb-3">
-                <div class="card-body">
-                    <h5 class="mb-2">
-                        <i class="fas fa-exclamation-triangle text-warning"></i> 
-                        {{ hazard.report_number }}
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 class="mb-1">
+                        <i class="fas fa-tasks text-primary"></i> 
+                        Create Action Item
+                    </h3>
+                    <p class="text-muted mb-0">Assign action for Hazard {{ hazard.report_number }}</p>
+                </div>
+                <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Hazard
+                </a>
+            </div>
+
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message|safe }}
+                        <button type="button" class="close" data-dismiss="alert">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Hazard Summary Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                        Hazard Summary
                     </h5>
-                    <p class="mb-1"><strong>Title:</strong> {{ hazard.hazard_title }}</p>
-                    <p class="mb-0">
-                        <span class="badge {{ hazard.severity_badge_class }}">{{ hazard.get_severity_display }}</span>
-                        <span class="badge {{ hazard.status_badge_class }} ml-2">{{ hazard.get_status_display }}</span>
-                    </p>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>Report Number:</strong> 
+                                <span class="badge badge-info">{{ hazard.report_number }}</span>
+                            </p>
+                            <p class="mb-2">
+                                <strong>Type:</strong> {{ hazard.get_hazard_type_display }}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Category:</strong> {{ hazard.get_hazard_category_display }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>Severity:</strong>
+                                <span class="severity-badge severity-{{ hazard.severity }}">
+                                    {{ hazard.get_severity_display }}
+                                </span>
+                            </p>
+                            <p class="mb-2">
+                                <strong>Reported:</strong> {{ hazard.incident_datetime|date:"d M Y, H:i" }}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Location:</strong> {{ hazard.plant.name }} - {{ hazard.location.name }}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Deadline Info Box -->
+                    <div class="info-box deadline-info mt-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-calendar-times fa-2x text-warning mr-3"></i>
+                            <div>
+                                <strong class="d-block">Hazard Action Deadline</strong>
+                                <span class="text-danger" style="font-size: 1.1rem; font-weight: 600;">
+                                    {{ hazard.action_deadline|date:"d F Y" }}
+                                </span>
+                                <small class="d-block text-muted mt-1">
+                                    ({{ severity_days }} days from hazard report date based on 
+                                    <strong>{{ hazard.get_severity_display }}</strong> severity)
+                                </small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Action Item Form Card -->
-            <div class="card">
-                <div class="card-header bg-primary">
-                    <h3 class="card-title text-white">
-                        <i class="fas fa-plus-circle"></i> New Action Item
-                    </h3>
+            <!-- Action Item Form -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-check"></i>
+                        Action Item Details
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="" id="actionItemForm" enctype="multipart/form-data">
+                    <form method="post" enctype="multipart/form-data" id="actionItemForm">
                         {% csrf_token %}
 
                         <!-- Action Description -->
                         <div class="form-group">
-                            <label for="id_action_description">
-                                <i class="fas fa-align-left"></i> Action Taken *
+                            <label class="font-weight-bold">
+                                <i class="fas fa-align-left"></i> Action Description
+                                <span class="text-danger">*</span>
                             </label>
-                            <textarea name="action_description" id="id_action_description" 
-                                      class="form-control" 
-                                      rows="4" 
-                                      placeholder="Describe the action to be taken to address this hazard..." 
-                                      required></textarea>
+                            <textarea name="action_description" class="form-control" rows="4" required 
+                                      placeholder="Describe the corrective/preventive action to be taken..."></textarea>
                             <small class="form-text text-muted">
-                                Provide a detailed description of the corrective action required
+                                Be specific about what needs to be done to address this hazard
                             </small>
                         </div>
 
-                        <!-- Assignment Type Selection -->
+                        <!-- Assignment Type Selection - SIMPLIFIED -->
                         <div class="form-group">
-                            <label>
-                                <i class="fas fa-user-check"></i> Assignment Type *
+                            <label class="font-weight-bold">
+                                <i class="fas fa-user-check"></i> Assignment Type
+                                <span class="text-danger">*</span>
                             </label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="assignment_type" 
-                                       id="assignSelf" value="self" checked>
-                                <label class="form-check-label" for="assignSelf">
-                                    <strong>Assign to Myself</strong> - I have complete this action
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="assignment_type" 
-                                       id="assignOthers" value="others">
-                                <label class="form-check-label" for="assignOthers">
-                                    <strong>Assign to Others</strong> - Delegate to other people
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Responsible Emails (Hidden by default) -->
-                        <div class="form-group" id="emailAssignmentSection" style="display: none;">
-                            <label>
-                                <i class="fas fa-envelope"></i> Assign To (Email Addresses) *
-                            </label>
-                            <div class="email-input-container">
-                                <div class="email-tags-input" id="emailTagsContainer">
-                                    <input type="text" 
-                                           class="email-input-field" 
-                                           id="emailInput" 
-                                           placeholder="Type email and press Enter or comma..."
-                                           autocomplete="off">
+                            
+                            <!-- Self Assignment Option -->
+                            <div class="assignment-option active" id="self-assignment-option">
+                                <input type="radio" name="assignment_type" value="self" id="self_assign" checked hidden>
+                                <div class="option-icon self-icon">
+                                    <i class="fas fa-user-check"></i>
+                                </div>
+                                <div>
+                                    <label for="self_assign" class="mb-0 font-weight-bold" style="cursor: pointer;">
+                                        Assign to Self & Close
+                                    </label>
+                                    <p class="text-muted mb-0 small">
+                                        I will complete this action immediately. <strong class="text-success">Hazard will be CLOSED</strong>
+                                    </p>
                                 </div>
                             </div>
-                            <div class="email-count" id="emailCount">0 email(s) added</div>
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle"></i> 
-                                Type email addresses and press <strong>Enter</strong> or <strong>comma (,)</strong> to add.
-                            </small>
-                            <input type="hidden" name="responsible_emails" id="responsibleEmails">
+                            
+                            <!-- Forward to Others Option -->
+                            <div class="assignment-option" id="forward-assignment-option">
+                                <input type="radio" name="assignment_type" value="forward" id="forward_assign" hidden>
+                                <div class="option-icon forward-icon">
+                                    <i class="fas fa-share-square"></i>
+                                </div>
+                                <div>
+                                    <label for="forward_assign" class="mb-0 font-weight-bold" style="cursor: pointer;">
+                                        Forward to Others
+                                    </label>
+                                    <p class="text-muted mb-0 small">
+                                        Assign to other users for action. <strong class="text-primary">Status will be PENDING</strong>
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- File Attachment -->
-                        <div class="form-group">
-                            <!-- *** MODIFIED: Changed label to indicate requirement *** -->
-                            <label for="attachmentInput">
-                                <i class="fas fa-paperclip"></i> Attachment *
-                            </label>
-                            <div class="file-upload-wrapper">
-                                <!-- *** MODIFIED: Added 'required' attribute *** -->
-                                <input type="file" 
-                                    name="attachment" 
-                                    id="attachmentInput" 
-                                    class="file-upload-input"
-                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
-                                    required>
-                                <label for="attachmentInput" class="file-upload-label" id="attachmentLabel">
-                                    <i class="fas fa-cloud-upload-alt"></i> 
-                                    <span id="attachmentText">Click to upload file or drag and drop</span>
-                                    <br>
-                                    <small class="text-muted">PDF, DOC, Excel, Images (Max 10MB)</small>
+                        <!-- User Selection (Hidden by default) -->
+                        <div id="user-selection-section" style="display: none;">
+                            <div class="form-group">
+                                <label class="font-weight-bold">
+                                    <i class="fas fa-users"></i> Select Users
+                                    <span class="text-danger">*</span>
                                 </label>
-                            </div>
-                            <div id="attachmentInfo" style="display: none; margin-top: 10px;">
-                                <span class="badge badge-success">
-                                    <i class="fas fa-file"></i> <span id="fileName"></span>
-                                </span>
-                                <button type="button" class="btn btn-sm btn-danger ml-2" id="removeAttachment">
-                                    <i class="fas fa-times"></i> Remove
-                                </button>
+                                <p class="text-muted small">
+                                    Select one or more users from <strong>{{ plant_name }}</strong> to assign this action
+                                </p>
+                                
+                                {% if plant_users %}
+                                    <div class="mb-3">
+                                        <span class="badge badge-info" id="selected-count">0 selected</span>
+                                        <button type="button" class="btn btn-sm btn-outline-primary ml-2" id="select-all-btn">
+                                            <i class="fas fa-check-square"></i> Select All
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary ml-1" id="deselect-all-btn">
+                                            <i class="fas fa-square"></i> Deselect All
+                                        </button>
+                                    </div>
+
+                                    <div class="row" id="user-cards-container">
+                                        {% for user in plant_users %}
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card user-card h-100" data-user-email="{{ user.email }}">
+                                                <div class="card-body p-3">
+                                                    <div class="custom-control custom-checkbox">
+                                                        <input type="checkbox" name="responsible_emails" value="{{ user.email }}" 
+                                                               class="custom-control-input user-checkbox" id="user_{{ user.id }}">
+                                                        <label class="custom-control-label w-100" for="user_{{ user.id }}" style="cursor: pointer;">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="user-avatar mr-3">
+                                                                    {{ user.first_name.0 }}{{ user.last_name.0 }}
+                                                                </div>
+                                                                <div class="flex-grow-1">
+                                                                    <strong class="d-block">{{ user.get_full_name }}</strong>
+                                                                    <small class="text-muted d-block">{{ user.email }}</small>
+                                                                    <small class="text-muted d-block">
+                                                                        {% if user.job_title %}{{ user.job_title }}{% endif %}
+                                                                        {% if user.department %} | {{ user.department.name }}{% endif %}
+                                                                    </small>
+                                                                </div>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <strong>No users available in {{ plant_name }}</strong>
+                                        <p class="mb-0 mt-2">There are no other active users assigned to this plant. You can only self-assign this action.</p>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
 
                         <!-- Target Date -->
                         <div class="form-group">
-                            <label for="id_target_date">
-                                <i class="fas fa-calendar-alt"></i> Target Date *
+                            <label class="font-weight-bold">
+                                <i class="fas fa-calendar-alt"></i> Target Completion Date
+                                <span class="text-danger">*</span>
                             </label>
-                            <input type="date" 
-                                name="target_date" 
-                                id="id_target_date" 
-                                class="form-control" 
-                                value="{{ action_deadline_date|default:'' }}" 
-                                required>
+                            <input type="date" name="target_date" id="target_date" 
+                                class="form-control" value="{{ auto_target_date }}" readonly>
                             <small class="form-text text-muted">
-                                Expected completion date (Hazard deadline: {{ hazard.action_deadline|date:"d M Y" }})
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Automatically calculated:</strong> {{ hazard.action_deadline|date:"d F Y" }}
+                                ({{ severity_days }} days based on <strong>{{ hazard.get_severity_display }}</strong> severity)
                             </small>
                         </div>
 
-                        <!-- Status Info -->
-                        <div class="form-group">
-                            <label>
-                                 <i class="fas fa-flag"></i> Initial Status
+                        <!-- Attachment -->
+                        <div class="form-group" id="attachment-section">
+                            <label class="font-weight-bold">
+                                <i class="fas fa-paperclip"></i> Attachment
+                                <span class="text-danger" id="attachment-required-star">*</span>
                             </label>
-                            <input type="text" id="initialStatus" class="form-control" value="Pending" readonly style="background-color: #e9ecef;">
+                            <input type="file" name="attachment" class="form-control-file" id="attachment-input">
+                            <div id="attachment-help-text">
+                                <!-- Dynamic help text will be inserted here -->
+                            </div>
                         </div>
 
-
                         <!-- Submit Buttons -->
-                        <hr class="my-4">
-                        <div class="form-group text-center">
+                        <div class="form-group mt-4">
                             <button type="submit" class="btn btn-primary btn-lg px-5">
-                                <i class="fas fa-save"></i> Create Action Item
+                                <i class="fas fa-check"></i> Create Action Item
                             </button>
-                            <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-secondary btn-lg px-5 ml-2">
+                            <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-outline-secondary btn-lg ml-2">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                         </div>
                     </form>
                 </div>
             </div>
-
-            <!-- Help Card -->
-            <div class="card bg-light">
-                <div class="card-body">
-                    <h5 class="text-primary">
-                        <i class="fas fa-info-circle"></i> Quick Guide
-                    </h5>
-                    <ul class="mb-0">
-                        <li><strong>Assign to Myself:</strong> You'll complete this action. Option to auto-close hazard.</li>
-                        <li><strong>Assign to Others:</strong> Delegate to team members via email.</li>
-                        <li><strong>Attachment:</strong> Upload supporting documents, images, or files.</li>
-                        <li><strong>Auto-close:</strong> Check the box to automatically close hazard when action completes.</li>
-                    </ul>
-                </div>
-            </div>
         </div>
     </div>
-</section>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const assignSelf = document.getElementById('assignSelf');
-    const assignOthers = document.getElementById('assignOthers');
-    const emailAssignmentSection = document.getElementById('emailAssignmentSection');
-    const closeHazardBox = document.getElementById('closeHazardBox');
-    const emailInput = document.getElementById('emailInput');
-    const emailTagsContainer = document.getElementById('emailTagsContainer');
-    const responsibleEmails = document.getElementById('responsibleEmails');
-    const emailCount = document.getElementById('emailCount');
-    const targetDateInput = document.getElementById('id_target_date');
-    const initialStatusInput = document.getElementById('initialStatus');
-    const statusHelpText = document.getElementById('statusHelpText');
+$(document).ready(function() {
+    console.log('🎯 Action Item Form Initialized');
+    
+    // Initialize attachment requirement for self-assignment (default)
+    updateAttachmentRequirement('self');
+    
+    // Assignment type toggle
+    $('input[name="assignment_type"]').change(function() {
+        const assignmentType = $(this).val();
+        console.log('📝 Assignment type changed to:', assignmentType);
+        
+        // Update option styling
+        $('.assignment-option').removeClass('active');
+        $(this).closest('.assignment-option').addClass('active');
+        
+        if (assignmentType === 'forward') {
+            $('#user-selection-section').slideDown();
+            $('.user-checkbox').attr('required', true);
+            updateAttachmentRequirement('forward');
+            console.log('👥 User selection section shown');
+        } else {
+            $('#user-selection-section').slideUp();
+            $('.user-checkbox').attr('required', false);
+            $('.user-checkbox').prop('checked', false);
+            updateCardAppearance();
+            updateSelectedCount();
+            updateAttachmentRequirement('self');
+            console.log('✅ Self-assignment selected');
+        }
+    });
 
-    
-    // File attachment elements
-    const attachmentInput = document.getElementById('attachmentInput');
-    const attachmentLabel = document.getElementById('attachmentLabel');
-    const attachmentText = document.getElementById('attachmentText');
-    const attachmentInfo = document.getElementById('attachmentInfo');
-    const fileName = document.getElementById('fileName');
-    const removeAttachment = document.getElementById('removeAttachment');
-    
-    let emails = [];
-    
-    // Set minimum date to today
-    const today = new Date().toISOString().split('T')[0];
-    targetDateInput.setAttribute('min', today);
-    
-    function updateInitialStatusByDate() {
-    if (!targetDateInput.value) return;
+    // Assignment option click
+    $('.assignment-option').click(function() {
+        $(this).find('input[type="radio"]').prop('checked', true).trigger('change');
+    });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selectedDate = new Date(targetDateInput.value);
-    selectedDate.setHours(0, 0, 0, 0);
+    // User card click
+    $('.user-card').click(function(e) {
+        if (!$(e.target).is('input')) {
+            const checkbox = $(this).find('.user-checkbox');
+            checkbox.prop('checked', !checkbox.prop('checked'));
+            updateCardAppearance();
+            updateSelectedCount();
+        }
+    });
 
-    if (selectedDate > today) {
-        initialStatusInput.value = 'Pending';
-        initialStatusValue.value = 'pending';
-    } else {
-        initialStatusInput.value = 'Completed';
-        initialStatusValue.value = 'completed';
+    // Checkbox change
+    $('.user-checkbox').change(function() {
+        updateCardAppearance();
+        updateSelectedCount();
+    });
+
+    // Select/Deselect All
+    $('#select-all-btn').click(function() {
+        $('.user-checkbox').prop('checked', true);
+        updateCardAppearance();
+        updateSelectedCount();
+        console.log('✅ All users selected');
+    });
+
+    $('#deselect-all-btn').click(function() {
+        $('.user-checkbox').prop('checked', false);
+        updateCardAppearance();
+        updateSelectedCount();
+        console.log('❌ All users deselected');
+    });
+
+    function updateCardAppearance() {
+        $('.user-card').each(function() {
+            const checkbox = $(this).find('.user-checkbox');
+            if (checkbox.prop('checked')) {
+                $(this).addClass('selected');
+            } else {
+                $(this).removeClass('selected');
+            }
+        });
     }
-}
 
-    // Toggle assignment type
-    function toggleAssignmentType() {
-    if (assignSelf.checked) {
-        emailAssignmentSection.style.display = 'none';
-        emails = [];
-        updateUI();
-    } else {
-        emailAssignmentSection.style.display = 'block';
+    function updateSelectedCount() {
+        const count = $('.user-checkbox:checked').length;
+        $('#selected-count').text(count + ' selected');
+        console.log('📊 Selected count:', count);
     }
-    updateInitialStatusByDate();
-}
 
-    targetDateInput.addEventListener('change', updateInitialStatusByDate);
-    assignSelf.addEventListener('change', toggleAssignmentType);
-    assignOthers.addEventListener('change', toggleAssignmentType);
-    
-    // File attachment handling
-    attachmentInput.addEventListener('change', function() {
-        if (this.files && this.files[0]) {
-            const file = this.files[0];
-            const fileSize = file.size / 1024 / 1024; // Convert to MB
+    // Function to update attachment requirement based on assignment type
+    function updateAttachmentRequirement(assignmentType) {
+        const attachmentInput = $('#attachment-input');
+        const attachmentStar = $('#attachment-required-star');
+        const attachmentHelp = $('#attachment-help-text');
+        
+        if (assignmentType === 'self') {
+            // Self assignment: attachment REQUIRED
+            attachmentInput.attr('required', true);
+            attachmentStar.show();
             
-            if (fileSize > 10) {
-                alert('⚠️ File size exceeds 10MB limit!');
-                this.value = '';
-                return;
+            // Update help text
+            attachmentHelp.html(`
+                <div class="attachment-required mt-2">
+                    <i class="fas fa-exclamation-circle text-warning"></i>
+                    <strong>Attachment is REQUIRED</strong> for self-assignment since the hazard will be closed immediately.
+                    <small class="d-block mt-1">Upload evidence that the action has been completed (photo, document, etc.)</small>
+                </div>
+            `);
+            
+            console.log('📎 Attachment requirement: REQUIRED for self-assignment');
+            
+        } else if (assignmentType === 'forward') {
+            // Forward to others: attachment OPTIONAL
+            attachmentInput.removeAttr('required');
+            attachmentStar.hide();
+            
+            // Update help text
+            attachmentHelp.html(`
+                <div class="attachment-optional mt-2">
+                    <i class="fas fa-info-circle text-secondary"></i>
+                    <strong>Attachment is OPTIONAL</strong> when forwarding to others.
+                    <small class="d-block mt-1">You can upload reference documents or skip and let assignees add their own attachments later.</small>
+                </div>
+            `);
+            
+            console.log('📎 Attachment requirement: OPTIONAL for forwarding');
+        }
+    }
+
+    // Form validation
+    $('#actionItemForm').submit(function(e) {
+        const assignmentType = $('input[name="assignment_type"]:checked').val();
+        console.log('🚀 Form submitting with assignment type:', assignmentType);
+        
+        if (assignmentType === 'forward') {
+            const selectedUsers = $('.user-checkbox:checked').length;
+            console.log('👥 Selected users count:', selectedUsers);
+            
+            if (selectedUsers === 0) {
+                e.preventDefault();
+                alert('Please select at least one user to assign this action to.');
+                console.log('❌ Form submission blocked - no users selected');
+                return false;
             }
             
-            fileName.textContent = file.name;
-            attachmentLabel.classList.add('has-file');
-            attachmentText.innerHTML = '<i class="fas fa-check-circle"></i> File selected';
-            attachmentInfo.style.display = 'block';
-        }
-    });
-    
-    removeAttachment.addEventListener('click', function() {
-        attachmentInput.value = '';
-        attachmentLabel.classList.remove('has-file');
-        attachmentText.innerHTML = 'Click to upload file or drag and drop';
-        attachmentInfo.style.display = 'none';
-    });
-    
-    // Email validation
-    function isValidEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
-    }
-    
-    // Add email tag
-    function addEmail(email) {
-        email = email.trim().toLowerCase();
-        
-        if (!email) return;
-        
-        if (!isValidEmail(email)) {
-            alert('⚠️ Invalid email format: ' + email);
-            return;
+            // Log selected emails
+            const selectedEmails = [];
+            $('.user-checkbox:checked').each(function() {
+                selectedEmails.push($(this).val());
+            });
+            console.log('📧 Selected emails:', selectedEmails);
+            
+            // For forwarding, check if attachment exists but not required
+            const attachment = $('#attachment-input')[0].files[0];
+            if (attachment) {
+                console.log('📎 Attachment provided (optional):', attachment.name);
+            } else {
+                console.log('📎 No attachment provided (optional for forwarding)');
+            }
+            
+        } else {
+            // Self assignment: check if attachment is provided
+            const attachment = $('#attachment-input')[0].files[0];
+            if (!attachment) {
+                e.preventDefault();
+                alert('Attachment is required for self-assignment. Please upload evidence that the action has been completed.');
+                console.log('❌ Form submission blocked - attachment required for self-assignment');
+                return false;
+            }
+            console.log('📎 Attachment provided (required):', attachment.name);
         }
         
-        if (emails.includes(email)) {
-            alert('ℹ️ Email already added: ' + email);
-            return;
-        }
-        
-        emails.push(email);
-        updateUI();
-    }
-    
-    // Remove email tag
-    function removeEmail(email) {
-        emails = emails.filter(e => e !== email);
-        updateUI();
-    }
-    
-    // Update UI
-    function updateUI() {
-        const existingTags = emailTagsContainer.querySelectorAll('.email-tag');
-        existingTags.forEach(tag => tag.remove());
-        
-        emails.forEach(email => {
-            const tag = document.createElement('span');
-            tag.className = 'email-tag';
-            tag.innerHTML = `
-                ${email}
-                <span class="remove-tag" data-email="${email}">×</span>
-            `;
-            emailTagsContainer.insertBefore(tag, emailInput);
-        });
-        
-        responsibleEmails.value = emails.join(', ');
-        emailCount.textContent = `${emails.length} email(s) added`;
-        emailInput.value = '';
-    }
-    
-    // Handle Enter key and comma
-    emailInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault();
-            addEmail(emailInput.value);
-        }
-    });
-    
-    // Handle click on remove button
-    emailTagsContainer.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-tag')) {
-            const email = e.target.getAttribute('data-email');
-            removeEmail(email);
-        }
-    });
-    
-    // Focus input when clicking container
-    emailTagsContainer.addEventListener('click', function(e) {
-        if (e.target === emailTagsContainer || e.target.classList.contains('email-tags-input')) {
-            emailInput.focus();
-        }
-    });
-    
-    // Form validation
-    document.getElementById('actionItemForm').addEventListener('submit', function(e) {
-        const actionDesc = document.getElementById('id_action_description');
-        
-        if (!actionDesc.value.trim()) {
-            e.preventDefault();
-            alert('⚠️ Please provide an action description');
-            actionDesc.focus();
-            return false;
-        }
-        
-        // Only validate emails if "Assign to Others" is selected
-        if (assignOthers.checked && emails.length === 0) {
-            e.preventDefault();
-            alert('⚠️ Please add at least one email address or select "Assign to Myself"');
-            emailInput.focus();
-            return false;
-        }
-        
-        if (!targetDateInput.value) {
-            e.preventDefault();
-            alert('⚠️ Please set a target date');
-            targetDateInput.focus();
-            return false;
-        }
-        
-        // Show loading indicator
-        const submitBtn = this.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+        console.log('✅ Form validation passed');
     });
 });
 </script>

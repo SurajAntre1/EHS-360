@@ -67,7 +67,7 @@
         </div>
 
         <!-- Status Filter -->
-        <div class="col-md-2 mb-2">
+        <div class="col-md-3 mb-2">
           <select name="status" class="form-control">
             <option value="">All Status</option>
             {% for status_key, status_name in status_choices %}
@@ -78,26 +78,10 @@
           </select>
         </div>
 
-        <!-- ✅ NEW: Approval Status Filter -->
-        <div class="col-md-2 mb-2">
-          <select name="approval_status" class="form-control">
-            <option value="">All Approvals</option>
-            <option value="PENDING" {% if selected_approval_status == 'PENDING' %}selected{% endif %}>
-              Pending Approval
-            </option>
-            <option value="APPROVED" {% if selected_approval_status == 'APPROVED' %}selected{% endif %}>
-              Approved
-            </option>
-            <option value="REJECTED" {% if selected_approval_status == 'REJECTED' %}selected{% endif %}>
-              Rejected
-            </option>
-          </select>
-        </div>
-
         <!-- Filter Buttons -->
-        <div class="col-md-1 mb-2">
+        <div class="col-md-2 mb-2">
           <button type="submit" class="btn btn-primary btn-block">
-            <i class="fas fa-search"></i>
+            <i class="fas fa-search"></i> Filter
           </button>
         </div>
       </div>
@@ -134,7 +118,6 @@
             <th>Plant / Location</th>
             <th>Risk Level</th>
             <th>Status</th>
-            <th>Approval Status</th> <!-- ✅ NEW COLUMN -->
             {% if user.role.name != 'EMPLOYEE' %}
             <th>Actions</th>
             {% endif %}
@@ -201,25 +184,6 @@
               </span>
             </td>
 
-            <!-- ✅ NEW: Approval Status Column -->
-            <td>
-              {% if hazard.approval_status == 'APPROVED' %}
-                <span class="badge badge-success">
-                  <i class="fas fa-check-circle"></i> Approved
-                </span>
-              {% elif hazard.approval_status == 'REJECTED' %}
-                <span class="badge badge-danger">
-                  <i class="fas fa-times-circle"></i> Rejected
-                </span>
-              {% elif hazard.approval_status == 'PENDING' %}
-                <span class="badge badge-warning">
-                  <i class="fas fa-clock"></i> Pending
-                </span>
-              {% else %}
-                <span class="badge badge-secondary">N/A</span>
-              {% endif %}
-            </td>
-
             <!-- Actions -->
             {% if user.role.name != 'EMPLOYEE' %}
             <td>
@@ -247,7 +211,7 @@
 
           {% empty %}
           <tr>
-            <td colspan="{% if user.role.name != 'EMPLOYEE' %}9{% else %}8{% endif %}" class="text-center">
+            <td colspan="{% if user.role.name != 'EMPLOYEE' %}8{% else %}7{% endif %}" class="text-center">
               <div class="alert alert-info mb-0">
                 <i class="fas fa-info-circle mr-2"></i>No hazards found matching your filters.
               </div>
@@ -258,7 +222,7 @@
       </table>
     </div>
 
-    <!-- Summary Stats (Optional - shows filter results) -->
+    <!-- Summary Stats -->
     {% if hazards %}
     <div class="row mt-3">
       <div class="col-md-12">
@@ -266,9 +230,6 @@
           <i class="fas fa-info-circle mr-2"></i>
           <strong>Showing {{ hazards|length }} hazard(s)</strong> 
           {% if search_query %}matching "{{ search_query }}"{% endif %}
-          {% if selected_approval_status %}
-            | Approval: <span class="badge badge-primary">{{ selected_approval_status }}</span>
-          {% endif %}
         </div>
       </div>
     </div>
@@ -280,12 +241,12 @@
       <ul class="pagination justify-content-center">
         {% if page_obj.has_previous %}
         <li class="page-item">
-          <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.hazard_type %}&hazard_type={{ request.GET.hazard_type }}{% endif %}{% if request.GET.risk_level %}&risk_level={{ request.GET.risk_level }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.approval_status %}&approval_status={{ request.GET.approval_status }}{% endif %}">
+          <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.hazard_type %}&hazard_type={{ request.GET.hazard_type }}{% endif %}{% if request.GET.risk_level %}&risk_level={{ request.GET.risk_level }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
             <i class="fas fa-angle-double-left"></i>
           </a>
         </li>
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.hazard_type %}&hazard_type={{ request.GET.hazard_type }}{% endif %}{% if request.GET.risk_level %}&risk_level={{ request.GET.risk_level }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.approval_status %}&approval_status={{ request.GET.approval_status }}{% endif %}">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.hazard_type %}&hazard_type={{ request.GET.hazard_type }}{% endif %}{% if request.GET.risk_level %}&risk_level={{ request.GET.risk_level }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
             <i class="fas fa-angle-left"></i> Previous
           </a>
         </li>
@@ -299,12 +260,12 @@
 
         {% if page_obj.has_next %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.hazard_type %}&hazard_type={{ request.GET.hazard_type }}{% endif %}{% if request.GET.risk_level %}&risk_level={{ request.GET.risk_level }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.approval_status %}&approval_status={{ request.GET.approval_status }}{% endif %}">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.hazard_type %}&hazard_type={{ request.GET.hazard_type }}{% endif %}{% if request.GET.risk_level %}&risk_level={{ request.GET.risk_level }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
             Next <i class="fas fa-angle-right"></i>
           </a>
         </li>
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.hazard_type %}&hazard_type={{ request.GET.hazard_type }}{% endif %}{% if request.GET.risk_level %}&risk_level={{ request.GET.risk_level }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.approval_status %}&approval_status={{ request.GET.approval_status }}{% endif %}">
+          <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.hazard_type %}&hazard_type={{ request.GET.hazard_type }}{% endif %}{% if request.GET.risk_level %}&risk_level={{ request.GET.risk_level }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
             <i class="fas fa-angle-double-right"></i>
           </a>
         </li>
@@ -317,7 +278,7 @@
 </div>
 
 <style>
-/* Additional styling for approval badges */
+/* Additional styling */
 .badge {
   font-size: 0.85rem;
   padding: 0.35rem 0.65rem;
@@ -329,6 +290,21 @@
 
 .btn-group .btn {
   margin: 0 2px;
+}
+
+.ehs-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-header {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  padding: 1rem 1.25rem;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f5f5f5;
 }
 </style>
 {% endblock %}
