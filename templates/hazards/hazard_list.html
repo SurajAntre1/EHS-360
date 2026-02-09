@@ -35,12 +35,14 @@
     <!-- Search and Filter -->
     <form method="GET" class="mb-4">
       <div class="row">
+        <!-- Search -->
         <div class="col-md-3 mb-2">
           <input type="text" name="search" class="form-control"
                  placeholder="Search report no, title..."
                  value="{{ search_query }}">
         </div>
 
+        <!-- Hazard Type Filter -->
         <div class="col-md-2 mb-2">
           <select name="hazard_type" class="form-control">
             <option value="">All Types</option>
@@ -52,6 +54,7 @@
           </select>
         </div>
 
+        <!-- Risk Level Filter -->
         <div class="col-md-2 mb-2">
           <select name="risk_level" class="form-control">
             <option value="">All Risk Levels</option>
@@ -63,7 +66,8 @@
           </select>
         </div>
 
-        <div class="col-md-2 mb-2">
+        <!-- Status Filter -->
+        <div class="col-md-3 mb-2">
           <select name="status" class="form-control">
             <option value="">All Status</option>
             {% for status_key, status_name in status_choices %}
@@ -74,16 +78,15 @@
           </select>
         </div>
 
-        <div class="col-md-3 mb-2">
-          <button type="submit" class="btn btn-primary">
+        <!-- Filter Buttons -->
+        <div class="col-md-2 mb-2">
+          <button type="submit" class="btn btn-primary btn-block">
             <i class="fas fa-search"></i> Filter
           </button>
-          <a href="{% url 'hazards:hazard_list' %}" class="btn btn-secondary">
-            <i class="fas fa-redo"></i> Reset
-          </a>
         </div>
       </div>
 
+      <!-- Date Range Filter -->
       <div class="row mt-2">
         <div class="col-md-3">
           <label class="small">Date From:</label>
@@ -95,13 +98,18 @@
           <input type="date" name="date_to" class="form-control form-control-sm"
                  value="{{ request.GET.date_to }}">
         </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <a href="{% url 'hazards:hazard_list' %}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-redo"></i> Reset All
+          </a>
+        </div>
       </div>
     </form>
 
     <!-- Hazards Table -->
     <div class="table-responsive">
       <table class="table table-hover">
-        <thead>
+        <thead class="thead-light">
           <tr>
             <th>Report No.</th>
             <th>Type</th>
@@ -119,34 +127,46 @@
         <tbody>
           {% for hazard in hazards %}
           <tr>
+            <!-- Report Number -->
             <td>
-              <strong>{{ hazard.report_number }}</strong>
+              <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="text-primary font-weight-bold">
+                {{ hazard.report_number }}
+              </a>
               {% if hazard.is_action_overdue %}
-              <span class="badge badge-danger badge-sm">Overdue</span>
+              <br><span class="badge badge-danger badge-sm mt-1">
+                <i class="fas fa-clock"></i> Overdue
+              </span>
               {% endif %}
             </td>
 
+            <!-- Type -->
             <td>
               <span class="badge 
                 {% if hazard.hazard_category == 'slip_trip_fall' %}badge-warning
                 {% elif hazard.hazard_category == 'chemical' %}badge-danger
-                {% else %}badge-info{% endif %}">
+                {% elif hazard.hazard_category == 'electrical' %}badge-info
+                {% elif hazard.hazard_category == 'fire' %}badge-danger
+                {% else %}badge-secondary{% endif %}">
                 {{ hazard.get_hazard_category_display }}
               </span>
             </td>
 
-            <td>{{ hazard.hazard_title|truncatewords:10 }}</td>
+            <!-- Hazard Title -->
+            <td>{{ hazard.hazard_title|truncatewords:8 }}</td>
 
+            <!-- Date & Time -->
             <td>
               {{ hazard.incident_datetime|date:"d/m/Y" }}<br>
               <small class="text-muted">{{ hazard.incident_datetime|time:"H:i" }}</small>
             </td>
 
+            <!-- Plant / Location -->
             <td>
               <strong>{{ hazard.plant.code }}</strong><br>
               <small class="text-muted">{{ hazard.location.name }}</small>
             </td>
 
+            <!-- Risk Level -->
             <td>
               <span class="badge 
                 {% if hazard.severity == 'critical' %}badge-dark
@@ -157,26 +177,31 @@
               </span>
             </td>
 
+            <!-- Workflow Status -->
             <td>
-              <span class="badge 
-                {% if hazard.status == 'CLOSED' or hazard.status == 'RESOLVED' %}badge-success
-                {% elif hazard.status == 'REPORTED' %}badge-secondary
-                {% elif hazard.status == 'IN_PROGRESS' %}badge-primary
-                {% else %}badge-dark{% endif %}">
+              <span class="badge {{ hazard.status_badge_class }}">
                 {{ hazard.get_status_display }}
               </span>
             </td>
 
+            <!-- Actions -->
             {% if user.role.name != 'EMPLOYEE' %}
             <td>
               <div class="btn-group" role="group">
-                <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-sm btn-info">
+                <a href="{% url 'hazards:hazard_detail' hazard.pk %}" 
+                   class="btn btn-sm btn-info" 
+                   title="View Details">
                   <i class="fas fa-eye"></i>
                 </a>
-                <a href="{% url 'hazards:hazard_update' hazard.pk %}" class="btn btn-sm btn-primary">
+                <a href="{% url 'hazards:hazard_update' hazard.pk %}" 
+                   class="btn btn-sm btn-primary" 
+                   title="Edit Hazard">
                   <i class="fas fa-edit"></i>
                 </a>
-                <a href="{% url 'hazards:hazard_pdf' hazard.pk %}" class="btn btn-sm btn-danger" target="_blank">
+                <a href="{% url 'hazards:hazard_pdf' hazard.pk %}" 
+                   class="btn btn-sm btn-danger" 
+                   target="_blank"
+                   title="Download PDF">
                   <i class="fas fa-file-pdf"></i>
                 </a>
               </div>
@@ -187,8 +212,8 @@
           {% empty %}
           <tr>
             <td colspan="{% if user.role.name != 'EMPLOYEE' %}8{% else %}7{% endif %}" class="text-center">
-              <div class="alert alert-info">
-                <i class="fas fa-info-circle mr-2"></i>No hazards found.
+              <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle mr-2"></i>No hazards found matching your filters.
               </div>
             </td>
           </tr>
@@ -197,13 +222,33 @@
       </table>
     </div>
 
+    <!-- Summary Stats -->
+    {% if hazards %}
+    <div class="row mt-3">
+      <div class="col-md-12">
+        <div class="alert alert-light border">
+          <i class="fas fa-info-circle mr-2"></i>
+          <strong>Showing {{ hazards|length }} hazard(s)</strong> 
+          {% if search_query %}matching "{{ search_query }}"{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Pagination -->
     {% if is_paginated %}
-    <nav aria-label="Page navigation">
+    <nav aria-label="Page navigation" class="mt-4">
       <ul class="pagination justify-content-center">
         {% if page_obj.has_previous %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+          <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.hazard_type %}&hazard_type={{ request.GET.hazard_type }}{% endif %}{% if request.GET.risk_level %}&risk_level={{ request.GET.risk_level }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+            <i class="fas fa-angle-double-left"></i>
+          </a>
+        </li>
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.hazard_type %}&hazard_type={{ request.GET.hazard_type }}{% endif %}{% if request.GET.risk_level %}&risk_level={{ request.GET.risk_level }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+            <i class="fas fa-angle-left"></i> Previous
+          </a>
         </li>
         {% endif %}
 
@@ -215,7 +260,14 @@
 
         {% if page_obj.has_next %}
         <li class="page-item">
-          <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.hazard_type %}&hazard_type={{ request.GET.hazard_type }}{% endif %}{% if request.GET.risk_level %}&risk_level={{ request.GET.risk_level }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+            Next <i class="fas fa-angle-right"></i>
+          </a>
+        </li>
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.hazard_type %}&hazard_type={{ request.GET.hazard_type }}{% endif %}{% if request.GET.risk_level %}&risk_level={{ request.GET.risk_level }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">
+            <i class="fas fa-angle-double-right"></i>
+          </a>
         </li>
         {% endif %}
       </ul>
@@ -224,4 +276,35 @@
 
   </div>
 </div>
+
+<style>
+/* Additional styling */
+.badge {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.65rem;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+.btn-group .btn {
+  margin: 0 2px;
+}
+
+.ehs-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-header {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  padding: 1rem 1.25rem;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f5f5f5;
+}
+</style>
 {% endblock %}

@@ -1,155 +1,369 @@
 from django import forms
-from .models import Hazard, HazardPhoto, HazardActionItem
-from apps.organizations.models import Plant, Zone, Location
 from django.contrib.auth import get_user_model
-from apps.organizations.models import Department, Plant, Zone, Location, SubLocation
-from django.core.exceptions import ValidationError
-from datetime import date
+from .models import Hazard, HazardActionItem, HazardPhoto
+from apps.organizations.models import Plant, Zone, Location, SubLocation, Department
 
 User = get_user_model()
 
 
-
 class HazardForm(forms.ModelForm):
     """
-    A unified ModelForm for creating and updating Hazard reports.
-    It dynamically handles location fields based on user assignments.
+    Form for creating and updating hazard reports
+    Supports both single and multiple hazard submissions
     """
+    
     class Meta:
         model = Hazard
         fields = [
-            'reporter_name', 'incident_datetime',
-            'plant', 'zone', 'location', 'sublocation', 'location_details',
-            'behalf_person_name', 'behalf_person_dept',
-            'hazard_type', 'hazard_category', 'severity',
-            'hazard_description', 'immediate_action',
+            'hazard_type',
+            'hazard_category',
+            'severity',
+            'plant',
+            'zone',
+            'location',
+            'sublocation',
+            'location_details',
+            'hazard_description',
+            'immediate_action',
+            'incident_datetime',
+            'behalf_person_name',
+            'behalf_person_dept',
         ]
+        
         widgets = {
-            'incident_datetime': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
-            'reporter_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'plant': forms.Select(attrs={'class': 'form-control'}),
-            'zone': forms.Select(attrs={'class': 'form-control'}),
-            'location': forms.Select(attrs={'class': 'form-control'}),
-            'sublocation': forms.Select(attrs={'class': 'form-control'}),
-            'location_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Specific area, equipment, or landmark...'}),
-            'behalf_person_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Enter employee's full name"}),
-            'behalf_person_dept': forms.Select(attrs={'class': 'form-control'}),
-            'hazard_type': forms.Select(attrs={'class': 'form-control'}),
-            'hazard_category': forms.Select(attrs={'class': 'form-control'}),
-            'severity': forms.Select(attrs={'class': 'form-control'}),
-            'hazard_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Describe what you observed...'}),
-            'immediate_action': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Describe any immediate steps taken...'}),
+            'plant': forms.Select(attrs={
+                'class': 'form-control',
+                'id': 'id_plant'
+            }),
+            'zone': forms.Select(attrs={
+                'class': 'form-control',
+                'id': 'id_zone'
+            }),
+            'location': forms.Select(attrs={
+                'class': 'form-control',
+                'id': 'id_location'
+            }),
+            'sublocation': forms.Select(attrs={
+                'class': 'form-control',
+                'id': 'id_sublocation'
+            }),
+            'hazard_type': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'hazard_category': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'severity': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'hazard_description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Describe the hazard in detail...'
+            }),
+            'immediate_action': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Describe immediate actions taken...'
+            }),
+            'location_details': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Additional location details...'
+            }),
+            'incident_datetime': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local'
+            }),
+            'behalf_person_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter employee name'
+            }),
+            'behalf_person_dept': forms.Select(attrs={
+                'class': 'form-control'
+            }),
         }
-
+    
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-
-        self.fields['plant'].empty_label = "Select Plant"
-        self.fields['zone'].empty_label = "Select Zone"
-        self.fields['location'].empty_label = "Select Location"
-        self.fields['sublocation'].empty_label = "Select sub-location"
-
-        self.fields['behalf_person_dept'].queryset = Department.objects.filter(is_active=True).order_by('name')
-        self.fields['behalf_person_dept'].required = False
-        self.fields['behalf_person_name'].required = False
+        
+        # Filter querysets based on user's assigned locations
+        if self.user:
+            # Plant filtering
+            if self.user.assigned_plants.exists():
+                self.fields['plant'].queryset = self.user.assigned_plants.filter(is_active=True)
+            elif self.user.plant:
+                self.fields['plant'].queryset = Plant.objects.filter(id=self.user.plant.id, is_active=True)
+            else:
+                self.fields['plant'].queryset = Plant.objects.filter(is_active=True)
+            
+            # Zone filtering
+            if self.user.assigned_zones.exists():
+                self.fields['zone'].queryset = self.user.assigned_zones.filter(is_active=True)
+            elif self.user.zone:
+                self.fields['zone'].queryset = Zone.objects.filter(id=self.user.zone.id, is_active=True)
+            else:
+                self.fields['zone'].queryset = Zone.objects.filter(is_active=True)
+            
+            # Location filtering
+            if self.user.assigned_locations.exists():
+                self.fields['location'].queryset = self.user.assigned_locations.filter(is_active=True)
+            elif self.user.location:
+                self.fields['location'].queryset = Location.objects.filter(id=self.user.location.id, is_active=True)
+            else:
+                self.fields['location'].queryset = Location.objects.filter(is_active=True)
+            
+            # Sublocation filtering
+            if self.user.assigned_sublocations.exists():
+                self.fields['sublocation'].queryset = self.user.assigned_sublocations.filter(is_active=True)
+            elif self.user.sublocation:
+                self.fields['sublocation'].queryset = SubLocation.objects.filter(id=self.user.sublocation.id, is_active=True)
+            else:
+                self.fields['sublocation'].queryset = SubLocation.objects.filter(is_active=True)
+        
+        # Make zone and sublocation optional
         self.fields['zone'].required = False
         self.fields['sublocation'].required = False
+        self.fields['location_details'].required = False
+        self.fields['immediate_action'].required = False
+        self.fields['behalf_person_name'].required = False
+        self.fields['behalf_person_dept'].required = False
         
-        # Initialize querysets to be empty
-        self.fields['plant'].queryset = Plant.objects.none()
-        self.fields['zone'].queryset = Zone.objects.none()
-        self.fields['location'].queryset = Location.objects.none()
-        self.fields['sublocation'].queryset = SubLocation.objects.none()
-
-        if self.user:
-            assigned_plants = self.user.assigned_plants.filter(is_active=True)
-            self.fields['plant'].queryset = assigned_plants if assigned_plants.exists() else Plant.objects.filter(is_active=True)
-
-        if self.data:
-            try:
-                plant_id = int(self.data.get('plant'))
-                self.fields['zone'].queryset = Zone.objects.filter(plant_id=plant_id, is_active=True)
-                zone_id = int(self.data.get('zone'))
-                self.fields['location'].queryset = Location.objects.filter(zone_id=zone_id, is_active=True)
-                location_id = int(self.data.get('location'))
-                self.fields['sublocation'].queryset = SubLocation.objects.filter(location_id=location_id, is_active=True)
-            except (ValueError, TypeError):
-                pass
-        
-        elif self.instance and self.instance.pk: # Edit mode
-            if self.instance.plant:
-                self.fields['zone'].queryset = Zone.objects.filter(plant=self.instance.plant, is_active=True)
-            if self.instance.zone:
-                self.fields['location'].queryset = Location.objects.filter(zone=self.instance.zone, is_active=True)
-            if self.instance.location:
-                self.fields['sublocation'].queryset = SubLocation.objects.filter(location=self.instance.location, is_active=True)
-
-        elif self.user: # Create mode
-            assigned_plants = self.user.assigned_plants.filter(is_active=True)
-            if assigned_plants.count() == 1:
-                plant = assigned_plants.first()
-                self.initial['plant'] = plant.pk
-                
-                assigned_zones = self.user.assigned_zones.filter(plant=plant, is_active=True)
-                self.fields['zone'].queryset = assigned_zones
-                
-                if assigned_zones.count() == 1:
-                    zone = assigned_zones.first()
-                    self.initial['zone'] = zone.pk
-                    
-                    assigned_locations = self.user.assigned_locations.filter(zone=zone, is_active=True)
-                    self.fields['location'].queryset = assigned_locations
-                    
-                    if assigned_locations.count() == 1:
-                        location = assigned_locations.first()
-                        self.initial['location'] = location.pk
-                        
-                        assigned_sublocations = self.user.assigned_sublocations.filter(location=location, is_active=True)
-                        self.fields['sublocation'].queryset = assigned_sublocations
-                        
-                        if assigned_sublocations.count() == 1:
-                            self.initial['sublocation'] = assigned_sublocations.first().pk
-                            
-
-class HazardUpdateForm(forms.ModelForm):
-    """Form for updating hazard"""
+        # Set empty labels for dropdowns
+        self.fields['plant'].empty_label = "-- Select Plant --"
+        self.fields['zone'].empty_label = "-- Select Zone --"
+        self.fields['location'].empty_label = "-- Select Location --"
+        self.fields['sublocation'].empty_label = "-- Select Sub-Location --"
+        self.fields['behalf_person_dept'].empty_label = "-- Select Department --"
     
-    class Meta:
-        model = Hazard
-        fields = ['status', 'assigned_to', 'corrective_action_plan', 'action_deadline']
-        widgets = {
-            'status': forms.Select(attrs={'class': 'form-control'}),
-            'assigned_to': forms.Select(attrs={'class': 'form-control'}),
-            'corrective_action_plan': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'action_deadline': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-        }
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Validate location hierarchy
+        plant = cleaned_data.get('plant')
+        zone = cleaned_data.get('zone')
+        location = cleaned_data.get('location')
+        sublocation = cleaned_data.get('sublocation')
+        
+        if zone and zone.plant != plant:
+            raise forms.ValidationError('Selected zone does not belong to the selected plant.')
+        
+        if location and location.zone != zone:
+            raise forms.ValidationError('Selected location does not belong to the selected zone.')
+        
+        if sublocation and sublocation.location != location:
+            raise forms.ValidationError('Selected sub-location does not belong to the selected location.')
+        
+        return cleaned_data
 
 
 class HazardActionItemForm(forms.ModelForm):
-    """Form for managing hazard action items"""
+    """
+    Form for creating and updating hazard action items
+    Supports both self-assignment and forwarding to team members
+    """
+    
+    # Additional field for multiple user selection
+    responsible_users = forms.ModelMultipleChoiceField(
+        queryset=User.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label="Assign to Team Members"
+    )
+    
+    assignment_type = forms.ChoiceField(
+        choices=[
+            ('self', 'Self-Assign & Complete'),
+            ('forward', 'Forward to Team'),
+        ],
+        initial='forward',
+        widget=forms.RadioSelect,
+        label="Assignment Type"
+    )
     
     class Meta:
         model = HazardActionItem
-    
-        fields = ['action_description', 'responsible_emails', 'target_date', 'status', 'completion_date', 'completion_remarks']
+        fields = [
+            'action_description',
+            'target_date',
+            'attachment',
+        ]
+        
         widgets = {
-            'action_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'responsible_emails': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Comma-separated emails'}), # Iska widget bhi set kar dein
-            'target_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'status': forms.Select(attrs={'class': 'form-control'}),
-            'completion_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'completion_remarks': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'action_description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Describe the corrective action to be taken...'
+            }),
+            'target_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'attachment': forms.FileInput(attrs={
+                'class': 'form-control-file'
+            }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        self.hazard = kwargs.pop('hazard', None)
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Set up the responsible_users queryset based on hazard's plant
+        if self.hazard and self.hazard.plant:
+            from django.db.models import Q
+            
+            self.fields['responsible_users'].queryset = User.objects.filter(
+                Q(plant=self.hazard.plant) | Q(assigned_plants=self.hazard.plant),
+                is_active=True,
+                is_active_employee=True
+            ).exclude(
+                id=self.user.id if self.user else None
+            ).distinct().select_related('department', 'role').order_by('first_name', 'last_name')
+        
+        # Add help text
+        self.fields['action_description'].help_text = "Provide a detailed description of the corrective action"
+        self.fields['target_date'].help_text = "Deadline for completing this action"
+        self.fields['attachment'].help_text = "Upload supporting documents or images (Required)"
+        
+        # Make attachment required
+        self.fields['attachment'].required = True
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        assignment_type = cleaned_data.get('assignment_type')
+        responsible_users = cleaned_data.get('responsible_users')
+        
+        # If forwarding, ensure at least one user is selected
+        if assignment_type == 'forward':
+            if not responsible_users or len(responsible_users) == 0:
+                raise forms.ValidationError(
+                    'Please select at least one team member when forwarding the action item.'
+                )
+        
+        return cleaned_data
 
- 
+
 class HazardPhotoForm(forms.ModelForm):
-    """Form for uploading hazard photos"""
+    """
+    Form for uploading hazard photos
+    """
     
     class Meta:
         model = HazardPhoto
-        fields = ['photo', 'description']
+        fields = ['photo', 'photo_type', 'description']
+        
         widgets = {
-            'photo': forms.FileInput(attrs={'class': 'form-control-file'}),
-            'description': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Photo description'}),
+            'photo': forms.FileInput(attrs={
+                'class': 'form-control-file',
+                'accept': 'image/*'
+            }),
+            'photo_type': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'description': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Brief description of the photo'
+            }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['photo_type'].required = False
+        self.fields['description'].required = False
+
+
+class HazardFilterForm(forms.Form):
+    """
+    Form for filtering hazards in list view
+    """
+    
+    search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Search by report number or title...'
+        })
+    )
+    
+    hazard_type = forms.ChoiceField(
+        required=False,
+        choices=[('', 'All Types')] + list(Hazard.HAZARD_TYPE_CHOICES),
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    risk_level = forms.ChoiceField(
+        required=False,
+        choices=[('', 'All Severities')] + list(Hazard.SEVERITY_CHOICES),
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    status = forms.ChoiceField(
+        required=False,
+        choices=[('', 'All Statuses')] + list(Hazard.STATUS_CHOICES),
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    approval_status = forms.ChoiceField(
+        required=False,
+        choices=[
+            ('', 'All Approval Statuses'),
+            ('PENDING', 'Pending Approval'),
+            ('APPROVED', 'Approved'),
+            ('REJECTED', 'Rejected'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )
+    
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )
+
+
+class HazardApprovalForm(forms.Form):
+    """
+    Form for approving or rejecting hazards
+    """
+    
+    action = forms.ChoiceField(
+        choices=[
+            ('approve', 'Approve'),
+            ('reject', 'Reject'),
+        ],
+        widget=forms.RadioSelect,
+        label="Decision"
+    )
+    
+    remarks = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Add remarks (required for rejection)...'
+        }),
+        label="Remarks"
+    )
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        action = cleaned_data.get('action')
+        remarks = cleaned_data.get('remarks')
+        
+        # Remarks are required when rejecting
+        if action == 'reject' and not remarks:
+            raise forms.ValidationError('Remarks are required when rejecting a hazard report.')
+        
+        return cleaned_data

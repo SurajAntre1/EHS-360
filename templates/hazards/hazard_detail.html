@@ -75,6 +75,22 @@
     .action-item-card.overdue {
         border-left-color: #dc3545;
     }
+    
+    /* Status badge classes */
+    .status-reported { background-color: #007bff; color: white; }
+    .status-pending { background-color: #6c757d; color: white; }
+    .status-approved { background-color: #28a745; color: white; }
+    .status-action-assigned { background-color: #fd7e14; color: white; }
+    .status-in-progress { background-color: #17a2b8; color: white; }
+    .status-resolved { background-color: #20c997; color: white; }
+    .status-closed { background-color: #343a40; color: white; }
+    .status-rejected { background-color: #dc3545; color: white; }
+    
+    /* Severity badge classes */
+    .severity-critical { background-color: #dc3545; color: white; }
+    .severity-high { background-color: #fd7e14; color: white; }
+    .severity-medium { background-color: #ffc107; color: #000; }
+    .severity-low { background-color: #28a745; color: white; }
 </style>
 {% endblock %}
 
@@ -105,7 +121,7 @@
 <!-- Main content -->
 <section class="content">
     <!-- Messages -->
-    <!-- {% if messages %}
+    {% if messages %}
         {% for message in messages %}
             <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
                 {{ message|safe }}
@@ -114,7 +130,7 @@
                 </button>
             </div>
         {% endfor %}
-    {% endif %} -->
+    {% endif %}
 
     <div class="row">
         <!-- Left Column -->
@@ -123,7 +139,7 @@
             <div class="card">
                 <div class="card-header bg-primary">
                     <h3 class="card-title text-white">
-                        <i class="fas {{ hazard.category_icon }}"></i> Hazard Information
+                        <i class="fas fa-exclamation-triangle"></i> Hazard Information
                     </h3>
                 </div>
                 <div class="card-body">
@@ -133,8 +149,8 @@
                             <p class="text-muted mb-0">Report Number</p>
                         </div>
                         <div class="col-md-6 text-right">
-                            <span class="badge {{ hazard.status_badge_class }} badge-lg">{{ hazard.get_status_display }}</span>
-                            <span class="badge {{ hazard.severity_badge_class }} badge-lg ml-2">{{ hazard.get_severity_display }}</span>
+                            <span class="badge status-{{ hazard.status|lower }} badge-lg">{{ hazard.get_status_display }}</span>
+                            <span class="badge severity-{{ hazard.severity }} badge-lg ml-2">{{ hazard.get_severity_display }}</span>
                         </div>
                     </div>
 
@@ -148,7 +164,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Category:</strong>
-                            <p><i class="fas {{ hazard.category_icon }}"></i> {{ hazard.get_hazard_category_display }}</p>
+                            <p><i class="fas fa-exclamation-triangle"></i> {{ hazard.get_hazard_category_display }}</p>
                         </div>
                         <div class="col-md-12 mb-3">
                             <strong>Title:</strong>
@@ -168,7 +184,7 @@
                         </div>
                         <div class="col-md-6 mb-2">
                             <strong>Severity Level:</strong>
-                            <p><span class="badge {{ hazard.severity_badge_class }}">{{ hazard.get_severity_display }}</span></p>
+                            <p><span class="badge severity-{{ hazard.severity }}">{{ hazard.get_severity_display }}</span></p>
                         </div>
                     </div>
 
@@ -178,38 +194,20 @@
                     <div class="row">
                         <div class="col-md-3 mb-2">
                             <strong>Plant:</strong>
-                            <p>{{ hazard.plant.name }} ({{ hazard.plant.code }})</p>
+                            <p>{% if hazard.plant %}{{ hazard.plant.name }}{% if hazard.plant.code %} ({{ hazard.plant.code }}){% endif %}{% else %}N/A{% endif %}</p>
                         </div>
                         <div class="col-md-3 mb-2">
                             <strong>Zone:</strong>
-                            <p>{% if hazard.zone %}{{ hazard.zone.name }} ({{ hazard.zone.code }}){% else %}N/A{% endif %}</p>
+                            <p>{% if hazard.zone %}{{ hazard.zone.name }}{% if hazard.zone.code %} ({{ hazard.zone.code }}){% endif %}{% else %}N/A{% endif %}</p>
                         </div>
                         <div class="col-md-3 mb-2">
                             <strong>Location:</strong>
-                            <p>{{ hazard.location.name }} ({{ hazard.location.code }})</p>
+                            <p>{% if hazard.location %}{{ hazard.location.name }}{% if hazard.location.code %} ({{ hazard.location.code }}){% endif %}{% else %}N/A{% endif %}</p>
                         </div>
                         <div class="col-md-3 mb-2">
                             <strong>Sub-Location:</strong>
                             <p>{% if hazard.sublocation %}{{ hazard.sublocation.name }}{% if hazard.sublocation.code %} ({{ hazard.sublocation.code }}){% endif %}{% else %}N/A{% endif %}</p>
                         </div>
-                        {% if hazard.location_details %}
-                        <div class="col-md-12 mb-2">
-                            <strong>Additional Location Details:</strong>
-                            <p>{{ hazard.location_details }}</p>
-                        </div>
-                        {% endif %}
-                        <!-- {% if hazard.gps_latitude and hazard.gps_longitude %}
-                        <div class="col-md-12 mb-2">
-                            <strong>GPS Coordinates:</strong>
-                            <p>
-                                <i class="fas fa-map-marker-alt text-danger"></i> 
-                                {{ hazard.gps_latitude }}, {{ hazard.gps_longitude }}
-                                <a href="https://www.google.com/maps?q={{ hazard.gps_latitude }},{{ hazard.gps_longitude }}" target="_blank" class="btn btn-sm btn-outline-primary ml-2">
-                                    <i class="fas fa-external-link-alt"></i> View on Map
-                                </a>
-                            </p>
-                        </div>
-                        {% endif %} -->
                     </div>
 
                     <hr>
@@ -218,11 +216,11 @@
                     <div class="row">
                         <div class="col-md-4 mb-2">
                             <strong>Name:</strong>
-                            <p>{{ hazard.reporter_name }}</p>
+                            <p>{{ hazard.reporter_name|default:"N/A" }}</p>
                         </div>
                         <div class="col-md-4 mb-2">
                             <strong>Email:</strong>
-                            <p>{{ hazard.reporter_email }}</p>
+                            <p>{{ hazard.reporter_email|default:"N/A" }}</p>
                         </div>
                         <div class="col-md-4 mb-2">
                             <strong>Phone:</strong>
@@ -239,12 +237,12 @@
                         </div>
                         <div class="col-md-6 mb-2">
                             <strong>Reported Date:</strong>
-                            <p>{{ hazard.reported_date|date:"d M Y, h:i A" }}</p>
+                            <p>{{ hazard.report_timestamp|date:"d M Y, h:i A" }}</p>
                         </div>
                     </div>
 
                     <!-- Behalf Information Section -->
-                    {% if hazard.behalf_person %}
+                    {% if hazard.behalf_person_name %}
                     <div class="row mt-3">
                         <div class="col-md-12">
                             <div class="alert alert-info">
@@ -255,7 +253,7 @@
                                 <div class="row">
                                     <div class="col-md-3">
                                         <strong>Employee Name:</strong><br>
-                                        <span class="text-dark">{{ hazard.behalf_person.get_full_name }}</span>
+                                        <span class="text-dark">{{ hazard.behalf_person_name }}</span>
                                     </div>
                                     <div class="col-md-3">
                                         <strong>Department:</strong><br>
@@ -267,54 +265,9 @@
                                             {% endif %}
                                         </span>
                                     </div>
-                                    <div class="col-md-3">
-                                        <strong>Role:</strong><br>
-                                        <span class="text-dark">
-                                            {% if hazard.behalf_person.role.name %}
-                                                {{ hazard.behalf_person.get_role_display }}
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </span>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <strong>Employee ID:</strong><br>
-                                        <span class="text-dark">
-                                            {% if hazard.behalf_person.employee_id %}
-                                                {{ hazard.behalf_person.employee_id }}
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </span>
-                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    {% endif %}
-
-                    <!-- {% if hazard.injury_status or hazard.immediate_action or hazard.witnesses %}
-                    <hr>
-                    <h5 class="text-primary mb-3">Additional Information</h5>
-                    <div class="row">
-                        {% if hazard.injury_status %}
-                        <div class="col-md-12 mb-2">
-                            <strong>Injury Status:</strong>
-                            <p>{{ hazard.injury_status|title }}</p>
-                        </div>
-                        {% endif %} -->
-                        <!-- {% if hazard.immediate_action %}
-                        <div class="col-md-12 mb-2">
-                            <strong>Immediate Actions Taken:</strong>
-                            <p>{{ hazard.immediate_action|linebreaks }}</p>
-                        </div>
-                        {% endif %} -->
-                        {% if hazard.witnesses %}
-                        <div class="col-md-12 mb-2">
-                            <strong>Witnesses:</strong>
-                            <p>{{ hazard.witnesses|linebreaks }}</p>
-                        </div>
-                        {% endif %}
                     </div>
                     {% endif %}
                 </div>
@@ -373,7 +326,7 @@
                                         <h6><i class="fas fa-clipboard-check"></i> {{ action.action_description }}</h6>
                                     </div>
                                     <div class="col-md-4 text-right">
-                                        <span class="badge {{ action.status_badge_class }} badge-lg">{{ action.get_status_display }}</span>
+                                        <span class="badge {% if action.status == 'COMPLETED' %}badge-success{% elif action.status == 'PENDING' %}badge-warning{% elif action.status == 'IN_PROGRESS' %}badge-info{% else %}badge-secondary{% endif %} badge-lg">{{ action.get_status_display }}</span>
                                     </div>
                                 </div>
 
@@ -438,24 +391,12 @@
                                         <a href="{{ action.attachment.url }}" target="_blank" class="btn btn-sm btn-info">
                                             <i class="fas fa-download"></i> {{ action.get_attachment_name }}
                                         </a>
-                                       
-                                    </div>
-                                </div>
-                                {% endif %}
-
-                                <!-- Auto-Close Hazard Indicator -->
-                                {% if '[AUTO_CLOSE_HAZARD]' in action.completion_remarks %}
-                                <div class="row mb-2">
-                                    <div class="col-md-12">
-                                        <span class="badge badge-warning">
-                                            <i class="fas fa-lock"></i> Will auto-close hazard on completion
-                                        </span>
                                     </div>
                                 </div>
                                 {% endif %}
 
                                 <!-- Completion Remarks -->
-                                {% if action.completion_remarks and '[AUTO_CLOSE_HAZARD]' not in action.completion_remarks %}
+                                {% if action.completion_remarks %}
                                 <hr class="my-2">
                                 <div class="row">
                                     <div class="col-md-12">
@@ -500,7 +441,7 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <strong>Current Status:</strong>
-                        <p><span class="badge {{ hazard.status_badge_class }} badge-lg">{{ hazard.get_status_display }}</span></p>
+                        <p><span class="badge status-{{ hazard.status|lower }} badge-lg">{{ hazard.get_status_display }}</span></p>
                     </div>
                     <div class="mb-3">
                         <strong>Approval Status:</strong>
@@ -515,7 +456,7 @@
                     </div>
                     <div class="mb-3">
                         <strong>Severity:</strong>
-                        <p><span class="badge {{ hazard.severity_badge_class }} badge-lg">{{ hazard.get_severity_display }}</span></p>
+                        <p><span class="badge severity-{{ hazard.severity }} badge-lg">{{ hazard.get_severity_display }}</span></p>
                     </div>
                     {% if hazard.assigned_to %}
                     <div class="mb-3">
@@ -523,10 +464,19 @@
                         <p>{{ hazard.assigned_to.get_full_name|default:hazard.assigned_to.username }}</p>
                     </div>
                     {% endif %}
+                    
+                    <!-- FIXED: Days Since Reported -->
                     <div class="mb-3">
                         <strong>Days Since Reported:</strong>
-                        <p><span class="badge badge-info">{{ hazard.days_since_reported }} days</span></p>
+                        <p>
+                            {% with today=current_time %}
+                            <span class="badge badge-info">
+                                {{ hazard.incident_datetime|timesince:today }}
+                            </span>
+                            {% endwith %}
+                        </p>
                     </div>
+                    
                     {% if hazard.action_deadline %}
                     <div class="mb-3">
                         <strong>Action Deadline:</strong>
@@ -593,13 +543,13 @@
                     <div class="status-timeline">
                         <div class="timeline-item">
                             <strong>Reported</strong>
-                            <p class="text-muted small mb-0">{{ hazard.reported_date|date:"d M Y, h:i A" }}</p>
+                            <p class="text-muted small mb-0">{{ hazard.report_timestamp|date:"d M Y, h:i A" }}</p>
                             <p class="text-muted small mb-0">By: {{ hazard.reported_by.get_full_name }}</p>
                         </div>
-                        {% if hazard.behalf_person %}
+                        {% if hazard.behalf_person_name %}
                         <div class="timeline-item">
                             <strong>On Behalf Of</strong>
-                            <p class="text-muted small mb-0">{{ hazard.behalf_person.get_full_name }}</p>
+                            <p class="text-muted small mb-0">{{ hazard.behalf_person_name }}</p>
                         </div>
                         {% endif %}
                         {% if hazard.assigned_to %}
@@ -647,6 +597,16 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             window.open(this.src, '_blank');
         });
+    });
+    
+    // Debug: Log hazard data
+    console.log('Hazard Data:', {
+        report_number: '{{ hazard.report_number }}',
+        status: '{{ hazard.status }}',
+        severity: '{{ hazard.severity }}',
+        reporter_name: '{{ hazard.reporter_name }}',
+        reporter_email: '{{ hazard.reporter_email }}',
+        behalf_person_name: '{{ hazard.behalf_person_name }}'
     });
 });
 </script>

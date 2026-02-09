@@ -430,6 +430,17 @@ class Hazard(models.Model):
             parts.append(self.sublocation.name)
         return ' → '.join(parts)
 
+    def get_severity_deadline_days(self):
+        """
+        Returns the number of days until deadline based on severity level
+        """
+        severity_days_map = {
+            'low': 30,
+            'medium': 15,
+            'high': 7,
+            'critical': 1
+        }
+        return severity_days_map.get(self.severity, 15)
 
 class HazardPhoto(models.Model):
     """Photos related to hazard"""
@@ -501,7 +512,22 @@ class HazardActionItem(models.Model):
         help_text="Email addresses of responsible persons (comma-separated)"
     )
     
-    # NEW: Attachment field
+    # NEW FIELDS
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hazard_actions_created',
+        help_text="User who created this action item"
+    )
+    
+    is_self_assigned = models.BooleanField(
+        default=False,
+        help_text="Whether this action was self-assigned and completed"
+    )
+    
+    # Attachment field
     attachment = models.FileField(
         upload_to='action_item_attachments/%Y/%m/',
         help_text="Required file attachment (documents, images, etc.)"
@@ -564,6 +590,13 @@ class HazardActionItem(models.Model):
     def get_emails_count(self):
         """Return count of emails"""
         return len(self.get_emails_list())
+    
+    def get_responsible_users(self):
+        """Get User objects for assigned emails"""
+        emails = self.get_emails_list()
+        if emails:
+            return User.objects.filter(email__in=emails)
+        return User.objects.none()
     
     def get_attachment_name(self):
         """Get filename from attachment"""
