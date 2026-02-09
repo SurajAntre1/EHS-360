@@ -140,7 +140,7 @@
         <hr>
         <div class="row">
           <div class="col-md-3">
-            <strong>Role: </strong> {{ user.role_display|default:"N/A" }}
+            <strong>Role: </strong> {{ user.role.name|default:"N/A" }}
           </div>
           <div class="col-md-3">
             <strong>Username:</strong> {{ user.username }}

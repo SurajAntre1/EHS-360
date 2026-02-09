@@ -11,6 +11,7 @@ from apps.organizations.models import *
 from apps.hazards.models import Hazard
 from apps.accidents.models import Incident 
 import datetime
+from apps.inspections.models import InspectionSchedule
 
 
 from django.views.generic import ListView
@@ -43,11 +44,22 @@ class HomeView(LoginRequiredMixin, TemplateView):
             hazards = hazards.filter(reported_by=user)
             incidents = incidents.filter(reported_by=user)
 
+        inspection = InspectionSchedule.objects.select_related('plant', 'assigned_to', 'template')
+        if user.is_superuser or getattr(user.role, 'name', None) == 'ADMIN':
+            pass
+        elif getattr(user.role, 'name', None) == 'EMPLOYEE':
+            inspections = inspections.filter(assigned_to=user)
+        elif user.plant:
+            inspections = inspection.filter(plant=user.plant)
+        else:
+            inspections = inspections.filter(assigned_to=user)
+
+
         context['total_hazards'] = hazards.count()
         context['total_incidents'] = incidents.count()
-        context['total_inspections'] = 0
+        context['total_inspections'] = inspection.count()
         context['total_environmental'] = (MonthlyIndicatorData.objects.values("indicator").distinct().count())
-        context['pending_inspections'] = 0
+        context['pending_inspections'] = inspection.filter(status__in=['SCHEDULED', 'IN_PROGRESS', 'OVERDUE']).count()
         context['recent_incidents'] = incidents.order_by()[:5]
         context['recent_hazards'] = hazards.order_by()[:5]
 
