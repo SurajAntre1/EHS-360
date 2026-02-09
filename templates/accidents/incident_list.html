@@ -2,13 +2,13 @@
 {% load static %}
 {% load permission_tags %}
 
-{% block title %}Incident Reports{% endblock %}
-{% block page_title %}Incident Reports{% endblock %}
+{% block title %}Injury Reports{% endblock %}
+{% block page_title %}Injury Reports{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
-<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Incident Management</a></li>
-<li class="breadcrumb-item active">All Incidents</li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Injury Management</a></li>
+<li class="breadcrumb-item active">All Injuries</li>
 {% endblock %}
 
 {% block extra_css %}
@@ -52,13 +52,13 @@
     <div class="row align-items-center">
       <div class="col">
         <h3 class="card-title mb-0">
-          <i class="fas fa-file-medical mr-2"></i>All Incident Reports
+          <i class="fas fa-file-medical mr-2"></i>All Injury Reports
         </h3>
       </div>
       {% if user|has_perm:'CREATE_INCIDENT' %}
       <div class="col-auto">
         <a href="{% url 'accidents:incident_create' %}" class="btn btn-light">
-          <i class="fas fa-plus mr-1"></i> Report New Incident
+          <i class="fas fa-plus mr-1"></i> Report New Injury
         </a>
       </div>
       {% endif %}
@@ -82,7 +82,7 @@
 
           <!-- Incident Type Filter -->
           <div class="col-md-3 mb-3">
-            <label class="small font-weight-bold">Incident Type</label>
+            <label class="small font-weight-bold">Injury Type</label>
             <select name="incident_type" class="form-control">
               <option value="">All Types</option>
               {% for incident_type in incident_types %}
@@ -159,7 +159,7 @@
     <div class="mb-3">
       <p class="text-muted mb-0">
         <i class="fas fa-list mr-2"></i>
-        Showing {{ incidents|length }} incident(s)
+        Showing {{ incidents|length }} Injuries
       </p>
     </div>
 

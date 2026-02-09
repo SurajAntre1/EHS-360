@@ -2,12 +2,12 @@
 {% load static %}
 {% load permission_tags %}
 
-{% block title %}Incident Management Dashboard{% endblock %}
-{% block page_title %}Incident Management Dashboard{% endblock %}
+{% block title %}Injury Management Dashboard{% endblock %}
+{% block page_title %}Injury Management Dashboard{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
-<li class="breadcrumb-item active">Incident Management</li>
+<li class="breadcrumb-item active">Injury Management</li>
 {% endblock %}
 
 {% block content %}
@@ -19,7 +19,7 @@
         <i class="fas fa-file-medical"></i>
       </div>
       <div class="ehs-stat-content">
-        <div class="ehs-stat-title">Total Incidents</div>
+        <div class="ehs-stat-title">Total Injuries</div>
         <div class="ehs-stat-value">{{ total_incidents }}</div>
         <div class="ehs-stat-trend">
           <span>All Time</span>
@@ -34,7 +34,7 @@
         <i class="fas fa-folder-open"></i>
       </div>
       <div class="ehs-stat-content">
-        <div class="ehs-stat-title">Open Incidents</div>
+        <div class="ehs-stat-title">Open Injuries</div>
         <div class="ehs-stat-value">{{ open_incidents }}</div>
         <div class="ehs-stat-trend">
           <span>Pending Action</span>
@@ -80,7 +80,7 @@
     <div class="ehs-card">
       <div class="card-header">
         <h3 class="card-title">
-          <i class="fas fa-chart-pie mr-2"></i>Incidents by Type
+          <i class="fas fa-chart-pie mr-2"></i>Injuries by Type
         </h3>
       </div>
       <div class="card-body">
@@ -134,14 +134,14 @@
             <i class="fas fa-plus"></i>
           </a>
         </div>
-        <h5 class="card-title">Report New Incident</h5>
+        <h5 class="card-title">Report New Injury</h5>
         <p class="card-text text-muted">
-          Report LTI, MTC, FA, or HLFI incidents
+          Report LTI, MTC, FA, or HLFI injuries
         </p>
         <!-- Center smaller button -->
         <div class="d-flex justify-content-center">
           <a href="{% url 'accidents:incident_create' %}" class="btn btn-primary btn-md">
-            <i class="fas fa-file-medical mr-2"></i> Report Incident
+            <i class="fas fa-file-medical mr-2"></i> Report Injury
           </a>
         </div>
       </div>
@@ -159,9 +159,9 @@
             <i class="fas fa-list"></i>
         </a>
         </div>
-        <h5 class="card-title">View All Incidents</h5>
+        <h5 class="card-title">View All Injuries</h5>
         <p class="card-text text-muted">
-          Browse and filter incident reports
+          Browse and filter injury reports
         </p>
         <!-- Center smaller button -->
         <div class="d-flex justify-content-center">
@@ -208,7 +208,7 @@
         <div class="row align-items-center">
           <div class="col">
             <h3 class="card-title mb-0">
-              <i class="fas fa-clock mr-2"></i>Recent Incidents
+              <i class="fas fa-clock mr-2"></i>Recent Injuries
             </h3>
           </div>
           <div class="col-auto">
