@@ -901,7 +901,6 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
             filtered_hazards = filtered_hazards.filter(sublocation_id=selected_sublocation)
         if selected_severity:
             filtered_hazards = filtered_hazards.filter(severity=selected_severity)
-
         
         if selected_status:
             if selected_status == 'open':
@@ -931,7 +930,6 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
 
         # 5. Prepare filter dropdown options (this part remains the same)
         context['plants'] = all_plants
-
         
         zone_qs = Zone.objects.filter(is_active=True)
         if selected_plant:
@@ -975,7 +973,7 @@ class HazardDashboardViews(LoginRequiredMixin, TemplateView):
                 context['selected_month_label'] = datetime.date(year, month, 1).strftime('%B %Y')
         except:
              pass
-        context['has_active_filters'] = any(context.get(key) for key in ['selected_plant', 'selected_zone', 'selected_location', 'selected_sublocation', 'selected_month', 'selected_severity', 'selected_status', 'selected_department'])
+        context['has_active_filters'] = any(context.get(key) for key in ['selected_plant', 'selected_zone', 'selected_location', 'selected_sublocation', 'selected_month', 'selected_severity', 'selected_status'])
 
         # 6. Prepare data for lists and charts using the FILTERED queryset
         context['recent_hazards'] = filtered_hazards.select_related('plant', 'location').order_by('-incident_datetime')[:10]
@@ -1511,5 +1509,3 @@ class ActionItemCompleteView(LoginRequiredMixin, UpdateView):
             print(f"Error completing action item: {e}")
             messages.error(request, f'Error: {str(e)}')
             return redirect('hazards:action_item_complete', pk=action_item.pk)
-
-

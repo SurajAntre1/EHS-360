@@ -31,12 +31,12 @@ class NotificationService:
         Returns:
             List of User objects who should receive this notification
         """
-        print(f"\n{'='*70}")
-        print(f"FINDING STAKEHOLDERS FOR: {event_type}")
-        print(f"{'='*70}")
-        print(f"Plant: {plant}")
-        print(f"Location: {location}")
-        print(f"Zone: {zone}")
+        # print(f"\n{'='*70}")
+        # print(f"FINDING STAKEHOLDERS FOR: {event_type}")
+        # print(f"{'='*70}")
+        # print(f"Plant: {plant}")
+        # print(f"Location: {location}")
+        # print(f"Zone: {zone}")
         
         # Get all active notification configurations for this event type
         configs = NotificationMaster.objects.filter(
@@ -45,17 +45,17 @@ class NotificationService:
         ).select_related('role')
         
         if not configs.exists():
-            print(f"⚠️ No notification configurations found for {event_type}")
+            # print(f"⚠️ No notification configurations found for {event_type}")
             return []
         
-        print(f"\nFound {configs.count()} active configuration(s)")
+        # print(f"\nFound {configs.count()} active configuration(s)")
         
         stakeholders = []
         
         for config in configs:
-            print(f"\n--- Processing Config: {config.name} ---")
-            print(f"Role: {config.role.name}")
-            print(f"Filters: Plant={config.filter_by_plant}, Location={config.filter_by_location}, Zone={config.filter_by_zone}")
+            # print(f"\n--- Processing Config: {config.name} ---")
+            # print(f"Role: {config.role.name}")
+            # print(f"Filters: Plant={config.filter_by_plant}, Location={config.filter_by_location}, Zone={config.filter_by_zone}")
 
             # Build query to find users with this role
             query = User.objects.filter(
@@ -69,27 +69,27 @@ class NotificationService:
             # Apply filters based on configuration
             if config.filter_by_plant and plant:
                 query = query.filter(plant=plant)
-                print(f"  - Filtered by plant: {plant.name}")
+                # print(f"  - Filtered by plant: {plant.name}")
             
             if config.filter_by_location and location:
                 query = query.filter(location=location)
-                print(f"  - Filtered by location: {location.name}")
+                # print(f"  - Filtered by location: {location.name}")
             
             if config.filter_by_zone and zone:
                 query = query.filter(zone=zone)
-                print(f"  - Filtered by zone: {zone.name}")
+                # print(f"  - Filtered by zone: {zone.name}")
             
             users = query.all()
-            print(f"  - Found {users.count()} user(s) with role {config.role.name}")
+            # print(f"  - Found {users.count()} user(s) with role {config.role.name}")
             
             for user in users:
-                print(f"    • {user.username} | {user.get_full_name()} | {user.email}")
+                # print(f"    • {user.username} | {user.get_full_name()} | {user.email}")
                 if user not in stakeholders:
                     stakeholders.append(user)
         
-        print(f"\n{'='*70}")
-        print(f"TOTAL UNIQUE STAKEHOLDERS: {len(stakeholders)}")
-        print(f"{'='*70}\n")
+        # print(f"\n{'='*70}")
+        # print(f"TOTAL UNIQUE STAKEHOLDERS: {len(stakeholders)}")
+        # print(f"{'='*70}\n")
         
         return stakeholders
     
@@ -106,10 +106,10 @@ class NotificationService:
             title: Notification title
             message: Notification message
         """
-        print(f"\n--- CREATING NOTIFICATION ---")
-        print(f"Recipient: {recipient.username}")
-        print(f"Type: {notification_type}")
-        print(f"Title: {title[:50]}...")
+        # print(f"\n--- CREATING NOTIFICATION ---")
+        # print(f"Recipient: {recipient.username}")
+        # print(f"Type: {notification_type}")
+        # print(f"Title: {title[:50]}...")
         
         try:
             content_type = ContentType.objects.get_for_model(content_object)
@@ -125,11 +125,11 @@ class NotificationService:
             )
             
             notification.save()
-            print(f"  ✅ SAVED! Notification ID: {notification.id}")
+            # print(f"  ✅ SAVED! Notification ID: {notification.id}")
             return notification
             
         except Exception as e:
-            print(f"  ❌ ERROR: {e}")
+            # print(f"  ❌ ERROR: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -147,13 +147,13 @@ class NotificationService:
             html_template: Path to HTML template (optional)
             context: Template context dictionary (optional)
         """
-        print(f"\n--- SENDING EMAIL ---")
-        print(f"To: {recipient.email}")
-        print(f"Subject: {subject}")
+        # print(f"\n--- SENDING EMAIL ---")
+        # print(f"To: {recipient.email}")
+        # print(f"Subject: {subject}")
         
         # Check if email is configured
         if not hasattr(settings, 'EMAIL_HOST') or not settings.EMAIL_HOST:
-            print("  ⚠️ EMAIL NOT CONFIGURED - Skipping email send")
+            # print("  ⚠️ EMAIL NOT CONFIGURED - Skipping email send")
             return False
         
         try:
@@ -175,11 +175,11 @@ class NotificationService:
                 email.attach_alternative(html_content, "text/html")
             
             email.send(fail_silently=False)
-            print("  ✅ Email sent successfully")
+            # print("  ✅ Email sent successfully")
             return True
             
         except Exception as e:
-            print(f"  ❌ Email error: {e}")
+            # print(f"  ❌ Email error: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -195,12 +195,12 @@ class NotificationService:
             notification_type: Type of notification (e.g., 'INCIDENT_REPORTED')
             module: Module name for template selection
         """
-        print("\n" + "*"*70)
-        print(f"NOTIFICATION SYSTEM - {notification_type}")
-        print("*"*70)
+        # print("\n" + "*"*70)
+        # print(f"NOTIFICATION SYSTEM - {notification_type}")
+        # print("*"*70)
 
         if content_object is None:
-            print(f"\n❌ ERROR: content_object is None. Cannot send notification for {notification_type}")
+            # print(f"\n❌ ERROR: content_object is None. Cannot send notification for {notification_type}")
             return
 
         # Determine object type and extract plant/location/zone
@@ -232,7 +232,7 @@ class NotificationService:
         )
 
         if not stakeholders:
-            print("\n❌ ERROR: No stakeholders found!")
+            # print("\n❌ ERROR: No stakeholders found!")
             return
 
         notifications_created = 0
@@ -257,9 +257,9 @@ class NotificationService:
 
 
         for stakeholder in stakeholders:
-            print(f"\n{'='*70}")
-            print(f"STAKEHOLDER: {stakeholder.username}")
-            print(f"{'='*70}")
+            # print(f"\n{'='*70}")
+            # print(f"STAKEHOLDER: {stakeholder.username}")
+            # print(f"{'='*70}")
 
             # Create in-app notification
             notification = NotificationService.create_notification(
@@ -297,13 +297,13 @@ class NotificationService:
                         notification.email_sent_at = timezone.now()
                         notification.save()
 
-        print(f"\n{'='*70}")
-        print("NOTIFICATION SUMMARY")
-        print(f"{'='*70}")
-        print(f"Total stakeholders: {len(stakeholders)}")
-        print(f"Notifications created: {notifications_created}")
-        print(f"Emails sent: {emails_sent}")
-        print(f"{'='*70}\n")
+        # print(f"\n{'='*70}")
+        # print("NOTIFICATION SUMMARY")
+        # print(f"{'='*70}")
+        # print(f"Total stakeholders: {len(stakeholders)}")
+        # print(f"Notifications created: {notifications_created}")
+        # print(f"Emails sent: {emails_sent}")
+        # print(f"{'='*70}\n")
 
     
     
