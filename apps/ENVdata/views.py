@@ -1207,9 +1207,9 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
             return render(request, self.template_name, {"no_plants": True})
 
         # ✅ PAGINATION — ONE PLANT ONLY
-        paginator = Paginator(all_plants, 1)
-        page_number = request.GET.get("page")
-        page_obj = paginator.get_page(page_number)
+        # paginator = Paginator(all_plants, 1)
+        # page_number = request.GET.get("page")
+        # page_obj = paginator.get_page(page_number)
 
         # Questions
         questions = EnvironmentalQuestion.objects.filter(
@@ -1231,7 +1231,7 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
         plants_data = []
 
         # 🔥 THIS IS THE FIX — page_obj, NOT all_plants
-        for plant in page_obj:
+        for plant in all_plants:
             plant_questions_data = []
 
             for q in questions:
@@ -1272,7 +1272,7 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
         context = {
             "plants_data": plants_data,  # WILL CONTAIN ONLY 1 PLANT
             "months": [m[1] for m in MONTHS],
-            "page_obj": page_obj,
+            # "page_obj": page_obj,
             "total_plants": all_plants.count(),
             "total_questions": questions.count(),
         }

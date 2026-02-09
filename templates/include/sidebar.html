@@ -307,7 +307,7 @@
         <li class="nav-item {% if 'incidents' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'incidents' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-exclamation-triangle"></i>
-            <p>Incident Management <i class="right fas fa-angle-left"></i></p>
+            <p>Injury Management <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
@@ -323,7 +323,7 @@
               <a href="{% url 'accidents:incident_create' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'incident_create' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
-                <p>Report Incident</p>
+                <p>Report Injury</p>
               </a>
             </li>
             {% endif %}
@@ -333,7 +333,7 @@
               <a href="{% url 'accidents:incident_list' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'incident_list' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
-                <p>All Incidents</p>
+                <p>All Injuries</p>
               </a>
             </li>
             {% endif %}
@@ -356,6 +356,7 @@
                 <p>Dashboard</p>
               </a>
             </li>
+            {% endif %}
 
             {% if user|has_perm:'CREATE_HAZARD' %}
             <li class="nav-item">
@@ -375,7 +376,21 @@
                 <p>All Hazards</p>
               </a>
             </li>
-            {% endif %}
+            <li class="nav-item">
+              <a href="{% url 'hazards:my_action_items' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'my_action_items' %}active{% endif %}">
+                  <i class="nav-icon fas fa-tasks"></i>
+                  <p>
+                      My Action Items
+                      {% if my_pending_actions_count > 0 %}
+                          <span class="badge badge-danger right">
+                              {{ my_pending_actions_count }}
+                          </span>
+                      {% endif %}
+                  </p>
+              </a>
+            </li>
+
           </ul>
         </li>
         {% endif %}

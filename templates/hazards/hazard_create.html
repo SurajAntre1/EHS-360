@@ -1,5 +1,4 @@
-<!-- templates/hazards/hazard_create.html -->
-<!-- {% extends 'base/base.html' %} -->
+{% extends 'base/base.html' %}
 {% load static %}
 
 {% block title %}Report Hazard / Near Miss{% endblock %}
@@ -14,12 +13,100 @@
         margin-bottom: 20px;
         border-left: 4px solid #007bff;
     }
-
-
+    
+    .hazard-report-card {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 25px;
+        position: relative;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .hazard-report-card.active {
+        border-color: #007bff;
+        box-shadow: 0 4px 12px rgba(0,123,255,0.2);
+    }
+    
+    .hazard-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+    
+    .hazard-card-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .hazard-card-number {
+        background: #007bff;
+        color: white;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .remove-hazard-btn {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+    }
+    
+    .remove-hazard-btn:hover {
+        background: #c82333;
+        transform: scale(1.05);
+    }
+    
+    .add-hazard-container {
+        text-align: center;
+        padding: 30px;
+        margin: 30px 0;
+    }
+    
+    .add-hazard-btn {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        border-radius: 50px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        transition: all 0.3s;
+    }
+    
+    .add-hazard-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,123,255,0.4);
+    }
+    
+    .add-hazard-btn i {
+        margin-right: 10px;
+        font-size: 1.2rem;
+    }
+    
     .photo-item {
         position: relative;
     }
-    
     
     .remove-photo-slot {
         position: absolute;
@@ -39,6 +126,7 @@
         line-height: 1;
         z-index: 10;
     }
+    
     .remove-photo-slot:hover {
         background: #5a6268;
     }
@@ -123,6 +211,11 @@
         background: #e7f3ff;
         border-color: #0056b3;
     }
+    
+    .readonly-field {
+        background-color: #e9ecef !important;
+        cursor: not-allowed;
+    }
 </style>
 {% endblock %}
 
@@ -161,8 +254,24 @@
                 <div class="card-body p-4">
                     <form method="post" enctype="multipart/form-data" id="hazardForm">
                         {% csrf_token %}
+                        {% if form.errors %}
+                            <div class="alert alert-danger">
+                                <h4>⚠️ Form Validation Errors:</h4>
+                                <ul>
+                                    {% for field, errors in form.errors.items %}
+                                        <li><strong>{{ field }}:</strong> {{ errors|join:", " }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
                         
-                        <!-- Reporter Information -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                <h4>⚠️ General Errors:</h4>
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+                        <!-- Reporter Information (Common for all hazards) -->
                         <div class="form-section">
                             <div class="section-title">
                                 <i class="fas fa-user"></i>
@@ -173,45 +282,40 @@
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label class="required-field">Your Name</label>
-                                        <input type="text" name="reporter_name" class="form-control" 
-                                               value="{{ request.user.get_full_name }}" readonly 
-                                               style="background-color: #e9ecef;" required>
+                                        <input type="text" name="reporter_name" class="form-control readonly-field" 
+                                               value="{{ request.user.get_full_name }}" readonly required>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label class="required-field">Date & Time</label>
                                         <input type="datetime-local" name="incident_datetime" id="incident_datetime"
-                                               class="form-control" readonly style="background-color: #e9ecef;" required>
+                                               class="form-control readonly-field" readonly required>
                                         <small class="form-text text-muted">Auto-filled with current date and time</small>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Location Information -->
+                        <!-- Location Information (Common or per hazard) -->
                         <div class="form-section">
                             <div class="section-title">
                                 <i class="fas fa-map-marker-alt"></i>
-                                Location Information
+                                Location Information (Common for all reports)
                             </div>
                             <div class="row">
-                                <!-- Plant Field -->
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label class="required-field">Plant</label>
                                         {% if user_assigned_plants.count == 1 %}
                                             <input type="text" class="form-control readonly-field" readonly value="{{ user_assigned_plants.first.name }} ({{ user_assigned_plants.first.code }})">
-                                            <!-- Still render the hidden form field to pass the value -->
                                             {{ form.plant.as_hidden }}
                                         {% else %}
                                             {{ form.plant }}
                                         {% endif %}
-                                        {{ form.plant.errors }}
                                     </div>
                                 </div>
                                 
-                                <!-- Zone Field -->
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label>Zone</label>
@@ -221,11 +325,9 @@
                                         {% else %}
                                             {{ form.zone }}
                                         {% endif %}
-                                        {{ form.zone.errors }}
                                     </div>
                                 </div>
                                 
-                                <!-- Location Field -->
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label class="required-field">Location</label>
@@ -235,11 +337,9 @@
                                         {% else %}
                                             {{ form.location }}
                                         {% endif %}
-                                        {{ form.location.errors }}
                                     </div>
                                 </div>
 
-                                <!-- Sub-Location Field -->
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label>Sub-Location</label>
@@ -249,218 +349,197 @@
                                         {% else %}
                                             {{ form.sublocation }}
                                         {% endif %}
-                                        {{ form.sublocation.errors }}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label>Additional Location Details</label>
-                                        {{ form.location_details }}
-                                        {{ form.location_details.errors }}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <!-- Reporting On Behalf Of (Checkbox Toggle) -->
-                            <div class="form-section">
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group">
-                                            <div class="custom-control custom-checkbox">
-                                                <!-- This checkbox name is now used in the view to check if the section is active -->
-                                                <input type="checkbox" name="behalf_checkbox" class="custom-control-input" id="behalf_checkbox">
-                                                <label class="custom-control-label" for="behalf_checkbox">
-                                                    <strong>Reporting on behalf of someone else</strong>
-                                                </label>
+
+                        <!-- Dynamic Hazard Reports Container -->
+                        <div id="hazards-container">
+                            <!-- First hazard report (always visible) -->
+                            <div class="hazard-report-card active" data-hazard-index="0">
+                                <div class="hazard-card-header">
+                                    <div class="hazard-card-title">
+                                        <div class="hazard-card-number">1</div>
+                                        <span>Hazard Report #1</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Reporting On Behalf Of -->
+                                <div class="form-section">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <div class="custom-control custom-checkbox">
+                                                    <input type="checkbox" name="hazard_0_behalf_checkbox" class="custom-control-input behalf-checkbox" id="behalf_checkbox_0" data-index="0">
+                                                    <label class="custom-control-label" for="behalf_checkbox_0">
+                                                        <strong>Reporting on behalf of someone else</strong>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="behalf_fields_0" class="behalf-fields" style="display: none;">
+                                        <div class="section-title">
+                                            <i class="fas fa-user-friends"></i>
+                                            Person Details
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label>Employee Name</label>
+                                                    <input type="text" name="hazard_0_behalf_person_name" class="form-control" placeholder="Enter employee's full name">
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label>Department</label>
+                                                    <select name="hazard_0_behalf_person_dept" class="form-control">
+                                                        <option value="">-- Select Department --</option>
+                                                        {% for dept in departments %}
+                                                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <!-- Behalf Fields (Hidden by default) -->
-                                <div id="behalf_fields" style="display: none;">
+
+                                <!-- Report Details -->
+                                <div class="form-section">
                                     <div class="section-title">
-                                        <i class="fas fa-user-friends"></i>
-                                        Person Details
+                                        <i class="fas fa-clipboard-list"></i>
+                                        Report Details
                                     </div>
                                     
                                     <div class="row">
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
                                             <div class="form-group">
-                                                <label>Employee Name</label>
-                                                <!-- UPDATED: Changed from a select dropdown to a text input -->
-                                                <input type="text" name="behalf_person_name" class="form-control" placeholder="Enter employee's full name">
+                                                <label class="required-field">Report Type</label>
+                                                <select name="hazard_0_hazard_type" class="form-control hazard-type-select" required data-index="0">
+                                                    <option value="">-- Select Type --</option>
+                                                    <option value="UA">Unsafe Act (UA)</option>
+                                                    <option value="UC">Unsafe Condition (UC)</option>
+                                                    <option value="NM">Near Miss (NM)</option>
+                                                </select>
                                             </div>
                                         </div>
                                         
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
                                             <div class="form-group">
-                                                <label>Department</label>
-                                                <!-- UPDATED: This dropdown is now independent and always enabled when visible -->
-                                                <select name="behalf_person_dept" id="behalf_person_dept" class="form-control">
-                                                    <option value="">-- Select Department --</option>
-                                                    {% for dept in departments %}
-                                                        <option value="{{ dept.id }}">{{ dept.name }}</option>
-                                                    {% endfor %}
+                                                <label class="required-field">Hazard Category</label>
+                                                <select name="hazard_0_hazard_category" class="form-control" required>
+                                                    <option value="">-- Select Category --</option>
+                                                    <option value="slip_trip_fall">Slip/Trip/Fall</option>
+                                                    <option value="chemical">Chemical</option>
+                                                    <option value="electrical">Electrical</option>
+                                                    <option value="fire">Fire</option>
+                                                    <option value="equipment">Equipment/Machinery</option>
+                                                    <option value="ergonomic">Ergonomic</option>
+                                                    <option value="biological">Biological</option>
+                                                    <option value="environmental">Environmental</option>
+                                                    <option value="confined_space">Confined Space</option>
+                                                    <option value="working_at_height">Working at Height</option>
+                                                    <option value="manual_handling">Manual Handling</option>
+                                                    <option value="noise">Noise/Vibration</option>
+                                                    <option value="temperature">Temperature Extremes</option>
+                                                    <option value="radiation">Radiation</option>
+                                                    <option value="vehicular">Vehicular/Traffic</option>
+                                                    <option value="other">Other</option>
                                                 </select>
-                                                <!-- The helper text is removed as it's no longer auto-filled -->
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label class="required-field">Severity Level</label>
+                                                <select name="hazard_0_severity" class="form-control severity-select" required data-index="0">
+                                                    <option value="">-- Select Severity --</option>
+                                                    <option value="low">Low (30 days)</option>
+                                                    <option value="medium">Medium (15 days)</option>
+                                                    <option value="high">High (7 days)</option>
+                                                    <option value="critical">Critical (1 day)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="deadline_info_0" class="info-box deadline-info" style="display: none;">
+                                        <i class="fas fa-calendar-check"></i> 
+                                        <strong>Action Deadline:</strong> 
+                                        <span class="deadline-text deadline-badge"></span>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label class="required-field">Detailed Description</label>
+                                                <textarea name="hazard_0_hazard_description" class="form-control" rows="4" 
+                                                          placeholder="Describe what you observed, when, where, and any contributing factors..." required></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label>Immediate Actions</label>
+                                                <textarea name="hazard_0_immediate_action" class="form-control" rows="3" 
+                                                          placeholder="Describe any immediate steps taken to address the hazard"></textarea>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                        <!-- Report Type & Details -->
-                        <div class="form-section">
-                            <div class="section-title">
-                                <i class="fas fa-clipboard-list"></i>
-                                Report Details
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label class="required-field">Report Type</label>
-                                        <select name="hazard_type" id="hazard_type" class="form-control" required>
-                                            <option value="">-- Select Type --</option>
-                                            <option value="UA">Unsafe Act (UA)</option>
-                                            <option value="UC">Unsafe Condition (UC)</option>
-                                            <option value="NM">Near Miss (NM)</option>
-                                        </select>
-                                        <small class="form-text text-muted">
-                                            <strong>UA:</strong> Unsafe behavior | 
-                                            <strong>UC:</strong> Unsafe environment | 
-                                            <strong>NM:</strong> Close call
-                                        </small>
+                                <!-- Photos -->
+                                <div class="form-section">
+                                    <div class="section-title">
+                                        <i class="fas fa-camera"></i>
+                                        Upload Photos (Optional)
                                     </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label class="required-field">Hazard Category</label>
-                                        <select name="hazard_category" class="form-control" required>
-                                            <option value="">-- Select Category --</option>
-                                            <option value="slip_trip_fall">Slip/Trip/Fall</option>
-                                            <option value="chemical">Chemical</option>
-                                            <option value="electrical">Electrical</option>
-                                            <option value="fire">Fire</option>
-                                            <option value="equipment">Equipment/Machinery</option>
-                                            <option value="ergonomic">Ergonomic</option>
-                                            <option value="biological">Biological</option>
-                                            <option value="environmental">Environmental</option>
-                                            <option value="confined_space">Confined Space</option>
-                                            <option value="working_at_height">Working at Height</option>
-                                            <option value="manual_handling">Manual Handling</option>
-                                            <option value="noise">Noise/Vibration</option>
-                                            <option value="temperature">Temperature Extremes</option>
-                                            <option value="radiation">Radiation</option>
-                                            <option value="vehicular">Vehicular/Traffic</option>
-                                            <option value="other">Other</option>
-                                        </select>
+                                    
+                                    <div class="photo-container row" data-hazard-index="0">
+                                        <div class="col-md-4 mb-3 photo-item">
+                                            <div class="add-photo-btn" onclick="document.getElementById('hazard_0_photo_0').click()">
+                                                <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
+                                                <p class="mb-0">Click to add photo</p>
+                                            </div>
+                                            <input type="file" name="hazard_0_photo_0" id="hazard_0_photo_0" 
+                                                   class="d-none photo-input" accept="image/*" 
+                                                   data-hazard-index="0" data-photo-index="0">
+                                            <div id="preview_0_0" class="mt-2"></div>
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label class="required-field">Severity Level</label>
-                                        <select name="severity" id="severity" class="form-control" required>
-                                            <option value="">-- Select Severity --</option>
-                                            <option value="low">Low (30 days)</option>
-                                            <option value="medium">Medium (15 days)</option>
-                                            <option value="high">High (7 days)</option>
-                                            <option value="critical">Critical (1 day)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Deadline Info Display -->
-                            <div id="deadline_info" class="info-box" style="display: none;">
-                                <i class="fas fa-calendar-check"></i> 
-                                <strong>Action Deadline:</strong> 
-                                <span id="deadline_text" class="deadline-badge"></span>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label class="required-field">Detailed Description</label>
-                                        <textarea name="hazard_description" class="form-control" rows="4" 
-                                                  placeholder="Describe what you observed, when, where, and any contributing factors..." required></textarea>
-                                    </div>
-                                </div>
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label class="mt-3">Immediate Actions</label>
-                                        <textarea name="immediate_action" class="form-control" rows="3" 
-                                                  placeholder="Describe any immediate steps taken to address the hazard"></textarea>
-
-                                    </div>
-
+                                    
+                                    <button type="button" class="btn btn-outline-primary btn-sm mt-2 add-more-photos" data-hazard-index="0">
+                                        <i class="fas fa-plus"></i> Add More Photos
+                                    </button>
+                                    <input type="hidden" name="hazard_0_photo_count" class="photo-count" value="1">
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Photos -->
-                        <div class="form-section">
-                            <div class="section-title">
-                                <i class="fas fa-camera"></i>
-                                Upload Photos (Optional)
-                            </div>
-                            
-                            <p class="text-muted mb-3">Add photos of the hazard</p>
-                            
-                            <div id="photo-container" class="row">
-                                <!-- Initial photo upload -->
-                                <div class="col-md-4 mb-3 photo-item">
-                                    <div class="add-photo-btn" onclick="document.getElementById('photo_0').click()">
-                                        <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
-                                        <p class="mb-0">Click to add photo</p>
-                                    </div>
-                                    <input type="file" name="photo_0" id="photo_0" 
-                                           class="d-none photo-input" accept="image/*" 
-                                           data-index="0">
-                                    <div id="preview_0" class="mt-2"></div>
-                                </div>
-                            </div>
-                            
-                            <button type="button" id="add-more-photos" class="btn btn-outline-primary btn-sm mt-2">
-                                <i class="fas fa-plus"></i> Add More Photos
+                        <!-- Add Another Hazard Button -->
+                        <div class="add-hazard-container">
+                            <button type="button" id="add-another-hazard-btn" class="add-hazard-btn">
+                                <i class="fas fa-plus-circle"></i>
+                                Add Another Hazard Report
                             </button>
+                            <p class="text-muted mt-2">Report multiple hazards in a single submission</p>
                         </div>
-
-                        <!-- Additional Information -->
-                        <!-- <div class="form-section">
-                            <div class="section-title">
-                                <i class="fas fa-info-circle"></i>
-                                Additional Information
-                            </div> -->
-                            
-                            <!-- <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label>Immediate Actions Taken</label>
-                                        <textarea name="immediate_action" class="form-control" rows="3" 
-                                                  placeholder="Describe any immediate steps taken to address the hazard"></textarea>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> -->
 
                         <!-- Hidden Fields -->
+                        <input type="hidden" name="hazard_count" id="hazard_count" value="1">
                         <input type="hidden" name="report_timestamp" id="report_timestamp">
                         <input type="hidden" name="user_agent" id="user_agent">
                         <input type="hidden" name="report_source" value="web_portal">
-                        <input type="hidden" name="photo_count" id="photo_count" value="1">
 
                         <!-- Submit Buttons -->
                         <div class="row mt-4">
                             <div class="col-12">
                                 <button type="submit" class="btn btn-primary btn-lg px-5">
-                                    <i class="fas fa-paper-plane"></i> Submit Report
+                                    <i class="fas fa-paper-plane"></i> Submit Report(s)
                                 </button>
                                 <a href="{% url 'hazards:hazard_list' %}" class="btn btn-outline-secondary btn-lg ml-2">
                                     <i class="fas fa-times"></i> Cancel
@@ -474,142 +553,20 @@
     </div>
 </div>
 {% endblock %}
+
 {% block extra_js %}
 <script>
 $(document).ready(function() {
     let isSubmitting = false;
-    // =========================================================================
-    // DATE & SYSTEM FIELDS
-    // =========================================================================
+    let hazardCount = 1;
+    
+    // Initialize date/time and system fields
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const currentDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-
+    const currentDateTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     $('#incident_datetime').val(currentDateTime);
     $('#report_timestamp').val(new Date().toISOString());
     $('#user_agent').val(navigator.userAgent);
-
-    // =========================================================================
-    // BEHALF OF SOMEONE TOGGLE
-    // =========================================================================
-    $('#behalf_checkbox').change(function() {
-        if ($(this).is(':checked')) {
-            $('#behalf_fields').slideDown();
-        } else {
-            $('#behalf_fields').slideUp();
-            $('input[name="behalf_person_name"]').val('');
-            $('#behalf_person_dept').val('');
-        }
-    });
-
-    $('#behalf_person_id').change(function() {
-        const deptId = $(this).find('option:selected').data('dept');
-        $('#behalf_person_dept').val(deptId || '');
-    });
-
-    // =========================================================================
-    // SEVERITY & DEADLINE LOGIC
-    // =========================================================================
-    $('#severity').change(function() {
-        const severity = $(this).val();
-
-        if (severity) {
-            const deadlineInfo = {
-                'low': { days: 30, text: '30 days to resolve', class: 'deadline-low' },
-                'medium': { days: 15, text: '15 days to resolve', class: 'deadline-medium' },
-                'high': { days: 7, text: '7 days to resolve', class: 'deadline-high' },
-                'critical': { days: 1, text: '1 day to resolve (URGENT)', class: 'deadline-high' }
-            };
-
-            const info = deadlineInfo[severity];
-            const deadline = new Date();
-            deadline.setDate(deadline.getDate() + info.days);
-
-            const deadlineText = deadline.toLocaleDateString('en-IN', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            });
-
-            $('#deadline_text')
-                .text(`${deadlineText} (${info.text})`)
-                .attr('class', 'deadline-badge ' + info.class);
-
-            $('#deadline_info').slideDown();
-        } else {
-            $('#deadline_info').slideUp();
-        }
-    });
-
-    // =========================================================================
-    // PHOTO UPLOAD & PREVIEW
-    // =========================================================================
-    let photoCount = 1;
-
-    $(document).on('change', '.photo-input', function() {
-        const input = this;
-        const index = $(this).data('index');
-        const previewId = `preview_${index}`;
-
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                $(`#${previewId}`).html(`
-                    <div class="photo-preview">
-                        <img src="${e.target.result}" alt="Preview">
-                        <button type="button" class="remove-photo" data-index="${index}">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                `);
-                $(input).siblings('.add-photo-btn').hide();
-                $(input).closest('.photo-item').find('.remove-photo-slot').hide();
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    });
-
-    $(document).on('click', '.remove-photo', function() {
-        const index = $(this).data('index');
-        $(`#photo_${index}`).val('');
-        $(`#preview_${index}`).html('');
-        $(`#photo_${index}`).siblings('.add-photo-btn').show();
-        $(`#photo_${index}`).closest('.photo-item').find('.remove-photo-slot').show();
-    });
- 
-    $('#add-more-photos').click(function() {
-        const newIndex = photoCount;
-
-        const newPhotoHtml = `
-            <div class="col-md-4 mb-3 photo-item">
-                <button type="button" class="remove-photo-slot" title="Remove this slot">&times;</button>
-
-                <div class="add-photo-btn" onclick="document.getElementById('photo_${newIndex}').click()">
-                    <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
-                    <p class="mb-0">Click to add photo</p>
-                </div>
-
-                <input type="file" name="photo_${newIndex}" id="photo_${newIndex}"
-                       class="d-none photo-input" accept="image/*"
-                       data-index="${newIndex}">
-
-                <div id="preview_${newIndex}" class="mt-2"></div>
-            </div>
-        `;
-
-        $('#photo-container').append(newPhotoHtml);
-        photoCount++;
-        $('#photo_count').val(photoCount);
-    });
-
-    $(document).on('click', '.remove-photo-slot', function() {
-        $(this).closest('.photo-item').remove();
-    });
-
+    
     // =========================================================================
     // DEPENDENT DROPDOWNS (PLANT → ZONE → LOCATION → SUBLOCATION)
     // =========================================================================
@@ -645,7 +602,8 @@ $(document).ready(function() {
             resetSelect(sublocationSelect, 'Select Location First');
 
             if (plantId) {
-                const url = `{% url 'hazards:ajax_get_zones_by_plant' 0 %}`.replace('0', plantId);
+                // ✅ FIXED: Use the correct URL pattern name
+                const url = `/hazards/api/get-zones/${plantId}/`;
                 fetchAndPopulate(url, zoneSelect, 'Select Zone');
             } else {
                 resetSelect(zoneSelect, 'Select Plant First');
@@ -659,7 +617,8 @@ $(document).ready(function() {
             resetSelect(sublocationSelect, 'Select Location First');
 
             if (zoneId) {
-                const url = `{% url 'hazards:ajax_get_locations_by_zone' 0 %}`.replace('0', zoneId);
+                // ✅ FIXED: Use the correct URL pattern name
+                const url = `/hazards/api/get-locations/${zoneId}/`;
                 fetchAndPopulate(url, locationSelect, 'Select Location');
             } else {
                 resetSelect(locationSelect, 'Select Zone First');
@@ -672,22 +631,323 @@ $(document).ready(function() {
             const locationId = this.value;
 
             if (locationId) {
-                const url = `{% url 'hazards:ajax_get_sublocations_by_location' 0 %}`.replace('0', locationId);
+                // ✅ FIXED: Use the correct URL pattern name
+                const url = `/hazards/api/get-sublocations/${locationId}/`;
                 fetchAndPopulate(url, sublocationSelect, 'Select Sub-Location');
             } else {
                 resetSelect(sublocationSelect, 'Select Location First');
             }
         });
     }
-    // for multiple submit
-    $('#hazardForm').on('submit',function(e){
-        if(isSubmitting){
+    
+    // =========================================================================
+    // BEHALF OF SOMEONE TOGGLE
+    // =========================================================================
+    $(document).on('change', '.behalf-checkbox', function() {
+        const index = $(this).data('index');
+        if ($(this).is(':checked')) {
+            $(`#behalf_fields_${index}`).slideDown();
+        } else {
+            $(`#behalf_fields_${index}`).slideUp();
+            $(`input[name="hazard_${index}_behalf_person_name"]`).val('');
+            $(`select[name="hazard_${index}_behalf_person_dept"]`).val('');
+        }
+    });
+    
+    // =========================================================================
+    // SEVERITY & DEADLINE LOGIC
+    // =========================================================================
+    $(document).on('change', '.severity-select', function() {
+        const index = $(this).data('index');
+        const severity = $(this).val();
+        
+        if (severity) {
+            const deadlineInfo = {
+                'low': { days: 30, text: '30 days to resolve', class: 'deadline-low' },
+                'medium': { days: 15, text: '15 days to resolve', class: 'deadline-medium' },
+                'high': { days: 7, text: '7 days to resolve', class: 'deadline-high' },
+                'critical': { days: 1, text: '1 day to resolve (URGENT)', class: 'deadline-high' }
+            };
+            
+            const info = deadlineInfo[severity];
+            const deadline = new Date();
+            deadline.setDate(deadline.getDate() + info.days);
+            const deadlineText = deadline.toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+            
+            $(`#deadline_info_${index} .deadline-text`)
+                .text(`${deadlineText} (${info.text})`)
+                .attr('class', 'deadline-badge ' + info.class);
+            $(`#deadline_info_${index}`).slideDown();
+        } else {
+            $(`#deadline_info_${index}`).slideUp();
+        }
+    });
+    
+    // =========================================================================
+    // PHOTO UPLOAD & PREVIEW
+    // =========================================================================
+    $(document).on('change', '.photo-input', function() {
+        const input = this;
+        const hazardIndex = $(this).data('hazard-index');
+        const photoIndex = $(this).data('photo-index');
+        const previewId = `preview_${hazardIndex}_${photoIndex}`;
+        
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                $(`#${previewId}`).html(`
+                    <div class="photo-preview">
+                        <img src="${e.target.result}" alt="Preview">
+                        <button type="button" class="remove-photo" data-hazard-index="${hazardIndex}" data-photo-index="${photoIndex}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `);
+                $(input).siblings('.add-photo-btn').hide();
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    });
+    
+    $(document).on('click', '.remove-photo', function() {
+        const hazardIndex = $(this).data('hazard-index');
+        const photoIndex = $(this).data('photo-index');
+        $(`#hazard_${hazardIndex}_photo_${photoIndex}`).val('');
+        $(`#preview_${hazardIndex}_${photoIndex}`).html('');
+        $(`#hazard_${hazardIndex}_photo_${photoIndex}`).siblings('.add-photo-btn').show();
+    });
+    
+    $(document).on('click', '.add-more-photos', function() {
+        const hazardIndex = $(this).data('hazard-index');
+        const container = $(`.photo-container[data-hazard-index="${hazardIndex}"]`);
+        const photoCountInput = container.closest('.form-section').find('.photo-count');
+        const currentCount = parseInt(photoCountInput.val());
+        const newPhotoIndex = currentCount;
+        
+        const newPhotoHtml = `
+            <div class="col-md-4 mb-3 photo-item">
+                <button type="button" class="remove-photo-slot" data-hazard-index="${hazardIndex}" data-photo-index="${newPhotoIndex}">&times;</button>
+                <div class="add-photo-btn" onclick="document.getElementById('hazard_${hazardIndex}_photo_${newPhotoIndex}').click()">
+                    <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
+                    <p class="mb-0">Click to add photo</p>
+                </div>
+                <input type="file" name="hazard_${hazardIndex}_photo_${newPhotoIndex}" id="hazard_${hazardIndex}_photo_${newPhotoIndex}"
+                       class="d-none photo-input" accept="image/*"
+                       data-hazard-index="${hazardIndex}" data-photo-index="${newPhotoIndex}">
+                <div id="preview_${hazardIndex}_${newPhotoIndex}" class="mt-2"></div>
+            </div>
+        `;
+        
+        container.append(newPhotoHtml);
+        photoCountInput.val(currentCount + 1);
+    });
+    
+    $(document).on('click', '.remove-photo-slot', function() {
+        $(this).closest('.photo-item').remove();
+    });
+    
+    // =========================================================================
+    // ADD ANOTHER HAZARD FUNCTIONALITY
+    // =========================================================================
+    $('#add-another-hazard-btn').click(function() {
+        const newIndex = hazardCount;
+        const hazardTemplate = createHazardTemplate(newIndex);
+        $('#hazards-container').append(hazardTemplate);
+        hazardCount++;
+        $('#hazard_count').val(hazardCount);
+        updateHazardNumbers();
+    });
+    
+    function createHazardTemplate(index) {
+        return `
+            <div class="hazard-report-card" data-hazard-index="${index}">
+                <div class="hazard-card-header">
+                    <div class="hazard-card-title">
+                        <div class="hazard-card-number">${index + 1}</div>
+                        <span>Hazard Report #${index + 1}</span>
+                    </div>
+                    <button type="button" class="remove-hazard-btn" data-index="${index}">
+                        <i class="fas fa-trash-alt"></i> Remove
+                    </button>
+                </div>
+                
+                <!-- Behalf Section -->
+                <div class="form-section">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" name="hazard_${index}_behalf_checkbox" class="custom-control-input behalf-checkbox" id="behalf_checkbox_${index}" data-index="${index}">
+                                    <label class="custom-control-label" for="behalf_checkbox_${index}">
+                                        <strong>Reporting on behalf of someone else</strong>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="behalf_fields_${index}" class="behalf-fields" style="display: none;">
+                        <div class="section-title">
+                            <i class="fas fa-user-friends"></i>
+                            Person Details
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Employee Name</label>
+                                    <input type="text" name="hazard_${index}_behalf_person_name" class="form-control" placeholder="Enter employee's full name">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Department</label>
+                                    <select name="hazard_${index}_behalf_person_dept" class="form-control">
+                                        <option value="">-- Select Department --</option>
+                                        {% for dept in departments %}
+                                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Details -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-clipboard-list"></i>
+                        Report Details
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="required-field">Report Type</label>
+                                <select name="hazard_${index}_hazard_type" class="form-control hazard-type-select" required data-index="${index}">
+                                    <option value="">-- Select Type --</option>
+                                    <option value="UA">Unsafe Act (UA)</option>
+                                    <option value="UC">Unsafe Condition (UC)</option>
+                                    <option value="NM">Near Miss (NM)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="required-field">Hazard Category</label>
+                                <select name="hazard_${index}_hazard_category" class="form-control" required>
+                                    <option value="">-- Select Category --</option>
+                                    <option value="slip_trip_fall">Slip/Trip/Fall</option>
+                                    <option value="chemical">Chemical</option>
+                                    <option value="electrical">Electrical</option>
+                                    <option value="fire">Fire</option>
+                                    <option value="equipment">Equipment/Machinery</option>
+                                    <option value="ergonomic">Ergonomic</option>
+                                    <option value="biological">Biological</option>
+                                    <option value="environmental">Environmental</option>
+                                    <option value="confined_space">Confined Space</option>
+                                    <option value="working_at_height">Working at Height</option>
+                                    <option value="manual_handling">Manual Handling</option>
+                                    <option value="noise">Noise/Vibration</option>
+                                    <option value="temperature">Temperature Extremes</option>
+                                    <option value="radiation">Radiation</option>
+                                    <option value="vehicular">Vehicular/Traffic</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="required-field">Severity Level</label>
+                                <select name="hazard_${index}_severity" class="form-control severity-select" required data-index="${index}">
+                                    <option value="">-- Select Severity --</option>
+                                    <option value="low">Low (30 days)</option>
+                                    <option value="medium">Medium (15 days)</option>
+                                    <option value="high">High (7 days)</option>
+                                    <option value="critical">Critical (1 day)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="deadline_info_${index}" class="info-box deadline-info" style="display: none;">
+                        <i class="fas fa-calendar-check"></i> 
+                        <strong>Action Deadline:</strong> 
+                        <span class="deadline-text deadline-badge"></span>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="required-field">Detailed Description</label>
+                                <textarea name="hazard_${index}_hazard_description" class="form-control" rows="4" required placeholder="Describe what you observed..."></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Immediate Actions</label>
+                                <textarea name="hazard_${index}_immediate_action" class="form-control" rows="3" placeholder="Describe any immediate steps taken..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Photos -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-camera"></i>
+                        Upload Photos (Optional)
+                    </div>
+                    <div class="photo-container row" data-hazard-index="${index}">
+                        <div class="col-md-4 mb-3 photo-item">
+                            <div class="add-photo-btn" onclick="document.getElementById('hazard_${index}_photo_0').click()">
+                                <i class="fas fa-plus-circle fa-2x text-primary mb-2"></i>
+                                <p class="mb-0">Click to add photo</p>
+                            </div>
+                            <input type="file" name="hazard_${index}_photo_0" id="hazard_${index}_photo_0" 
+                                   class="d-none photo-input" accept="image/*" 
+                                   data-hazard-index="${index}" data-photo-index="0">
+                            <div id="preview_${index}_0" class="mt-2"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm mt-2 add-more-photos" data-hazard-index="${index}">
+                        <i class="fas fa-plus"></i> Add More Photos
+                    </button>
+                    <input type="hidden" name="hazard_${index}_photo_count" class="photo-count" value="1">
+                </div>
+            </div>
+        `;
+    }
+    
+    // Remove hazard
+    $(document).on('click', '.remove-hazard-btn', function() {
+        if (confirm('Are you sure you want to remove this hazard report?')) {
+            $(this).closest('.hazard-report-card').remove();
+            hazardCount--;
+            $('#hazard_count').val(hazardCount);
+            updateHazardNumbers();
+        }
+    });
+    
+    function updateHazardNumbers() {
+        $('.hazard-report-card').each(function(index) {
+            $(this).find('.hazard-card-number').text(index + 1);
+            $(this).find('.hazard-card-title span').text(`Hazard Report #${index + 1}`);
+        });
+    }
+    
+    // Form submission
+    $('#hazardForm').on('submit', function(e) {
+        if(isSubmitting) {
             e.preventDefault();
             return false;
         }
         isSubmitting = true;
         const $submitBtn = $(this).find('button[type="submit"]');
-        $submitBtn.prop('disabled',true);
+        $submitBtn.prop('disabled', true);
         $submitBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...');
     });
 });

@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}Unit Management{% endblock %}
-{% block page_title %}Unit Management{% endblock %}
+{% block page_title %}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -427,6 +427,21 @@
 .badge-info {
     background: var(--info-color);
     color: white;
+}
+.ehs-card > .card-header.bg-primary {
+    background: #2196f3 !important;
+    background-image: none !important;
+    color: #ffffff !important;
+    padding: 34px !important;
+}
+
+.ehs-card > .card-header.bg-primary * {
+    color: #ffffff !important;
+}
+
+.ehs-card > .card-header::before,
+.ehs-card > .card-header::after {
+    display: none !important;
 }
 </style>
 {% endblock %}

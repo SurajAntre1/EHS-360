@@ -1,8 +1,8 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Incident Management Dashboard{% endblock %}
-{% block page_title %}Incident Management Dashboard{% endblock %}
+{% block title %}Injury Management Dashboard{% endblock %}
+{% block page_title %}Injury Management Dashboard{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -285,7 +285,7 @@
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
-<li class="breadcrumb-item active">Incident Management Dashboard</li>
+<li class="breadcrumb-item active">Injury Management Dashboard</li>
 {% endblock %}
 
 {% block content %}
@@ -422,7 +422,7 @@
                 <div class="position-relative">
                     <i class="fas fa-exclamation-triangle stat-icon"></i>
                     <p class="stat-number">{{ total_incidents }}</p>
-                    <p class="stat-label">Total Incidents</p>
+                    <p class="stat-label">Total Injuries</p>
                     {% if total_incidents_change != 0 %}
                     <p class="stat-change {% if total_incidents_change > 0 %}up{% else %}down{% endif %}">
                         <i class="fas fa-arrow-{% if total_incidents_change > 0 %}up{% else %}down{% endif %}"></i>
@@ -445,7 +445,7 @@
                 <div class="position-relative">
                     <i class="fas fa-folder-open stat-icon"></i>
                     <p class="stat-number">{{ open_incidents }}</p>
-                    <p class="stat-label">Open Incidents</p>
+                    <p class="stat-label">Open Injuries</p>
                     <p class="stat-change text-muted">
                         Require attention
                     </p>
@@ -499,7 +499,7 @@
         <div class="dashboard-card">
             <div class="card-body">
                 <div class="section-header">
-                    <h5><i class="fas fa-chart-pie mr-2"></i>Incidents by Type</h5>
+                    <h5><i class="fas fa-chart-pie mr-2"></i>Injuries by Type</h5>
                 </div>
                 <div class="chart-container">
                     <canvas id="incidentTypeChart"></canvas>
@@ -687,7 +687,7 @@
             {% if recent_incidents %}
             <div class="text-center mt-3">
                 <a href="{% url 'accidents:incident_list' %}" class="btn btn-outline-primary">
-                    <i class="fas fa-arrow-right mr-2"></i>View All Incidents
+                    <i class="fas fa-arrow-right mr-2"></i>View All Injuries
                 </a>
             </div>
             {% endif %}

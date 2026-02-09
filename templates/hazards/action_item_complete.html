@@ -1,0 +1,153 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Complete Action Item{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>
+                    <i class="fas fa-check-circle text-success"></i>
+                    Complete Action Item
+                </h3>
+                <a href="{% url 'hazards:my_action_items' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to My Actions
+                </a>
+            </div>
+
+            <!-- Hazard Summary -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                        Related Hazard
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Report Number:</strong> 
+                                <span class="badge badge-info">{{ hazard.report_number }}</span>
+                            </p>
+                            <p><strong>Type:</strong> {{ hazard.get_hazard_type_display }}</p>
+                            <p><strong>Severity:</strong>
+                                <span class="badge badge-{% if hazard.severity == 'critical' %}dark{% elif hazard.severity == 'high' %}danger{% elif hazard.severity == 'medium' %}warning{% else %}success{% endif %}">
+                                    {{ hazard.get_severity_display }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Location:</strong> {{ hazard.plant.name }}</p>
+                            <p><strong>Reported:</strong> {{ hazard.incident_datetime|date:"d M Y" }}</p>
+                            <p><strong>Description:</strong> {{ hazard.hazard_description|truncatewords:15 }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Item Details -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks"></i>
+                        Action Item Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <strong>Action Description:</strong>
+                            <p class="mt-2 p-3 bg-light border-left border-primary">
+                                {{ action_item.action_description }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Target Date:</strong> {{ action_item.target_date|date:"d F Y" }}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="badge badge-warning">{{ action_item.get_status_display }}</span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Created By:</strong> 
+                                {% if action_item.created_by %}
+                                    {{ action_item.created_by.get_full_name }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </p>
+                            {% if action_item.attachment %}
+                            <p><strong>Attachment:</strong> 
+                                <a href="{{ action_item.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-paperclip"></i> View Attachment
+                                </a>
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completion Form -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-check"></i>
+                        Mark as Completed
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">
+                                <i class="fas fa-calendar"></i> Completion Date
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="completion_date" class="form-control" 
+                                   value="{{ today|date:'Y-m-d' }}" required>
+                            <small class="form-text text-muted">
+                                Date when the action was completed
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">
+                                <i class="fas fa-comment-alt"></i> Completion Remarks
+                                <span class="text-danger">*</span>
+                            </label>
+                            <textarea name="completion_remarks" class="form-control" rows="5" required
+                                      placeholder="Describe what actions were taken, results achieved, and any relevant details..."></textarea>
+                            <small class="form-text text-muted">
+                                Provide detailed information about how the action was completed
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold">
+                                <i class="fas fa-paperclip"></i> Upload Proof/Attachment (Optional)
+                            </label>
+                            <input type="file" name="completion_attachment" class="form-control-file">
+                            <small class="form-text text-muted">
+                                Upload photos, documents, or other proof of completion (if applicable)
+                            </small>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-success btn-lg px-5">
+                                <i class="fas fa-check-circle"></i> Mark as Completed
+                            </button>
+                            <a href="{% url 'hazards:my_action_items' %}" class="btn btn-outline-secondary btn-lg ml-2">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

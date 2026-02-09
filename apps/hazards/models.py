@@ -317,47 +317,25 @@ class Hazard(models.Model):
         
     def update_status_from_action_items(self):
         """
-        Updates the hazard's status based on the state of its action items.
-        This logic respects final states (CLOSED, REJECTED) and the approval workflow.
+        Update hazard status based on action items progress
         """
-        # Do not automatically change the status if it's in a final state.
-        if self.status in ['CLOSED', 'REJECTED']:
-            return
-        
-        # ✅ NEW: Don't auto-update if still in pre-approval stages
-        # Let the approval process handle the transition to post-approval statuses
-        if self.status in ['REPORTED', 'PENDING_APPROVAL']:
-            return
-
         action_items = self.action_items.all()
-        total_items = action_items.count()
-        new_status = self.status  # Default to the current status
-
-        if total_items == 0:
-            # If all action items have been removed, revert to APPROVED
-            if self.status in ['ACTION_ASSIGNED', 'IN_PROGRESS', 'RESOLVED']:
-                new_status = 'APPROVED'
-        else:
-            # Action items exist, so determine the status based on their progress.
-            completed_items = action_items.filter(status='COMPLETED').count()
-            in_progress_items = action_items.filter(status='IN_PROGRESS').count()
-            overdue_items = action_items.filter(status='OVERDUE').count()
-
-            if completed_items == total_items:
-                # All action items are completed, so the hazard is resolved.
-                new_status = 'RESOLVED'
-            elif in_progress_items > 0 or overdue_items > 0:
-                # If any action item is 'In Progress' or 'Overdue', the hazard is 'In Progress'.
-                new_status = 'IN_PROGRESS'
-            else:
-                # If items exist but none are 'In Progress' (i.e., they are all 'PENDING'),
-                # the status is 'Action Assigned'.
-                new_status = 'ACTION_ASSIGNED'
         
-        # To prevent recursion and unnecessary database writes, only save if the status has changed.
-        if self.status != new_status:
-            self.status = new_status
-            self.save(update_fields=['status'])  
+        if not action_items.exists():
+            return
+        
+        # Check if all action items are completed
+        all_completed = all(item.status == 'COMPLETED' for item in action_items)
+        
+        if all_completed:
+            self.status = 'RESOLVED'
+            self.save(update_fields=['status'])
+        elif action_items.filter(status='IN_PROGRESS').exists():
+            self.status = 'IN_PROGRESS'
+            self.save(update_fields=['status'])
+        elif action_items.filter(status='PENDING').exists() and self.status == 'REPORTED':
+            self.status = 'ACTION_ASSIGNED'
+            self.save(update_fields=['status'])      
         
     @property
     def is_action_overdue(self):
@@ -432,6 +410,17 @@ class Hazard(models.Model):
             parts.append(self.sublocation.name)
         return ' → '.join(parts)
 
+    def get_severity_deadline_days(self):
+        """
+        Returns the number of days until deadline based on severity level
+        """
+        severity_days_map = {
+            'low': 30,
+            'medium': 15,
+            'high': 7,
+            'critical': 1
+        }
+        return severity_days_map.get(self.severity, 15)
 
 class HazardPhoto(models.Model):
     """Photos related to hazard"""
@@ -503,7 +492,22 @@ class HazardActionItem(models.Model):
         help_text="Email addresses of responsible persons (comma-separated)"
     )
     
-    # NEW: Attachment field
+    # NEW FIELDS
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hazard_actions_created',
+        help_text="User who created this action item"
+    )
+    
+    is_self_assigned = models.BooleanField(
+        default=False,
+        help_text="Whether this action was self-assigned and completed"
+    )
+    
+    # Attachment field
     attachment = models.FileField(
         upload_to='action_item_attachments/%Y/%m/',
         help_text="Required file attachment (documents, images, etc.)"
@@ -567,6 +571,13 @@ class HazardActionItem(models.Model):
         """Return count of emails"""
         return len(self.get_emails_list())
     
+    def get_responsible_users(self):
+        """Get User objects for assigned emails"""
+        emails = self.get_emails_list()
+        if emails:
+            return User.objects.filter(email__in=emails)
+        return User.objects.none()
+    
     def get_attachment_name(self):
         """Get filename from attachment"""
         if self.attachment:
@@ -587,10 +598,10 @@ class HazardActionItem(models.Model):
     @property
     def is_overdue(self):
         """Check if action item is overdue"""
-        if self.status != 'COMPLETED' and self.target_date:
-            return datetime.date.today() > self.target_date
-        return False
-    
+        if self.status == 'COMPLETED':
+            return False
+        return self.target_date < timezone.now().date()
+        
     @property
     def days_until_deadline(self):
         """Calculate days until deadline"""
