@@ -13,7 +13,7 @@
 <div class="container-fluid">
     <!-- Top Stats Cards -->
     <div class="row">
-        <div class="col-md-4">
+        <!-- <div class="col-md-4">
             <div class="info-box bg-warning">
                 <span class="info-box-icon"><i class="fas fa-clock"></i></span>
                 <div class="info-box-content">
@@ -21,8 +21,8 @@
                     <span class="info-box-number">{{ total_pending }}</span>
                 </div>
             </div>
-        </div>
-        <div class="col-md-4">
+        </div> -->
+        <!-- <div class="col-md-4">
             <div class="info-box bg-success">
                 <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
                 <div class="info-box-content">
@@ -30,13 +30,31 @@
                     <span class="info-box-number">{{ pending_hazards_count }}</span>
                 </div>
             </div>
-        </div>
+        </div> -->
         <div class="col-md-4">
             <div class="info-box bg-danger">
                 <span class="info-box-icon"><i class="fas fa-exclamation-circle"></i></span>
                 <div class="info-box-content">
                     <span class="info-box-text">Incidents Pending</span>
                     <span class="info-box-number">{{ pending_incidents_count }}</span>
+                </div>
+            </div>
+        </div>
+         <div class="col-md-4">
+            <div class="info-box bg-success">
+                <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Approved Incidents</span>
+                    <span class="info-box-number">{{ approved_incidents|length }}</span>
+                </div>
+            </div>
+        </div>
+         <div class="col-md-4">
+            <div class="info-box bg-warning">
+                <span class="info-box-icon"><i class="fas fa-exclamation-circle"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Rejected Incidents</span>
+                    <span class="info-box-number">{{ rejected_incidents|length }}</span>
                 </div>
             </div>
         </div>
@@ -48,7 +66,7 @@
             <ul class="nav nav-tabs" id="approval-tabs" role="tablist">
                 <li class="nav-item">
                     <a class="nav-link active" id="pending-tab" data-toggle="pill" href="#pending" role="tab">
-                        <i class="fas fa-clock mr-2"></i>Pending <span class="badge badge-warning">{{ total_pending }}</span>
+                        <i class="fas fa-clock mr-2"></i>Pending 
                     </a>
                 </li>
                 <li class="nav-item">
@@ -67,17 +85,17 @@
             <div class="tab-content" id="approval-tabs-content">
                 <!-- Pending Tab Content -->
                 <div class="tab-pane fade show active" id="pending" role="tabpanel">
-                    {% include 'dashboards/partials/approval_tab_content.html' with items=pending_hazards item_type='Hazard' detail_url_name='hazards:hazard_detail' approve_url_name='hazards:hazard_approve' %}
+                    <!-- {% include 'dashboards/partials/approval_tab_content.html' with items=pending_hazards item_type='Hazard' detail_url_name='hazards:hazard_detail' approve_url_name='hazards:hazard_approve' %} -->
                     {% include 'dashboards/partials/approval_tab_content.html' with items=pending_incidents item_type='Incident' detail_url_name='accidents:incident_detail' approve_url_name='accidents:incident_approve' %}
                 </div>
                 <!-- Approved Tab Content -->
                 <div class="tab-pane fade" id="approved" role="tabpanel">
-                    {% include 'dashboards/partials/approval_tab_content.html' with items=approved_hazards item_type='Hazard' detail_url_name='hazards:hazard_detail' hide_actions=True %}
+                    <!-- {% include 'dashboards/partials/approval_tab_content.html' with items=approved_hazards item_type='Hazard' detail_url_name='hazards:hazard_detail' hide_actions=True %} -->
                     {% include 'dashboards/partials/approval_tab_content.html' with items=approved_incidents item_type='Incident' detail_url_name='accidents:incident_detail' hide_actions=True %}
                 </div>
                 <!-- Rejected Tab Content -->
                 <div class="tab-pane fade" id="rejected" role="tabpanel">
-                    {% include 'dashboards/partials/approval_tab_content.html' with items=rejected_hazards item_type='Hazard' detail_url_name='hazards:hazard_detail' hide_actions=True %}
+                    <!-- {% include 'dashboards/partials/approval_tab_content.html' with items=rejected_hazards item_type='Hazard' detail_url_name='hazards:hazard_detail' hide_actions=True %} -->
                     {% include 'dashboards/partials/approval_tab_content.html' with items=rejected_incidents item_type='Incident' detail_url_name='accidents:incident_detail' hide_actions=True %}
                 </div>
             </div>

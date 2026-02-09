@@ -84,30 +84,38 @@ class HazardListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
+        # Get the current logged-in user
         user = self.request.user
         
+        # Start with the base queryset, fetching related objects to optimize queries
         queryset = Hazard.objects.select_related('plant', 'location', 'reported_by').order_by('-incident_datetime')
 
-        # Role-based filtering
+        # --- ROLE-BASED DATA FILTERING ---
+        # Check if the user is a superuser or has an ADMIN role
         if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
+            # No filtering needed; they can see all records
             pass
+        # Check if the user has an EMPLOYEE role
         elif hasattr(user, 'role') and user.role and user.role.name == 'EMPLOYEE':
+            # Filter the queryset to show only records reported by the current user
             queryset = queryset.filter(reported_by=user)
+        # Check if the user is associated with a specific plant (for roles like PLANT HEAD, etc.)
         elif user.plant:
             queryset = queryset.filter(plant=user.plant)
         else:
+            # As a fallback, if no specific role logic applies, show only self-reported records
             queryset = queryset.filter(reported_by=user)
 
-        # Get filter parameters
+        # --- SEARCH AND FILTER LOGIC ---
+        # This part remains the same and applies on top of the role-filtered queryset
+
         search = self.request.GET.get('search', '')
         hazard_type = self.request.GET.get('hazard_type', '')
         risk_level = self.request.GET.get('risk_level', '')
         status = self.request.GET.get('status', '')
-        approval_status = self.request.GET.get('approval_status', '')  # ✅ NEW
         date_from = self.request.GET.get('date_from', '')
         date_to = self.request.GET.get('date_to', '')
 
-        # Apply filters
         if search:
             queryset = queryset.filter(
                 Q(report_number__icontains=search) |
@@ -119,11 +127,6 @@ class HazardListView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(severity=risk_level)
         if status:
             queryset = queryset.filter(status=status)
-        
-        # ✅ NEW: Apply approval status filter
-        if approval_status:
-            queryset = queryset.filter(approval_status=approval_status)
-        
         if date_from:
             queryset = queryset.filter(incident_datetime__date__gte=date_from)
         if date_to:
@@ -132,6 +135,7 @@ class HazardListView(LoginRequiredMixin, ListView):
         return queryset
 
     def get_context_data(self, **kwargs):
+        # This method provides additional context to the template
         context = super().get_context_data(**kwargs)
         
         # Add choices for dropdown filters
@@ -144,7 +148,6 @@ class HazardListView(LoginRequiredMixin, ListView):
         context['selected_hazard_type'] = self.request.GET.get('hazard_type', '')
         context['selected_risk_level'] = self.request.GET.get('risk_level', '')
         context['selected_status'] = self.request.GET.get('status', '')
-        context['selected_approval_status'] = self.request.GET.get('approval_status', '')  # ✅ NEW
 
         return context
 class HazardCreateView(LoginRequiredMixin, CreateView):
@@ -444,14 +447,18 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
         is_self_assigned = assignment_type == 'self'
 
         try:
-            # Check for attachment
+            # *** MODIFIED: Check for attachment first ***
             if 'attachment' not in request.FILES:
                 messages.error(request, 'An attachment is required to create an action item.')
+                # Redirect back to the form, preserving other submitted data is complex
+                # without a Django Form, so we just show an error.
                 return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
 
             action_item = HazardActionItem()
             action_item.hazard = self.hazard
             action_item.action_description = request.POST.get('action_description', '').strip()
+
+            # Handle assignment type (self or others)
             assignment_type = request.POST.get('assignment_type', 'self')
 
             # Handle target date
@@ -459,7 +466,7 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             if not target_date_str:
                 messages.error(request, 'Target date is required')
                 return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
-            
+
             target_date = datetime.datetime.strptime(target_date_str, '%Y-%m-%d').date()
             action_item.target_date = target_date
 
@@ -476,19 +483,25 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             # Handle file attachment
             action_item.attachment = request.FILES['attachment']
             action_item.save()
-            
-            self.object = action_item
-            
-            # ✅ NEW: Update hazard status when action item is added
-            # If hazard is still in REPORTED status, move it to PENDING_APPROVAL
-            if self.hazard.status == 'REPORTED':
-                self.hazard.status = 'PENDING_APPROVAL'
-                self.hazard.save(update_fields=['status'])
-            
-            # Notification code...
-           
+            # Prepare success message
+
+            self.object = action_item  
+            # --- Debug logging like HazardCreateView ---
+            # print("\n\n" + "#" * 70)
+            # print("VIEW: ACTION ITEM SAVED SUCCESSFULLY")
+            # print("#" * 70)
+            # print(f"Action Item ID: {self.object.id}")
+            # print(f"Hazard ID: {self.object.hazard.id}")
+            # print(f"Hazard Report Number: {self.object.hazard.report_number}")
+            # print(f"Responsible Emails: {self.object.responsible_emails}")
+            # print(f"Target Date: {self.object.target_date}")
+            # print("#" * 70)
+            # print("\nVIEW: Calling notify_hazard_action_item_assigned()")
+
+            # --- SEND NOTIFICATIONS ---
             try:
                 from apps.notifications.services import NotificationService
+
                 NotificationService.notify(
                     content_object=action_item,  
                     notification_type='HAZARD_ACTION_ASSIGNED',  
@@ -505,14 +518,12 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             if is_self_assigned:
                 message = mark_safe(
                     f'✅ <strong>Action item created successfully!</strong><br>'
-                    f'Assigned to: <strong>You ({request.user.email})</strong><br>'
-                    f'Hazard status updated to: <strong>Pending Approval</strong>'
+                    f'Assigned to: <strong>You ({request.user.email})</strong>'
                 )
             else:
                 message = mark_safe(
                     f'✅ <strong>Action item created successfully!</strong><br>'
-                    f'Assigned to <strong>{email_count}</strong> email(s) with Pending status.<br>'
-                    f'Hazard status updated to: <strong>Pending Approval</strong>'
+                    f'Assigned to <strong>{email_count}</strong> email(s) with Pending status.'
                 )
             
             messages.success(request, message)
@@ -522,6 +533,7 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             print(f"Error creating action item: {e}")
             messages.error(request, f'Error creating action item: {str(e)}')
             return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
+
     def get_success_url(self):
         """
         Redirect to the hazard detail page on successful creation.
@@ -598,7 +610,6 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
                 self.object.completion_remarks = request.POST.get('completion_remarks', '').strip()
             
             self.object.save()
-            # self.object.hazard.update_status_from_action_items()
             
             # Prepare success message
             email_count = self.object.get_emails_count()
@@ -620,7 +631,7 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
 
 # AJAX Views for cascading dropdowns
 class GetZonesForPlantAjaxView(LoginRequiredMixin, TemplateView):
-    """AJAX view to get zones for selected plant""" 
+    """AJAX view to get zones for selected plant"""
     
     def get(self, request, *args, **kwargs):
         plant_id = request.GET.get('plant_id')
@@ -1038,67 +1049,3 @@ class HazardPDFView(LoginRequiredMixin, View):
         
         # Call the PDF generation utility function and return its response.
         return generate_hazard_pdf(hazard)
-    
-    
-class HazardApprovalView(LoginRequiredMixin, DetailView):
-    """
-    Displays hazard summary for approval and handles the POST requests
-    for approving or rejecting the hazard report.
-    """
-    model = Hazard
-    template_name = 'hazards/hazard_approval.html'
-    context_object_name = 'hazard'
-
-    def get_context_data(self, **kwargs):
-        """Adds related action items to the context."""
-        context = super().get_context_data(**kwargs)
-        # Fetch all action items related to this hazard to display them.
-        context['action_items'] = self.object.action_items.all()
-        return context
-
-    def post(self, request, *args, **kwargs):
-        """Handles the 'approve' and 'reject' form submissions."""
-        hazard = self.get_object()
-
-        # Check which button was clicked based on its 'name' attribute in the form.
-        if 'approve_action' in request.POST:
-            # Handle the approval logic.
-            hazard.approval_status = 'APPROVED'
-            hazard.approved_by = request.user
-            hazard.approved_date = timezone.now()
-            hazard.approved_remarks = ""  # Clear any previous remarks.
-            
-            # ✅ CRITICAL FIX: Check if action items exist
-            action_items_exist = hazard.action_items.exists()
-            
-            if action_items_exist:
-                # If action items exist, set status to ACTION_ASSIGNED
-                hazard.status = 'ACTION_ASSIGNED'
-            else:
-                # If no action items, set to APPROVED
-                hazard.status = 'APPROVED'
-            
-            hazard.save()
-            
-            # ✅ NOW call update to ensure correct status based on action item progress
-            # This will only work because status is no longer PENDING_APPROVAL
-            hazard.update_status_from_action_items()
-
-            messages.success(request, f"Hazard {hazard.report_number} has been approved and is now active.")
-
-        elif 'reject_action' in request.POST:
-            # Handle the rejection logic.
-            rejection_remarks = request.POST.get('rejection_remarks', '').strip()
-            if not rejection_remarks:
-                messages.error(request, "Rejection remarks are required to reject the report.")
-                return redirect('hazards:hazard_approve', pk=hazard.pk)
-
-            hazard.status = 'REJECTED'
-            hazard.approval_status = 'REJECTED'
-            hazard.approved_remarks = rejection_remarks
-            hazard.approved_by = None
-            hazard.approved_date = None
-            hazard.save()
-            messages.warning(request, f"Hazard {hazard.report_number} has been rejected.")
-
-        return redirect('hazards:hazard_detail', pk=hazard.pk)
