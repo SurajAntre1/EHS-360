@@ -310,6 +310,7 @@
             <p>Injury Management <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
+            {% if user|has_perm:'EDIT_INCIDENT' %}
             <li class="nav-item">
               <a href="{% url 'accidents:dashboard' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'dashboard' and 'accidents' in request.path %}active{% endif %}">
@@ -317,6 +318,7 @@
                 <p>Dashboard</p>
               </a>
             </li>
+            {% endif %}
 
             {% if user|has_perm:"CREATE_INCIDENT" %}
             <li class="nav-item">
@@ -349,6 +351,7 @@
             <p>Hazards Management <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
+            {% if user|has_perm:'EDIT_HAZARD' %}
             <li class="nav-item">
               <a href="{% url 'hazards:dashboard' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'dashboard' and 'hazards' in request.path %}active{% endif %}">
@@ -356,6 +359,7 @@
                 <p>Dashboard</p>
               </a>
             </li>
+            {% endif %}
 
             {% if user|has_perm:'CREATE_HAZARD' %}
             <li class="nav-item">
@@ -399,7 +403,7 @@
         <li class="nav-item {% if 'env-data' in request.path or 'data_collection' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'env-data' in request.path or 'data_collection' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-chart-line"></i>
-            <p>Environmental Data <i class="right fas fa-angle-left"></i></p>
+            <p>Monthly Environmental Data<i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
             {% if user|has_perm:'CREATE_ENV_DATA' %}
@@ -407,7 +411,7 @@
               <a href="{% url 'environmental:plant-entry' %}"
                 class="nav-link {% if request.resolver_match.url_name == 'plant-entry' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
-                <p class="menu-title-small">Enter Data</p>
+                <p class="menu-title-small">Enter Monthly Data</p>
               </a>
             </li>
             {% endif %}
