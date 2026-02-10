@@ -236,6 +236,13 @@
               </a>
             </li>
             {% endif %}
+            <li class="nav-item">
+              <a href="{% url 'environmental:dashboard' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p class="menu-title-small">Environmental Dashboard</p>
+              </a>
+            </li>
           </ul>
         </li>
 
