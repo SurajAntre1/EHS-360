@@ -57,7 +57,7 @@
       </div>
       {% if user|has_perm:'CREATE_INCIDENT' %}
       <div class="col-auto">
-        <a href="{% url 'accidents:incident_create' %}" class="btn btn-light">
+        <a href="{% url 'accidents:incident_create' %}" class="btn btn-warning">
           <i class="fas fa-plus mr-1"></i> Report New Injury
         </a>
       </div>
