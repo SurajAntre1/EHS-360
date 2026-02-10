@@ -20,6 +20,12 @@ class Command(BaseCommand):
         self.stdout.write('\n📋 Creating permissions...')
         
         permissions_data = [
+            # Dashboard Permissions
+            ('ACCESS_DASHBOARD', 'Access Dashboard', 'Can access system dashboards'),
+            ('INCIDENT_DASHBOARD', 'Access Incident Dashboard', 'Can view incident dashboard'),
+            ('HAZARD_DASHBOARD', 'Access Hazard Dashboard', 'Can view hazard dashboard'),
+            ('INSPECTION_DASHBOARD', 'Access Inspection Dashboard', 'Can view inspection dashboard'),
+
             # Incident Permissions
             ('CREATE_INCIDENT', 'Create Incident', 'Can create/report new incidents'),
             ('EDIT_INCIDENT', 'Edit Incident', 'Can edit incident reports'),

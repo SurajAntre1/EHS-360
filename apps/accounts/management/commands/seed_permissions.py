@@ -9,6 +9,22 @@ class Command(BaseCommand):
         
         permissions_data = [
             # (code, name, description, module, permission_type, display_order)
+
+            # Dashboards
+            ('ACCESS_DASHBOARD', 'Access Dashboard', 'Can access dashboards',
+            'DASHBOARD', 'MODULE_ACCESS', 0),
+
+            ('INCIDENT_DASHBOARD', 'Access Incident Dashboard',
+            'Can access Incident dashboard',
+            'DASHBOARD', 'VIEW', 1),
+
+            ('HAZARD_DASHBOARD', 'Access Hazard Dashboard',
+            'Can access Hazard dashboard',
+            'DASHBOARD', 'VIEW', 2),
+
+            ('INSPECTION_DASHBOARD', 'Access Inspection Dashboard',
+            'Can access Inspection dashboard',
+            'DASHBOARD', 'VIEW', 3),
             
             # === INCIDENT MODULE ===
             ('ACCESS_INCIDENT_MODULE', 'Access Incident Module', 'Can access incident module', 
