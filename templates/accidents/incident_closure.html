@@ -1,7 +1,7 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Close Incident - {{ incident.report_number }}{% endblock %}
+{% block title %}Close Injury - {{ incident.report_number }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -11,7 +11,7 @@
             <div class="card">
                 <div class="card-header bg-success text-white">
                     <h3 class="card-title mb-0">
-                        <i class="fas fa-check-circle mr-2"></i>Close Incident
+                        <i class="fas fa-check-circle mr-2"></i>Close Injury
                     </h3>
                 </div>
                 
@@ -43,7 +43,7 @@
                             </label>
                             {{ form.closure_remarks }}
                             <small class="form-text text-muted">
-                                Provide final remarks summarizing the incident resolution
+                                Provide final remarks summarizing the injury resolution
                             </small>
                             {% if form.closure_remarks.errors %}
                                 <div class="text-danger">{{ form.closure_remarks.errors }}</div>
@@ -80,8 +80,8 @@
                             <div class="custom-control custom-checkbox">
                                 {{ form.is_recurrence_possible }}
                                 <label for="{{ form.is_recurrence_possible.id_for_label }}">
-                                    <strong>Is recurrence of this incident possible?</strong>
-                                    <br><small class="text-muted">Check if there's still a risk of this incident happening again</small>
+                                    <strong>Is recurrence of this injury possible?</strong>
+                                    <br><small class="text-muted">Check if there's still a risk of this injury happening again</small>
                                 </label>
                             </div>
                         </div>

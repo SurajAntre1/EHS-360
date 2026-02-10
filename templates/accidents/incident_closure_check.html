@@ -6,9 +6,9 @@
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">home</a></li>
-<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Incident Managemnet</a></li>
-<li class="breadcrumb-item"><a href="{% url 'accidents:incident_list' %}">All Incidents</a></li>
-<li class="breadcrumb-item">Close Incident</li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Injury Management</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:incident_list' %}">All Injuries</a></li>
+<li class="breadcrumb-item">Close Injury</li>
 {% endblock %}
 
 {% block content %}
@@ -20,7 +20,7 @@
             <div class="card">
                 <div class="card-header bg-warning">
                     <h3 class="card-title">
-                        <i class="fas fa-check-circle mr-2"></i>Incident Closure Verification
+                        <i class="fas fa-check-circle mr-2"></i>Injury Closure Verification
                     </h3>
                 </div>
                 <div class="card-body">
@@ -42,7 +42,7 @@
 
                     <div class="row bg-light p-3 rounded mx-0">
                         <div class="col-sm-6 col-md-3 border-right mb-2 mb-md-0">
-                            <small class="text-muted d-block">Incident Date & Time</small>
+                            <small class="text-muted d-block">Injury Date & Time</small>
                             <span class="font-weight-bold">{{ incident.incident_date|date:"d M Y" }} | {{ incident.incident_time|time:"H:i" }}</span>
                         </div>
                         <div class="col-sm-6 col-md-3 border-right mb-2 mb-md-0">
@@ -68,7 +68,7 @@
                         {% if can_close %}
                             <i class="fas fa-check-circle mr-2"></i>Ready for Closure
                         {% else %}
-                            <i class="fas fa-times-circle mr-2"></i>Cannot Close Incident
+                            <i class="fas fa-times-circle mr-2"></i>Cannot Close Injury
                         {% endif %}
                     </h4>
                 </div>
@@ -76,7 +76,7 @@
                     {% if can_close %}
                         <div class="alert alert-success">
                             <i class="fas fa-info-circle mr-2"></i>
-                            All requirements met. This incident is ready to be closed.
+                            All requirements met. This injury is ready to be closed.
                         </div>
                     {% else %}
                         <div class="alert alert-danger">
@@ -261,7 +261,7 @@
                 <div class="card-footer">
                     {% if can_close %}
                         <a href="{% url 'accidents:incident_close' incident.pk %}" class="btn btn-success btn-lg">
-                            <i class="fas fa-check-circle mr-2"></i>Proceed to Close Incident
+                            <i class="fas fa-check-circle mr-2"></i>Proceed to Close Injury
                         </a>
                     {% else %}
                         <button class="btn btn-secondary btn-lg" disabled>
@@ -270,7 +270,7 @@
                     {% endif %}
                     
                     <a href="{% url 'accidents:incident_detail' incident.pk %}" class="btn btn-secondary btn-lg ml-2">
-                        <i class="fas fa-arrow-left mr-2"></i>Back to Incident
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Injury
                     </a>
                 </div>
             </div>
