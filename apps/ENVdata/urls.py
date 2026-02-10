@@ -18,4 +18,5 @@ urlpatterns = [
     path('api/get-source-fields/', GetSourceFieldsAPIView.as_view(), name='get-source-fields'),
     path('api/get-base-unit/', GetCategoryBaseUnitAPIView.as_view(), name='api-get-base-unit'),
 
+    path("export_excel/",ExportExcelView.as_view(),name="export_excel"),
 ]

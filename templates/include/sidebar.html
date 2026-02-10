@@ -189,6 +189,22 @@
   .main-footer {
     margin-left: 250px;
   }
+  .main-sidebar.sidebar-ehs {
+    width: 250px;
+  }
+  .nav-sidebar .nav-link p {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin: 0;
+  }
+  .nav-sidebar .nav-item .nav-link p {
+    font-size: 0.95rem;
+  }
+  .nav-sidebar .nav-link p {
+    line-height: 1.2;
+  }
 </style>
 
 <aside class="main-sidebar sidebar-ehs elevation-2">
@@ -221,7 +237,7 @@
             </li>
 
             <!-- ✅ Simple boolean check -->
-            {% if user.can_access_incident_module %}
+            {% if user|has_perm:'INCIDENT_DASHBOARD' %}
             <li class="nav-item">
               <a href="{% url 'accidents:IncidentAccidentDashboardView' %}" class="nav-link {% if url == 'IncidentAccidentDashboardView' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i><p>Injury Dashboard</p>
@@ -229,7 +245,7 @@
             </li>
             {% endif %}
 
-            {% if user.can_access_hazard_module %}
+            {% if user|has_perm:'HAZARD_DASHBOARD' %}
             <li class="nav-item">
               <a href="{% url 'hazards:hazard_dashboard' %}" class="nav-link {% if url == 'hazard_dashboard' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i><p>Hazard Dashboard</p>
@@ -310,7 +326,7 @@
             <p>Injury Management <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
-            {% if user|has_perm:'EDIT_INCIDENT' %}
+            {% if user|has_perm:'INCIDENT_DASHBOARD' %}
             <li class="nav-item">
               <a href="{% url 'accidents:dashboard' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'dashboard' and 'accidents' in request.path %}active{% endif %}">
@@ -351,7 +367,7 @@
             <p>Hazards Management <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
-            {% if user|has_perm:'EDIT_HAZARD' %}
+            {% if user|has_perm:'HAZARD_DASHBOARD' %}
             <li class="nav-item">
               <a href="{% url 'hazards:dashboard' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'dashboard' and 'hazards' in request.path %}active{% endif %}">
@@ -464,12 +480,14 @@
             <p>Inspection Management <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
+            {% if user|has_perm:'INSPECTION_DASHBOARD' %}
             <li class="nav-item">
               <a href="{% url 'inspections:inspection_dashboard' %}" class="nav-link">
                 <i class="nav-icon far fa-circle"></i>
                 <p>Dashboard</p>
               </a>
             </li>
+          {% endif %}
 
             {% if user|has_perm:'CONDUCT_INSPECTION' %}
             <li class="nav-item">

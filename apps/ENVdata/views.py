@@ -11,7 +11,7 @@ from apps.accounts.models import User
 from apps.accidents.models import Incident
 from apps.organizations.models import Plant
 from .models import *
-from .utils import EnvironmentalDataFetcher
+from .utils import *
 from django.shortcuts import render, redirect, get_object_or_404
 from apps.notifications.services import NotificationService
 # =========================================================
@@ -1308,3 +1308,36 @@ class GetCategoryBaseUnitAPIView(LoginRequiredMixin, View):
                 'success': False,
                 'error': str(e)
             }, status=500)
+        
+class ExportExcelView(LoginRequiredMixin, View):
+    def get(self, request):
+        months = [m[1] for m in MonthlyIndicatorData.MONTH_CHOICES]
+        user = request.user
+
+        if user.is_superuser or user.is_staff or user.is_admin_user:
+            plants = Plant.objects.filter(is_active=True)
+
+        else:
+            plants = user.get_all_plants()
+
+            if not plants:
+                messages.error(request, "No plant is assigned to your account")
+                return redirect("environmental:plant-entry")
+
+            plants = Plant.objects.filter(
+                id__in=[p.id for p in plants],
+                is_active=True
+            )
+
+        plants_data = get_all_plants_environmental_data(plants)
+
+        workbook = generate_environmental_excel(plants_data)
+
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        filename = f"Environmental_Data_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        workbook.save(response)
+        return response
