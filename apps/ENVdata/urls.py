@@ -17,5 +17,6 @@ urlpatterns = [
     path('api/get-category-units/', GetCategoryUnitsAPIView.as_view(), name='get-category-units'),
     path('api/get-source-fields/', GetSourceFieldsAPIView.as_view(), name='get-source-fields'),
     path('api/get-base-unit/', GetCategoryBaseUnitAPIView.as_view(), name='api-get-base-unit'),
+    path('dashboard/', EnvironmentalDashboardView.as_view(), name='dashboard'),
 
 ]

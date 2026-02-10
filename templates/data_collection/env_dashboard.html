@@ -1,0 +1,283 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Environmental Dashboard{% endblock %}
+{% block page_title %}Environmental Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Professional Dashboard Styling - Matches Hazard Module */
+    .dashboard-card { border:none; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1); transition:transform .3s ease; margin-bottom:20px; }
+    .dashboard-card:hover { transform:translateY(-5px); box-shadow:0 5px 20px rgba(0,0,0,0.15); }
+    
+    .stat-card { padding:20px; border-left:4px solid; position: relative; }
+    .stat-card.primary { border-left-color:#007bff; background:linear-gradient(135deg,#fff 0%,#e3f2fd 100%); }
+    .stat-card.success { border-left-color:#28a745; background:linear-gradient(135deg,#fff 0%,#e8f5e9 100%); }
+    .stat-card.warning { border-left-color:#ffc107; background:linear-gradient(135deg,#fff 0%,#fff9e6 100%); }
+    .stat-card.info { border-left-color:#17a2b8; background:linear-gradient(135deg,#fff 0%,#e6f7ff 100%); }
+    
+    .stat-card .stat-icon { font-size:2.8rem; opacity:.2; position:absolute; right:20px; top:50%; transform:translateY(-50%); }
+    .stat-card .stat-number { font-size:2.4rem; font-weight:700; margin:0; color:#333; }
+    .stat-card .stat-label { font-size:.85rem; color:#6c757d; margin-top:5px; text-transform:uppercase; letter-spacing:0.5px; font-weight:600; }
+    
+    .filter-section { background:#fff; border-radius:10px; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,0.1); margin-bottom:20px; }
+    .chart-container { position:relative; height:320px; padding:15px; }
+    .section-header { border-bottom:3px solid #007bff; padding-bottom:10px; margin-bottom:20px; }
+    
+    .active-filter-badge { display:inline-block; background:#007bff; color:#fff; padding:6px 15px; border-radius:20px; font-size:.8rem; margin:5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .active-filter-badge i { margin-left:8px; cursor:pointer; font-size: 0.7rem; }
+    
+    .env-data-table th { background-color:#f8f9fa; font-weight:700; text-transform:uppercase; font-size:.75rem; color: #555; vertical-align: middle !important; }
+    .env-data-table td { vertical-align: middle !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Dynamic Filter Section (Hazard Style) -->
+<div class="filter-section">
+    <form method="GET" action="{% url 'environmental:dashboard' %}" id="filterForm">
+        <div class="row align-items-end">
+            <div class="col-md-5 mb-3">
+                <label class="form-label small font-weight-bold"><i class="fas fa-industry mr-1 text-primary"></i> Filter by Plant</label>
+                <select name="plant" class="form-control select2">
+                    <option value="">-- All Assigned Plants --</option>
+                    {% for p in plants %}
+                    <option value="{{ p.id }}" {% if selected_plant == p.id|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label small font-weight-bold"><i class="fas fa-calendar-alt mr-1 text-primary"></i> Filter by Month</label>
+                <select name="month" class="form-control">
+                    <option value="">-- All Months --</option>
+                    {% for val, label in month_choices %}
+                    <option value="{{ val }}" {% if selected_month == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 mb-3">
+                <button type="submit" class="btn btn-primary btn-block shadow-sm"><i class="fas fa-filter mr-1"></i> Apply Filters</button>
+            </div>
+        </div>
+
+        <!-- Active Filter Logic -->
+        {% if has_active_filters %}
+        <div class="row mt-2 border-top pt-2">
+            <div class="col-12">
+                <span class="small text-muted mr-2 font-weight-bold">Active Filters:</span>
+                {% if selected_plant_name %}<span class="active-filter-badge">Plant: {{ selected_plant_name }}<i class="fas fa-times" onclick="removeFilter('plant')"></i></span>{% endif %}
+                {% if selected_month_label %}<span class="active-filter-badge">Month: {{ selected_month_label }}<i class="fas fa-times" onclick="removeFilter('month')"></i></span>{% endif %}
+                <a href="{% url 'environmental:dashboard' %}" class="btn btn-sm btn-outline-danger ml-2 rounded-pill shadow-sm"><i class="fas fa-undo mr-1"></i> Reset All</a>
+            </div>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="dashboard-card"><div class="stat-card primary">
+            <i class="fas fa-th-list stat-icon"></i>
+            <p class="stat-number">{{ total_indicators_count }}</p>
+            <p class="stat-label">Total Questions</p>
+        </div></div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="dashboard-card"><div class="stat-card success">
+            <i class="fas fa-check-circle stat-icon"></i>
+            <p class="stat-number">{{ total_data_points }}</p>
+            <p class="stat-label">Total Records</p>
+        </div></div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="dashboard-card"><div class="stat-card warning">
+            <i class="fas fa-industry stat-icon"></i>
+            <p class="stat-number">{{ plants_count }}</p>
+            <p class="stat-label">Monitored Plants</p>
+        </div></div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="dashboard-card"><div class="stat-card info">
+            <i class="fas fa-chart-line stat-icon"></i>
+            <p class="stat-number">{{ total_volume|floatformat:1 }}</p>
+            <p class="stat-label">Total Volume</p>
+        </div></div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="dashboard-card card border-0">
+            <div class="card-body">
+                <div class="section-header"><h5><i class="fas fa-chart-area mr-2 text-primary"></i>Monthly Submission Trend</h5></div>
+                <div class="chart-container"><canvas id="trendChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="dashboard-card card border-0">
+            <div class="card-body">
+                <div class="section-header"><h5><i class="fas fa-chart-pie mr-2 text-info"></i>Data by Category</h5></div>
+                <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Full Data Table (Filtered Data) -->
+<div class="row">
+    <div class="col-12">
+        <div class="dashboard-card card border-0">
+            <div class="card-body">
+                <div class="section-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-table mr-2 text-secondary"></i>Environmental Data Entries</h5>
+                    <div>
+                        <span class="badge badge-primary p-2">{{ data_entries|length }} Records Found</span>
+                    </div>
+                </div>
+
+                <!-- Table Wrapper with dynamic scroll support -->
+                <div id="table-scroll-wrapper" style="transition: all 0.3s ease;">
+                    <div class="table-responsive">
+                        <table class="table table-hover env-data-table border mb-0" id="env-entries-table">
+                            <thead>
+                                <tr>
+                                    <th>Plant</th>
+                                    <th>Category</th>
+                                    <th>Environmental Question/Indicator</th>
+                                    <th>Month</th>
+                                    <th class="text-right">Reported Value</th>
+                                    <th>Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in data_entries %}
+                                <!-- Logic to hide rows after the 20th index initially -->
+                                <tr class="entry-row {% if forloop.counter > 20 %}d-none{% endif %}">
+                                    <td class="font-weight-bold">{{ entry.plant.name }}</td>
+                                    <td><span class="badge badge-light border">{{ entry.indicator.unit_category.name|default:"General" }}</span></td>
+                                    <td>{{ entry.indicator.question_text }}</td>
+                                    <td><span class="badge badge-soft-primary">{{ entry.get_month_display }}</span></td>
+                                    <td class="text-right font-weight-bold text-dark">{{ entry.value }}</td>
+                                    <td><small>{{ entry.updated_at|date:"d M Y, H:i" }}</small></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <div class="text-muted">
+                                            <i class="fas fa-folder-open fa-3x mb-3"></i>
+                                            <p>No environmental data found for the selected filters.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Show More Button Section -->
+                {% if data_entries|length > 20 %}
+                <div class="text-center mt-3" id="show-more-container">
+                    <button type="button" id="btn-show-more" class="btn btn-outline-primary shadow-sm rounded-pill px-4">
+                        Show More <i class="fas fa-chevron-down ml-1"></i>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // --- 1. Submission Trend (Line Chart) ---
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: {{ trend_labels_json|safe }},
+            datasets: [{
+                label: 'Entries Logged',
+                data: {{ trend_values_json|safe }},
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0,123,255,0.08)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#007bff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { borderDash: [5, 5] } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // --- 2. Category Distribution (Doughnut Chart) ---
+    const catCtx = document.getElementById('categoryChart').getContext('2d');
+    new Chart(catCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ cat_labels_json|safe }},
+            datasets: [{
+                data: {{ cat_data_json|safe }},
+                backgroundColor: ['#17a2b8', '#5e72e4', '#2dce89', '#f5365c', '#fb6340', '#007bff'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+            },
+            cutout: '65%'
+        }
+    });
+
+
+const btnShowMore = document.getElementById('btn-show-more');
+    if (btnShowMore) {
+        btnShowMore.addEventListener('click', function() {
+            // 1. Select all hidden rows and make them visible
+            const hiddenRows = document.querySelectorAll('.entry-row.d-none');
+            hiddenRows.forEach(row => {
+                row.classList.remove('d-none');
+            });
+
+            // 2. Add scroll functionality to the wrapper
+            const wrapper = document.getElementById('table-scroll-wrapper');
+            wrapper.style.maxHeight = "500px"; // Fixed height for scrollable area
+            wrapper.style.overflowY = "auto";
+            wrapper.style.borderBottom = "2px solid #007bff";
+
+            // 3. Hide the button container after expanding
+            document.getElementById('show-more-container').style.display = 'none';
+        });
+    }
+});
+
+/**
+ * Utility to remove a specific filter and reload page
+ */
+function removeFilter(filterName) {
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.delete(filterName);
+    window.location.href = window.location.pathname + '?' + urlParams.toString();
+}
+</script>
+{% endblock %}

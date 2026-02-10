@@ -14,6 +14,13 @@ from .models import *
 from .utils import EnvironmentalDataFetcher
 from django.shortcuts import render, redirect, get_object_or_404
 from apps.notifications.services import NotificationService
+
+from django.views.generic import TemplateView
+from django.db.models import Count, Sum, Q
+from django.utils import timezone
+import json
+from .models import MonthlyIndicatorData, EnvironmentalQuestion, UnitCategory
+
 # =========================================================
 # API ENDPOINTS FOR QUESTIONS MANAGER
 # =========================================================
@@ -565,38 +572,41 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                     ).delete()
                     continue
 
-                # Save value with unit conversion
                 try:
-                    numeric_value = Decimal(value.replace(",", ""))
+                    # --- YAHAN CHANGES KIYE GAYE HAIN ---
+                    
+                    # Convert input string to float first to handle decimals entered by user
+                    raw_numeric_value = float(value.replace(",", ""))
 
-                    # Convert to base unit if needed
+                    # Apply conversion rate if the unit is not the base unit
                     if unit_obj and unit_obj.base_unit != unit_obj.name:
-                        numeric_value = numeric_value * Decimal(unit_obj.conversion_rate)
+                        raw_numeric_value = raw_numeric_value * float(unit_obj.conversion_rate)
 
-                    # Round to 4 decimal places to avoid floating point issues
-                    numeric_value = numeric_value.quantize(Decimal("0.0001"))
+                    # ✅ Convert to Integer by rounding to the nearest whole number
+                    # This ensures that 10.5 becomes 11 and 10.4 becomes 10
+                    final_integer_value = int(round(raw_numeric_value))
 
                     obj, created = MonthlyIndicatorData.objects.update_or_create(
                         plant=selected_plant,
                         indicator=q,
                         month=month_code,
                         defaults={
-                            "value": numeric_value,
-                            "unit": unit_obj,  # store selected unit
+                            "value": str(final_integer_value),  # Save as string integer
+                            "unit": unit_obj,
                             "created_by": request.user,
                         }
                     )
                     saved_count += 1
 
-                except (ValueError, Decimal.InvalidOperation):
+                except (ValueError, TypeError):
                     messages.warning(request, f"Invalid value for {q.question_text} in {month_name}")
                     continue
                 
         if saved_count > 0:
             NotificationService.notify(
-            content_object = selected_plant,
-            notification_type = 'ENV_DATA_SUBMITTED',
-            module='ENV'
+                content_object=selected_plant,
+                notification_type='ENV_DATA_SUBMITTED',
+                module='ENV'
             )
 
         messages.success(request, f"✓ Data saved successfully! {saved_count} entries updated for {selected_plant.name}")
@@ -1308,3 +1318,93 @@ class GetCategoryBaseUnitAPIView(LoginRequiredMixin, View):
                 'success': False,
                 'error': str(e)
             }, status=500)
+
+
+
+class EnvironmentalDashboardView(LoginRequiredMixin, TemplateView):
+    """
+    Environmental Dashboard with strict access control and dynamic filtering.
+    Admins see all data, while users see only assigned plant data.
+    """
+    template_name = 'data_collection/env_dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        # --- 1. USER ACCESS CONTROL (Plants logic) ---
+        if user.is_superuser or user.is_staff or getattr(user, 'is_admin_user', False):
+            # Admin can see everything
+            accessible_plants = Plant.objects.filter(is_active=True).order_by('name')
+        else:
+            # HOD/Employee sees only assigned plants
+            # Note: Using the same logic as your PlantMonthlyEntryView
+            assigned = user.assigned_plants.filter(is_active=True)
+            if not assigned.exists() and getattr(user, 'plant', None):
+                accessible_plants = Plant.objects.filter(id=user.plant.id, is_active=True)
+            else:
+                accessible_plants = assigned.order_by('name')
+
+        # --- 2. EXTRACT FILTERS ---
+        selected_plant_id = self.request.GET.get('plant', '')
+        selected_month_code = self.request.GET.get('month', '')
+        
+        # --- 3. BASE DATA QUERYSET (Filter by accessible plants first) ---
+        # Optimization: select_related to avoid N+1 queries on SQLite
+        data_qs = MonthlyIndicatorData.objects.filter(
+            plant__in=accessible_plants
+        ).select_related('indicator', 'plant', 'unit', 'indicator__unit_category')
+
+        # Apply user-selected filters
+        if selected_plant_id:
+            data_qs = data_qs.filter(plant_id=selected_plant_id)
+            selected_plant_obj = accessible_plants.filter(id=selected_plant_id).first()
+            if selected_plant_obj:
+                context['selected_plant_name'] = selected_plant_obj.name
+                
+        if selected_month_code:
+            data_qs = data_qs.filter(month=selected_month_code)
+            month_dict = dict(MonthlyIndicatorData.MONTH_CHOICES)
+            context['selected_month_label'] = month_dict.get(selected_month_code)
+
+        # Flag for active filter badges
+        context['has_active_filters'] = bool(selected_plant_id or selected_month_code)
+
+        # --- 4. CALCULATE STATISTICS (Based on Filtered Data) ---
+        context['total_indicators_count'] = EnvironmentalQuestion.objects.filter(is_active=True).count()
+        context['total_data_points'] = data_qs.count()
+        context['plants_count'] = accessible_plants.count()
+        
+        # Sum of numeric values (Safe conversion for SQLite)
+        total_vol = 0
+        for entry in data_qs:
+            try:
+                total_vol += float(str(entry.value).replace(',', ''))
+            except (ValueError, TypeError):
+                continue
+        context['total_volume'] = total_vol
+
+        # --- 5. PREPARE CHARTS (JSON format) ---
+        # Category Chart
+        cat_dist = data_qs.values('indicator__unit_category__name').annotate(count=Count('id')).order_by('-count')
+        context['cat_labels_json'] = json.dumps([item['indicator__unit_category__name'] or "Other" for item in cat_dist])
+        context['cat_data_json'] = json.dumps([item['count'] for item in cat_dist])
+
+        # Trend Chart (Calendar order)
+        month_order = [m[0] for m in MonthlyIndicatorData.MONTH_CHOICES]
+        trend_query = data_qs.values('month').annotate(count=Count('id'))
+        trend_map = {item['month']: item['count'] for item in trend_query}
+        
+        context['trend_labels_json'] = json.dumps([dict(MonthlyIndicatorData.MONTH_CHOICES).get(m) for m in month_order])
+        context['trend_values_json'] = json.dumps([trend_map.get(m, 0) for m in month_order])
+
+        # --- 6. DATA TABLE (Show ALL filtered data) ---
+        context['data_entries'] = data_qs.order_by('plant__name', 'indicator__order')
+
+        # --- 7. FILTER OPTIONS ---
+        context['plants'] = accessible_plants
+        context['month_choices'] = MonthlyIndicatorData.MONTH_CHOICES
+        context['selected_plant'] = selected_plant_id
+        context['selected_month'] = selected_month_code
+        
+        return context
