@@ -1,0 +1,217 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1">Inspection Review</h4>
+                            <p class="text-muted mb-0">
+                                {{ schedule.schedule_code }} - {{ schedule.template.template_name }}
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <h5 class="mb-1">
+                                Compliance Score: 
+                                <span class="badge bg-{% if compliance_score >= 80 %}success{% elif compliance_score >= 60 %}warning{% else %}danger{% endif %}">
+                                    {{ compliance_score }}%
+                                </span>
+                            </h5>
+                            <small class="text-muted">
+                                Submitted by: {{ submission.submitted_by.get_full_name }}
+                                <br>
+                                Date: {{ submission.submitted_at|date:"d M Y, h:i A" }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-primary">{{ total_questions }}</h3>
+                            <p class="mb-0">Total Questions</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-success">{{ yes_count }}</h3>
+                            <p class="mb-0">Compliant (Yes)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-danger">{{ no_count }}</h3>
+                            <p class="mb-0">Non-Compliant (No)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-secondary">{{ na_count }}</h3>
+                            <p class="mb-0">Not Applicable</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Questions Answered "No" -->
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Non-Compliant Items ({{ no_count }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if no_answers_by_category %}
+                        {% for category, responses in no_answers_by_category.items %}
+                            <div class="mb-4">
+                                <h6 class="border-bottom pb-2">
+                                    {{ category.category_name }}
+                                </h6>
+                                
+                                {% for response in responses %}
+                                    <div class="card mb-3 border-danger">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-8">
+                                                    <p class="mb-2">
+                                                        <strong>{{ response.question.question_code }}:</strong>
+                                                        {{ response.question.question_text }}
+                                                    </p>
+                                                    
+                                                    {% if response.remarks %}
+                                                        <div class="alert alert-light py-2 mb-2">
+                                                            <strong>Remarks:</strong> {{ response.remarks }}
+                                                        </div>
+                                                    {% endif %}
+                                                    
+                                                    {% if response.question.reference_standard %}
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-book"></i>
+                                                            Reference: {{ response.question.reference_standard }}
+                                                        </small>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <div class="col-md-4 text-end">
+                                                    {% if response.photo %}
+                                                        <img src="{{ response.photo.url }}" 
+                                                             class="img-thumbnail" 
+                                                             style="max-height: 100px;"
+                                                             alt="Evidence">
+                                                    {% endif %}
+                                                    
+                                                    <div class="mt-2">
+                                                        <span class="badge bg-danger">
+                                                            {% if response.question.is_critical %}
+                                                                <i class="fas fa-star"></i> Critical
+                                                            {% else %}
+                                                                Non-Compliant
+                                                            {% endif %}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i>
+                            Excellent! No non-compliant items found. All questions answered "Yes" or "N/A".
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Generated Findings -->
+            {% if findings %}
+                <div class="card mt-4">
+                    <div class="card-header bg-warning">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clipboard-list"></i>
+                            Auto-Generated Findings ({{ findings.count }})
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Finding Code</th>
+                                        <th>Question</th>
+                                        <th>Priority</th>
+                                        <th>Status</th>
+                                        <th>Assigned To</th>
+                                        <th>Due Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for finding in findings %}
+                                        <tr>
+                                            <td>{{ finding.finding_code }}</td>
+                                            <td>{{ finding.question.question_code }}</td>
+                                            <td>
+                                                <span class="badge bg-{% if finding.priority == 'HIGH' %}danger{% elif finding.priority == 'MEDIUM' %}warning{% else %}info{% endif %}">
+                                                    {{ finding.get_priority_display }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">
+                                                    {{ finding.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if finding.assigned_to %}
+                                                    {{ finding.assigned_to.get_full_name }}
+                                                {% else %}
+                                                    <span class="text-muted">Not assigned</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if finding.due_date %}
+                                                    {{ finding.due_date|date:"d M Y" }}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="card mt-4">
+                <div class="card-body text-center">
+                    <a href="{% url 'inspections:my_inspections' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to My Inspections
+                    </a>
+                    <a href="{% url 'inspections:schedule_detail' schedule.id %}" class="btn btn-primary">
+                        <i class="fas fa-eye"></i> View Schedule Details
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

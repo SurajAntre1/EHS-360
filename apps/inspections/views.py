@@ -1048,6 +1048,26 @@ def inspection_start(request, schedule_id):
     return render(request, 'inspections/inspection_form.html', context)
 
 
+
+def generate_finding_code(submission):
+    """Generate unique finding code"""
+    from datetime import datetime
+    date_str = datetime.now().strftime('%Y%m')
+    
+    last_finding = InspectionFinding.objects.filter(
+        finding_code__startswith=f"FIND-{date_str}"
+    ).order_by('-finding_code').first()
+    
+    if last_finding:
+        try:
+            last_num = int(last_finding.finding_code.split('-')[-1])
+            new_num = last_num + 1
+        except (ValueError, IndexError):
+            new_num = 1
+    else:
+        new_num = 1
+    
+    return f"FIND-{date_str}-{new_num:04d}"
 @login_required
 def inspection_submit(request, schedule_id):
     """HOD submits the completed inspection"""
@@ -1060,21 +1080,148 @@ def inspection_submit(request, schedule_id):
         return redirect('inspections:my_inspections')
     
     if request.method == 'POST':
-        # You'll implement submission logic here later
-        # For now, just mark as completed
+        # Create submission record
+        submission = InspectionSubmission.objects.create(
+            schedule=schedule,
+            submitted_by=request.user,
+            remarks=request.POST.get('overall_remarks', '')
+        )
         
+        # Process each question response
+        template_questions = TemplateQuestion.objects.filter(
+            template=schedule.template
+        ).select_related('question')
+        
+        no_answers = []  # Track questions answered "No"
+        
+        for tq in template_questions:
+            question = tq.question
+            field_name = f"question_{question.id}"
+            
+            # Get answer
+            answer = request.POST.get(field_name)
+            remarks = request.POST.get(f"remarks_{question.id}", '')
+            
+            # Handle photo upload if exists
+            photo = request.FILES.get(f"photo_{question.id}")
+            
+            # Save response
+            response = InspectionResponse.objects.create(
+                submission=submission,
+                question=question,
+                answer=answer,
+                remarks=remarks,
+                photo=photo
+            )
+            
+            # Track "No" answers
+            if answer == 'No':
+                no_answers.append({
+                    'question': question,
+                    'response': response
+                })
+                
+                # Auto-generate finding if configured
+                if question.auto_generate_finding:
+                    InspectionFinding.objects.create(
+                        submission=submission,
+                        question=question,
+                        finding_code=generate_finding_code(submission),
+                        description=f"Non-compliance found: {question.question_text}",
+                        priority='HIGH' if question.is_critical else 'MEDIUM',
+                        status='OPEN'
+                    )
+        
+        # Calculate compliance score
+        submission.compliance_score = submission.calculate_compliance_score()
+        submission.save()
+        
+        # Update schedule status
         schedule.status = 'COMPLETED'
         schedule.completed_at = timezone.now()
         schedule.save()
         
-        messages.success(
-            request,
-            f'Inspection {schedule.schedule_code} submitted successfully!'
+        # Send notification about completion
+        NotificationService.notify(
+            content_object=submission,
+            notification_type='INSPECTION_COMPLETED',
+            module='INSPECTION'
         )
         
-        return redirect('inspections:my_inspections')
+        messages.success(
+            request,
+            f'Inspection {schedule.schedule_code} submitted successfully! '
+            f'Compliance Score: {submission.compliance_score}%'
+        )
+        
+        # Redirect to review page showing "No" answers
+        return redirect('inspections:inspection_review', submission_id=submission.id)
     
     return redirect('inspections:inspection_start', schedule_id=schedule_id)
+
+
+@login_required
+def inspection_review(request, submission_id):
+    """Review completed inspection showing all "No" answers"""
+    
+    submission = get_object_or_404(
+        InspectionSubmission.objects.select_related(
+            'schedule',
+            'schedule__template',
+            'schedule__plant',
+            'submitted_by'
+        ),
+        pk=submission_id
+    )
+    
+    # Check permission
+    if not (request.user.is_superuser or 
+            request.user == submission.submitted_by or
+            request.user.can_access_inspection_module):
+        messages.error(request, 'Unauthorized access!')
+        return redirect('inspections:inspection_dashboard')
+    
+    # Get all "No" answers
+    no_responses = InspectionResponse.objects.filter(
+        submission=submission,
+        answer='No'
+    ).select_related(
+        'question',
+        'question__category'
+    ).order_by('question__category__display_order', 'question__display_order')
+    
+    # Group by category
+    from collections import defaultdict
+    no_answers_by_category = defaultdict(list)
+    
+    for response in no_responses:
+        no_answers_by_category[response.question.category].append(response)
+    
+    # Get all findings for this submission
+    findings = InspectionFinding.objects.filter(
+        submission=submission
+    ).select_related('question', 'assigned_to')
+    
+    # Get all responses for statistics
+    all_responses = submission.responses.all()
+    total_questions = all_responses.count()
+    yes_count = all_responses.filter(answer='Yes').count()
+    no_count = all_responses.filter(answer='No').count()
+    na_count = all_responses.filter(answer='N/A').count()
+    
+    context = {
+        'submission': submission,
+        'schedule': submission.schedule,
+        'no_answers_by_category': dict(no_answers_by_category),
+        'findings': findings,
+        'total_questions': total_questions,
+        'yes_count': yes_count,
+        'no_count': no_count,
+        'na_count': na_count,
+        'compliance_score': submission.compliance_score,
+    }
+    
+    return render(request, 'inspections/inspection_review.html', context)
 
 # ====================================
 # AJAX/API ENDPOINTS
@@ -1155,96 +1302,166 @@ def get_questions_by_category(request):
     return JsonResponse({'questions': list(questions_data)})
 
 
-# ====================================
-# EMAIL NOTIFICATION FUNCTIONS
-# ====================================
 
-# def send_inspection_assignment_email(schedule):
-#     """Send email notification when inspection is assigned"""
+@login_required
+def no_answers_list(request):
+    """
+    Separate page showing all questions answered 'No' 
+    across all inspections with filters
+    """
     
-#     from django.core.mail import send_mail
-#     from django.conf import settings
-#     from django.template.loader import render_to_string
+    # Base queryset - all "No" responses
+    no_responses = InspectionResponse.objects.filter(
+        answer='No'
+    ).select_related(
+        'submission',
+        'submission__schedule',
+        'submission__schedule__plant',
+        'submission__schedule__assigned_to',
+        'submission__submitted_by',
+        'question',
+        'question__category'
+    )
     
-#     subject = f'New Inspection Assigned: {schedule.template.template_name}'
+    # Apply user-based filtering
+    if not request.user.is_superuser:
+        if request.user.has_permission('VIEW_INSPECTION'):
+            # HOD sees only their submissions
+            no_responses = no_responses.filter(
+                submission__submitted_by=request.user
+            )
+        elif request.user.can_access_inspection_module:
+            # Safety officer sees their plant's submissions
+            user_plants = request.user.get_all_plants()
+            no_responses = no_responses.filter(
+                submission__schedule__plant__in=user_plants
+            )
     
-#     context = {
-#         'schedule': schedule,
-#         'hod_name': schedule.assigned_to.get_full_name(),
-#         'safety_officer': schedule.assigned_by.get_full_name(),
-#         'template_name': schedule.template.template_name,
-#         'scheduled_date': schedule.scheduled_date,
-#         'due_date': schedule.due_date,
-#         'plant': schedule.plant.name,
-#     }
+    # Filters
+    plant_id = request.GET.get('plant')
+    category_id = request.GET.get('category')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    priority = request.GET.get('priority')  # critical or normal
+    search = request.GET.get('search')
     
-#     # HTML email
-#     html_message = render_to_string('emails/inspection/inspection_assigned.html', context)
+    if plant_id:
+        no_responses = no_responses.filter(
+            submission__schedule__plant_id=plant_id
+        )
     
-#     # Plain text fallback
-#     plain_message = f"""
-#     Dear {context['hod_name']},
+    if category_id:
+        no_responses = no_responses.filter(
+            question__category_id=category_id
+        )
     
-#     You have been assigned a new inspection:
+    if date_from:
+        no_responses = no_responses.filter(
+            answered_at__gte=date_from
+        )
     
-#     Template: {context['template_name']}
-#     Scheduled Date: {context['scheduled_date']}
-#     Due Date: {context['due_date']}
-#     Plant: {context['plant']}
+    if date_to:
+        no_responses = no_responses.filter(
+            answered_at__lte=date_to
+        )
     
-#     Please complete this inspection before the due date.
+    if priority == 'critical':
+        no_responses = no_responses.filter(
+            question__is_critical=True
+        )
     
-#     Best regards,
-#     EHS-360 Team
-#     """
+    if search:
+        no_responses = no_responses.filter(
+            Q(question__question_text__icontains=search) |
+            Q(question__question_code__icontains=search) |
+            Q(remarks__icontains=search)
+        )
     
-#     try:
-#         send_mail(
-#             subject=subject,
-#             message=plain_message,
-#             from_email=settings.DEFAULT_FROM_EMAIL,
-#             recipient_list=[schedule.assigned_to.email],
-#             html_message=html_message,
-#             fail_silently=False
-#         )
-#     except Exception as e:
-#         print(f"Error sending email: {e}")
+    no_responses = no_responses.order_by('-answered_at')
+    
+    # Statistics
+    total_no_answers = no_responses.count()
+    critical_no_answers = no_responses.filter(question__is_critical=True).count()
+    
+    # Group by category for summary
+    from django.db.models import Count
+    category_summary = no_responses.values(
+        'question__category__category_name',
+        'question__category__id'
+    ).annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # Pagination
+    paginator = Paginator(no_responses, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # For filters
+    from apps.organizations.models import Plant
+    plants = Plant.objects.filter(is_active=True)
+    categories = InspectionCategory.objects.filter(is_active=True)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_no_answers': total_no_answers,
+        'critical_no_answers': critical_no_answers,
+        'category_summary': category_summary,
+        'plants': plants,
+        'categories': categories,
+        'selected_plant': plant_id,
+        'selected_category': category_id,
+        'date_from': date_from,
+        'date_to': date_to,
+        'selected_priority': priority,
+        'search': search,
+    }
+    
+    return render(request, 'inspections/no_answers_list.html', context)
 
 
-# def send_inspection_reminder_email(schedule):
-#     """Send reminder email for pending inspection"""
+@login_required
+def no_answers_by_question(request):
+    """
+    Show aggregated view: which questions get 'No' most frequently
+    """
     
-#     from django.core.mail import send_mail
-#     from django.conf import settings
+    # Get all "No" responses grouped by question
+    from django.db.models import Count
     
-#     subject = f'Reminder: Pending Inspection - {schedule.template.template_name}'
+    question_stats = InspectionResponse.objects.filter(
+        answer='No'
+    ).values(
+        'question__id',
+        'question__question_code',
+        'question__question_text',
+        'question__category__category_name',
+        'question__is_critical'
+    ).annotate(
+        no_count=Count('id')
+    ).order_by('-no_count')
     
-#     message = f"""
-#     Dear {schedule.assigned_to.get_full_name()},
+    # Apply filters if needed
+    category_id = request.GET.get('category')
+    if category_id:
+        question_stats = question_stats.filter(
+            question__category_id=category_id
+        )
     
-#     This is a reminder for your pending inspection:
+    # Pagination
+    paginator = Paginator(question_stats, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
-#     Schedule Code: {schedule.schedule_code}
-#     Template: {schedule.template.template_name}
-#     Due Date: {schedule.due_date}
-#     Status: {schedule.get_status_display()}
+    categories = InspectionCategory.objects.filter(is_active=True)
     
-#     Please complete this inspection as soon as possible.
+    context = {
+        'page_obj': page_obj,
+        'categories': categories,
+        'selected_category': category_id,
+    }
     
-#     Best regards,
-#     EHS-360 Team
-#     """
-    
-#     try:
-#         send_mail(
-#             subject=subject,
-#             message=message,
-#             from_email=settings.DEFAULT_FROM_EMAIL,
-#             recipient_list=[schedule.assigned_to.email],
-#             fail_silently=False
-#         )
-#     except Exception as e:
-#         print(f"Error sending reminder email: {e}")
+    return render(request, 'inspections/no_answers_by_question.html', context)
 
 
-        
+    

@@ -3,6 +3,15 @@ from django.db.models import Count, Q, Sum
 from datetime import datetime, date
 import calendar
 import json
+from apps.ENVdata.constants import MONTHS
+from apps.accounts.models import Plant
+from .models import *
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
+
+
 
 
 class EnvironmentalDataFetcher:
@@ -185,3 +194,127 @@ class EnvironmentalDataFetcher:
         
         # Default return for unknown source types
         return 0
+    
+def get_all_plants_environmental_data(plants):
+    questions = EnvironmentalQuestion.objects.filter(is_active=True).order_by("order")
+
+    all_data = (
+        MonthlyIndicatorData.objects
+        .filter(plant__in=plants)
+        .select_related("plant", "indicator", "unit")
+    )
+
+    plants_data = []
+
+    for plant in plants:
+        questions_data = []
+
+        for q in questions:
+            month_data = {}
+            total = 0
+            has_values = False
+            unit_name = q.default_unit.name if q.default_unit else "Count"
+
+            for month_label, month_db in MonthlyIndicatorData.MONTH_CHOICES:
+
+                entry = all_data.filter(
+                    plant=plant,
+                    indicator=q,      
+                    month=month_db    
+                ).first()
+
+                if entry and entry.value:
+                    value = entry.value
+                    month_data[month_db.title()] = value
+
+                    try:
+                        total += float(str(value).replace(",", ""))
+                        has_values = True
+                    except (ValueError, TypeError):
+                        pass
+                else:
+                    month_data[month_db.title()] = ""
+
+            questions_data.append({
+                "question": q.question_text,
+                "unit": unit_name,
+                "month_data": month_data,
+                "annual": f"{total:,.2f}" if has_values else "",
+            })
+
+        plants_data.append({
+            "plant": plant,
+            "questions_data": questions_data,
+        })
+
+    return plants_data
+
+
+def generate_environmental_excel(plants_data):
+    MONTH_LABELS = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ]
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Environmental Data"
+
+    headers = ["Plant", "Question", "Unit", "Annual"] + MONTH_LABELS
+    ws.append(headers)
+
+    header_font = Font(bold=True)
+    header_alignment = Alignment(horizontal="center", vertical="center")
+
+    thin_border = Border(
+        left=Side(style="thin"),
+        right=Side(style="thin"),
+        top=Side(style="thin"),
+        bottom=Side(style="thin"),
+    )
+
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.font = header_font
+        cell.alignment = header_alignment
+        cell.border = thin_border
+
+    ws.freeze_panes = "A2"
+
+    for plant_data in plants_data:
+        plant_name = plant_data["plant"].name
+
+        for q in plant_data["questions_data"]:
+            row = [
+                plant_name,
+                q["question"],
+                q["unit"],
+                q["annual"],
+            ]
+
+            for month in MONTH_LABELS:
+                row.append(q["month_data"].get(month, ""))
+
+            ws.append(row)
+
+    for column_cells in ws.columns:
+        max_length = 0
+        col_letter = get_column_letter(column_cells[0].column)
+
+        for cell in column_cells:
+            cell.border = thin_border
+
+            if cell.row > 1:
+                if isinstance(cell.value, (int, float)) or (
+                    isinstance(cell.value, str) and cell.value.replace(".", "").replace(",", "").isdigit()
+                ):
+                    cell.alignment = Alignment(horizontal="right", vertical="center")
+                else:
+                    cell.alignment = Alignment(vertical="center")
+
+            if cell.value:
+                max_length = max(max_length, len(str(cell.value)))
+
+        ws.column_dimensions[col_letter].width = max_length + 3
+
+    return wb

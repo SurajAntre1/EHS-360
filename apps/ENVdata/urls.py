@@ -19,4 +19,5 @@ urlpatterns = [
     path('api/get-base-unit/', GetCategoryBaseUnitAPIView.as_view(), name='api-get-base-unit'),
     path('dashboard/', EnvironmentalDashboardView.as_view(), name='dashboard'),
 
+    path("export_excel/",ExportExcelView.as_view(),name="export_excel"),
 ]
