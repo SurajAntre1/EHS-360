@@ -1,0 +1,313 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="mb-0">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Non-Compliant Items (No Answers)
+                            </h3>
+                            <p class="mb-0 mt-2">All questions answered "No" across all inspections</p>
+                        </div>
+                        <div class="text-end">
+                            <a href="{% url 'inspections:no_answers_by_question' %}" 
+                               class="btn btn-light">
+                                <i class="fas fa-chart-bar"></i> View By Question
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-danger">{{ total_no_answers }}</h3>
+                    <p class="mb-0">Total Non-Compliant Items</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-warning">{{ critical_no_answers }}</h3>
+                    <p class="mb-0">Critical Items</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-info">{{ category_summary|length }}</h3>
+                    <p class="mb-0">Categories Affected</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Summary -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Non-Compliance by Category</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for cat in category_summary %}
+                            <div class="col-md-3 mb-3">
+                                <div class="alert alert-danger mb-0">
+                                    <h6>{{ cat.question__category__category_name }}</h6>
+                                    <h4 class="mb-0">{{ cat.count }}</h4>
+                                    <small>Non-compliant items</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-filter"></i> Filters
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{% url 'inspections:no_answers_list' %}">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label>Plant</label>
+                        <select name="plant" class="form-select">
+                            <option value="">All Plants</option>
+                            {% for plant in plants %}
+                                <option value="{{ plant.id }}" 
+                                    {% if selected_plant == plant.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ plant.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label>Category</label>
+                        <select name="category" class="form-select">
+                            <option value="">All Categories</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}"
+                                    {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ category.category_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label>Priority</label>
+                        <select name="priority" class="form-select">
+                            <option value="">All</option>
+                            <option value="critical" {% if selected_priority == 'critical' %}selected{% endif %}>
+                                Critical Only
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label>Date From</label>
+                        <input type="date" name="date_from" class="form-control" 
+                               value="{{ date_from }}">
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label>Date To</label>
+                        <input type="date" name="date_to" class="form-control" 
+                               value="{{ date_to }}">
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-8">
+                        <label>Search</label>
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="Search in question text, code, or remarks..."
+                               value="{{ search }}">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label>&nbsp;</label>
+                        <div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Apply Filters
+                            </button>
+                            <a href="{% url 'inspections:no_answers_list' %}" 
+                               class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Clear
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- No Answers List -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                Non-Compliant Items List ({{ page_obj.paginator.count }})
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if page_obj %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 5%;">#</th>
+                                <th style="width: 10%;">Question Code</th>
+                                <th style="width: 25%;">Question</th>
+                                <th style="width: 15%;">Category</th>
+                                <th style="width: 15%;">Inspection</th>
+                                <th style="width: 10%;">Plant</th>
+                                <th style="width: 10%;">Date</th>
+                                <th style="width: 5%;">Photo</th>
+                                <th style="width: 5%;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for response in page_obj %}
+                                <tr>
+                                    <td>
+                                        {{ forloop.counter }}
+                                        {% if response.question.is_critical %}
+                                            <span class="badge bg-danger" title="Critical">
+                                                <i class="fas fa-star"></i>
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ response.question.question_code }}</strong>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            {{ response.question.question_text|truncatewords:15 }}
+                                        </div>
+                                        {% if response.remarks %}
+                                            <small class="text-muted">
+                                                <i class="fas fa-comment"></i>
+                                                {{ response.remarks|truncatewords:10 }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ response.question.category.category_name }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            {{ response.submission.schedule.schedule_code }}
+                                            <br>
+                                            <span class="text-muted">
+                                                By: {{ response.submission.submitted_by.get_full_name }}
+                                            </span>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {{ response.submission.schedule.plant.name }}
+                                    </td>
+                                    <td>
+                                        <small>
+                                            {{ response.answered_at|date:"d M Y" }}
+                                            <br>
+                                            {{ response.answered_at|time:"h:i A" }}
+                                        </small>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if response.photo %}
+                                            <a href="{{ response.photo.url }}" target="_blank">
+                                                <i class="fas fa-image text-primary"></i>
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'inspections:inspection_review' response.submission.id %}" 
+                                           class="btn btn-sm btn-info"
+                                           title="View Full Inspection">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                    <div class="card-footer">
+                        <nav>
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if selected_plant %}&plant={{ selected_plant }}{% endif %}">
+                                            First
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if selected_plant %}&plant={{ selected_plant }}{% endif %}">
+                                            Previous
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                
+                                <li class="page-item active">
+                                    <span class="page-link">
+                                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                    </span>
+                                </li>
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if selected_plant %}&plant={{ selected_plant }}{% endif %}">
+                                            Next
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if selected_plant %}&plant={{ selected_plant }}{% endif %}">
+                                            Last
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="p-4 text-center text-muted">
+                    <i class="fas fa-check-circle fa-3x mb-3"></i>
+                    <h5>No non-compliant items found!</h5>
+                    <p>All inspections are compliant.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
