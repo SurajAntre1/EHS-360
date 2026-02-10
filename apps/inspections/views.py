@@ -48,7 +48,7 @@ def inspection_dashboard(request):
                 status='OVERDUE'
             ).count()
         
-        elif request.user.is_safety_manager or request.user.is_superuser:
+        elif request.user.can_access_inspection_module or request.user.is_superuser or request.user.is_admin:
             # Safety manager sees all for their plant
             context['pending_schedules'] = InspectionSchedule.objects.filter(
                 status__in=['SCHEDULED', 'IN_PROGRESS']
@@ -730,7 +730,7 @@ def schedule_list(request):
         if request.user.has_permission('CONDUCT_INSPECTION'):
             # HOD sees only their assigned inspections
             schedules = schedules.filter(assigned_to=request.user)
-        elif request.user.is_safety_manager or request.user.is_plant_head:
+        elif request.user.can_access_inspection_module or request.user.is_plant_head:
             # Safety manager/plant head sees their plant's inspections
             user_plants = request.user.get_all_plants()
             schedules = schedules.filter(plant__in=user_plants)
