@@ -37,6 +37,12 @@ class UserCreationFormCustom(UserCreationForm):
         self.fields['email'].required = True
         self.fields['first_name'].required = True
         self.fields['last_name'].required = True
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("This email is already registered!!")
+        return email
 
 
 class UserUpdateForm(BaseUserChangeForm):
@@ -70,3 +76,10 @@ class UserUpdateForm(BaseUserChangeForm):
         self.fields['email'].required = True
         self.fields['first_name'].required = True
         self.fields['last_name'].required = True
+    
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        qs = User.objects.filter(email=email).exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError('This email is already registered!!')
+        return email

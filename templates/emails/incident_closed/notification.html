@@ -12,70 +12,80 @@
         }
         .container {
             max-width: 720px;
-            margin: 20px auto;
+            margin: 30px auto;
             background: #ffffff;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
             overflow: hidden;
         }
         .header {
-            background-color: #065f46;
+            background: linear-gradient(90deg, #065f46, #047857);
             color: #ffffff;
-            padding: 20px;
+            padding: 24px;
         }
         .header h1 {
             margin: 0;
-            font-size: 20px;
+            font-size: 22px;
+            font-weight: 600;
+        }
+        .badge {
+            display: inline-block;
+            margin-top: 10px;
+            background: #ffffff;
+            color: #065f46;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
         }
         .content {
-            padding: 24px;
+            padding: 28px;
             font-size: 14px;
-            color: #333333;
-            line-height: 1.6;
+            color: #374151;
+            line-height: 1.7;
+        }
+        .section {
+            margin-top: 28px;
         }
         .section-title {
-            font-weight: bold;
-            margin-top: 24px;
-            margin-bottom: 8px;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 4px;
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 10px;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+            padding-left: 8px;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
         }
+        table tr {
+            border-bottom: 1px solid #e5e7eb;
+        }
         table td {
-            padding: 6px 4px;
+            padding: 8px 4px;
             vertical-align: top;
         }
         table td.label {
             width: 40%;
-            font-weight: bold;
-            color: #374151;
+            font-weight: 600;
+            color: #111827;
         }
         .highlight {
             background: #f9fafb;
-            padding: 12px;
+            padding: 14px;
+            border-radius: 6px;
             border-left: 4px solid #10b981;
             margin-top: 10px;
             white-space: pre-line;
         }
         .footer {
             background: #f3f4f6;
-            padding: 16px;
+            padding: 18px;
             font-size: 12px;
             color: #6b7280;
             text-align: center;
-        }
-        .badge {
-            display: inline-block;
-            background: #10b981;
-            color: #ffffff;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            margin-top: 8px;
         }
     </style>
 </head>
@@ -84,91 +94,96 @@
 
 <div class="container">
 
-```
-<div class="header">
-    <h1>Incident Closed</h1>
-    <div class="badge">Closed</div>
-</div>
-
-<div class="content">
-    <p>Hello {{ recipient.get_full_name|default:"User" }},</p>
-
-    <p>
-        The following incident has been <strong>successfully closed</strong>.
-        Please find the details below for your reference.
-    </p>
-
-    <div class="section-title">Incident Details</div>
-    <table>
-        <tr>
-            <td class="label">Incident Number</td>
-            <td>{{ incident.report_number|default:"N/A" }}</td>
-        </tr>
-        <tr>
-            <td class="label">Incident Type</td>
-            <td>{{ incident.incident_type.name|default:"N/A" }}</td>
-        </tr>
-        <tr>
-            <td class="label">Date &amp; Time</td>
-            <td>
-                {{ incident.incident_date|default:"N/A" }}
-                {{ incident.incident_time|default:"" }}
-            </td>
-        </tr>
-        <tr>
-            <td class="label">Plant</td>
-            <td>{{ incident.plant.name|default:"N/A" }}</td>
-        </tr>
-        <tr>
-            <td class="label">Zone</td>
-            <td>{{ incident.zone.name|default:"N/A" }}</td>
-        </tr>
-        <tr>
-            <td class="label">Location</td>
-            <td>{{ incident.location.name|default:"N/A" }}</td>
-        </tr>
-        <tr>
-            <td class="label">Sub-Location</td>
-            <td>{{ incident.sublocation.name|default:"N/A" }}</td>
-        </tr>
-        <tr>
-            <td class="label">Reported By</td>
-            <td>{{ incident.reported_by.get_full_name|default:"N/A" }}</td>
-        </tr>
-    </table>
-
-    <div class="section-title">Closure Details</div>
-    <table>
-        <tr>
-            <td class="label">Closed By</td>
-            <td>{{ incident.closed_by.get_full_name|default:"N/A" }}</td>
-        </tr>
-        <tr>
-            <td class="label">Closure Date</td>
-            <td>{{ incident.closure_date|default:"N/A" }}</td>
-        </tr>
-    </table>
-
-    <div class="section-title">Incident Description</div>
-    <div class="highlight">
-        {{ incident.description|default:"N/A" }}
+    <div class="header">
+        <h1>Incident Closed</h1>
+        <div class="badge">✔ Successfully Closed</div>
     </div>
 
-    <p>
-        If you have any questions regarding this incident or require
-        additional information, please contact the EHS team.
-    </p>
+    <div class="content">
 
-    <p>
-        Regards,<br>
-        <strong>EHS Management System</strong>
-    </p>
-</div>
+        <p>Hello <strong>{{ recipient.get_full_name|default:"User" }}</strong>,</p>
 
-<div class="footer">
-    This is an automated notification. Please do not reply to this email.
-</div>
-```
+        <p>
+            The below incident has been <strong>successfully closed</strong>.
+            Please review the final details below.
+        </p>
+
+        <!-- Incident Details -->
+        <div class="section">
+            <div class="section-title">Incident Information</div>
+            <table>
+                <tr>
+                    <td class="label">Incident Number</td>
+                    <td>{{ incident.report_number|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Incident Type</td>
+                    <td>{{ incident.incident_type.name|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Date & Time</td>
+                    <td>{{ incident.incident_date|default:"N/A" }} {{ incident.incident_time|default:"" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Plant</td>
+                    <td>{{ incident.plant.name|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Zone</td>
+                    <td>{{ incident.zone.name|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Location</td>
+                    <td>{{ incident.location.name|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Sub-Location</td>
+                    <td>{{ incident.sublocation.name|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Reported By</td>
+                    <td>{{ incident.reported_by.get_full_name|default:"N/A" }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Closure Details -->
+        <div class="section">
+            <div class="section-title">Closure Information</div>
+            <table>
+                <tr>
+                    <td class="label">Closed By</td>
+                    <td>{{ incident.closed_by.get_full_name|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Closure Date</td>
+                    <td>{{ incident.closure_date|default:"N/A" }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Description -->
+        <div class="section">
+            <div class="section-title">Incident Description</div>
+            <div class="highlight">
+                {{ incident.description|default:"N/A" }}
+            </div>
+        </div>
+
+        <p style="margin-top:30px;">
+            If you require any additional clarification, please contact the EHS team.
+        </p>
+
+        <p>
+            Regards,<br>
+            <strong>EHS Management System</strong>
+        </p>
+
+    </div>
+
+    <div class="footer">
+        This is an automated notification. Please do not reply to this email.
+    </div>
 
 </div>
 

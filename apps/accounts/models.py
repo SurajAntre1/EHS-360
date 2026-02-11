@@ -20,6 +20,7 @@ class User(AbstractUser):
         ('CONSULTANT', 'Consultant'),
     ]
     
+    email = models.EmailField(unique=True,null=False,blank=False, verbose_name='Email Address', help_text='User email (must be unique)')
     gender = models.CharField(max_length=20, choices=GENDER_CHOICES, null=True, blank=True, verbose_name="Gender")
     date_of_birth = models.DateField(null=True, blank=True, verbose_name="Date of Birth", help_text="Employee's date of birth")
     employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPE_CHOICES, default='FULL_TIME', verbose_name="Employment Type")

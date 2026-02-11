@@ -114,19 +114,19 @@
             <table class="info-table">
                 <tr>
                     <th>Description</th>
-                    <td>{{ incidnetactionitem.description }}</td>
+                    <td>{{ action_item.action_description }}</td>
                 </tr>
                 <tr>
                     <th>Target Date</th>
-                    <td>{{ incidnetactionitem.target_date }}</td>
+                    <td>{{ action_item.target_date }}</td>
                 </tr>
                 <tr>
                     <th>Status</th>
-                    <td>{{ incidnetactionitem.status }}</td>
+                    <td>{{ action_item.status }}</td>
                 </tr>
                 <tr>
                     <th>Completion Date</th>
-                    <td>{{ incidnetactionitem.completion_date|default:"Pending" }}</td>
+                    <td>{{ action_item.completion_date|default:"Pending" }}</td>
                 </tr>
             </table>
 

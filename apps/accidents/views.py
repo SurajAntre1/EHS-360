@@ -724,6 +724,19 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         action_item_formset.save_m2m()
 
         # 3️⃣ Update Incident Status (NEW LOGIC)
+        try:
+            from apps.notifications.services import NotificationService
+
+            for action_item in action_items:
+                NotificationService.notify(
+                    content_object=action_item,
+                    notification_type='INCIDENT_ACTION_ASSIGNED',
+                    module='INCIDENT_ACTION'
+                )
+
+        except Exception as e:
+            print(f"Action item notification error: {e}")
+
         self.incident.status = 'PENDING_APPROVAL'
         self.incident.approval_status = 'PENDING'
         self.incident.investigation_completed_date = investigation.completed_date
@@ -773,20 +786,34 @@ class ActionItemCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context['incident'] = self.incident
         return context
-    
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['incident'] = self.incident
+        return kwargs
+
     def form_valid(self, form):
+        # Link the action item to the incident
         form.instance.incident = self.incident
-        messages.success(self.request, 'Action item created successfully!')
-        action_item = form.save()
-         # ===== ADD NOTIFICATION: Action Item Assigned =====
+        response = super().form_valid(form)
+        form.save_m2m()  # Save ManyToMany fields like responsible_person
+
+        action_item = self.object
+
+        # ===== ADD NOTIFICATION: Action Item Assigned =====
         try:
             from apps.notifications.services import NotificationService
-            
-            # Notify responsible persons about the action item
+
+            # Notify responsible persons + assigned_to
+            extra_recipients = []
+            if hasattr(action_item, 'assigned_to') and action_item.assigned_to:
+                extra_recipients.append(action_item.assigned_to)
+
             NotificationService.notify(
                 content_object=action_item,
                 notification_type='INCIDENT_ACTION_ASSIGNED',
-                module='INCIDENT_ACTION'
+                module='INCIDENT_ACTION',
+                extra_recipients=extra_recipients if extra_recipients else None
             )
             
             print("✅ Action assignment notifications sent")
@@ -794,10 +821,13 @@ class ActionItemCreateView(LoginRequiredMixin, CreateView):
             print(f"❌ Error sending action assignment notifications: {e}")
         
         messages.success(self.request, 'Action item created successfully!')
-        return super().form_valid(form)
+        return response
+
     def get_success_url(self):
-        return reverse_lazy('accidents:incident_detail', kwargs={'pk': self.incident.pk})
-    
+        return reverse_lazy(
+            'accidents:incident_detail',
+            kwargs={'pk': self.incident.pk}
+        )
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['incident'] = self.incident
@@ -1206,7 +1236,7 @@ class IncidentClosureView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         """Check if user has permission to close incidents"""
         return (
             self.request.user.is_superuser or
-            self.request.user.can_close_incidents or
+            getattr(self.request.user, 'can_close_incidents', False) or
             self.request.user.role.name in ['ADMIN', 'SAFETY MANAGER', 'PLANT HEAD']
         )
     
@@ -1216,7 +1246,7 @@ class IncidentClosureView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         
         # Verify closure eligibility
         can_close, message = incident.can_be_closed
-        
+
         context.update({
             'incident': incident,
             'can_close': can_close,
@@ -1226,26 +1256,41 @@ class IncidentClosureView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return context
     
     def form_valid(self, form):
-        incident = form.instance
-        
+
         # Verify incident can be closed
+        incident = form.save(commit=False)
+
         can_close, message = incident.can_be_closed
-        
         if not can_close:
             messages.error(self.request, f"Cannot close incident: {message}")
             return redirect('accidents:incident_detail', pk=incident.pk)
-        
-        # Set closure details
+
+        # ✅ Set closure fields
+        incident.status = 'CLOSED'
         incident.closure_date = timezone.now()
         incident.closed_by = self.request.user
-        incident.status = 'CLOSED'
-        
+        incident.save()
+
+        print(f"Incident {incident.report_number} closed. Sending notification...")
+
+        # For sending notifications
+        try:
+            from apps.notifications.services import NotificationService
+            NotificationService.notify(
+                content_object=incident,
+                notification_type='INCIDENT_CLOSED',
+                module='INCIDENT_CLOSED'
+            )
+            print("✅ Incident closure notifications sent")
+        except Exception as e:
+            print(f"❌ Error sending closure notifications: {e}")
+
         messages.success(
             self.request,
             f'Incident {incident.report_number} has been successfully closed.'
         )
-        
-        return super().form_valid(form)
+
+        return redirect('accidents:incident_detail', pk=incident.pk)
     
     def get_success_url(self):
         return reverse_lazy('accidents:incident_detail', kwargs={'pk': self.object.pk})
@@ -1513,33 +1558,33 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
         return response
     
 
-class IncidentCloseView(LoginRequiredMixin, UpdateView):
-    """Close an incident"""
-    model = Incident
-    template_name = 'accidents/incident_close.html'
-    fields = ['closure_remarks', 'lessons_learned', 'preventive_measures']
-    def form_valid(self, form):
-        print(">>>> form_valid called")
-        incident = form.save(commit=False)
+# class IncidentCloseView(LoginRequiredMixin, UpdateView):
+#     """Close an incident"""
+#     model = Incident
+#     template_name = 'accidents/incident_close.html'
+#     fields = ['closure_remarks', 'lessons_learned', 'preventive_measures']
+#     def form_valid(self, form):
+#         print(">>>> form_valid called")
+#         incident = form.save(commit=False)
 
-        # Set closure fields
-        incident.status = 'CLOSED'
-        incident.closure_date = timezone.now()
-        incident.closed_by = self.request.user
-        incident.save()
-        print(f">>>> Incident {incident.report_number} closed, calling NotificationService")
-        # ===== ADD NOTIFICATION: Incident Closed =====
-        try:
-            from apps.notifications.services import NotificationService
-            NotificationService.notify(
-                content_object=incident,
-                notification_type='INCIDENT_CLOSED',
-                module='INCIDENT_CLOSED'
-            )
-            print("✅ Incident closure notifications sent")
+#         # Set closure fields
+#         incident.status = 'CLOSED'
+#         incident.closure_date = timezone.now()
+#         incident.closed_by = self.request.user
+#         incident.save()
+#         print(f">>>> Incident {incident.report_number} closed, calling NotificationService")
+#         # ===== ADD NOTIFICATION: Incident Closed =====
+#         try:
+#             from apps.notifications.services import NotificationService
+#             NotificationService.notify(
+#                 content_object=incident,
+#                 notification_type='INCIDENT_CLOSED',
+#                 module='INCIDENT_CLOSED'
+#             )
+#             print("✅ Incident closure notifications sent")
 
-        except Exception as e:
-            print(f"❌ Error sending closure notifications: {e}")
+#         except Exception as e:
+#             print(f"❌ Error sending closure notifications: {e}")
 
-        messages.success(self.request,f'Incident {incident.report_number} has been closed successfully.')
-        return redirect('accidents:incident_detail', pk=incident.pk)
+#         messages.success(self.request,f'Incident {incident.report_number} has been closed successfully.')
+#         return redirect('accidents:incident_detail', pk=incident.pk)
