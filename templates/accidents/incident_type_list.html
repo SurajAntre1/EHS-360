@@ -2,12 +2,12 @@
 {% load static %}
 
 {% block title %}Incident Types{% endblock %}
-{% block page_title %}Incident Type Master{% endblock %}
+{% block page_title %}{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
-<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Incident Management</a></li>
-<li class="breadcrumb-item active">Incident Types</li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:incident_type_create' %}">Create Injury Type</a></li>
+<li class="breadcrumb-item active">Injury Types</li>
 {% endblock %}
 
 {% block extra_css %}
@@ -63,6 +63,13 @@
     font-size: 0.875rem;
     padding: 0.375rem 0.75rem;
 }
+.ehs-card .card-header:not(.bg-danger):not(.bg-warning):not(.bg-success):not(.bg-info) {
+    background: linear-gradient(135deg, #0093ff, #0614ff);
+    border-bottom: 1px solid #f0f0f0;
+    padding: 15px 20px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
 </style>
 {% endblock %}
 
@@ -73,10 +80,10 @@
       <div class="card-header bg-primary text-white">
         <div class="d-flex justify-content-between align-items-center">
           <h3 class="card-title mb-0">
-            <i class="fas fa-list-alt mr-2"></i>Incident Type Master
+            <i class="fas fa-list-alt mr-2"></i>Injury Type Master
           </h3>
           <a href="{% url 'accidents:incident_type_create' %}" class="btn btn-light btn-sm">
-            <i class="fas fa-plus mr-1"></i>Add New Incident Type
+            <i class="fas fa-plus mr-1"></i>Add New Injury Type
           </a>
         </div>
       </div>
@@ -87,7 +94,7 @@
           <div class="col-md-4">
             <div class="stats-card">
               <h3>{{ incident_types|length }}</h3>
-              <p><i class="fas fa-list mr-2"></i>Total Incident Types</p>
+              <p><i class="fas fa-list mr-2"></i>Total Injury Types</p>
             </div>
           </div>
           <div class="col-md-4">
@@ -98,8 +105,8 @@
           </div>
           <div class="col-md-4">
             <div class="stats-card" style="background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);">
-              <h3>{% for type in incident_types %}{{ type.incident_count|default:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}</h3>
-              <p><i class="fas fa-exclamation-triangle mr-2"></i>Total Incidents</p>
+              <h3>{{ total_injuries }}</h3>
+              <p><i class="fas fa-exclamation-triangle mr-2"></i>Total Injuries</p>
             </div>
           </div>
         </div>
@@ -142,7 +149,7 @@
           <table class="table table-bordered table-hover">
             <thead class="thead-light">
               <tr>
-                <th style="width: 5%;">#</th>
+                <th style="width: 5%;">Sr.No.</th>
                 <th style="width: 25%;">Name</th>
                 <th style="width: 12%;">Code</th>
                 <th style="width: 35%;">Description</th>
@@ -254,10 +261,10 @@
               <i class="fas fa-times mr-1"></i>Clear Search
             </a>
           {% else %}
-            <h4>No Incident Types Yet</h4>
-            <p class="text-muted">Get started by creating your first incident type</p>
+            <h4>No Injury Types Yet</h4>
+            <p class="text-muted">Get started by creating your first injury type</p>
             <a href="{% url 'accidents:incident_type_create' %}" class="btn btn-primary btn-sm mt-3">
-              <i class="fas fa-plus mr-1"></i>Add First Incident Type
+              <i class="fas fa-plus mr-1"></i>Add First Injury Type
             </a>
           {% endif %}
         </div>

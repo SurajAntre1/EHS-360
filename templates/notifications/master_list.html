@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}Notification Master Configuration{% endblock %}
-{% block page_title %}Notification Master Configuration{% endblock %}
+{% block page_title %}{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'notifications:notification_master_list' %}">Master List</a></li>
 <li class="breadcrumb-item"><a href="{% url 'notifications:notification_master_create' %}">Configure notifications role</a></li>
@@ -196,7 +196,7 @@
                     <small>{{ configs|length }} notification(s) configured</small>
                 </div>
                 <div>
-                    <a href="{% url 'notifications:notification_master_create' %}?role={{ role }}" 
+                    <a href="{% url 'notifications:notification_master_create' %}?role={{ role.id }}" 
                        class="btn btn-light btn-sm">
                         <i class="fas fa-plus"></i> Add More
                     </a>

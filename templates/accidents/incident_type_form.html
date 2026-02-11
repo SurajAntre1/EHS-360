@@ -1,13 +1,12 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}{{ action }} Incident Type{% endblock %}
-{% block page_title %}{{ action }} Incident Type{% endblock %}
+{% block title %}{{ action }} Injury Type{% endblock %}
+{% block page_title %}{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
-<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Incident Management</a></li>
-<li class="breadcrumb-item"><a href="{% url 'accidents:incident_type_list' %}">Incident Types</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:incident_type_list' %}">Injury Types</a></li>
 <li class="breadcrumb-item active">{{ action }}</li>
 {% endblock %}
 
@@ -45,6 +44,14 @@
     color: #495057;
     margin-left: 5px;
 }
+
+.ehs-card .card-header:not(.bg-danger):not(.bg-warning):not(.bg-success):not(.bg-info) {
+    background: linear-gradient(135deg, #0093ff, #0614ff);
+    border-bottom: 1px solid #f0f0f0;
+    padding: 15px 20px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
 </style>
 {% endblock %}
 
@@ -55,7 +62,7 @@
       <div class="card-header bg-primary text-white">
         <h3 class="card-title mb-0">
           <i class="fas fa-{% if action == 'Create' %}plus{% else %}edit{% endif %} mr-2"></i>
-          {{ action }} Incident Type
+          {{ action }} Injury Type
         </h3>
       </div>
       
@@ -109,11 +116,11 @@
             <!-- Name Field -->
             <div class="form-group">
               <label for="{{ form.name.id_for_label }}">
-                Incident Type Name <span class="text-danger">*</span>
+                Injury Type Name <span class="text-danger">*</span>
               </label>
               {{ form.name }}
               <small class="form-text text-muted">
-                Enter the full name of the incident type (e.g., Lost Time Injury, First Aid)
+                Enter the full name of the injury type (e.g., Lost Time Injury, First Aid)
               </small>
               {% if form.name.errors %}
                 <div class="text-danger mt-1">
@@ -149,7 +156,7 @@
               </label>
               {{ form.description }}
               <small class="form-text text-muted">
-                Provide a detailed description of this incident type (optional)
+                Provide a detailed description of this injury type (optional)
               </small>
               {% if form.description.errors %}
                 <div class="text-danger mt-1">
@@ -175,8 +182,8 @@
               </div>
               <small class="form-text text-muted">
                 <i class="fas fa-info-circle mr-1"></i>
-                When checked, this incident type will be available in incident reporting forms. 
-                Uncheck to deactivate (it will be hidden from forms but existing incidents will retain their type).
+                When checked, this injury type will be available in injury reporting forms. 
+                Uncheck to deactivate (it will be hidden from forms but existing injuries will retain their type).
               </small>
               {% if form.is_active.errors %}
                 <div class="text-danger mt-1">
@@ -191,7 +198,7 @@
         
         <div class="card-footer">
           <button type="submit" class="btn btn-primary btn-lg">
-            <i class="fas fa-save mr-2"></i>{{ action }} Incident Type
+            <i class="fas fa-save mr-2"></i>{{ action }} Injury Type
           </button>
           <a href="{% url 'accidents:incident_type_list' %}" class="btn btn-secondary btn-lg ml-2">
             <i class="fas fa-times mr-2"></i>Cancel

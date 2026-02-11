@@ -252,6 +252,7 @@
               </a>
             </li>
             {% endif %}
+            {% if user.can_access_env_data_module %}
             <li class="nav-item">
               <a href="{% url 'environmental:dashboard' %}"
                 class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
@@ -259,6 +260,7 @@
                 <p class="menu-title-small">Environmental Dashboard</p>
               </a>
             </li>
+            {% endif %}
           </ul>
         </li>
 
@@ -269,6 +271,65 @@
             <i class="nav-icon fas fa-sitemap"></i>
             <p>Organization Setup</p>
           </a>
+        </li>
+        {% endif %}
+
+        {% if user.is_superuser or user.is_admin_user %}
+        <li class="nav-item {% if 'accidents' in request.path %}menu-open{% endif %}">
+          <a href="#" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
+            <i class="nav-icon fas fa-exclamation-triangle"></i>
+            <p>Injury Type Configuration<i class="right fas fa-angle-left"></i></p>
+          </a>
+
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="{% url 'accidents:incident_type_create' %}"
+                 class="nav-link {% if request.resolver_match.url_name == 'incident_type_create' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Create New Injury</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'accidents:incident_type_list' %}"
+                 class="nav-link {% if request.resolver_match.url_name == 'incident_type_list' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>All Injuries Type</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+        {% endif %}
+
+        {% if user.is_superuser or user.is_admin_user %}
+        <li class="nav-item {% if 'notifications' in request.path %}menu-open{% endif %}">
+          <a href="#" class="nav-link {% if 'notifications' in request.path %}active{% endif %}">
+            <i class="nav-icon fas fa-bell"></i>
+            <p>  Notification Configuration<i class="right fas fa-angle-left"></i></p>
+          </a>
+
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="{% url 'notifications:notification_master_create' %}"
+                 class="nav-link {% if request.resolver_match.url_name == 'notifications' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Notifications Master Create</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'notifications:notification_master_list' %}"
+                 class="nav-link {% if request.resolver_match.url_name == 'notification_master_list' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Notification Master List</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'notifications:notification_tracking_view' %}"
+                 class="nav-link {% if request.resolver_match.url_name == 'notification_tracking_view' %}active{% endif %}">
+                <i class="nav-icon far fa-circle"></i>
+                <p>Notification Tracking</p>
+              </a>
+            </li>
+          </ul>
         </li>
         {% endif %}
 
@@ -557,14 +618,14 @@
         {% endif %}
 
         <!-- ✅ REPORTS MODULE (if you have it) -->
-        {% if user.can_access_reports_module %}
+        {% comment %} {% if user.can_access_reports_module %}
         <li class="nav-item">
           <a href="#" class="nav-link">
             <i class="nav-icon fas fa-chart-bar"></i>
             <p>Reports & Analytics</p>
           </a>
         </li>
-        {% endif %}
+        {% endif %} {% endcomment %}
 
       </ul>
     </nav>

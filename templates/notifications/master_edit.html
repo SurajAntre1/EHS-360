@@ -1,0 +1,294 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Edit Notification Configuration{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .form-section h5 {
+        margin-bottom: 15px;
+        color: #495057;
+        border-bottom: 2px solid #0d6efd;
+        padding-bottom: 8px;
+    }
+
+    .module-group {
+        border-radius: 6px;
+        margin-bottom: 15px;
+        overflow: hidden;
+    }
+
+    .module-header {
+        background: linear-gradient(45deg, #1e73d8, #1976d2);
+        color: white;
+        padding: 12px 18px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    .module-header:hover {
+        opacity: 0.9;
+    }
+
+    .module-body {
+        padding: 15px;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-top: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+<div class="row">
+
+<div class="col-md-9">
+
+<h2 class="mb-3">
+    <i class="fas fa-edit"></i> Edit Notification Configuration
+</h2>
+
+<form method="POST">
+{% csrf_token %}
+
+<div class="form-section">
+    <h5><i class="fas fa-user-tag"></i> Step 1: Select Role</h5>
+
+    <select class="form-control form-control-lg"
+            name="role"
+            required>
+        {% for role in roles %}
+        <option value="{{ role.id }}"
+            {% if role.id == config.role.id %}selected{% endif %}>
+            {{ role.name }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+
+<div class="form-section">
+<h5><i class="fas fa-list-check"></i> Step 2: Modules & Events</h5>
+
+<input type="hidden" name="module" id="moduleField" value="{{ config.module }}">
+
+<div class="module-group">
+    <div class="module-header" data-bs-toggle="collapse" data-bs-target="#collapseIncident">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong> Incident Management</strong>
+    </div>
+
+    <div id="collapseIncident"
+         class="collapse {% if config.module == 'INCIDENT' %}show{% endif %}">
+        <div class="module-body">
+            {% for code, name in NOTIFICATION_EVENT_CHOICES %}
+                {% if code|slice:":8" == "INCIDENT" %}
+                <div class="form-check mb-2">
+                    <input class="form-check-input event-radio"
+                           type="radio"
+                           name="notification_event"
+                           value="{{ code }}"
+                           data-module="INCIDENT"
+                           {% if config.notification_event == code %}checked{% endif %}>
+                    <label class="form-check-label">{{ name }}</label>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="module-group">
+    <div class="module-header" data-bs-toggle="collapse" data-bs-target="#collapseHazard">
+        <i class="fas fa-warning"></i>
+        <strong> Hazard / Near Miss</strong>
+    </div>
+
+    <div id="collapseHazard"
+         class="collapse {% if config.module == 'HAZARD' %}show{% endif %}">
+        <div class="module-body">
+            {% for code, name in NOTIFICATION_EVENT_CHOICES %}
+                {% if code|slice:":6" == "HAZARD" %}
+                <div class="form-check mb-2">
+                    <input class="form-check-input event-radio"
+                           type="radio"
+                           name="notification_event"
+                           value="{{ code }}"
+                           data-module="HAZARD"
+                           {% if config.notification_event == code %}checked{% endif %}>
+                    <label class="form-check-label">{{ name }}</label>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="module-group">
+    <div class="module-header" data-bs-toggle="collapse" data-bs-target="#collapseEnv">
+        <i class="fas fa-leaf"></i>
+        <strong> Environmental</strong>
+    </div>
+
+    <div id="collapseEnv"
+         class="collapse {% if config.module == 'ENV' %}show{% endif %}">
+        <div class="module-body">
+            {% for code, name in NOTIFICATION_EVENT_CHOICES %}
+                {% if code|slice:":3" == "ENV" %}
+                <div class="form-check mb-2">
+                    <input class="form-check-input event-radio"
+                           type="radio"
+                           name="notification_event"
+                           value="{{ code }}"
+                           data-module="ENV"
+                           {% if config.notification_event == code %}checked{% endif %}>
+                    <label class="form-check-label">{{ name }}</label>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="module-group">
+    <div class="module-header" data-bs-toggle="collapse" data-bs-target="#collapseInspection">
+        <i class="fas fa-clipboard-check"></i>
+        <strong> Inspection</strong>
+    </div>
+
+    <div id="collapseInspection"
+         class="collapse {% if config.module == 'INSPECTION' %}show{% endif %}">
+        <div class="module-body">
+            {% for code, name in NOTIFICATION_EVENT_CHOICES %}
+                {% if code|slice:":10" == "INSPECTION" %}
+                <div class="form-check mb-2">
+                    <input class="form-check-input event-radio"
+                           type="radio"
+                           name="notification_event"
+                           value="{{ code }}"
+                           data-module="INSPECTION"
+                           {% if config.notification_event == code %}checked{% endif %}>
+                    <label class="form-check-label">{{ name }}</label>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+</div>
+
+<div class="form-section">
+<h5><i class="fas fa-cog"></i> Step 3: Settings</h5>
+
+<div class="row">
+    <div class="col-md-6">
+        <label>Reminder Type</label>
+        <select name="reminder_type" class="form-control">
+            {% for code, name in REMINDER_TYPE_CHOICES %}
+            <option value="{{ code }}"
+                {% if config.reminder_type == code %}selected{% endif %}>
+                {{ name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-3">
+        <label>Days Before</label>
+        <input type="number" class="form-control"
+               name="days_before_deadline"
+               value="{{ config.days_before_deadline }}">
+    </div>
+
+    <div class="col-md-3">
+        <label>Days After</label>
+        <input type="number" class="form-control"
+               name="days_after_deadline"
+               value="{{ config.days_after_deadline }}">
+    </div>
+</div>
+
+<hr>
+
+<div class="row">
+    <div class="col-md-4">
+        <input type="checkbox" name="filter_by_plant"
+               {% if config.filter_by_plant %}checked{% endif %}>
+        Filter by Plant
+    </div>
+
+    <div class="col-md-4">
+        <input type="checkbox" name="filter_by_location"
+               {% if config.filter_by_location %}checked{% endif %}>
+        Filter by Location
+    </div>
+
+    <div class="col-md-4">
+        <input type="checkbox" name="filter_by_zone"
+               {% if config.filter_by_zone %}checked{% endif %}>
+        Filter by Zone
+    </div>
+</div>
+
+<hr>
+
+<div class="row">
+    <div class="col-md-6">
+        <input type="checkbox" name="is_active"
+               {% if config.is_active %}checked{% endif %}>
+        <strong>Active</strong>
+    </div>
+
+    <div class="col-md-6">
+        <input type="checkbox" name="email_enabled"
+               {% if config.email_enabled %}checked{% endif %}>
+        <strong>Email Enabled</strong>
+    </div>
+</div>
+
+</div>
+
+<div class="text-end">
+    <a href="{% url 'notifications:notification_master_list' %}"
+       class="btn btn-secondary">
+        Cancel
+    </a>
+    <button type="submit" class="btn btn-primary">
+        Update Configuration
+    </button>
+</div>
+
+</form>
+</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const radios = document.querySelectorAll(".event-radio");
+    const moduleField = document.getElementById("moduleField");
+
+    radios.forEach(radio => {
+        radio.addEventListener("change", function () {
+            moduleField.value = this.dataset.module;
+        });
+    });
+
+    const selected = document.querySelector(".event-radio:checked");
+    if (selected) {
+        moduleField.value = selected.dataset.module;
+    }
+});
+</script>
+
+{% endblock %}

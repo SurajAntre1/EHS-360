@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, TemplateView,DeleteView
 from django.urls import reverse, reverse_lazy
 from django.shortcuts import get_object_or_404, redirect
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Sum
 from django.http import JsonResponse
 from apps.organizations.models import *
 from .models import *
@@ -58,6 +58,9 @@ class IncidentTypeListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        total_injuries = self.object_list.aggregate(total=Sum('incident_count')) ['total'] or 0
+        context['total_injuries'] = total_injuries 
         context['search_query'] = self.request.GET.get('search', '')
         return context
 
