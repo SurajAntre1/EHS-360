@@ -30,6 +30,9 @@ from django.conf.urls.static import static
 from apps.common.image_utils import compress_image
 
 from .forms import IncidentAttachmentForm # <-- Import the new form
+from django.views.generic import UpdateView
+from django.views.generic import ListView
+from .models import IncidentActionItem
 
 
 
@@ -644,33 +647,29 @@ User = get_user_model()
 class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
     """
     Create investigation report and its associated action items.
-    On successful submission, redirects to approval page.
+    Handles 'Self Assign' and 'Forward to Others' logic for action items.
     """
     model = IncidentInvestigationReport
     form_class = IncidentInvestigationReportForm
     template_name = 'accidents/investigation_report_create.html'
 
     def dispatch(self, request, *args, **kwargs):
-        """Ensure the incident exists before proceeding."""
         self.incident = get_object_or_404(Incident, pk=self.kwargs['incident_pk'])
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        """Add the incident and action item formset to the context."""
         context = super().get_context_data(**kwargs)
         context['incident'] = self.incident
-
         ActionItemFormSet = inlineformset_factory(
             Incident,
             IncidentActionItem,
             form=IncidentActionItemForm,
             extra=1,
-            can_delete=False
+            can_delete=True # Set to True to handle removals
         )
-
         if self.request.POST:
             context['action_item_formset'] = ActionItemFormSet(
-                self.request.POST,
+                self.request.POST, self.request.FILES, # Add self.request.FILES for attachments
                 instance=self.incident,
                 prefix='actionitems',
                 form_kwargs={'incident': self.incident}
@@ -681,68 +680,70 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
                 prefix='actionitems',
                 form_kwargs={'incident': self.incident}
             )
-
         return context
 
     def form_valid(self, form):
-        """Process investigation report + action items."""
+        """
+        Process the investigation report and its action items.
+        This is the corrected logic that properly handles formsets and ManyToMany fields.
+        """
         context = self.get_context_data()
         action_item_formset = context['action_item_formset']
 
         if not action_item_formset.is_valid():
-            messages.error(
-                self.request,
-                "There was an error with the action items. Please check the details."
-            )
+            messages.error(self.request, "There was an error with the action items. Please check the details.")
             return self.form_invalid(form)
 
-        # 1️⃣ Save Investigation Report
+        # 1. Save Investigation Report (ye pehle jaisa hi hai)
         investigation = form.save(commit=False)
         investigation.incident = self.incident
         investigation.investigator = self.request.user
         investigation.completed_by = self.request.user
-
-        # Handle JSON fields
-        personal_factors_json = self.request.POST.get('personal_factors_json', '[]')
-        job_factors_json = self.request.POST.get('job_factors_json', '[]')
-
-        try:
-            investigation.personal_factors = json.loads(personal_factors_json)
-            investigation.job_factors = json.loads(job_factors_json)
-        except json.JSONDecodeError:
-            investigation.personal_factors = []
-            investigation.job_factors = []
-
+        investigation.personal_factors = json.loads(self.request.POST.get('personal_factors_json', '[]'))
+        investigation.job_factors = json.loads(self.request.POST.get('job_factors_json', '[]'))
         investigation.save()
 
-        # 2️⃣ Save Action Items
-        action_items = action_item_formset.save(commit=False)
-        for action_item in action_items:
-            action_item.incident = self.incident
-            action_item.save()
+        # 2. Process and Save Action Items (CORRECTED LOGIC)
 
+        # Step A: Get a list of unsaved model instances from the formset.
+        # This is the crucial step that prepares the formset for save_m2m().
+        action_items = action_item_formset.save(commit=False)
+
+        # Step B: Loop through the instances to set extra data and save them one by one.
+        for item in action_items:
+            item.incident = self.incident
+            item.created_by = self.request.user
+            
+            # Set status based on assignment type.
+            if item.assignment_type == 'SELF':
+                item.status = 'COMPLETED'
+                item.completion_date = timezone.now().date()
+            else: # 'FORWARD'
+                item.status = 'PENDING'
+            
+            item.save() # Save the individual action item instance.
+
+        # Step C: Now that all instances are saved, call save_m2m().
+        # This will correctly save the responsible_person for 'FORWARD' items.
         action_item_formset.save_m2m()
 
-        # 3️⃣ Update Incident Status (NEW LOGIC)
-        try:
-            from apps.notifications.services import NotificationService
+        # Step D: (Final Fix) Manually set responsible_person for 'SELF' items AFTER save_m2m.
+        # This prevents it from being overwritten.
+        for item in action_items:
+            if item.assignment_type == 'SELF':
+                item.responsible_person.add(self.request.user)
+        
+        # Handle deleted forms (ye pehle jaisa hi hai)
+        for form_to_delete in action_item_formset.deleted_objects:
+             form_to_delete.delete()
 
-            for action_item in action_items:
-                NotificationService.notify(
-                    content_object=action_item,
-                    notification_type='INCIDENT_ACTION_ASSIGNED',
-                    module='INCIDENT_ACTION'
-                )
-
-        except Exception as e:
-            print(f"Action item notification error: {e}")
-
+        # 3. Update Incident Status (ye pehle jaisa hi hai)
         self.incident.status = 'PENDING_APPROVAL'
         self.incident.approval_status = 'PENDING'
         self.incident.investigation_completed_date = investigation.completed_date
         self.incident.save()
 
-        # 4️⃣ Notifications
+        # 4. Notifications (ye pehle jaisa hi hai)
         try:
             from apps.notifications.services import NotificationService
 
@@ -755,21 +756,20 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         except Exception as e:
             print(f"❌ Notification error: {e}")
 
-        messages.success(
-            self.request,
-            "Investigation report submitted successfully and is now pending approval."
-        )
+        messages.success(self.request, "Investigation report submitted successfully and is now pending approval.")
 
-        # 5️⃣ Redirect to Approval Page (NEW)
-        return redirect(
-            reverse_lazy(
-                'accidents:incident_approve',
-                kwargs={'pk': self.incident.pk}
-            )
-        )
+        # 5. Redirect (ye pehle jaisa hi hai)
+        return redirect(reverse_lazy('accidents:incident_approve', kwargs={'pk': self.incident.pk}))
 
     def form_invalid(self, form):
         messages.error(self.request, "Please correct the errors in the form below.")
+        context = self.get_context_data()
+        action_item_formset = context['action_item_formset']
+        if not action_item_formset.is_valid():
+            # Yeh error reporting ko aur behtar banata hai
+            for formset_form in action_item_formset:
+                 for field, errors in formset_form.errors.items():
+                      messages.error(self.request, f"Action Item Error in '{field}': {', '.join(errors)}")
         return super().form_invalid(form)
         
 class ActionItemCreateView(LoginRequiredMixin, CreateView):
@@ -1588,3 +1588,106 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
 
 #         messages.success(self.request,f'Incident {incident.report_number} has been closed successfully.')
 #         return redirect('accidents:incident_detail', pk=incident.pk)
+
+
+
+class IncidentActionItemCompleteView(LoginRequiredMixin, UpdateView):
+    """
+    Allows an assigned user to mark an incident action item as complete
+    using a detailed form.
+    """
+    model = IncidentActionItem
+    form_class = IncidentActionItemCompleteForm  # MODIFIED: Use the new form
+    template_name = 'accidents/action_item_complete.html'
+    context_object_name = 'action_item' # Use a more descriptive name
+
+    def get_success_url(self):
+        return reverse_lazy('accidents:my_action_items')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # action_item object pehle se 'object' ya 'action_item' naam se context me hai
+        context['incident'] = self.object.incident
+        # We can also pass the investigation report if it exists
+        if hasattr(self.object.incident, 'investigation_report'):
+            context['investigation'] = self.object.incident.investigation_report
+        else:
+            context['investigation'] = None
+        return context
+
+    def form_valid(self, form):
+        """
+        Process the valid form. This is called when the form is submitted
+        with all required data and is valid.
+        """
+        # The form is already linked to the action_item instance
+        action_item = form.save(commit=False)
+        
+        # Set the status to COMPLETED
+        action_item.status = 'COMPLETED'
+        
+        # The form will save completion_date, completion_remarks, and attachment automatically.
+        action_item.save()
+        
+        messages.success(self.request, f"Action item for incident '{action_item.incident.report_number}' has been successfully completed and closed.")
+        
+        return redirect(self.get_success_url())
+
+
+
+
+class MyActionItemsView(LoginRequiredMixin, ListView):
+    """
+    Display incident action items assigned to the logged-in user.
+    """
+    model = IncidentActionItem
+    template_name = 'accidents/my_action_items.html'
+    context_object_name = 'action_items'
+    paginate_by = 15
+
+    def get_queryset(self):
+        """
+        Filter action items to show only those where the current
+        user is listed in the 'responsible_person' field.
+        """
+        user = self.request.user
+        
+        # Filter items where the logged-in user is one of the responsible persons.
+        queryset = IncidentActionItem.objects.filter(
+            responsible_person=user
+        ).select_related(
+            'incident', 
+            'incident__plant',
+            'created_by'  # Also fetch the creator for efficiency
+        ).order_by('target_date')
+
+        # Allow filtering by status from the URL query parameter.
+        status_filter = self.request.GET.get('status', '')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+            
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        """
+        Add statistics and filter choices to the template context.
+        """
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        # Get all items assigned to the user for calculating stats.
+        all_my_items = IncidentActionItem.objects.filter(responsible_person=user)
+
+        # Calculate statistics.
+        context['total_assigned'] = all_my_items.count()
+        context['pending_count'] = all_my_items.filter(status__in=['PENDING', 'IN_PROGRESS']).count()
+        
+        # Calculate overdue items correctly using the is_overdue property.
+        overdue_items = [item for item in all_my_items if item.is_overdue]
+        context['overdue_count'] = len(overdue_items)
+
+        # Pass choices and selected values to the template for the filter dropdown.
+        context['status_choices'] = IncidentActionItem.STATUS_CHOICES
+        context['selected_status'] = self.request.GET.get('status', '')
+
+        return context

@@ -423,6 +423,13 @@
               </a>
             </li>
             {% endif %}
+            <li class="nav-item">
+              <a href="{% url 'accidents:my_action_items' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'my_action_items' %}active{% endif %}">
+                <i class="nav-icon fas fa-tasks"></i>
+                <p>My Action Items</p>
+              </a>
+            </li>
           </ul>
         </li>
         {% endif %}

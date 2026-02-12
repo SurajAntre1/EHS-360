@@ -497,46 +497,44 @@ class UserChoiceField(forms.ModelMultipleChoiceField):
 
 class IncidentActionItemForm(forms.ModelForm):
     """
-    Form for action items, using the custom UserChoiceField for responsible persons.
+    Form for action items, with dynamic assignment type logic.
     """
-    # Use the new UserChoiceField to get the desired display format.
+    # Use the UserChoiceField for a better display in the dropdown.
     responsible_person = UserChoiceField(
         queryset=User.objects.none(),
         widget=forms.SelectMultiple(attrs={
             'class': 'form-control select2-responsible-person',
             'data-placeholder': 'Search and select person(s)...'
         }),
-        required=True,
+        # MODIFIED: Changed to required=False. Validation will be handled in the view.
+        required=False, 
         label="Responsible Person(s)"
     )
 
-    def __init__(self, *args, **kwargs):
-        incident = kwargs.pop('incident', None)
-        super().__init__(*args, **kwargs)
-
-        if incident and incident.plant:
-            self.fields['responsible_person'].queryset = User.objects.filter(
-                assigned_plants=incident.plant,
-                is_active=True,
-                is_active_employee=True
-            ).distinct().order_by('first_name', 'last_name')
-
-        else:
-            self.fields['responsible_person'].queryset = User.objects.none()
+    # NEW: Added assignment_type field with a RadioSelect widget.
+    assignment_type = forms.ChoiceField(
+        choices=IncidentActionItem.ASSIGNMENT_TYPE_CHOICES,
+        widget=forms.RadioSelect,
+        initial='SELF',
+        required=True
+    )
 
     class Meta:
         model = IncidentActionItem
         fields = [
             'action_description',
+            'assignment_type', # NEW
             'responsible_person',
             'target_date',
+            'attachment', # NEW
             'status',
             'completion_date',
         ]
         widgets = {
             'action_description': forms.Textarea(attrs={
                 'class': 'form-control',
-                'rows': 2
+                'rows': 2,
+                'placeholder': 'Describe the corrective/preventive action...'
             }),
             'target_date': forms.DateInput(attrs={
                 'type': 'date',
@@ -549,7 +547,29 @@ class IncidentActionItemForm(forms.ModelForm):
                 'type': 'date',
                 'class': 'form-control'
             }),
+            # NEW: Widget for the attachment field
+            'attachment': forms.FileInput(attrs={
+                'class': 'form-control-file'
+            }),
         }
+
+    def __init__(self, *args, **kwargs):
+        """
+        Initialize the form, setting the queryset for responsible persons
+        based on the incident's plant.
+        """
+        incident = kwargs.pop('incident', None)
+        super().__init__(*args, **kwargs)
+
+        # Populate responsible_person queryset based on the incident's plant.
+        if incident and incident.plant:
+            self.fields['responsible_person'].queryset = User.objects.filter(
+                assigned_plants=incident.plant,
+                is_active=True,
+                is_active_employee=True
+            ).distinct().order_by('first_name', 'last_name')
+        else:
+            self.fields['responsible_person'].queryset = User.objects.none()
 
     def clean_target_date(self):
         target_date = self.cleaned_data.get('target_date')
@@ -558,17 +578,22 @@ class IncidentActionItemForm(forms.ModelForm):
         return target_date
 
     def clean(self):
+        # Server-side validation based on assignment type.
         cleaned_data = super().clean()
-        target_date = cleaned_data.get('target_date')
-        completion_date = cleaned_data.get('completion_date')
+        assignment_type = cleaned_data.get('assignment_type')
+        responsible_person = cleaned_data.get('responsible_person')
+        attachment = cleaned_data.get('attachment')
 
-        if target_date and completion_date and completion_date < target_date:
-            raise ValidationError({
-                'completion_date': "Completion date cannot be before target date."
-            })
+        if assignment_type == 'FORWARD' and not responsible_person:
+            self.add_error('responsible_person', 'This field is required when forwarding to others.')
 
+        if assignment_type == 'SELF' and not attachment:
+            # Check if an instance exists (i.e., this is an update)
+            if not self.instance or not self.instance.attachment:
+                 self.add_error('attachment', 'An attachment is required for self-assignment and immediate closure.')
+        
         return cleaned_data
-
+    
 
 class IncidentPhotoForm(forms.ModelForm):
     """Form for incident photos"""
@@ -633,3 +658,39 @@ class IncidentAttachmentForm(forms.ModelForm):
                 'required': 'Please select a file to upload. This field is required.'
             }
         }
+        
+        
+class IncidentActionItemCompleteForm(forms.ModelForm):
+    """
+    Form for users to complete an action item with remarks and an attachment.
+    """
+    class Meta:
+        model = IncidentActionItem
+        fields = [
+            'completion_date',
+            'completion_remarks',
+            'attachment'
+        ]
+        widgets = {
+            'completion_date': forms.DateInput(
+                attrs={'type': 'date', 'class': 'form-control'}
+            ),
+            'completion_remarks': forms.Textarea(
+                attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Describe what actions were taken...'}
+            ),
+            'attachment': forms.FileInput(
+                attrs={'class': 'form-control-file'}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        """
+        Customizations: Make remarks required and set a default completion date.
+        """
+        super().__init__(*args, **kwargs)
+        self.fields['completion_remarks'].required = True
+        self.fields['attachment'].required = False # Attachment optional hai
+        self.fields['attachment'].label = "Upload Proof/Attachment (Optional)"
+        
+        # Set today's date as the initial value for completion_date
+        self.fields['completion_date'].initial = timezone.now().date()

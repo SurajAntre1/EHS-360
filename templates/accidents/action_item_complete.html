@@ -1,0 +1,148 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Complete Action Item{% endblock %}
+{% block page_title %}Complete Action Item{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:my_action_items' %}">My Action Items</a></li>
+<li class="breadcrumb-item active">Complete Action</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="row">
+        <!-- Left Column for Information -->
+        <div class="col-lg-5">
+            <!-- Incident Summary Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0 text-dark font-weight-bold">
+                        <i class="fas fa-file-alt text-primary mr-2"></i>Incident Summary
+                    </h5>
+                </div>
+                <div class.card-body p-3">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>Report No:</strong> 
+                            <span class="badge badge-info p-2">{{ incident.report_number }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>Title:</strong> 
+                            <span>{{ incident.incident_title|truncatechars:30 }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>Date & Time:</strong> 
+                            <span>{{ incident.incident_date|date:"d M Y" }}, {{ incident.incident_time|time:"H:i" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>Location:</strong>
+                            <span>{{ incident.plant.name }}</span>
+                        </li>
+                        {% if investigation %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>Investigator:</strong>
+                            <span>{{ investigation.investigator.get_full_name|default:'N/A' }}</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Action Item Details Card -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0 text-dark font-weight-bold">
+                        <i class="fas fa-tasks text-warning mr-2"></i>Action Item Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <strong>Action Description:</strong>
+                    <p class="mt-2 p-3 bg-light border rounded">{{ action_item.action_description }}</p>
+                    <hr>
+                    <div class="row">
+                        <div class="col-6"><strong>Target Date:</strong></div>
+                        <div class="col-6">{{ action_item.target_date|date:"d F Y" }}</div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-6"><strong>Current Status:</strong></div>
+                        <div class="col-6">
+                            <span class="badge badge-warning">{{ action_item.get_status_display }}</span>
+                        </div>
+                    </div>
+                     {% if action_item.created_by %}
+                    <div class="row mt-2">
+                        <div class="col-6"><strong>Created By:</strong></div>
+                        <div class="col-6">{{ action_item.created_by.get_full_name }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column for the Form -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0 font-weight-bold">
+                        <i class="fas fa-clipboard-check mr-2"></i>Provide Completion Details
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Completion Date -->
+                        <div class="form-group">
+                            <label for="{{ form.completion_date.id_for_label }}" class="font-weight-bold">
+                                <i class="fas fa-calendar-check mr-2"></i>Completion Date <span class="text-danger">*</span>
+                            </label>
+                            {{ form.completion_date }}
+                            {% if form.completion_date.errors %}
+                                <div class="text-danger small mt-1">{{ form.completion_date.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Completion Remarks -->
+                        <div class="form-group mt-4">
+                            <label for="{{ form.completion_remarks.id_for_label }}" class="font-weight-bold">
+                                <i class="fas fa-comments mr-2"></i>Completion Remarks <span class="text-danger">*</span>
+                            </label>
+                            {{ form.completion_remarks }}
+                            <small class="form-text text-muted">Please provide a clear and detailed description of the actions taken.</small>
+                            {% if form.completion_remarks.errors %}
+                                <div class="text-danger small mt-1">{{ form.completion_remarks.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Attachment -->
+                        <div class="form-group mt-4">
+                            <label for="{{ form.attachment.id_for_label }}" class="font-weight-bold">
+                                <i class="fas fa-paperclip mr-2"></i>{{ form.attachment.label }}
+                            </label>
+                            {{ form.attachment }}
+                            <small class="form-text text-muted">Upload photos, documents, or other proof of completion.</small>
+                            {% if form.attachment.errors %}
+                                <div class="text-danger small mt-1">{{ form.attachment.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <hr class="mt-4">
+
+                        <!-- Buttons -->
+                        <div class="text-right">
+                            <a href="{% url 'accidents:my_action_items' %}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times mr-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check-circle mr-2"></i>Submit & Close Action
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

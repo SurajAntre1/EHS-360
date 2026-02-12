@@ -1,0 +1,107 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}My Injury Action Items{% endblock %}
+{% block page_title %}My Injury Action Items{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Injury Management</a></li>
+<li class="breadcrumb-item active">My Action Items</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white shadow"><div class="card-body"><h6 class="text-uppercase">Total Assigned</h6><h2 class="mb-0">{{ total_assigned }}</h2></div></div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-dark shadow"><div class="card-body"><h6 class="text-uppercase">Pending</h6><h2 class="mb-0">{{ pending_count }}</h2></div></div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-danger text-white shadow"><div class="card-body"><h6 class="text-uppercase">Overdue</h6><h2 class="mb-0">{{ overdue_count }}</h2></div></div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="card shadow">
+        <div class="card-header bg-light">
+            <h3 class="card-title mb-0"><i class="fas fa-tasks text-primary mr-2"></i> My Assigned Injury Action Items</h3>
+        </div>
+        <div class="card-body">
+            <!-- Filters -->
+            <form method="GET" class="mb-4">
+                <div class="row">
+                    <div class="col-md-5 mb-2">
+                        <select name="status" class="form-control">
+                            <option value="">All Statuses</option>
+                            {% for key, value in status_choices %}
+                            <option value="{{ key }}" {% if selected_status == key %}selected{% endif %}>{{ value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary mr-2"><i class="fas fa-filter"></i> Filter</button>
+                        <a href="{% url 'accidents:my_action_items' %}" class="btn btn-secondary"><i class="fas fa-redo"></i> Reset</a>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Action Items Table -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Incident No.</th>
+                            <th>Action</th>
+                            <th>Target Date</th>
+                            <th>Status</th>
+                            <th>Created By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in action_items %}
+                        <tr {% if item.is_overdue %}class="table-danger"{% endif %}>
+                            <td>
+                                <a href="{% url 'accidents:incident_detail' item.incident.pk %}" class="font-weight-bold">{{ item.incident.report_number }}</a>
+                                <br><small class="text-muted">{{ item.incident.plant.name }}</small>
+                            </td>
+                            <td>{{ item.action_description|truncatewords:15 }}</td>
+                            <td>
+                                {{ item.target_date|date:"d M Y" }}
+                                {% if item.is_overdue %}<br><span class="badge badge-danger">Overdue</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if item.status == 'COMPLETED' %}
+                                    <span class="badge badge-success">{{ item.get_status_display }}</span>
+                                {% elif item.status == 'IN_PROGRESS' %}
+                                    <span class="badge badge-info">{{ item.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge badge-warning">{{ item.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.created_by.get_full_name|default:"N/A" }}</td>
+                            <td>
+                                <a href="{% url 'accidents:incident_detail' item.incident.pk %}" class="btn btn-sm btn-info" title="View Incident"><i class="fas fa-eye"></i></a>
+                                {% if item.status != 'COMPLETED' %}
+                                <a href="{% url 'accidents:action_item_complete' item.pk %}" class="btn btn-sm btn-success" title="Mark as Complete"><i class="fas fa-check-circle"></i></a>
+                                {% endif %}
+                                {% if item.attachment %}
+                                <a href="{{ item.attachment.url }}" class="btn btn-sm btn-secondary" target="_blank" title="View Attachment"><i class="fas fa-paperclip"></i></a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center alert alert-info">No action items assigned to you.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Pagination (Add if you need it) -->
+        </div>
+    </div>
+</div>
+{% endblock %}

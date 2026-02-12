@@ -49,4 +49,10 @@ urlpatterns = [
     path('notifications/',views.NotificationListView.as_view(), name='notifications'),
     path('notifications/<int:pk>/mark-read/', views.MarkNotificationReadView.as_view(), name='mark_notification_read'),
     path('notifications/mark-all-read/', views.MarkAllNotificationsReadView.as_view(), name='mark_all_notifications_read'),
+    path('my-action-items/', views.MyActionItemsView.as_view(), name='my_action_items'),
+    path('action-items/<int:pk>/complete/', views.IncidentActionItemCompleteView.as_view(), name='action_item_complete'),
+    
+    
+    
+    path('incidents/<int:pk>/approve/', views.IncidentApprovalView.as_view(), name='incident_approve'),
 ]

@@ -441,20 +441,57 @@ class IncidentInvestigationReport(models.Model):
 class IncidentActionItem(models.Model):
     """Action items from investigation/action plan"""
     
+    # --- Choices ---
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('IN_PROGRESS', 'In Progress'),
         ('COMPLETED', 'Completed'),
         ('OVERDUE', 'Overdue'),
     ]
-    
+
+    ASSIGNMENT_TYPE_CHOICES = [
+        ('SELF', 'Assign to Self & Close'),
+        ('FORWARD', 'Forward to Others'),
+    ]
+
+    # --- Fields ---
     incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name='action_items')
     action_description = models.TextField()
-    responsible_person = models.ManyToManyField(User, related_name='incident_actions_responsible')
+    responsible_person = models.ManyToManyField(User, related_name='incident_actions_responsible', blank=True) # MODIFIED: Made blank=True
     target_date = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     completion_date = models.DateField(null=True, blank=True)
-    # completion_remarks = models.TextField(blank=True)
+    
+    completion_remarks = models.TextField(
+        blank=True,
+        help_text="Remarks about how the action was completed."
+    )
+    
+    # --- NEW FIELDS START ---
+    # Field to determine how the action was assigned.
+    assignment_type = models.CharField(
+        max_length=10, 
+        choices=ASSIGNMENT_TYPE_CHOICES, 
+        default='FORWARD'
+    )
+    
+    # Field for uploading evidence or reference documents.
+    attachment = models.FileField(
+        upload_to='incident_action_attachments/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text="Attachment for evidence or reference."
+    )
+    # --- NEW FIELDS END ---
+    
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='incident_actions_created',
+        help_text="User who created this action item"
+    )
     
     verified_by = models.ForeignKey(
         User,
@@ -477,9 +514,9 @@ class IncidentActionItem(models.Model):
     @property
     def is_overdue(self):
         if self.status != 'COMPLETED' and self.target_date:
-            return datetime.date.today() > self.target_date
-        return False
-    
+            from django.utils import timezone
+            return timezone.now().date() > self.target_date
+        return False    
 
 ###notification module 
 

@@ -147,6 +147,24 @@
     border-color: #ced4da !important;
     box-shadow: none !important;
 }
+.assignment-option {
+    border: 2px solid #dee2e6; border-radius: 8px; padding: 12px; cursor: pointer;
+    transition: all 0.2s; margin-bottom: 5px; display: flex; align-items: center;
+}
+.assignment-option:hover { border-color: #007bff; background-color: #f8f9fa; }
+.assignment-option.active { border-color: #007bff; background-color: #e7f3ff; }
+.option-icon {
+    width: 35px; height: 35px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; margin-right: 12px; font-size: 1rem;
+}
+.self-icon { background-color: #d4edda; color: #28a745; }
+.forward-icon { background-color: #d1ecf1; color: #17a2b8; }
+.attachment-help-text {
+    padding: 10px 15px; border-radius: 4px; margin-top: 8px; font-size: 0.9em;
+}
+.attachment-required { background-color: #fff3cd; border-left: 4px solid #ffc107; }
+.attachment-optional { background-color: #f8f9fa; border-left: 4px solid #6c757d; }
+
 
 </style>
 {% endblock %}
@@ -181,7 +199,7 @@
         </h3>
       </div>
       
-      <form method="POST" id="investigationForm">
+      <form method="POST" id="investigationForm" enctype="multipart/form-data">
         {% csrf_token %}
         
         <input type="hidden" name="personal_factors_json" id="personalFactorsJson">
@@ -342,86 +360,153 @@
           <hr>
           
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0"><i class="fas fa-tasks mr-2"></i>Action Items</h5>
-            <button type="button" id="add-action-item-btn" class="btn btn-sm btn-success">
-              <i class="fas fa-plus mr-1"></i>Add Action Item
-            </button>
-          </div>
-          
-          <div id="action-items-container">
-            {{ action_item_formset.management_form }}
-            {% for form in action_item_formset %}
-              <div class="action-item-form p-3 mb-3 rounded">
-                <button type="button" class="remove-action-item-btn" title="Remove Action Item">&times;</button>
-                <div class="row">
-                  <div class="col-md-12 mb-3">
+    <h5 class="mb-0"><i class="fas fa-tasks mr-2"></i>Action Items</h5>
+    <button type="button" id="add-action-item-btn" class="btn btn-sm btn-success">
+        <i class="fas fa-plus mr-1"></i>Add Action Item
+    </button>
+</div>
+
+<div id="action-items-container">
+    {{ action_item_formset.management_form }}
+    {% for form in action_item_formset %}
+        <div class="action-item-form p-3 mb-3 rounded" id="action-item-{{ forloop.counter0 }}">
+            <button type="button" class="remove-action-item-btn" title="Remove Action Item">&times;</button>
+            <div class="row">
+                <div class="col-md-12 mb-3">
                     <label for="{{ form.action_description.id_for_label }}">Action Description <span class="text-danger">*</span></label>
                     {{ form.action_description }}
-                    {% if form.action_description.errors %}<div class="text-danger">{{ form.action_description.errors }}</div>{% endif %}
-                  </div>
+                    {% if form.action_description.errors %}<div class="text-danger small">{{ form.action_description.errors }}</div>{% endif %}
                 </div>
+            </div>
+            
+            <!-- NEW: Assignment Type -->
+            <div class="form-group">
+                <label class="font-weight-bold">Responsible Person <span class="text-danger">*</span></label>
                 <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label for="{{ form.responsible_person.id_for_label }}">Responsible Person(s) <span class="text-danger">*</span></label>
-                    {{ form.responsible_person }}
-                    {% if form.responsible_person.errors %}
-                      <div class="text-danger small mt-1">{% for error in form.responsible_person.errors %}{{ error }}{% endfor %}</div>
-                    {% endif %}
-                  </div>
-                  <div class="col-md-6 mb-3">
+                    <!-- Self Assignment Option -->
+                    <div class="col-md-6">
+                        <div class="assignment-option" data-type="SELF">
+                            <input type="radio" name="{{ form.prefix }}-assignment_type" value="SELF" id="id_{{ form.prefix }}-assignment_type_0" {% if form.assignment_type.value == 'SELF' or not form.assignment_type.value %}checked{% endif %} hidden>
+                            <div class="option-icon self-icon"><i class="fas fa-user-check"></i></div>
+                            <div>
+                                <label for="id_{{ form.prefix }}-assignment_type_0" class="mb-0 font-weight-bold" style="cursor: pointer;">Assign to Self & Close</label>
+                                <p class="text-muted mb-0 small">Action will be marked as 'Completed' immediately.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Forward to Others Option -->
+                    <div class="col-md-6">
+                        <div class="assignment-option" data-type="FORWARD">
+                            <input type="radio" name="{{ form.prefix }}-assignment_type" value="FORWARD" id="id_{{ form.prefix }}-assignment_type_1" {% if form.assignment_type.value == 'FORWARD' %}checked{% endif %} hidden>
+                            <div class="option-icon forward-icon"><i class="fas fa-share-square"></i></div>
+                            <div>
+                                <label for="id_{{ form.prefix }}-assignment_type_1" class="mb-0 font-weight-bold" style="cursor: pointer;">Forward to Others</label>
+                                <p class="text-muted mb-0 small">Assign to other users. Status will be 'Pending'.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Responsible Person (Conditional) -->
+            <div class="responsible-person-section" style="display: none;">
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label for="{{ form.responsible_person.id_for_label }}">Responsible Person(s) <span class="text-danger">*</span></label>
+                        {{ form.responsible_person }}
+                        {% if form.responsible_person.errors %}<div class="text-danger small mt-1">{{ form.responsible_person.errors }}</div>{% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <!-- Attachment Field (Conditional Requirement) -->
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.attachment.id_for_label }}">Attachment <span class="text-danger attachment-required-star">*</span></label>
+                    {{ form.attachment }}
+                    <div class="attachment-help-text"></div>
+                    {% if form.attachment.errors %}<div class="text-danger small">{{ form.attachment.errors }}</div>{% endif %}
+                </div>
+
+                <!-- Target Date -->
+                <div class="col-md-6 mb-3">
                     <label for="{{ form.target_date.id_for_label }}">Target Completion Date <span class="text-danger">*</span></label>
                     {{ form.target_date }}
-                    {% if form.target_date.errors %}<div class="text-danger">{{ form.target_date.errors }}</div>{% endif %}
-                  </div>
+                    {% if form.target_date.errors %}<div class="text-danger small">{{ form.target_date.errors }}</div>{% endif %}
                 </div>
-                <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label for="{{ form.status.id_for_label }}">Status <span class="text-danger">*</span></label>
-                    {{ form.status }}
-                    {% if form.status.errors %}<div class="text-danger">{{ form.status.errors }}</div>{% endif %}
-                  </div>
-                  <div class="col-md-6 mb-3">
-                    <label for="{{ form.completion_date.id_for_label }}">Completion Date</label>
-                    {{ form.completion_date }}
-                    {% if form.completion_date.errors %}<div class="text-danger">{{ form.completion_date.errors }}</div>{% endif %}
-                  </div>
-                </div>
-              </div>
-            {% endfor %}
-          </div>
-
-          <!-- Hidden template for new action item forms -->
-          <div id="empty-action-item-form" class="d-none">
-            <div class="action-item-form p-3 mb-3 rounded">
-              <button type="button" class="remove-action-item-btn" title="Remove Action Item">&times;</button>
-              <div class="row">
-                <div class="col-md-12 mb-3">
-                  <label for="{{ action_item_formset.empty_form.action_description.id_for_label }}">Action Description <span class="text-danger">*</span></label>
-                  {{ action_item_formset.empty_form.action_description }}
-                </div>
-              </div>
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="{{ action_item_formset.empty_form.responsible_person.id_for_label }}">Responsible Person(s) <span class="text-danger">*</span></label>
-                  {{ action_item_formset.empty_form.responsible_person }}
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label for="{{ action_item_formset.empty_form.target_date.id_for_label }}">Target Completion Date <span class="text-danger">*</span></label>
-                  {{ action_item_formset.empty_form.target_date }}
-                </div>
-              </div>
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="{{ action_item_formset.empty_form.status.id_for_label }}">Status <span class="text-danger">*</span></label>
-                  {{ action_item_formset.empty_form.status }}
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label for="{{ action_item_formset.empty_form.completion_date.id_for_label }}">Completion Date</label>
-                  {{ action_item_formset.empty_form.completion_date }}
-                </div>
-              </div>
             </div>
-          </div>
+
+            <!-- Hidden fields -->
+            {{ form.status.as_hidden }}
+            {{ form.completion_date.as_hidden }}
+
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Hidden template for new action item forms -->
+<div id="empty-action-item-form" class="d-none">
+    <div class="action-item-form p-3 mb-3 rounded">
+        <button type="button" class="remove-action-item-btn" title="Remove Action Item">&times;</button>
+        <div class="row">
+            <div class="col-md-12 mb-3">
+                <label for="{{ action_item_formset.empty_form.action_description.id_for_label }}">Action Description <span class="text-danger">*</span></label>
+                {{ action_item_formset.empty_form.action_description }}
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="font-weight-bold">Assignment Type <span class="text-danger">*</span></label>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="assignment-option active" data-type="SELF">
+                        <input type="radio" name="{{ action_item_formset.empty_form.prefix }}-assignment_type" value="SELF" id="id_{{ action_item_formset.empty_form.prefix }}-assignment_type_0" checked hidden>
+                        <div class="option-icon self-icon"><i class="fas fa-user-check"></i></div>
+                        <div>
+                            <label for="id_{{ action_item_formset.empty_form.prefix }}-assignment_type_0" class="mb-0 font-weight-bold" style="cursor: pointer;">Assign to Self & Close</label>
+                            <p class="text-muted mb-0 small">Action will be marked as 'Completed' immediately.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="assignment-option" data-type="FORWARD">
+                        <input type="radio" name="{{ action_item_formset.empty_form.prefix }}-assignment_type" value="FORWARD" id="id_{{ action_item_formset.empty_form.prefix }}-assignment_type_1" hidden>
+                        <div class="option-icon forward-icon"><i class="fas fa-share-square"></i></div>
+                        <div>
+                            <label for="id_{{ action_item_formset.empty_form.prefix }}-assignment_type_1" class="mb-0 font-weight-bold" style="cursor: pointer;">Forward to Others</label>
+                            <p class="text-muted mb-0 small">Assign to other users. Status will be 'Pending'.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="responsible-person-section" style="display: none;">
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label for="{{ action_item_formset.empty_form.responsible_person.id_for_label }}">Responsible Person(s) <span class="text-danger">*</span></label>
+                    {{ action_item_formset.empty_form.responsible_person }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="{{ action_item_formset.empty_form.attachment.id_for_label }}">Attachment <span class="text-danger attachment-required-star">*</span></label>
+                {{ action_item_formset.empty_form.attachment }}
+                <div class="attachment-help-text"></div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="{{ action_item_formset.empty_form.target_date.id_for_label }}">Target Completion Date <span class="text-danger">*</span></label>
+                {{ action_item_formset.empty_form.target_date }}
+            </div>
+        </div>
+
+        {{ action_item_formset.empty_form.status.as_hidden }}
+        {{ action_item_formset.empty_form.completion_date.as_hidden }}
+    </div>
+</div>
+
 
           <hr>
 
@@ -456,7 +541,6 @@
 </div>
 {% endblock %}
 
-
 {% block extra_js %}
 <!-- jQuery (required for Select2) and Select2 JS -->
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
@@ -464,88 +548,140 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    
-    // Use a more robust selector that targets the <select> elements by their name attribute pattern
-    const responsiblePersonSelector = 'select[name$="-responsible_person"]';
 
-    // Function to initialize Select2 on a given jQuery element
+    const container = $('#action-items-container');
+    const responsiblePersonSelector = 'select[name$="-responsible_person"]';
+    const today = new Date().toISOString().split('T')[0];
+
+    /* ----------------------------------------------------
+       ASSIGNMENT TYPE UI LOGIC (NEW FEATURE)
+    ---------------------------------------------------- */
+    function updateActionItemUI(formElement) {
+    const form = $(formElement);
+    const assignmentType = form.find('input[name$="-assignment_type"]:checked').val();
+
+    const responsiblePersonSection = form.find('.responsible-person-section');
+    const attachmentInput = form.find('input[name$="-attachment"]');
+    const attachmentStar = form.find('.attachment-required-star');
+    const attachmentHelp = form.find('.attachment-help-text');
+
+    if (assignmentType === 'FORWARD') {
+        responsiblePersonSection.slideDown();
+        attachmentStar.hide();
+        // Attachment ko optional karein
+        attachmentInput.prop('required', false); 
+        attachmentHelp.html('<div class="attachment-optional">Attachment is <strong>OPTIONAL</strong> when forwarding.</div>');
+    } else { // SELF
+        responsiblePersonSection.slideUp();
+        attachmentStar.show();
+        // Attachment ko mandatory karein
+        attachmentInput.prop('required', true);
+        attachmentHelp.html('<div class="attachment-required">Attachment is <strong>REQUIRED</strong> for self-assignment.</div>');
+    }
+        // Highlight selected radio option
+        form.find('.assignment-option').removeClass('active');
+        form.find('input[name$="-assignment_type"]:checked')
+            .closest('.assignment-option')
+            .addClass('active');
+    }
+
+    /* ----------------------------------------------------
+       SELECT2 INITIALIZATION
+    ---------------------------------------------------- */
     function initializeSelect2(element) {
-        // Check if the element exists and has not already been initialized by Select2
         if (element.length && !element.hasClass('select2-hidden-accessible')) {
             element.select2({
                 width: '100%',
-                theme: 'default' // This uses the default theme which we are styling with CSS to match Bootstrap
+                theme: 'default'
             });
         }
     }
 
-    // Initialize Select2 on responsible person fields that are already on the page when it loads.
-    // We target only the selects inside the main container to avoid initializing on the hidden template form.
-    initializeSelect2($('#action-items-container').find(responsiblePersonSelector));
+    // Initialize existing selects on page load
+    initializeSelect2(container.find(responsiblePersonSelector));
 
     /* ----------------------------------------------------
-       CORRECTED DYNAMIC ACTION ITEMS LOGIC
+       EVENT DELEGATION (IMPORTANT FOR DYNAMIC FORMS)
+    ---------------------------------------------------- */
+
+    // Assignment type change
+    container.on('change', 'input[name$="-assignment_type"]', function() {
+        updateActionItemUI($(this).closest('.action-item-form'));
+    });
+
+    // Clicking entire assignment option card
+    container.on('click', '.assignment-option', function() {
+        $(this).find('input[type="radio"]').prop('checked', true).trigger('change');
+    });
+
+    /* ----------------------------------------------------
+       DYNAMIC ACTION ITEMS LOGIC (FORMSET)
     ---------------------------------------------------- */
     const addActionItemBtn = document.getElementById('add-action-item-btn');
-    const container = document.getElementById('action-items-container');
     const emptyFormTemplate = document.getElementById('empty-action-item-form');
     const totalForms = document.getElementById('id_actionitems-TOTAL_FORMS');
-    const today = new Date().toISOString().split('T')[0];
 
-    if (addActionItemBtn && container && emptyFormTemplate && totalForms) {
-        
+    if (addActionItemBtn && emptyFormTemplate && totalForms) {
+
         addActionItemBtn.addEventListener('click', function() {
+
             let formNum = parseInt(totalForms.value);
-            
-            // Get the raw HTML from the template and replace the prefix
+
             const newFormHtml = emptyFormTemplate.innerHTML.replace(/__prefix__/g, formNum);
-            
-            // Create a temporary container to safely parse the new form HTML
+
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = newFormHtml;
             const newFormElement = tempDiv.firstElementChild;
-            
-            // Append the new form to the container on the page
-            container.appendChild(newFormElement);
 
-            // IMPORTANT: Find the new select element within the newly added form and initialize Select2
+            container.append(newFormElement);
+
+            // Initialize Select2
             const newSelect = $(newFormElement).find(responsiblePersonSelector);
             initializeSelect2(newSelect);
 
-            // Also, set the min date for the new target_date input
+            // Initialize assignment UI
+            updateActionItemUI(newFormElement);
+
+            // Set min date
             const newTargetDateInput = newFormElement.querySelector('input[name$="-target_date"]');
             if (newTargetDateInput) {
                 newTargetDateInput.min = today;
             }
 
-            // Increment the total forms count for the Django formset
             totalForms.value = formNum + 1;
         });
 
-        container.addEventListener('click', function(event) {
-            // Use .closest() to find the button, which is more reliable than checking event.target directly
-            const removeBtn = event.target.closest('.remove-action-item-btn');
-            if (removeBtn) {
-                    if (document.activeElement) {
-                  document.activeElement.blur();
-              }
-              const formToRemove = removeBtn.closest('.action-item-form');
-                
-                // Before removing the form, find the Select2 element and properly destroy it
-                const selectElement = $(formToRemove).find(responsiblePersonSelector);
-                if (selectElement.data('select2')) {
-                    selectElement.select2('destroy');
-                }
-                
-                // Now, remove the form element from the DOM
-                formToRemove.remove();
-                totalForms.value = parseInt(totalForms.value) - 1;
+        // Remove action item
+        container.on('click', '.remove-action-item-btn', function() {
+
+            if (document.activeElement) {
+                document.activeElement.blur();
             }
+
+            const formToRemove = $(this).closest('.action-item-form');
+
+            // Destroy Select2 before removing
+            const selectElement = formToRemove.find(responsiblePersonSelector);
+            if (selectElement.data('select2')) {
+                selectElement.select2('destroy');
+            }
+
+            formToRemove.remove();
+
+            totalForms.value = parseInt(totalForms.value) - 1;
         });
     }
 
     /* ----------------------------------------------------
-       ALL YOUR OTHER JS LOGIC (NO CHANGES NEEDED)
+       INITIALIZE EXISTING FORMS ON PAGE LOAD
+    ---------------------------------------------------- */
+    container.find('.action-item-form').each(function() {
+        initializeSelect2($(this).find(responsiblePersonSelector));
+        updateActionItemUI(this);
+    });
+
+    /* ----------------------------------------------------
+       ROOT CAUSE CHECKBOX LOGIC
     ---------------------------------------------------- */
     const pfOtherCheckbox = document.getElementById('pf9');
     const pfOtherInputDiv = document.getElementById('personalFactorOther');
@@ -564,46 +700,57 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Set today's date for date inputs on initial page load
+    /* ----------------------------------------------------
+       DATE INITIALIZATION
+    ---------------------------------------------------- */
     const investigationDateInput = document.getElementById('id_investigation_date');
-    if (investigationDateInput && !investigationDateInput.value) investigationDateInput.value = today;
-    
-    const completedDateInput = document.getElementById('id_completed_date');
-    if (completedDateInput && !completedDateInput.value) completedDateInput.value = today;
+    if (investigationDateInput && !investigationDateInput.value) {
+        investigationDateInput.value = today;
+    }
 
-    // Set min attribute for existing target_date inputs
+    const completedDateInput = document.getElementById('id_completed_date');
+    if (completedDateInput && !completedDateInput.value) {
+        completedDateInput.value = today;
+    }
+
     document.querySelectorAll('input[name$="-target_date"]').forEach(function(input) {
         input.min = today;
     });
 
-    // Handle the collection of checkbox data on form submission
+    /* ----------------------------------------------------
+       FORM SUBMIT HANDLING (JSON COLLECTION)
+    ---------------------------------------------------- */
     const form = document.getElementById('investigationForm');
     if (form) {
         form.addEventListener('submit', function() {
+
             const personalFactors = [];
-            document.querySelectorAll('.personal-factor-checkbox:checked, input[name="personal_factor_other_checkbox"]:checked').forEach(checkbox => {
-                if (checkbox.id === 'pf9') {
-                    const otherText = document.querySelector('input[name="personal_factor_other_text"]')?.value.trim();
-                    if (otherText) personalFactors.push(`Other: ${otherText}`);
-                } else {
-                    personalFactors.push(checkbox.value);
-                }
-            });
+            document.querySelectorAll('.personal-factor-checkbox:checked, input[name="personal_factor_other_checkbox"]:checked')
+                .forEach(checkbox => {
+                    if (checkbox.id === 'pf9') {
+                        const otherText = document.querySelector('input[name="personal_factor_other_text"]')?.value.trim();
+                        if (otherText) personalFactors.push(`Other: ${otherText}`);
+                    } else {
+                        personalFactors.push(checkbox.value);
+                    }
+                });
+
             const jobFactors = [];
-            document.querySelectorAll('.job-factor-checkbox:checked, input[name="job_factor_other_checkbox"]:checked').forEach(checkbox => {
-                if (checkbox.id === 'jf12') {
-                    const otherText = document.querySelector('input[name="job_factor_other_text"]')?.value.trim();
-                    if (otherText) jobFactors.push(`Other: ${otherText}`);
-                } else {
-                    jobFactors.push(checkbox.value);
-                }
-            });
+            document.querySelectorAll('.job-factor-checkbox:checked, input[name="job_factor_other_checkbox"]:checked')
+                .forEach(checkbox => {
+                    if (checkbox.id === 'jf12') {
+                        const otherText = document.querySelector('input[name="job_factor_other_text"]')?.value.trim();
+                        if (otherText) jobFactors.push(`Other: ${otherText}`);
+                    } else {
+                        jobFactors.push(checkbox.value);
+                    }
+                });
+
             document.getElementById('personalFactorsJson').value = JSON.stringify(personalFactors);
             document.getElementById('jobFactorsJson').value = JSON.stringify(jobFactors);
         });
     }
 
 });
-
 </script>
 {% endblock %}
