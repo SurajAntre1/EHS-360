@@ -552,6 +552,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const container = $('#action-items-container');
     const responsiblePersonSelector = 'select[name$="-responsible_person"]';
     const today = new Date().toISOString().split('T')[0];
+    const CURRENT_USER_ID = "{{ request.user.id }}"; 
 
     /* ----------------------------------------------------
        ASSIGNMENT TYPE UI LOGIC (NEW FEATURE)
@@ -590,9 +591,16 @@ document.addEventListener('DOMContentLoaded', function() {
     ---------------------------------------------------- */
     function initializeSelect2(element) {
         if (element.length && !element.hasClass('select2-hidden-accessible')) {
+            
+            // --- YE LOGIC ADD KIYA GAYA HAI ---
+            // Dropdown options mein se current user ki ID wala option dhoond kar remove karein
+            element.find('option[value="' + CURRENT_USER_ID + '"]').remove();
+            // ----------------------------------
+
             element.select2({
                 width: '100%',
-                theme: 'default'
+                theme: 'default',
+                placeholder: "Select responsible persons..."
             });
         }
     }

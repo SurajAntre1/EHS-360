@@ -28,10 +28,10 @@
                             <strong>Report No:</strong> 
                             <span class="badge badge-info p-2">{{ incident.report_number }}</span>
                         </li>
-                        <li class="list-group-item d-flex justify-content-between">
+                        <!-- <li class="list-group-item d-flex justify-content-between">
                             <strong>Title:</strong> 
                             <span>{{ incident.incident_title|truncatechars:30 }}</span>
-                        </li>
+                        </li> -->
                         <li class="list-group-item d-flex justify-content-between">
                             <strong>Date & Time:</strong> 
                             <span>{{ incident.incident_date|date:"d M Y" }}, {{ incident.incident_time|time:"H:i" }}</span>
