@@ -34,17 +34,17 @@ class Incident(models.Model):
     #     ('FATALITY', 'Fatality'),
     # ]
     
+class Incident(models.Model):
+    
     STATUS_CHOICES = [
         ('REPORTED', 'Reported'),
-        ('INVESTIGATION_PENDING', 'Investigation Pending'),
-        ('PENDING_APPROVAL', 'Pending Approval'),         # NEW
-        ('REJECTED', 'Investigation Rejected'),         # NEW
-        ('UNDER_INVESTIGATION', 'Under Investigation'),
-        ('ACTION_PLAN_PENDING', 'Action Plan Pending'),
-        ('ACTION_IN_PROGRESS', 'Action in Progress'),
-        ('COMPLETED', 'Completed'),
-        ('CLOSED', 'Closed'),
-    ]   
+        ('INVESTIGATION_IN_PROGRESS', 'Investigation in Progress'), 
+        ('ACTION_PLAN_PENDING', 'Action Plan Pending'),        
+        ('PENDING_APPROVAL', 'Pending Approval'),           
+        ('REJECTED', 'Rejected'),                           
+        ('PENDING_CLOSE', 'Pending Close'),                  
+        ('CLOSED', 'Closed'),                                 
+    ]  
     
     APPROVAL_STATUS_CHOICES = [
         ('PENDING', 'Pending'),

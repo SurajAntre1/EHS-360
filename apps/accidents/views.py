@@ -684,8 +684,7 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         """
-        Process the investigation report and its action items.
-        This is the corrected logic that properly handles formsets and ManyToMany fields.
+        Processes the investigation report and sets the initial status based on action item assignments.
         """
         context = self.get_context_data()
         action_item_formset = context['action_item_formset']
@@ -694,7 +693,7 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
             messages.error(self.request, "There was an error with the action items. Please check the details.")
             return self.form_invalid(form)
 
-        # 1. Save Investigation Report (ye pehle jaisa hi hai)
+        # 1. Save Investigation Report
         investigation = form.save(commit=False)
         investigation.incident = self.incident
         investigation.investigator = self.request.user
@@ -703,50 +702,53 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         investigation.job_factors = json.loads(self.request.POST.get('job_factors_json', '[]'))
         investigation.save()
 
-        # 2. Process and Save Action Items (CORRECTED LOGIC)
-
-        # Step A: Get a list of unsaved model instances from the formset.
-        # This is the crucial step that prepares the formset for save_m2m().
+        # 2. Process and Save Action Items
         action_items = action_item_formset.save(commit=False)
+        
+        #
+        has_forwarded_items = False
 
-        # Step B: Loop through the instances to set extra data and save them one by one.
         for item in action_items:
             item.incident = self.incident
             item.created_by = self.request.user
             
-            # Set status based on assignment type.
             if item.assignment_type == 'SELF':
                 item.status = 'COMPLETED'
                 item.completion_date = timezone.now().date()
             else: # 'FORWARD'
                 item.status = 'PENDING'
+                has_forwarded_items = True # F
             
-            item.save() # Save the individual action item instance.
+            item.save()
 
-        # Step C: Now that all instances are saved, call save_m2m().
-        # This will correctly save the responsible_person for 'FORWARD' items.
+        # Save ManyToMany relationships after the main objects are saved
         action_item_formset.save_m2m()
 
-        # Step D: (Final Fix) Manually set responsible_person for 'SELF' items AFTER save_m2m.
-        # This prevents it from being overwritten.
+        # Ab 'SELF' 
         for item in action_items:
             if item.assignment_type == 'SELF':
                 item.responsible_person.add(self.request.user)
         
-        # Handle deleted forms (ye pehle jaisa hi hai)
+        # Deleted 
         for form_to_delete in action_item_formset.deleted_objects:
              form_to_delete.delete()
 
-        # 3. Update Incident Status (ye pehle jaisa hi hai)
-        self.incident.status = 'PENDING_APPROVAL'
+        # 3. Update Incident
+        if has_forwarded_items:
+            
+            self.incident.status = 'ACTION_PLAN_PENDING'
+        else:
+            
+            self.incident.status = 'PENDING_APPROVAL'
+            
+    
         self.incident.approval_status = 'PENDING'
         self.incident.investigation_completed_date = investigation.completed_date
         self.incident.save()
 
-        # 4. Notifications (ye pehle jaisa hi hai)
+        # 4. Notifications
         try:
             from apps.notifications.services import NotificationService
-
             NotificationService.notify(
                 content_object=investigation,
                 notification_type='INCIDENT_INVESTIGATION_COMPLETED',
@@ -756,10 +758,10 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         except Exception as e:
             print(f"❌ Notification error: {e}")
 
-        messages.success(self.request, "Investigation report submitted successfully and is now pending approval.")
-
-        # 5. Redirect (ye pehle jaisa hi hai)
-        return redirect(reverse_lazy('accidents:incident_approve', kwargs={'pk': self.incident.pk}))
+        messages.success(self.request, "Investigation report submitted successfully.")
+        
+        
+        return redirect('accidents:incident_detail', pk=self.incident.pk)
 
     def form_invalid(self, form):
         messages.error(self.request, "Please correct the errors in the form below.")
@@ -838,56 +840,56 @@ class ActionItemCreateView(LoginRequiredMixin, CreateView):
 class IncidentApprovalView(LoginRequiredMixin, DetailView):
     """
     Displays incident and investigation summaries for approval.
-    This view also handles the POST requests for approving or rejecting.
+    Handles approving (which now closes the incident) or rejecting.
     """
     model = Incident
     template_name = 'accidents/incident_approval.html'
     context_object_name = 'incident'
     
     def get_context_data(self, **kwargs):
-        """
-        Adds the related investigation report to the context.
-        """
         context = super().get_context_data(**kwargs)
-        # This page is only accessed after a report is created, so we can
-        # safely assume the investigation_report object exists.
         context['investigation_report'] = self.object.investigation_report
         return context
 
     def post(self, request, *args, **kwargs):
         """
-        Handles the 'approve' and 'reject' form submissions.
+        Handles 'approve' and 'reject' submissions according to the new status flow.
         """
         incident = self.get_object()
         
-        # Check which button was clicked based on its 'name' attribute in the form
         if 'approve_action' in request.POST:
-            # Handle the approval logic
-            incident.status = 'ACTION_PLAN_PENDING'  # Set next logical status
+            # --- APPROVAL LOGIC ---
+            # Approve hone par status 'Pending Close' hoga
+            incident.status = 'PENDING_CLOSE'
             incident.approval_status = 'APPROVED'
             incident.approved_by = request.user
             incident.approved_date = timezone.now()
-            incident.rejection_remarks = ""  # Clear any previous remarks
+            incident.rejection_remarks = "" # Purane remarks saaf kar dein
             incident.save()
-            messages.success(request, f"Incident {incident.report_number} investigation has been approved.")
+            messages.success(request, f"Incident {incident.report_number} has been approved and is now Pending Closure.")
             
         elif 'reject_action' in request.POST:
-            # Handle the rejection logic
+            # --- REJECTION LOGIC ---
             rejection_remarks = request.POST.get('rejection_remarks', '').strip()
             if not rejection_remarks:
                 messages.error(request, "Rejection remarks are required to reject the report.")
                 return redirect('accidents:incident_approve', pk=incident.pk)
             
+            # Status ko 'REJECTED' set karein
             incident.status = 'REJECTED'
             incident.approval_status = 'REJECTED'
             incident.rejection_remarks = rejection_remarks
+            
+            # Approval data ko clear karein
             incident.approved_by = None
             incident.approved_date = None
+            
             incident.save()
-            messages.warning(request, f"Incident {incident.report_number} investigation has been rejected.")
+            
+            messages.warning(request, f"Incident {incident.report_number} investigation has been REJECTED.")
             
         return redirect('accidents:incident_detail', pk=incident.pk)
-    
+        
 # AJAX Views
 class GetZonesForPlantAjaxView(LoginRequiredMixin, TemplateView):
     """AJAX view to get zones for selected plant"""
@@ -1617,22 +1619,34 @@ class IncidentActionItemCompleteView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         """
-        Process the valid form. This is called when the form is submitted
-        with all required data and is valid.
+        Marks an action item as complete and checks if all other items for the incident are also complete.
+        If yes, it changes the incident status to 'PENDING_APPROVAL'.
         """
-        # The form is already linked to the action_item instance
         action_item = form.save(commit=False)
-        
-        # Set the status to COMPLETED
         action_item.status = 'COMPLETED'
         
-        # The form will save completion_date, completion_remarks, and attachment automatically.
-        action_item.save()
+        # Completion date form se aa rahi hai, agar nahi to aaj ki date set karein
+        if not action_item.completion_date:
+            action_item.completion_date = timezone.now().date()
         
-        messages.success(self.request, f"Action item for incident '{action_item.incident.report_number}' has been successfully completed and closed.")
+        action_item.save()
+        messages.success(self.request, f"Action item for incident '{action_item.incident.report_number}' has been marked as completed.")
+
+        # --- PARENT INCIDENT KA STATUS UPDATE KARNE KA LOGIC ---
+        incident = action_item.incident
+        
+        # Check karein ki is incident ke koi aur action items 'COMPLETED' ke alawa bache hain ya nahi.
+        # .exists() .count() se zyada efficient hai.
+        all_items_completed = not incident.action_items.exclude(status='COMPLETED').exists()
+
+        if all_items_completed:
+            # Agar saare items complete ho gaye hain, to incident ko approval stage me bhej do.
+            incident.status = 'PENDING_APPROVAL'
+            incident.save()
+            messages.info(self.request, f"All action items for incident {incident.report_number} are now complete. The incident is pending final approval.")
+            # Yahan aap approver ko notification bhi bhej sakte hain.
         
         return redirect(self.get_success_url())
-
 
 
 
