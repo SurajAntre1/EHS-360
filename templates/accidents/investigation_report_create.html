@@ -435,10 +435,17 @@
                     {% if form.target_date.errors %}<div class="text-danger small">{{ form.target_date.errors }}</div>{% endif %}
                 </div>
             </div>
+            <div class="row completion-date-section" style="display: none;">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.completion_date.id_for_label }}">Completion Date <span class="text-danger">*</span></label>
+                    {{ form.completion_date }}
+                    {% if form.completion_date.errors %}<div class="text-danger small">{{ form.completion_date.errors }}</div>{% endif %}
+                </div>
+            </div>
 
             <!-- Hidden fields -->
             {{ form.status.as_hidden }}
-            {{ form.completion_date.as_hidden }}
+            <!-- {{ form.completion_date.as_hidden }} -->
 
         </div>
     {% endfor %}
@@ -501,9 +508,16 @@
                 {{ action_item_formset.empty_form.target_date }}
             </div>
         </div>
+        <div class="row completion-date-section" style="display: none;">
+            <div class="col-md-6 mb-3">
+                <label for="{{ action_item_formset.empty_form.completion_date.id_for_label }}">Completion Date <span class="text-danger">*</span></label>
+                {{ action_item_formset.empty_form.completion_date }}
+            </div>
+        </div>
+        
 
         {{ action_item_formset.empty_form.status.as_hidden }}
-        {{ action_item_formset.empty_form.completion_date.as_hidden }}
+        <!-- {{ action_item_formset.empty_form.completion_date.as_hidden }} -->
     </div>
 </div>
 
@@ -566,26 +580,48 @@ document.addEventListener('DOMContentLoaded', function() {
     const attachmentStar = form.find('.attachment-required-star');
     const attachmentHelp = form.find('.attachment-help-text');
 
+    // --- COMPLETION DATE KE LIYE NAYE VARIABLES ---
+    const completionDateSection = form.find('.completion-date-section');
+    const completionDateInput = form.find('input[name$="-completion_date"]');
+    // ---------------------------------------------
+
     if (assignmentType === 'FORWARD') {
         responsiblePersonSection.slideDown();
-        attachmentStar.hide();
+        
         // Attachment ko optional karein
-        attachmentInput.prop('required', false); 
+        attachmentStar.hide();
+        attachmentInput.prop('required', false);
         attachmentHelp.html('<div class="attachment-optional">Attachment is <strong>OPTIONAL</strong> when forwarding.</div>');
+
+        // --- COMPLETION DATE KO HIDE KAREIN ---
+        completionDateSection.slideUp();
+        completionDateInput.prop('required', false);
+        // ------------------------------------
+
     } else { // SELF
         responsiblePersonSection.slideUp();
-        attachmentStar.show();
+        
         // Attachment ko mandatory karein
+        attachmentStar.show();
         attachmentInput.prop('required', true);
         attachmentHelp.html('<div class="attachment-required">Attachment is <strong>REQUIRED</strong> for self-assignment.</div>');
-    }
-        // Highlight selected radio option
-        form.find('.assignment-option').removeClass('active');
-        form.find('input[name$="-assignment_type"]:checked')
-            .closest('.assignment-option')
-            .addClass('active');
-    }
 
+        // --- COMPLETION DATE KO SHOW KAREIN ---
+        completionDateSection.slideDown();
+        completionDateInput.prop('required', true);
+        // Agar date khali hai, to aaj ki date set kar dein
+        if (!completionDateInput.val()) {
+            completionDateInput.val(today);
+        }
+        // ------------------------------------
+    }
+    
+    // Highlight selected radio option
+    form.find('.assignment-option').removeClass('active');
+    form.find('input[name$="-assignment_type"]:checked')
+        .closest('.assignment-option')
+        .addClass('active');
+}
     /* ----------------------------------------------------
        SELECT2 INITIALIZATION
     ---------------------------------------------------- */

@@ -683,9 +683,6 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         return context
 
     def form_valid(self, form):
-        """
-        Processes the investigation report and sets the initial status based on action item assignments.
-        """
         context = self.get_context_data()
         action_item_formset = context['action_item_formset']
 
@@ -693,7 +690,6 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
             messages.error(self.request, "There was an error with the action items. Please check the details.")
             return self.form_invalid(form)
 
-        # 1. Save Investigation Report
         investigation = form.save(commit=False)
         investigation.incident = self.incident
         investigation.investigator = self.request.user
@@ -702,10 +698,7 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
         investigation.job_factors = json.loads(self.request.POST.get('job_factors_json', '[]'))
         investigation.save()
 
-        # 2. Process and Save Action Items
         action_items = action_item_formset.save(commit=False)
-        
-        #
         has_forwarded_items = False
 
         for item in action_items:
@@ -714,34 +707,47 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
             
             if item.assignment_type == 'SELF':
                 item.status = 'COMPLETED'
-                item.completion_date = timezone.now().date()
-            else: # 'FORWARD'
+                
+                if not item.completion_date:
+                    item.completion_date = timezone.now().date()
+            else:
                 item.status = 'PENDING'
-                has_forwarded_items = True # F
+                has_forwarded_items = True
             
             item.save()
 
-        # Save ManyToMany relationships after the main objects are saved
         action_item_formset.save_m2m()
 
-        # Ab 'SELF' 
         for item in action_items:
             if item.assignment_type == 'SELF':
                 item.responsible_person.add(self.request.user)
         
-        # Deleted 
         for form_to_delete in action_item_formset.deleted_objects:
-             form_to_delete.delete()
-
-        # 3. Update Incident
-        if has_forwarded_items:
+            form_to_delete.delete()
             
+        try:
+            from apps.notifications.services import NotificationService
+
+            all_action_items = self.incident.action_items.all()  # ✅ FIXED
+
+            for item in all_action_items:
+                if item.assignment_type != 'SELF' and item.status == 'PENDING':
+                    print("DEBUG: Sending notification for:", item.id)
+
+                    NotificationService.notify(
+                        content_object=item,
+                        notification_type='INCIDENT_ACTION_ASSIGNED',
+                        module='INCIDENT_ACTION'
+                    )
+
+        except Exception as e:
+            print(f"Action item notification error: {e}")
+
+        if has_forwarded_items:
             self.incident.status = 'ACTION_PLAN_PENDING'
         else:
-            
             self.incident.status = 'PENDING_APPROVAL'
             
-    
         self.incident.approval_status = 'PENDING'
         self.incident.investigation_completed_date = investigation.completed_date
         self.incident.save()
@@ -757,12 +763,14 @@ class InvestigationReportCreateView(LoginRequiredMixin, CreateView):
             print("✅ Investigation completion notifications sent")
         except Exception as e:
             print(f"❌ Notification error: {e}")
+            
+            
+            
+        
 
         messages.success(self.request, "Investigation report submitted successfully.")
-        
-        
         return redirect('accidents:incident_detail', pk=self.incident.pk)
-
+    
     def form_invalid(self, form):
         messages.error(self.request, "Please correct the errors in the form below.")
         context = self.get_context_data()

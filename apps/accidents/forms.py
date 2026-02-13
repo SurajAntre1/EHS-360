@@ -499,19 +499,16 @@ class IncidentActionItemForm(forms.ModelForm):
     """
     Form for action items, with dynamic assignment type logic.
     """
-    # Use the UserChoiceField for a better display in the dropdown.
     responsible_person = UserChoiceField(
         queryset=User.objects.none(),
         widget=forms.SelectMultiple(attrs={
             'class': 'form-control select2-responsible-person',
             'data-placeholder': 'Search and select person(s)...'
         }),
-        # MODIFIED: Changed to required=False. Validation will be handled in the view.
         required=False, 
         label="Responsible Person(s)"
     )
 
-    # NEW: Added assignment_type field with a RadioSelect widget.
     assignment_type = forms.ChoiceField(
         choices=IncidentActionItem.ASSIGNMENT_TYPE_CHOICES,
         widget=forms.RadioSelect,
@@ -519,38 +516,30 @@ class IncidentActionItemForm(forms.ModelForm):
         required=True
     )
 
+    
+    # completion_date ko form me explicitly 'required=False' set karein.
+    completion_date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        required=False
+    )
+    # --------------------------------
+
     class Meta:
         model = IncidentActionItem
         fields = [
             'action_description',
-            'assignment_type', # NEW
+            'assignment_type',
             'responsible_person',
             'target_date',
-            'attachment', # NEW
+            'completion_date', 
+            'attachment',
             'status',
-            'completion_date',
         ]
         widgets = {
-            'action_description': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 2,
-                'placeholder': 'Describe the corrective/preventive action...'
-            }),
-            'target_date': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'form-control'
-            }),
-            'status': forms.Select(attrs={
-                'class': 'form-control'
-            }),
-            'completion_date': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'form-control'
-            }),
-            # NEW: Widget for the attachment field
-            'attachment': forms.FileInput(attrs={
-                'class': 'form-control-file'
-            }),
+            'action_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'target_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'attachment': forms.FileInput(attrs={'class': 'form-control-file'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
