@@ -662,7 +662,7 @@ class IncidentActionItemCompleteForm(forms.ModelForm):
         ]
         widgets = {
             'completion_date': forms.DateInput(
-                attrs={'type': 'date', 'class': 'form-control'}
+                attrs={'type': 'date', 'class': 'form-control bg-light', 'readonly': 'readonly'}
             ),
             'completion_remarks': forms.Textarea(
                 attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Describe what actions were taken...'}
@@ -673,13 +673,14 @@ class IncidentActionItemCompleteForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """
-        Customizations: Make remarks required and set a default completion date.
-        """
         super().__init__(*args, **kwargs)
+        # Ensure Remarks are required
         self.fields['completion_remarks'].required = True
-        self.fields['attachment'].required = False # Attachment optional hai
-        self.fields['attachment'].label = "Upload Proof/Attachment (Optional)"
+        
+        # MODIFIED: Make attachment required and update label
+        self.fields['attachment'].required = True 
+        self.fields['attachment'].label = "Upload Proof/Attachment"
         
         # Set today's date as the initial value for completion_date
         self.fields['completion_date'].initial = timezone.now().date()
+

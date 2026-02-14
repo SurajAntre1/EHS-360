@@ -1677,7 +1677,7 @@ class MyActionItemsView(LoginRequiredMixin, ListView):
         # Filter items where the logged-in user is one of the responsible persons.
         queryset = IncidentActionItem.objects.filter(
             responsible_person=user
-        ).select_related(
+        ).select_related( 
             'incident', 
             'incident__plant',
             'created_by'  # Also fetch the creator for efficiency

@@ -119,10 +119,10 @@
                         <!-- Attachment -->
                         <div class="form-group mt-4">
                             <label for="{{ form.attachment.id_for_label }}" class="font-weight-bold">
-                                <i class="fas fa-paperclip mr-2"></i>{{ form.attachment.label }}
+                                <i class="fas fa-paperclip mr-2"></i>{{ form.attachment.label }} <span class="text-danger">*</span>
                             </label>
                             {{ form.attachment }}
-                            <small class="form-text text-muted">Upload photos, documents, or other proof of completion.</small>
+                            <small class="form-text text-muted">Please upload photos, documents, or other required proof of completion.</small>
                             {% if form.attachment.errors %}
                                 <div class="text-danger small mt-1">{{ form.attachment.errors }}</div>
                             {% endif %}
