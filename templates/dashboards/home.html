@@ -3,7 +3,7 @@
 
 {% block title %}Dashboard{% endblock %}
 
-{% block page_title %}EHS-360 Dashboard{% endblock %}
+{% block page_title %}{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item active">Dashboard</li>
@@ -59,7 +59,7 @@
 {% endblock %}
 
 {% block content %}
-<!-- Stats Cards Row -->
+{% comment %} <!-- Stats Cards Row -->
 <div class="row">
   <!-- Hazard Reports Card -->
   <div class="col-lg-3 col-md-6">
@@ -128,7 +128,7 @@
       </div>
     </div>
   </div>
-</div>
+</div> {% endcomment %}
 
 <!-- Welcome Card -->
 <div class="row mt-4">
@@ -159,7 +159,7 @@
 
 <!-- Quick Actions -->
 <div class="row mt-4 align-items-stretch">
-  
+  {% if user.can_access_hazard_module %}
   <div class="col-md-3">
     <div class="card text-center h-100" style="border-top: 3px solid #ff9800;">
       <div class="card-body d-flex flex-column justify-content-between">
@@ -172,7 +172,8 @@
       </div>
     </div>
   </div>
-
+  {% endif %}
+  {% if user.can_access_incident_module %}
   <div class="col-md-3">
     <div class="card text-center h-100" style="border-top: 3px solid #dc3545;">
       <div class="card-body d-flex flex-column justify-content-between">
@@ -185,7 +186,8 @@
       </div>
     </div>
   </div>
-
+  {% endif %}
+  {% if user.can_access_env_data_module %}
   <div class="col-md-3">
     <div class="card text-center h-100" style="border-top: 3px solid #28a745;">
       <div class="card-body d-flex flex-column justify-content-between">
@@ -198,7 +200,8 @@
       </div>
     </div>
   </div>
-
+  {% endif %}
+  {% if user.can_access_inspection_module %}
   <div class="col-md-3">
     <div class="card text-center h-100" style="border-top: 3px solid #1E90FF;">
       <div class="card-body d-flex flex-column justify-content-between">
@@ -211,6 +214,7 @@
       </div>
     </div>
   </div>
+  {% endif %}
 </div>
 
 <!-- Recent Activities -->

@@ -216,8 +216,9 @@
             </a>
           </div> -->
           <div class="col-auto">
-            <a href="{% url 'accidents:incident_list' %}" class="btn btn-secondary">
-              <i class="fas fa-arrow-left mr-1"></i> Back to List
+            <a href="{{ request.GET.next|default:request.META.HTTP_REFERER|default:'/' }}"
+              class="btn btn-secondary">
+                <i class="fas fa-arrow-left mr-1"></i> Back
             </a>
           </div>
         </div>

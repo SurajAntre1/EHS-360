@@ -388,7 +388,7 @@
                             <button type="submit" class="btn btn-primary btn-lg px-5">
                                 <i class="fas fa-check"></i> Create Action Item
                             </button>
-                            <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-outline-secondary btn-lg ml-2">
+                            <a href="{{ request.GET.next|default:request.META.HTTP_REFERER|default:'/' }}" class="btn btn-outline-secondary btn-lg ml-2">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                         </div>

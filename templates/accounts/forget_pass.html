@@ -213,12 +213,16 @@
 
 
   <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
 
     const form = document.getElementById('forgotForm');
     const btn = document.getElementById('resetBtn');
 
-    form.addEventListener('submit', () => {
+    form.addEventListener('submit', function(e) {
+      if (btn.disabled) {
+        e.preventDefault();
+        return false;
+      }
       btn.classList.add('loading');
       btn.disabled = true;
     });
