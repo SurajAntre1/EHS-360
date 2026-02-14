@@ -59,5 +59,6 @@ urlpatterns = [
     path('submission/<int:submission_id>/review/', views.inspection_review, name='inspection_review'),
     path('no-answers/', views.no_answers_list, name='no_answers_list'),
     path('no-answers/by-question/', views.no_answers_by_question, name='no_answers_by_question'),
+    path('response/<int:response_id>/convert-to-hazard/', views.convert_no_answer_to_hazard,name='convert_no_answer_to_hazard'),
 ]
 

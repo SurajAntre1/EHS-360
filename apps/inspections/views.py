@@ -1464,4 +1464,187 @@ def no_answers_by_question(request):
     return render(request, 'inspections/no_answers_by_question.html', context)
 
 
+# Add to apps/inspections/views.py
+
+@login_required
+def convert_no_answer_to_hazard(request, response_id):
+    """
+    Convert an inspection 'No' answer into a hazard report
+    """
+    from apps.hazards.models import Hazard, HazardPhoto
+    from django.utils import timezone
+    
+    # Get the response
+    response = get_object_or_404(
+        InspectionResponse.objects.select_related(
+            'submission',
+            'submission__schedule',
+            'submission__schedule__plant',
+            'submission__schedule__zone',
+            'submission__schedule__location',
+            'submission__schedule__sublocation',
+            'question',
+            'question__category'
+        ),
+        pk=response_id,
+        answer='No'  # Only allow 'No' answers
+    )
+    
+    # Check if already converted
+    if response.converted_to_hazard:
+        messages.warning(
+            request,
+            f'This inspection item has already been converted to Hazard: {response.converted_to_hazard.report_number}'
+        )
+        return redirect('inspections:inspection_review', submission_id=response.submission.id)
+    
+    # Check permission
+    if not (request.user.is_superuser or 
+            request.user.can_access_inspection_module or
+            request.user == response.submission.submitted_by):
+        messages.error(request, 'Unauthorized access!')
+        return redirect('inspections:inspection_dashboard')
+    
+    if request.method == 'POST':
+        try:
+            schedule = response.submission.schedule
+            
+            # Create hazard
+            hazard = Hazard()
+            
+            # Reporter information (from inspection submitter)
+            hazard.reported_by = response.submission.submitted_by
+            hazard.reporter_name = response.submission.submitted_by.get_full_name()
+            hazard.reporter_email = response.submission.submitted_by.email
+            hazard.reporter_phone = getattr(response.submission.submitted_by, 'phone', '')
+            
+            # Hazard type and category mapping from inspection
+            hazard.hazard_type = request.POST.get('hazard_type', 'UC')  # Default to Unsafe Condition
+            
+            # Map inspection category to hazard category
+            hazard.hazard_category = request.POST.get('hazard_category', 'other')
+            
+            # Severity from form or auto-determine
+            hazard.severity = request.POST.get('severity')
+            if not hazard.severity:
+                # Auto-determine from inspection question
+                if response.question.is_critical:
+                    hazard.severity = 'high'
+                else:
+                    hazard.severity = 'medium'
+            
+            # Location information from schedule
+            hazard.plant = schedule.plant
+            hazard.zone = schedule.zone
+            hazard.location = schedule.location
+            hazard.sublocation = schedule.sublocation
+            
+            # Hazard details
+            category_name = response.question.category.category_name
+            hazard.hazard_title = f"Inspection Non-Compliance: {category_name} - {response.question.question_code}"
+            
+            # Description combines question and remarks
+            description_parts = [
+                f"**Source:** Inspection {schedule.schedule_code}",
+                f"**Question:** {response.question.question_text}",
+                f"**Category:** {category_name}",
+            ]
+            
+            if response.question.reference_standard:
+                description_parts.append(f"**Standard:** {response.question.reference_standard}")
+            
+            if response.remarks:
+                description_parts.append(f"**Inspector Remarks:** {response.remarks}")
+            else:
+                description_parts.append("**Inspector Remarks:** No remarks provided")
+            
+            hazard.hazard_description = "\n\n".join(description_parts)
+            
+            # Additional details from form
+            hazard.immediate_action = request.POST.get('immediate_action', '')
+            
+            # Incident datetime
+            hazard.incident_datetime = response.answered_at or schedule.completed_at or timezone.now()
+            
+            # Status
+            hazard.status = 'REPORTED'
+            hazard.approval_status = 'PENDING'
+            
+            # Set deadline based on severity
+            severity_days = {'low': 30, 'medium': 15, 'high': 7, 'critical': 1}
+            hazard.action_deadline = timezone.now().date() + timezone.timedelta(
+                days=severity_days.get(hazard.severity, 15)
+            )
+            
+            # Save hazard
+            hazard.save()
+            
+            # Generate report number
+            today = timezone.now().date()
+            plant_code = hazard.plant.code if hazard.plant else 'UNKN'
+            count = Hazard.objects.filter(created_at__date=today).count()
+            hazard.report_number = f"HAZ-{plant_code}-{today:%Y%m%d}-{count:03d}"
+            hazard.save(update_fields=['report_number'])
+            
+            # Copy photo if exists
+            if response.photo:
+                try:
+                    HazardPhoto.objects.create(
+                        hazard=hazard,
+                        photo=response.photo,
+                        photo_type='evidence',
+                        description=f'Photo from inspection {schedule.schedule_code}',
+                        uploaded_by=request.user
+                    )
+                except Exception as e:
+                    print(f"Error copying photo: {e}")
+            
+            # Link response to hazard
+            response.converted_to_hazard = hazard
+            response.save(update_fields=['converted_to_hazard'])
+            
+            # Send notifications
+            try:
+                NotificationService.notify(
+                    content_object=hazard,
+                    notification_type='HAZARD_REPORTED',
+                    module='HAZARD'
+                )
+            except Exception as e:
+                print(f"Notification error: {e}")
+            
+            messages.success(
+                request,
+                mark_safe(
+                    f'<strong>✅ Hazard Created from Inspection!</strong><br>'
+                    f'Report No: <strong>{hazard.report_number}</strong><br>'
+                    f'Source: Inspection {schedule.schedule_code}<br>'
+                    f'Severity: {hazard.get_severity_display()}'
+                )
+            )
+            
+            return redirect('hazards:hazard_detail', pk=hazard.pk)
+            
+        except Exception as e:
+            print(f"Error converting to hazard: {e}")
+            import traceback
+            traceback.print_exc()
+            messages.error(request, f'Error creating hazard: {str(e)}')
+            return redirect('inspections:inspection_review', submission_id=response.submission.id)
+    
+    # GET request - show confirmation form
+    context = {
+        'response': response,
+        'question': response.question,
+        'submission': response.submission,
+        'schedule': response.submission.schedule,
+        'hazard_types': Hazard.HAZARD_TYPE_CHOICES,
+        'hazard_categories': Hazard.HAZARD_CATEGORIES,
+        'severity_choices': Hazard.SEVERITY_CHOICES,
+        'auto_severity': 'high' if response.question.is_critical else 'medium',
+    }
+    
+    return render(request, 'inspections/convert_to_hazard.html', context)
+
+
     

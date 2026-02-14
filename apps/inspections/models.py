@@ -625,6 +625,14 @@ class InspectionResponse(models.Model):
         blank=True,
         null=True
     )
+    converted_to_hazard = models.ForeignKey(
+        'hazards.Hazard',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='source_inspection_responses',
+        help_text="Hazard created from this inspection response"
+    )
     answered_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -634,7 +642,9 @@ class InspectionResponse(models.Model):
     def __str__(self):
         return f"{self.question.question_code}: {self.answer}"
 
-
+    def is_converted_to_hazard(self):
+        """Check if this response has been converted to a hazard"""
+        return self.converted_to_hazard is not None
 class InspectionFinding(models.Model):
     """Issues found during inspection (auto-generated from 'No' answers)"""
     
