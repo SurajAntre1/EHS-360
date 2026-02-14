@@ -1642,7 +1642,7 @@ class IncidentActionItemCompleteView(LoginRequiredMixin, UpdateView):
         assigned_users = set(action_item.responsible_person.all())
         completing_users = set(action_item.completed_by.all())
 
-        if assigned_users == completing_users:
+        if assigned_users == completing_users: 
             # 
             action_item.status = 'COMPLETED'
             
