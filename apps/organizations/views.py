@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.views import View
 from .models import *
 from .forms import *
+from django.forms import ValidationError
 
 
 class OrganizationDashboardView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
@@ -471,16 +472,25 @@ class ZoneCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
             print(f"  Active: {location_active}")
             
             if location_name and location_code:
-                # Create location
-                new_location = Location.objects.create(
-                    zone=self.object,
-                    name=location_name,
-                    code=location_code.upper(),
-                    description=location_description,
-                    is_active=location_active
-                )
-                print(f"  ✓ Location created: {new_location.id}")
+                # Create location 
+                loc_data = {
+                    'plant': self.object.plant.id,
+                    'zone': self.object.id,
+                    'name': location_name,
+                    'code': location_code.upper(),
+                    'description': location_description,
+                    'is_active': location_active,
+                }
                 
+                # Use LocationForm for validation
+                loc_form = LocationForm(loc_data)
+                if loc_form.is_valid():
+                    new_location = loc_form.save()
+                    print(f"  ✓ Location created via form: {new_location.id}")
+                else:
+                    print(f"  ✗ Location skipped due to validation error: {loc_form.errors}")
+                    messages.error(self.request, f"Location '{location_name}': {loc_form.errors.as_text()}")
+
                 # Process sublocations for this location
                 sublocation_count_input = self.request.POST.get(f'sublocation_count_{i}', 0)
                 try:
@@ -555,111 +565,97 @@ class ZoneUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
             print(f"  ID: {location_id}")
             print(f"  Name: {location_name}")
             print(f"  Code: {location_code}")
-            
+            print(f"  Active: {location_active}")
+
             if location_name and location_code:
+                loc_data = {
+                    'plant': self.object.plant.id,
+                    'zone': self.object.id,
+                    'name': location_name,
+                    'code': location_code.upper(),
+                    'description': location_description,
+                    'is_active': location_active,
+                }
+
                 if location_id:
                     # Update existing location
                     try:
-                        location = Location.objects.get(id=location_id, zone=self.object)
-                        location.name = location_name
-                        location.code = location_code.upper()
-                        location.description = location_description
-                        location.is_active = location_active
-                        location.save()
-                        existing_location_ids.append(int(location_id))
-                        print(f"  ✓ Location updated: {location.id}")
-                        
-                        # Process sublocations
-                        existing_sublocation_ids = []
-                        sublocation_count_input = self.request.POST.get(f'sublocation_count_{i}', 0)
-                        try:
-                            sublocation_count = int(sublocation_count_input)
-                        except:
-                            sublocation_count = 0
-                        
-                        print(f"  Sublocation count: {sublocation_count}")
-                        
-                        for j in range(sublocation_count):
-                            subloc_id = self.request.POST.get(f'location_{i}_sublocation_id_{j}')
-                            subloc_name = self.request.POST.get(f'location_{i}_sublocation_name_{j}', '').strip()
-                            subloc_code = self.request.POST.get(f'location_{i}_sublocation_code_{j}', '').strip()
-                            subloc_active = self.request.POST.get(f'location_{i}_sublocation_active_{j}') == '1'
-                            
-                            print(f"    Sublocation {j}:")
-                            print(f"      ID: {subloc_id}")
-                            print(f"      Name: {subloc_name}")
-                            
-                            if subloc_name:
-                                if subloc_id:
-                                    # Update existing
-                                    try:
-                                        subloc = SubLocation.objects.get(id=subloc_id, location=location)
-                                        subloc.name = subloc_name
-                                        subloc.code = subloc_code.upper() if subloc_code else ''
-                                        subloc.is_active = subloc_active
-                                        subloc.save()
-                                        existing_sublocation_ids.append(int(subloc_id))
-                                        print(f"      ✓ Sublocation updated: {subloc.id}")
-                                    except SubLocation.DoesNotExist:
-                                        print(f"      ✗ Sublocation not found: {subloc_id}")
-                                else:
-                                    # Create new
-                                    new_subloc = SubLocation.objects.create(
-                                        location=location,
-                                        name=subloc_name,
-                                        code=subloc_code.upper() if subloc_code else '',
-                                        is_active=subloc_active
-                                    )
-                                    existing_sublocation_ids.append(new_subloc.id)
-                                    print(f"      ✓ Sublocation created: {new_subloc.id}")
-                        
-                        # Delete removed sublocations
-                        deleted_sublocs = SubLocation.objects.filter(location=location).exclude(
-                            id__in=existing_sublocation_ids
-                        )
-                        print(f"  Deleting {deleted_sublocs.count()} sublocations")
-                        deleted_sublocs.delete()
-                        
+                        location_instance = Location.objects.get(id=location_id, zone=self.object)
+                        loc_form = LocationForm(loc_data, instance=location_instance)
+                        if loc_form.is_valid():
+                            location = loc_form.save()
+                            existing_location_ids.append(location.id)
+                            print(f"  ✓ Location updated via form: {location.id}")
+                        else:
+                            print(f"  ✗ Location validation failed: {loc_form.errors}")
+                            messages.error(self.request, f"Location '{location_name}': {loc_form.errors.as_text()}")
+                            continue
                     except Location.DoesNotExist:
                         print(f"  ✗ Location not found: {location_id}")
+                        continue
                 else:
-                    # Create new location
-                    new_location = Location.objects.create(
-                        zone=self.object,
-                        name=location_name,
-                        code=location_code.upper(),
-                        description=location_description,
-                        is_active=location_active
-                    )
-                    existing_location_ids.append(new_location.id)
-                    print(f"  ✓ New location created: {new_location.id}")
-                    
-                    # Process sublocations for new location
-                    sublocation_count_input = self.request.POST.get(f'sublocation_count_{i}', 0)
-                    try:
-                        sublocation_count = int(sublocation_count_input)
-                    except:
-                        sublocation_count = 0
-                    
-                    print(f"  Sublocation count: {sublocation_count}")
-                    
-                    for j in range(sublocation_count):
-                        subloc_name = self.request.POST.get(f'location_{i}_sublocation_name_{j}', '').strip()
-                        subloc_code = self.request.POST.get(f'location_{i}_sublocation_code_{j}', '').strip()
-                        subloc_active = self.request.POST.get(f'location_{i}_sublocation_active_{j}') == '1'
-                        
-                        print(f"    Sublocation {j}: {subloc_name}")
-                        
-                        if subloc_name:
+                    # Create new location via form
+                    loc_form = LocationForm(loc_data)
+                    if loc_form.is_valid():
+                        location = loc_form.save()
+                        existing_location_ids.append(location.id)
+                        print(f"  ✓ New location created via form: {location.id}")
+                    else:
+                        print(f"  ✗ Location validation failed: {loc_form.errors}")
+                        messages.error(self.request, f"Location '{location_name}': {loc_form.errors.as_text()}")
+                        continue
+
+                # Process sublocations
+                existing_sublocation_ids = []
+                sublocation_count_input = self.request.POST.get(f'sublocation_count_{i}', 0)
+                try:
+                    sublocation_count = int(sublocation_count_input)
+                except:
+                    sublocation_count = 0
+
+                print(f"  Sublocation count: {sublocation_count}")
+
+                for j in range(sublocation_count):
+                    subloc_id = self.request.POST.get(f'location_{i}_sublocation_id_{j}')
+                    subloc_name = self.request.POST.get(f'location_{i}_sublocation_name_{j}', '').strip()
+                    subloc_code = self.request.POST.get(f'location_{i}_sublocation_code_{j}', '').strip()
+                    subloc_active = self.request.POST.get(f'location_{i}_sublocation_active_{j}') == '1'
+
+                    print(f"    Sublocation {j}:")
+                    print(f"      ID: {subloc_id}")
+                    print(f"      Name: {subloc_name}")
+
+                    if subloc_name:
+                        if subloc_id:
+                            # Update existing sublocation
+                            try:
+                                subloc = SubLocation.objects.get(id=subloc_id, location=location)
+                                subloc.name = subloc_name
+                                subloc.code = subloc_code.upper() if subloc_code else ''
+                                subloc.is_active = subloc_active
+                                subloc.save()
+                                existing_sublocation_ids.append(subloc.id)
+                                print(f"      ✓ Sublocation updated: {subloc.id}")
+                            except SubLocation.DoesNotExist:
+                                print(f"      ✗ Sublocation not found: {subloc_id}")
+                        else:
+                            # Create new sublocation
                             new_subloc = SubLocation.objects.create(
-                                location=new_location,
+                                location=location,
                                 name=subloc_name,
                                 code=subloc_code.upper() if subloc_code else '',
                                 is_active=subloc_active
                             )
+                            existing_sublocation_ids.append(new_subloc.id)
                             print(f"      ✓ Sublocation created: {new_subloc.id}")
-        
-        # Delete locations that were removed
+
+                # Delete removed sublocations
+                deleted_sublocs = SubLocation.objects.filter(location=location).exclude(
+                    id__in=existing_sublocation_ids
+                )
+                print(f"  Deleting {deleted_sublocs.count()} sublocations")
+                deleted_sublocs.delete()
+
         deleted_locs = Location.objects.filter(zone=self.object).exclude(id__in=existing_location_ids)
         print(f"Deleting {deleted_locs.count()} locations")
         deleted_locs.delete()

@@ -1,5 +1,6 @@
 from django import forms
 from .models import Plant, Zone, Location, Department
+from django.core.exceptions import ValidationError
 
 
 class PlantForm(forms.ModelForm):
@@ -61,7 +62,7 @@ class LocationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         
         # If editing, set plant from zone
-        if self.instance.pk and self.instance.zone:
+        if self.instance.pk and isinstance(self.instance.zone, Zone):
             self.fields['plant'].initial = self.instance.zone.plant
             # Load zones for the plant
             self.fields['zone'].queryset = Zone.objects.filter(
@@ -83,6 +84,19 @@ class LocationForm(forms.ModelForm):
             except (ValueError, TypeError):
                 pass
 
+    def clean(self):
+        cleaned_data = super().clean()
+        zone = cleaned_data.get('zone')
+        code = cleaned_data.get('code')
+
+        if zone and code:   
+            qs = Location.objects.filter(zone=zone, code=code)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise ValidationError({'code' : "This code already exists in selected zone."})
+
+        return cleaned_data            
 
 class DepartmentForm(forms.ModelForm):
     """Department Form"""
