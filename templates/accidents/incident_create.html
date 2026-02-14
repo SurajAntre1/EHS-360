@@ -678,7 +678,7 @@
           <button type="submit" class="btn btn-danger btn-lg">
             <i class="fas fa-paper-plane mr-2"></i>Submit Injury Report
           </button>
-          <a href="{% url 'accidents:incident_list' %}" class="btn btn-secondary btn-lg ml-2">
+          <a href="{{ request.GET.next|default:request.META.HTTP_REFERER|default:'/' }}" class="btn btn-secondary btn-lg ml-2">
             <i class="fas fa-times mr-2"></i>Cancel
           </a>
         </div>

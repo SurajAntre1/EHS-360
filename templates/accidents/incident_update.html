@@ -651,7 +651,7 @@
           <button type="submit" class="btn btn-primary btn-lg">
             <i class="fas fa-save mr-2"></i>Update Injury Report
           </button>
-          <a href="{% url 'accidents:incident_detail' incident.pk %}" class="btn btn-secondary btn-lg ml-2">
+          <a href="{{ request.GET.next|default:request.META.HTTP_REFERER|default:'/' }}" class="btn btn-secondary btn-lg ml-2">
             <i class="fas fa-times mr-2"></i>Cancel
           </a>
         </div>
