@@ -1627,33 +1627,48 @@ class IncidentActionItemCompleteView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         """
-        Marks an action item as complete and checks if all other items for the incident are also complete.
-        If yes, it changes the incident status to 'PENDING_APPROVAL'.
+        UPDATED LOGIC:
+        - Records the current user's completion in the 'completed_by' field.
+        - Only marks the action item as 'COMPLETED' if ALL responsible persons have completed it.
+        - Then checks if the entire incident can be moved to 'PENDING_APPROVAL'.
         """
-        action_item = form.save(commit=False)
-        action_item.status = 'COMPLETED'
-        
-        # Completion date form se aa rahi hai, agar nahi to aaj ki date set karein
-        if not action_item.completion_date:
-            action_item.completion_date = timezone.now().date()
-        
-        action_item.save()
-        messages.success(self.request, f"Action item for incident '{action_item.incident.report_number}' has been marked as completed.")
+        action_item = self.get_object() 
+        current_user = self.request.user
 
-        # --- PARENT INCIDENT KA STATUS UPDATE KARNE KA LOGIC ---
-        incident = action_item.incident
         
-        # Check karein ki is incident ke koi aur action items 'COMPLETED' ke alawa bache hain ya nahi.
-        # .exists() .count() se zyada efficient hai.
-        all_items_completed = not incident.action_items.exclude(status='COMPLETED').exists()
+        action_item.completed_by.add(current_user)
 
-        if all_items_completed:
-            # Agar saare items complete ho gaye hain, to incident ko approval stage me bhej do.
-            incident.status = 'PENDING_APPROVAL'
-            incident.save()
-            messages.info(self.request, f"All action items for incident {incident.report_number} are now complete. The incident is pending final approval.")
-            # Yahan aap approver ko notification bhi bhej sakte hain.
         
+        assigned_users = set(action_item.responsible_person.all())
+        completing_users = set(action_item.completed_by.all())
+
+        if assigned_users == completing_users:
+            # 
+            action_item.status = 'COMPLETED'
+            
+            # 
+            completion_data = form.cleaned_data
+            action_item.completion_date = completion_data.get('completion_date', timezone.now().date())
+            action_item.completion_remarks = completion_data.get('completion_remarks', '') # Assuming remarks field exists in form
+            
+            action_item.save()
+            messages.success(self.request, f"Action item for incident '{action_item.incident.report_number}' is now fully completed by all responsible persons.")
+
+            #
+            incident = action_item.incident
+            all_incident_items_completed = not incident.action_items.exclude(status='COMPLETED').exists()
+
+            if all_incident_items_completed:
+                incident.status = 'PENDING_APPROVAL'
+                incident.save()
+                messages.info(self.request, f"All action items for incident {incident.report_number} are complete. The incident is now pending final approval.")
+        
+        else:
+            #
+            action_item.save() # 
+            remaining_count = len(assigned_users - completing_users)
+            messages.info(self.request, f"Your completion for action item has been recorded. Still waiting for {remaining_count} other person(s) to complete.")
+
         return redirect(self.get_success_url())
 
 

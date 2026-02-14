@@ -458,6 +458,12 @@ class IncidentActionItem(models.Model):
     incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name='action_items')
     action_description = models.TextField()
     responsible_person = models.ManyToManyField(User, related_name='incident_actions_responsible', blank=True) # MODIFIED: Made blank=True
+    completed_by = models.ManyToManyField(
+        User,
+        related_name='incident_actions_completed',
+        blank=True,
+        help_text="Users who have marked this action item as completed."
+    )
     target_date = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     completion_date = models.DateField(null=True, blank=True)

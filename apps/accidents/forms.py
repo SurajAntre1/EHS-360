@@ -660,7 +660,7 @@ class IncidentActionItemCompleteForm(forms.ModelForm):
             'completion_remarks',
             'attachment'
         ]
-        widgets = {
+        widgets = { 
             'completion_date': forms.DateInput(
                 attrs={'type': 'date', 'class': 'form-control bg-light', 'readonly': 'readonly'}
             ),
