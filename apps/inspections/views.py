@@ -726,7 +726,7 @@ def schedule_list(request):
     )
     
     # User-based filtering
-    if not request.user.is_superuser:
+    if not request.user.is_superuser and not request.user.is_admin_user:
         if request.user.has_permission('CONDUCT_INSPECTION'):
             # HOD sees only their assigned inspections
             schedules = schedules.filter(assigned_to=request.user)
@@ -816,7 +816,7 @@ def schedule_create(request):
         form = InspectionScheduleForm(user=request.user)
         
         # Pre-fill plant if user has only one
-        if not request.user.is_superuser:
+        if not request.user.is_superuser and not request.user.is_admin_user:
             user_plants = request.user.get_all_plants()
             if len(user_plants) == 1:
                 form.initial['plant'] = user_plants[0]
@@ -836,7 +836,7 @@ def schedule_edit(request, pk):
     schedule = get_object_or_404(InspectionSchedule, pk=pk)
     
     # Check permissions
-    if not request.user.is_superuser:
+    if not request.user.is_superuser and not request.user.is_admin_user:
         if schedule.status in ['COMPLETED', 'CANCELLED']:
             messages.error(request, 'Cannot edit completed or cancelled inspections!')
             return redirect('inspections:schedule_detail', pk=pk)
@@ -878,7 +878,7 @@ def schedule_detail(request, pk):
     )
     
     # Check access
-    if not request.user.is_superuser:
+    if not request.user.is_superuser and not request.user.is_admin_user:
         if request.user.has_permission('VIEW_INSPECTION') and schedule.assigned_to != request.user:
             messages.error(request, 'You do not have permission to view this inspection!')
             return redirect('inspections:schedule_list')
@@ -1324,7 +1324,7 @@ def no_answers_list(request):
     )
     
     # Apply user-based filtering
-    if not request.user.is_superuser:
+    if not request.user.is_superuser and not request.user.is_admin_user:
         if request.user.has_permission('VIEW_INSPECTION'):
             # HOD sees only their submissions
             no_responses = no_responses.filter(
