@@ -33,7 +33,7 @@ urlpatterns = [
 
     # Export URL
     path('export-hazards/', views.ExportHazardsView.as_view(), name='export_hazards'),
-
+    
     path('my-action-items/', views.MyActionItemsView.as_view(), name='my_action_items'),
     path('action-item/<int:pk>/complete/', views.ActionItemCompleteView.as_view(), name='action_item_complete'),
 

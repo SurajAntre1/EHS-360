@@ -1,0 +1,483 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="mb-0">
+                                <i class="fas fa-building"></i>
+                                Plant-Wise Non-Compliant Items Report
+                            </h3>
+                            <p class="mb-0 mt-2">Admin Dashboard - View all "No" answers by plant</p>
+                        </div>
+                        <div>
+                            <a href="{% url 'inspections:export_no_answers_excel' %}?{% if selected_plant_id %}plant={{ selected_plant_id }}{% endif %}{% if selected_category_id %}&category={{ selected_category_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" 
+                               class="btn btn-light btn-lg">
+                                <i class="fas fa-download"></i> Export to Excel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
+                    <h2 class="text-danger mb-0">{{ total_no_answers }}</h2>
+                    <p class="text-muted mb-0">Total Non-Compliant Items</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-star fa-3x text-warning mb-3"></i>
+                    <h2 class="text-warning mb-0">{{ critical_count }}</h2>
+                    <p class="text-muted mb-0">Critical Items</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-building fa-3x text-info mb-3"></i>
+                    <h2 class="text-info mb-0">{{ plant_breakdown|length }}</h2>
+                    <p class="text-muted mb-0">Plants Affected</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-secondary">
+                <div class="card-body text-center">
+                    <i class="fas fa-list fa-3x text-secondary mb-3"></i>
+                    <h2 class="text-secondary mb-0">{{ category_breakdown|length }}</h2>
+                    <p class="text-muted mb-0">Categories Affected</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-filter"></i> Filters
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{% url 'inspections:admin_no_answers_report' %}">
+                <div class="row">
+                    <!-- Plant Filter -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-building text-primary"></i> Select Plant
+                        </label>
+                        <select name="plant" class="form-select form-select-lg" onchange="this.form.submit()">
+                            <option value="">-- All Plants --</option>
+                            {% for plant in plants %}
+                                <option value="{{ plant.id }}" 
+                                    {% if selected_plant_id == plant.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ plant.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Category Filter -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-tags text-success"></i> Category
+                        </label>
+                        <select name="category" class="form-select">
+                            <option value="">-- All Categories --</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}"
+                                    {% if selected_category_id == category.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ category.category_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Date From -->
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-calendar text-info"></i> Date From
+                        </label>
+                        <input type="date" name="date_from" class="form-control" 
+                               value="{{ date_from }}">
+                    </div>
+                    
+                    <!-- Date To -->
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-calendar text-info"></i> Date To
+                        </label>
+                        <input type="date" name="date_to" class="form-control" 
+                               value="{{ date_to }}">
+                    </div>
+                    
+                    <!-- Priority Filter -->
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-flag text-warning"></i> Priority
+                        </label>
+                        <select name="priority" class="form-select">
+                            <option value="">All</option>
+                            <option value="critical" {% if priority_filter == 'critical' %}selected{% endif %}>
+                                Critical Only
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <!-- Search -->
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-search text-dark"></i> Search
+                        </label>
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="Search in question text, code, remarks, schedule code..."
+                               value="{{ search_query }}">
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-search"></i> Apply Filters
+                            </button>
+                            <a href="{% url 'inspections:admin_no_answers_report' %}" 
+                               class="btn btn-secondary">
+                                <i class="fas fa-redo"></i> Reset
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Plant Breakdown -->
+    {% if plant_breakdown %}
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-chart-pie"></i> Plant-Wise Breakdown
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Plant Name</th>
+                            <th class="text-center">Total Non-Compliant</th>
+                            <th class="text-center">Critical Items</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for plant in plant_breakdown %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <strong>{{ plant.submission__schedule__plant__name }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-danger fs-6">{{ plant.count }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning fs-6">{{ plant.critical_count }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="?plant={{ plant.submission__schedule__plant__id }}" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> View Details
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Category Breakdown -->
+    {% if category_breakdown %}
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-layer-group"></i> Category-Wise Breakdown
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for cat in category_breakdown %}
+                    <div class="col-md-3 mb-3">
+                        <div class="card border-danger">
+                            <div class="card-body text-center">
+                                <h6 class="text-truncate" title="{{ cat.question__category__category_name }}">
+                                    {{ cat.question__category__category_code }}
+                                </h6>
+                                <h3 class="text-danger mb-0">{{ cat.count }}</h3>
+                                <small class="text-muted">{{ cat.question__category__category_name }}</small>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Location Breakdown (if plant selected) -->
+    {% if selected_plant_id and location_breakdown %}
+    <div class="card mb-4">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0">
+                <i class="fas fa-map-marker-alt"></i> Location-Wise Breakdown
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Zone</th>
+                            <th>Location</th>
+                            <th>Sub-Location</th>
+                            <th class="text-center">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loc in location_breakdown %}
+                            <tr>
+                                <td>{{ loc.submission__schedule__zone__name|default:"-" }}</td>
+                                <td>{{ loc.submission__schedule__location__name|default:"-" }}</td>
+                                <td>{{ loc.submission__schedule__sublocation__name|default:"-" }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-danger">{{ loc.count }}</span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Top Failing Questions -->
+    {% if frequent_questions %}
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-exclamation-triangle"></i> Top 10 Most Frequently Failing Questions
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Question Code</th>
+                            <th>Question</th>
+                            <th>Category</th>
+                            <th class="text-center">Critical</th>
+                            <th class="text-center">Failure Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for q in frequent_questions %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td><strong>{{ q.question__question_code }}</strong></td>
+                                <td>{{ q.question__question_text|truncatewords:20 }}</td>
+                                <td>{{ q.question__category__category_name }}</td>
+                                <td class="text-center">
+                                    {% if q.question__is_critical %}
+                                        <i class="fas fa-star text-warning"></i>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-danger fs-6">{{ q.failure_count }}</span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Detailed List -->
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-list"></i> Detailed Non-Compliant Items List 
+                <span class="badge bg-light text-dark">{{ page_obj.paginator.count }}</span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if page_obj %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 3%;">#</th>
+                                <th style="width: 10%;">Plant</th>
+                                <th style="width: 8%;">Zone/Location</th>
+                                <th style="width: 10%;">Category</th>
+                                <th style="width: 8%;">Question Code</th>
+                                <th style="width: 25%;">Question</th>
+                                <th style="width: 15%;">Remarks</th>
+                                <th style="width: 8%;">Inspection</th>
+                                <th style="width: 8%;">Date</th>
+                                <th style="width: 3%;">Photo</th>
+                                <th style="width: 2%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for response in page_obj %}
+                                <tr {% if response.question.is_critical %}class="table-danger"{% endif %}>
+                                    <td>
+                                        {{ forloop.counter }}
+                                        {% if response.question.is_critical %}
+                                            <i class="fas fa-star text-warning" title="Critical"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ response.submission.schedule.plant.name }}</strong>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            {{ response.submission.schedule.zone.name|default:"-" }}
+                                            <br>
+                                            {{ response.submission.schedule.location.name|default:"-" }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ response.question.category.category_code }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong class="text-danger">{{ response.question.question_code }}</strong>
+                                    </td>
+                                    <td>
+                                        <small>{{ response.question.question_text|truncatewords:15 }}</small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ response.remarks|truncatewords:10|default:"-" }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            {{ response.submission.schedule.schedule_code }}
+                                            <br>
+                                            <span class="text-muted">
+                                                {{ response.submission.submitted_by.get_full_name }}
+                                            </span>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            {{ response.answered_at|date:"d M Y" }}
+                                            <br>
+                                            {{ response.answered_at|time:"h:i A" }}
+                                        </small>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if response.photo %}
+                                            <a href="{{ response.photo.url }}" target="_blank" title="View Photo">
+                                                <i class="fas fa-image text-primary fa-lg"></i>
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'inspections:inspection_review' response.submission.id %}" 
+                                           class="btn btn-sm btn-info"
+                                           title="View Full Inspection">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                    <div class="card-footer">
+                        <nav>
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1{% if selected_plant_id %}&plant={{ selected_plant_id }}{% endif %}{% if selected_category_id %}&category={{ selected_category_id }}{% endif %}">First</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if selected_plant_id %}&plant={{ selected_plant_id }}{% endif %}{% if selected_category_id %}&category={{ selected_category_id }}{% endif %}">Previous</a>
+                                    </li>
+                                {% endif %}
+                                
+                                <li class="page-item active">
+                                    <span class="page-link">
+                                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                    </span>
+                                </li>
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if selected_plant_id %}&plant={{ selected_plant_id }}{% endif %}{% if selected_category_id %}&category={{ selected_category_id }}{% endif %}">Next</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if selected_plant_id %}&plant={{ selected_plant_id }}{% endif %}{% if selected_category_id %}&category={{ selected_category_id }}{% endif %}">Last</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="p-5 text-center">
+                    <i class="fas fa-check-circle text-success fa-4x mb-3"></i>
+                    <h4>No Non-Compliant Items Found!</h4>
+                    <p class="text-muted">All inspections are compliant for the selected filters.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .table-danger {
+        background-color: #ffe6e6 !important;
+    }
+</style>
+{% endblock %}
