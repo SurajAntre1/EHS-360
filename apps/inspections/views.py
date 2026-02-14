@@ -1473,7 +1473,7 @@ def convert_no_answer_to_hazard(request, response_id):
     """
     from apps.hazards.models import Hazard, HazardPhoto
     from django.utils import timezone
-    
+    from django.utils.safestring import mark_safe
     # Get the response
     response = get_object_or_404(
         InspectionResponse.objects.select_related(
