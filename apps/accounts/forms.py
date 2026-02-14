@@ -27,6 +27,8 @@ class UserCreationFormCustom(UserCreationForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.fields['department'].queryset = Department.objects.filter(is_active=True)
         
         # Add Bootstrap classes to all fields
         for field_name, field in self.fields.items():
@@ -66,6 +68,8 @@ class UserUpdateForm(BaseUserChangeForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+    
+        self.fields['department'].queryset = Department.objects.filter(is_active=True)
         
         # Add Bootstrap classes
         for field_name, field in self.fields.items():
