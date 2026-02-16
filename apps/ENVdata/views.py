@@ -326,23 +326,14 @@ class UnitManagerView(LoginRequiredMixin, View):
         # ---------- DELETE CATEGORY ----------
         elif action == "delete_category":
             category_id = request.POST.get("category_id")
-            
             try:
                 category = UnitCategory.objects.get(id=category_id)
                 category_name = category.name
                 
-                # Check if category has units
-                unit_count = category.units.count()
+                # Hard Delete: Database se permanent delete karne ke liye
+                category.delete() 
                 
-                # Soft delete - mark as inactive
-                category.is_active = False
-                category.save()
-                
-                # Also deactivate all units in this category
-                category.units.all().update(is_active=False)
-                
-                messages.success(request, f"✓ Category '{category_name}' and {unit_count} unit(s) deleted successfully!")
-                
+                messages.success(request, f"✓ Category '{category_name}' and its units deleted permanently!")
             except UnitCategory.DoesNotExist:
                 messages.error(request, "Category not found")
             except Exception as e:
@@ -353,17 +344,14 @@ class UnitManagerView(LoginRequiredMixin, View):
         # ---------- DELETE UNIT ----------
         elif action == "delete_unit":
             unit_id = request.POST.get("unit_id")
-            
             try:
                 unit = Unit.objects.get(id=unit_id)
                 unit_name = unit.name
                 
-                # Soft delete - mark as inactive
-                unit.is_active = False
-                unit.save()
+                # Hard Delete: Database se permanent delete karne ke liye
+                unit.delete()
                 
-                messages.success(request, f"✓ Unit '{unit_name}' deleted successfully!")
-                
+                messages.success(request, f"✓ Unit '{unit_name}' deleted permanently!")
             except Unit.DoesNotExist:
                 messages.error(request, "Unit not found")
             except Exception as e:
