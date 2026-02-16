@@ -1452,12 +1452,52 @@ class IncidentFilterMixin:
     
 
 class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
-    """
-    Handles the export of filtered incident data to an attractive and well-formatted Excel file.
-    """
     def get(self, request, *args, **kwargs):
-        queryset = self.get_filtered_queryset()
+        user = self.request.user
         
+        # 1. Sabse pehle Base Queryset set karein (Permission ke hisaab se)
+        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
+            # Admin sabka data dekh sakta hai
+            queryset = Incident.objects.all()
+        elif getattr(user, 'plant', None):
+            # Plant user sirf apne assigned plant ka data dekh sakta hai
+            queryset = Incident.objects.filter(plant=user.plant)
+        else:
+            # Baki log sirf apna reported data dekh sakte hain
+            queryset = Incident.objects.filter(reported_by=user)
+
+        # 2. Ab URL filters apply karein (Plant, Zone, Month etc.)
+        # Hum IncidentFilterMixin ka direct use nahi karenge balki manually filter karenge 
+        # taaki koi user URL modify karke dusre plant ka data na le sake
+        
+        selected_plant = request.GET.get('plant')
+        selected_zone = request.GET.get('zone')
+        selected_location = request.GET.get('location')
+        selected_sublocation = request.GET.get('sublocation')
+        selected_month = request.GET.get('month')
+
+        # Admin agar kisi specific plant ko filter kare
+        if selected_plant and (user.is_superuser or (hasattr(user, 'role') and user.role.name == 'ADMIN')):
+            queryset = queryset.filter(plant_id=selected_plant)
+        
+        if selected_zone:
+            queryset = queryset.filter(zone_id=selected_zone)
+        if selected_location:
+            queryset = queryset.filter(location_id=selected_location)
+        if selected_sublocation:
+            queryset = queryset.filter(sublocation_id=selected_sublocation)
+        
+        if selected_month:
+            try:
+                year, month = map(int, selected_month.split('-'))
+                queryset = queryset.filter(incident_date__year=year, incident_date__month=month)
+            except ValueError:
+                pass
+
+        # Optimize for Excel export
+        queryset = queryset.select_related('incident_type', 'plant', 'zone', 'location', 'sublocation', 'reported_by', 'closed_by')
+
+        # --- Baaki ka Excel generation code yahan se start hoga ---
         workbook = openpyxl.Workbook()
         sheet = workbook.active
         sheet.title = 'Incident Report'
