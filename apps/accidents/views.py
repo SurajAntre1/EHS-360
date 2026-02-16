@@ -1533,10 +1533,11 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
             sheet.cell(row=row_index, column=injury_col_idx).alignment = wrap_alignment
 
         # --- Conditional Formatting for Status ---
-        status_column_letter = get_column_letter(headers.index('Status') + 1)
-        for status, fill in status_fills.items():
-            rule = CellIsRule(operator='equal', formula=[f'"{status}"'], fill=fill)
-            sheet.conditional_formatting.add(f'{status_column_letter}2:{status_column_letter}{sheet.max_row}', rule)
+        if sheet.max_row >= 2:
+            status_column_letter = get_column_letter(headers.index('Status') + 1)
+            for status, fill in status_fills.items():
+                rule = CellIsRule(operator='equal', formula=[f'"{status}"'], fill=fill)
+                sheet.conditional_formatting.add(f'{status_column_letter}2:{status_column_letter}{sheet.max_row}', rule)
 
         # --- Adjust Column Widths ---
         column_widths = {}
