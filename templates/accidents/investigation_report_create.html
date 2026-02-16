@@ -766,7 +766,18 @@ document.addEventListener('DOMContentLoaded', function() {
     ---------------------------------------------------- */
     const form = document.getElementById('investigationForm');
     if (form) {
-        form.addEventListener('submit', function() {
+        let isSubmitting = false; 
+        form.addEventListener('submit', function(e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+            isSubmitting = true;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+            }
 
             const personalFactors = [];
             document.querySelectorAll('.personal-factor-checkbox:checked, input[name="personal_factor_other_checkbox"]:checked')

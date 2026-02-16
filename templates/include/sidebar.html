@@ -275,7 +275,7 @@
         {% endif %}
 
         {% if user.is_superuser or user.is_admin_user %}
-        <li class="nav-item {% if 'accidents' in request.path %}menu-open{% endif %}">
+        <li class="nav-item">
           <a href="#" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-exclamation-triangle"></i>
             <p>Injury Type Configuration<i class="right fas fa-angle-left"></i></p>
@@ -388,7 +388,7 @@
       
         <!-- ✅ INCIDENT MANAGEMENT changes-->
         {% comment %} {% if user.can_access_incident_module %} {% endcomment %}
-        <li class="nav-item {% if 'incidents' in request.path %}menu-open{% endif %}">
+        <li class="nav-item {% if 'accidents' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'incidents' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-exclamation-triangle"></i>
             <p>Injury Management <i class="right fas fa-angle-left"></i></p>

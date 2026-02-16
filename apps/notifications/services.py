@@ -271,7 +271,7 @@ class NotificationService:
             context = NotificationService._build_incident_close_context(content_object)
         elif notification_type == 'INCIDENT_ACTION_ASSIGNED':
             context = NotificationService._build_incident_action_context(content_object)
-        elif notification_type == 'INVESTIGATION_COMPLETED':
+        elif notification_type == 'INCIDENT_INVESTIGATION_COMPLETED':
             context = NotificationService._build_incident_report_context(content_object)
         elif notification_type == 'HAZARD_REPORTED':
             context = NotificationService._build_hazard_context(content_object)
