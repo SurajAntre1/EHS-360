@@ -1310,6 +1310,10 @@ def no_answers_list(request):
     across all inspections with filters
     """
     
+    # Handle POST request for assignment
+    if request.method == 'POST' and request.POST.get('action') == 'assign_responses':
+        return handle_response_assignment(request)
+    
     # Base queryset - all "No" responses
     no_responses = InspectionResponse.objects.filter(
         answer='No'
@@ -1320,18 +1324,18 @@ def no_answers_list(request):
         'submission__schedule__assigned_to',
         'submission__submitted_by',
         'question',
-        'question__category'
+        'question__category',
+        'assigned_to',
+        'converted_to_hazard'
     )
     
     # Apply user-based filtering
     if not request.user.is_superuser:
-        if request.user.has_permission('VIEW_INSPECTION'):
-            # HOD sees only their submissions
+        if hasattr(request.user, 'has_permission') and request.user.has_permission('VIEW_INSPECTION'):
             no_responses = no_responses.filter(
                 submission__submitted_by=request.user
             )
-        elif request.user.can_access_inspection_module:
-            # Safety officer sees their plant's submissions
+        elif hasattr(request.user, 'can_access_inspection_module') and request.user.can_access_inspection_module:
             user_plants = request.user.get_all_plants()
             no_responses = no_responses.filter(
                 submission__schedule__plant__in=user_plants
@@ -1342,7 +1346,7 @@ def no_answers_list(request):
     category_id = request.GET.get('category')
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
-    priority = request.GET.get('priority')  # critical or normal
+    priority = request.GET.get('priority')
     search = request.GET.get('search')
     
     if plant_id:
@@ -1382,6 +1386,7 @@ def no_answers_list(request):
     # Statistics
     total_no_answers = no_responses.count()
     critical_no_answers = no_responses.filter(question__is_critical=True).count()
+    converted_hazards_count = no_responses.filter(converted_to_hazard__isnull=False).count()
     
     # Group by category for summary
     from django.db.models import Count
@@ -1397,6 +1402,11 @@ def no_answers_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    # Get all active users
+    available_users = User.objects.filter(
+        is_active=True
+    ).select_related('department', 'role', 'plant').order_by('first_name', 'last_name')
+    
     # For filters
     from apps.organizations.models import Plant
     plants = Plant.objects.filter(is_active=True)
@@ -1406,6 +1416,7 @@ def no_answers_list(request):
         'page_obj': page_obj,
         'total_no_answers': total_no_answers,
         'critical_no_answers': critical_no_answers,
+        'converted_hazards_count': converted_hazards_count,
         'category_summary': category_summary,
         'plants': plants,
         'categories': categories,
@@ -1415,10 +1426,99 @@ def no_answers_list(request):
         'date_to': date_to,
         'selected_priority': priority,
         'search': search,
+        'available_users': available_users,
     }
     
     return render(request, 'inspections/no_answers_list.html', context)
 
+
+def handle_response_assignment(request):
+    """Helper function to handle the assignment logic"""
+    
+    # Check permission
+    if not (request.user.is_superuser or request.user.can_access_inspection_module):
+        messages.error(request, 'Only safety managers can assign non-compliances!')
+        return redirect('inspections:no_answers_list')
+    
+    try:
+        # Get form data
+        selected_responses = request.POST.get('selected_responses', '')
+        assigned_to_id = request.POST.get('assigned_to')
+        assignment_remarks = request.POST.get('assignment_remarks', '').strip()
+        
+        # Validate
+        if not selected_responses:
+            messages.error(request, 'Please select at least one non-compliant item!')
+            return redirect('inspections:no_answers_list')
+        
+        if not assigned_to_id:
+            messages.error(request, 'Please select a person to assign these items to!')
+            return redirect('inspections:no_answers_list')
+        
+        # Parse selected IDs
+        response_ids = [int(id.strip()) for id in selected_responses.split(',') if id.strip()]
+        
+        if not response_ids:
+            messages.error(request, 'No valid items selected!')
+            return redirect('inspections:no_answers_list')
+        
+        # Get assigned user
+        assigned_to = get_object_or_404(User, pk=assigned_to_id, is_active=True)
+        
+        # Get responses
+        responses = InspectionResponse.objects.filter(
+            id__in=response_ids,
+            answer='No'
+        )
+        
+        # Filter only unassigned, unconverted responses
+        valid_responses = responses.filter(
+            assigned_to__isnull=True,
+            converted_to_hazard__isnull=True
+        )
+        
+        if not valid_responses.exists():
+            messages.error(request, 'All selected items are already assigned or converted!')
+            return redirect('inspections:no_answers_list')
+        
+        # Bulk assign using transaction
+        from django.db import transaction
+        with transaction.atomic():
+            assigned_count = valid_responses.update(
+                assigned_to=assigned_to,
+                assigned_by=request.user,
+                assigned_at=timezone.now(),
+                assignment_remarks=assignment_remarks
+            )
+        
+        # Send notification
+        try:
+            from apps.notifications.services import NotificationService
+            first_response = valid_responses.first()
+            NotificationService.notify(
+                content_object=first_response,
+                notification_type='INSPECTION_NONCOMPLIANCE_ASSIGNED',
+                module='INSPECTION',
+                extra_recipients=[assigned_to]
+            )
+        except Exception as e:
+            print(f"Notification error: {e}")
+        
+        from django.utils.safestring import mark_safe
+        messages.success(
+            request,
+            mark_safe(
+                f'<strong>✅ Assignment Successful!</strong><br>'
+                f'<strong>{assigned_count}</strong> non-compliant item(s) assigned to '
+                f'<strong>{assigned_to.get_full_name()}</strong>'
+            )
+        )
+        
+    except Exception as e:
+        print(f"Error in assignment: {e}")
+        messages.error(request, f'Error assigning items: {str(e)}')
+    
+    return redirect('inspections:no_answers_list')
 
 @login_required
 def no_answers_by_question(request):
@@ -1464,16 +1564,144 @@ def no_answers_by_question(request):
     return render(request, 'inspections/no_answers_by_question.html', context)
 
 
-# Add to apps/inspections/views.py
+# ====================================
+# BULK ASSIGNMENT FOR NO ANSWERS
+# ====================================
+from django.utils.safestring import mark_safe
+from django.db import transaction
+from apps.hazards.models import Hazard, HazardPhoto
+
+# @login_required
+# def bulk_assign_no_answers(request):
+#     """
+#     Bulk assign multiple 'No' answers to a responsible person
+#     """
+    
+#     # Check permission - only safety managers can assign
+#     if not (request.user.is_superuser or request.user.can_access_inspection_module):
+#         messages.error(request, 'Only safety managers can assign non-compliances!')
+#         return redirect('inspections:no_answers_list')
+    
+#     if request.method == 'POST':
+#         try:
+#             # Get form data
+#             selected_responses = request.POST.get('selected_responses', '')
+#             assigned_to_id = request.POST.get('assigned_to')
+#             assignment_remarks = request.POST.get('assignment_remarks', '').strip()
+            
+#             print(f"\n{'='*60}")
+#             print(f"📋 BULK ASSIGNMENT REQUEST")
+#             print(f"{'='*60}")
+#             print(f"Selected responses: {selected_responses}")
+#             print(f"Assigned to ID: {assigned_to_id}")
+#             print(f"Remarks: {assignment_remarks}")
+            
+#             # Validate
+#             if not selected_responses:
+#                 messages.error(request, 'Please select at least one non-compliant item!')
+#                 return redirect('inspections:no_answers_list')
+            
+#             if not assigned_to_id:
+#                 messages.error(request, 'Please select a person to assign!')
+#                 return redirect('inspections:no_answers_list')
+            
+#             # Parse selected IDs
+#             response_ids = [int(id.strip()) for id in selected_responses.split(',') if id.strip()]
+            
+#             if not response_ids:
+#                 messages.error(request, 'No valid items selected!')
+#                 return redirect('inspections:no_answers_list')
+            
+#             print(f"Parsed response IDs: {response_ids}")
+            
+#             # Get assigned user
+#             assigned_to = get_object_or_404(User, pk=assigned_to_id, is_active=True)
+#             print(f"Assigning to: {assigned_to.get_full_name()} ({assigned_to.email})")
+            
+#             # Get responses
+#             responses = InspectionResponse.objects.filter(
+#                 id__in=response_ids,
+#                 answer='No'
+#             ).select_related('question', 'submission__schedule')
+            
+#             print(f"Found {responses.count()} responses to assign")
+            
+#             # Check if any already assigned or converted
+#             already_assigned = responses.filter(assigned_to__isnull=False).count()
+#             already_converted = responses.filter(converted_to_hazard__isnull=False).count()
+            
+#             if already_assigned > 0 or already_converted > 0:
+#                 messages.warning(
+#                     request,
+#                     f'{already_assigned + already_converted} items were skipped (already assigned or converted)'
+#                 )
+            
+#             # Filter only unassigned, unconverted responses
+#             valid_responses = responses.filter(
+#                 assigned_to__isnull=True,
+#                 converted_to_hazard__isnull=True
+#             )
+            
+#             print(f"Valid responses to assign: {valid_responses.count()}")
+            
+#             if not valid_responses.exists():
+#                 messages.error(request, 'All selected items are already assigned or converted!')
+#                 return redirect('inspections:no_answers_list')
+            
+#             # Bulk assign using transaction
+#             with transaction.atomic():
+#                 assigned_count = valid_responses.update(
+#                     assigned_to=assigned_to,
+#                     assigned_by=request.user,
+#                     assigned_at=timezone.now(),
+#                     assignment_remarks=assignment_remarks
+#                 )
+            
+#             print(f"✅ Successfully assigned {assigned_count} items")
+#             print(f"{'='*60}\n")
+            
+#             # Send notification to assigned person
+#             try:
+#                 NotificationService.notify(
+#                     content_object=valid_responses.first(),
+#                     notification_type='INSPECTION_NONCOMPLIANCE_ASSIGNED',
+#                     module='INSPECTION',
+#                     extra_recipients=[assigned_to]
+#                 )
+#                 print(f"📧 Notification sent to {assigned_to.email}")
+#             except Exception as e:
+#                 print(f"⚠️ Notification error: {e}")
+            
+#             # Success message
+#             messages.success(
+#                 request,
+#                 mark_safe(
+#                     f'<strong>✅ Assignment Successful!</strong><br>'
+#                     f'<strong>{assigned_count}</strong> non-compliant item(s) assigned to:<br>'
+#                     f'<strong>{assigned_to.get_full_name()}</strong> ({assigned_to.email})<br>'
+#                     f'They can now convert these items to hazard reports.'
+#                 )
+#             )
+            
+#             return redirect('inspections:no_answers_list')
+            
+#         except Exception as e:
+#             print(f"❌ Error in bulk assignment: {e}")
+#             import traceback
+#             traceback.print_exc()
+#             messages.error(request, f'Error assigning items: {str(e)}')
+#             return redirect('inspections:no_answers_list')
+    
+#     return redirect('inspections:no_answers_list')
 
 @login_required
 def convert_no_answer_to_hazard(request, response_id):
     """
     Convert an inspection 'No' answer into a hazard report
+    Only the assigned person can convert
     """
     from apps.hazards.models import Hazard, HazardPhoto
-    from django.utils import timezone
-    from django.utils.safestring import mark_safe
+    
     # Get the response
     response = get_object_or_404(
         InspectionResponse.objects.select_related(
@@ -1484,26 +1712,39 @@ def convert_no_answer_to_hazard(request, response_id):
             'submission__schedule__location',
             'submission__schedule__sublocation',
             'question',
-            'question__category'
+            'question__category',
+            'assigned_to',
+            'assigned_by'
         ),
         pk=response_id,
-        answer='No'  # Only allow 'No' answers
+        answer='No'
     )
     
     # Check if already converted
     if response.converted_to_hazard:
         messages.warning(
             request,
-            f'This inspection item has already been converted to Hazard: {response.converted_to_hazard.report_number}'
+            f'This item has already been converted to Hazard: {response.converted_to_hazard.report_number}'
         )
-        return redirect('inspections:inspection_review', submission_id=response.submission.id)
+        return redirect('hazards:hazard_detail', pk=response.converted_to_hazard.id)
     
-    # Check permission
-    if not (request.user.is_superuser or 
-            request.user.can_access_inspection_module or
-            request.user == response.submission.submitted_by):
-        messages.error(request, 'Unauthorized access!')
-        return redirect('inspections:inspection_dashboard')
+    # Check if assigned
+    if not response.assigned_to:
+        messages.error(
+            request,
+            'This non-compliance must be assigned to someone before converting to hazard!'
+        )
+        return redirect('inspections:no_answers_list')
+    
+    # Check permission - only assigned person or safety manager can convert
+    if not (request.user == response.assigned_to or 
+            request.user.is_superuser or 
+            request.user.can_access_inspection_module):
+        messages.error(
+            request,
+            f'Only {response.assigned_to.get_full_name()} or safety managers can convert this to hazard!'
+        )
+        return redirect('inspections:no_answers_list')
     
     if request.method == 'POST':
         try:
@@ -1512,65 +1753,59 @@ def convert_no_answer_to_hazard(request, response_id):
             # Create hazard
             hazard = Hazard()
             
-            # Reporter information (from inspection submitter)
-            hazard.reported_by = response.submission.submitted_by
-            hazard.reporter_name = response.submission.submitted_by.get_full_name()
-            hazard.reporter_email = response.submission.submitted_by.email
-            hazard.reporter_phone = getattr(response.submission.submitted_by, 'phone', '')
+            # Reporter information (use assigned person as reporter)
+            hazard.reported_by = request.user
+            hazard.reporter_name = request.user.get_full_name()
+            hazard.reporter_email = request.user.email
+            hazard.reporter_phone = getattr(request.user, 'phone', '')
             
-            # Hazard type and category mapping from inspection
-            hazard.hazard_type = request.POST.get('hazard_type', 'UC')  # Default to Unsafe Condition
-            
-            # Map inspection category to hazard category
+            # Hazard type and category
+            hazard.hazard_type = request.POST.get('hazard_type', 'UC')
             hazard.hazard_category = request.POST.get('hazard_category', 'other')
             
-            # Severity from form or auto-determine
+            # Severity
             hazard.severity = request.POST.get('severity')
             if not hazard.severity:
-                # Auto-determine from inspection question
-                if response.question.is_critical:
-                    hazard.severity = 'high'
-                else:
-                    hazard.severity = 'medium'
+                hazard.severity = 'high' if response.question.is_critical else 'medium'
             
-            # Location information from schedule
+            # Location from schedule
             hazard.plant = schedule.plant
             hazard.zone = schedule.zone
             hazard.location = schedule.location
             hazard.sublocation = schedule.sublocation
             
-            # Hazard details
+            # Title
             category_name = response.question.category.category_name
             hazard.hazard_title = f"Inspection Non-Compliance: {category_name} - {response.question.question_code}"
             
-            # Description combines question and remarks
+            # Description - include all details
             description_parts = [
                 f"**Source:** Inspection {schedule.schedule_code}",
+                f"**Inspection Date:** {schedule.scheduled_date.strftime('%d %B %Y')}",
+                f"**Inspector:** {response.submission.submitted_by.get_full_name()}",
+                f"**Question Code:** {response.question.question_code}",
                 f"**Question:** {response.question.question_text}",
                 f"**Category:** {category_name}",
             ]
             
             if response.question.reference_standard:
-                description_parts.append(f"**Standard:** {response.question.reference_standard}")
+                description_parts.append(f"**Reference Standard:** {response.question.reference_standard}")
             
             if response.remarks:
                 description_parts.append(f"**Inspector Remarks:** {response.remarks}")
-            else:
-                description_parts.append("**Inspector Remarks:** No remarks provided")
+            
+            if response.assignment_remarks:
+                description_parts.append(f"**Assignment Notes:** {response.assignment_remarks}")
             
             hazard.hazard_description = "\n\n".join(description_parts)
-            
-            # Additional details from form
             hazard.immediate_action = request.POST.get('immediate_action', '')
             
-            # Incident datetime
+            # Dates
             hazard.incident_datetime = response.answered_at or schedule.completed_at or timezone.now()
-            
-            # Status
             hazard.status = 'REPORTED'
             hazard.approval_status = 'PENDING'
             
-            # Set deadline based on severity
+            # Deadline based on severity
             severity_days = {'low': 30, 'medium': 15, 'high': 7, 'critical': 1}
             hazard.action_deadline = timezone.now().date() + timezone.timedelta(
                 days=severity_days.get(hazard.severity, 15)
@@ -1593,7 +1828,7 @@ def convert_no_answer_to_hazard(request, response_id):
                         hazard=hazard,
                         photo=response.photo,
                         photo_type='evidence',
-                        description=f'Photo from inspection {schedule.schedule_code}',
+                        description=f'Photo from inspection {schedule.schedule_code} - Question {response.question.question_code}',
                         uploaded_by=request.user
                     )
                 except Exception as e:
@@ -1619,6 +1854,7 @@ def convert_no_answer_to_hazard(request, response_id):
                     f'<strong>✅ Hazard Created from Inspection!</strong><br>'
                     f'Report No: <strong>{hazard.report_number}</strong><br>'
                     f'Source: Inspection {schedule.schedule_code}<br>'
+                    f'Question: {response.question.question_code}<br>'
                     f'Severity: {hazard.get_severity_display()}'
                 )
             )
@@ -1630,9 +1866,9 @@ def convert_no_answer_to_hazard(request, response_id):
             import traceback
             traceback.print_exc()
             messages.error(request, f'Error creating hazard: {str(e)}')
-            return redirect('inspections:inspection_review', submission_id=response.submission.id)
+            return redirect('inspections:no_answers_list')
     
-    # GET request - show confirmation form
+    # GET request - show conversion form
     context = {
         'response': response,
         'question': response.question,
