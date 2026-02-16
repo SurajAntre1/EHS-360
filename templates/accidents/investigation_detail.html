@@ -51,7 +51,7 @@
                         <div class="col-md-8">
                             <h4 class="mb-1 font-weight-bold">{{ incident.report_number }} - {{ incident.incident_title|default:"Incident Report" }}</h4>
                             <div class="d-flex flex-wrap">
-                                <span class="badge badge-dark mr-2 mb-1">{{ incident.get_incident_type_display }}</span>
+                                <span class="badge badge-dark mr-2 mb-1">{{ incident.incident_type.name }}</span>
                                 <span class="badge badge-info mr-2 mb-1">Status: {{ incident.get_status_display }}</span>
                                 {% if incident.incident_type == 'LTI' %}
                                     <span class="badge badge-danger mb-1">High Severity</span>

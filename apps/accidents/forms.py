@@ -481,6 +481,22 @@ class IncidentInvestigationReportForm(forms.ModelForm):
             'completed_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
 
+    def clean_investigation_team(self):
+        data = self.cleaned_data.get('investigation_team', '')
+
+        # Split emails by comma
+        emails = [email.strip() for email in data.split(',') if email.strip()]
+        if not emails:
+            raise ValidationError("At least one email address is required.")
+
+        for email in emails:
+            try:
+                validate_email(email)
+            except ValidationError:
+                raise ValidationError(f"Invalid email address: {email}")
+
+        # Return clean formatted string
+        return ", ".join(emails)
 
 # Custom form field to display user's full name and email.
 class UserChoiceField(forms.ModelMultipleChoiceField):

@@ -179,12 +179,12 @@
         <div class="row">
           <div class="col-md-8">
             <h4 class="mb-1">{{ incident.report_number }}</h4>
-            <p class="mb-1"><strong>Title:</strong> {{ incident.incident_title }}</p>
+            <p class="mb-1"><strong>Affected Person:</strong> {{ incident.affected_person_name }}</p>
             <p class="mb-1"><strong>Date:</strong> {{ incident.incident_date|date:"d/m/Y" }} at {{ incident.incident_time|time:"H:i" }}</p>
             <p class="mb-0"><strong>Location:</strong> {{ incident.plant.name }} - {{ incident.location.name }}</p>
           </div>
           <div class="col-md-4 text-right">
-            <span class="badge badge-lg badge-warning">{{ incident.get_incident_type_display }}</span><br>
+            <span class="badge badge-lg badge-warning">{{ incident.incident_type.name }}</span><br>
             <span class="badge badge-lg badge-danger">{{ incident.severity_level }}</span>
           </div>
         </div>

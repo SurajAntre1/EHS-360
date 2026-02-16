@@ -2,12 +2,16 @@
 
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils import timezone
 from .models import (
     InspectionCategory, 
     InspectionQuestion, 
     InspectionTemplate, 
     TemplateQuestion,
-    InspectionSchedule
+    InspectionSchedule,
+    InspectionSubmission,
+    InspectionResponse,
+    InspectionFinding
 )
 
 
@@ -335,7 +339,6 @@ class InspectionScheduleAdmin(admin.ModelAdmin):
     send_reminders.short_description = "Send reminder notifications"
     
     def mark_as_completed(self, request, queryset):
-        from django.utils import timezone
         updated = queryset.filter(status__in=['SCHEDULED', 'IN_PROGRESS']).update(
             status='COMPLETED',
             completed_at=timezone.now()
@@ -347,3 +350,402 @@ class InspectionScheduleAdmin(admin.ModelAdmin):
         updated = queryset.exclude(status='COMPLETED').update(status='CANCELLED')
         self.message_user(request, f'{updated} inspections cancelled.')
     cancel_schedules.short_description = "Cancel selected schedules"
+
+
+# ====================================
+# INSPECTION SUBMISSION & RESPONSE
+# ====================================
+
+class InspectionResponseInline(admin.TabularInline):
+    """Inline for viewing responses within a submission"""
+    model = InspectionResponse
+    extra = 0
+    fields = [
+        'question', 
+        'answer_badge', 
+        'remarks_preview', 
+        'has_photo',
+        'assignment_status',
+        'conversion_status'
+    ]
+    readonly_fields = [
+        'question',
+        'answer_badge',
+        'remarks_preview',
+        'has_photo',
+        'assignment_status',
+        'conversion_status'
+    ]
+    can_delete = False
+    
+    def answer_badge(self, obj):
+        colors = {
+            'Yes': '#28a745',
+            'No': '#dc3545',
+            'N/A': '#6c757d'
+        }
+        return format_html(
+            '<span style="background: {}; color: white; padding: 3px 8px; border-radius: 3px; font-weight: bold;">{}</span>',
+            colors.get(obj.answer, '#6c757d'),
+            obj.answer
+        )
+    answer_badge.short_description = 'Answer'
+    
+    def remarks_preview(self, obj):
+        if obj.remarks:
+            preview = obj.remarks[:40] + '...' if len(obj.remarks) > 40 else obj.remarks
+            return format_html('<small>{}</small>', preview)
+        return format_html('<span style="color: #999;">-</span>')
+    remarks_preview.short_description = 'Remarks'
+    
+    def has_photo(self, obj):
+        if obj.photo:
+            return format_html('✓ <span style="color: #28a745;">Yes</span>')
+        return format_html('<span style="color: #999;">No</span>')
+    has_photo.short_description = 'Photo'
+    
+    def assignment_status(self, obj):
+        if obj.assigned_to:
+            return format_html(
+                '<span style="color: #0066cc;">👤 {}</span>',
+                obj.assigned_to.get_full_name()
+            )
+        return format_html('<span style="color: #999;">Not Assigned</span>')
+    assignment_status.short_description = 'Assigned To'
+    
+    def conversion_status(self, obj):
+        if obj.converted_to_hazard:
+            return format_html(
+                '<span style="color: #28a745;">✓ {}</span>',
+                obj.converted_to_hazard.report_number
+            )
+        return format_html('<span style="color: #999;">-</span>')
+    conversion_status.short_description = 'Hazard'
+
+
+@admin.register(InspectionSubmission)
+class InspectionSubmissionAdmin(admin.ModelAdmin):
+    list_display = [
+        'schedule',
+        'submitted_by',
+        'submitted_at',
+        'compliance_score_badge',
+        'total_responses',
+        'no_answers_count'
+    ]
+    list_filter = [
+        'submitted_at',
+        'schedule__plant',
+        'schedule__template'
+    ]
+    search_fields = [
+        'schedule__schedule_code',
+        'submitted_by__first_name',
+        'submitted_by__last_name'
+    ]
+    readonly_fields = [
+        'schedule',
+        'submitted_by',
+        'submitted_at',
+        'compliance_score',
+        'total_responses',
+        'no_answers_count'
+    ]
+    inlines = [InspectionResponseInline]
+    
+    fieldsets = (
+        ('Submission Information', {
+            'fields': (
+                'schedule',
+                'submitted_by',
+                'submitted_at'
+            )
+        }),
+        ('Results', {
+            'fields': (
+                'compliance_score',
+                'remarks'
+            )
+        }),
+    )
+    
+    def compliance_score_badge(self, obj):
+        score = obj.compliance_score or 0
+        if score >= 90:
+            color = '#28a745'
+        elif score >= 75:
+            color = '#ffc107'
+        else:
+            color = '#dc3545'
+        
+        return format_html(
+            '<span style="background: {}; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold;">{:.1f}%</span>',
+            color,
+            score
+        )
+    compliance_score_badge.short_description = 'Compliance Score'
+    
+    def total_responses(self, obj):
+        count = obj.responses.count()
+        return format_html(
+            '<span style="color: #0066cc; font-weight: bold;">{}</span>',
+            count
+        )
+    total_responses.short_description = 'Total Answers'
+    
+    def no_answers_count(self, obj):
+        count = obj.responses.filter(answer='No').count()
+        if count > 0:
+            return format_html(
+                '<span style="background: #dc3545; color: white; padding: 3px 8px; border-radius: 3px; font-weight: bold;">{}</span>',
+                count
+            )
+        return format_html('<span style="color: #28a745;">0</span>')
+    no_answers_count.short_description = 'Non-Compliant'
+
+
+@admin.register(InspectionResponse)
+class InspectionResponseAdmin(admin.ModelAdmin):
+    list_display = [
+        'id',
+        'submission_link',
+        'question_code',
+        'answer_badge',
+        'is_critical',
+        'answered_at',
+        'assignment_badge',
+        'hazard_link'
+    ]
+    list_filter = [
+        'answer',
+        'question__is_critical',
+        'answered_at',
+        'assigned_to',
+        'converted_to_hazard'
+    ]
+    search_fields = [
+        'question__question_code',
+        'question__question_text',
+        'remarks',
+        'submission__schedule__schedule_code'
+    ]
+    readonly_fields = [
+        'submission',
+        'question',
+        'answer',
+        'remarks',
+        'photo',
+        'answered_at',
+        'assigned_to',
+        'assigned_by',
+        'assigned_at',
+        'assignment_remarks',
+        'converted_to_hazard'
+    ]
+    autocomplete_fields = ['assigned_to', 'assigned_by', 'converted_to_hazard']
+    
+    fieldsets = (
+        ('Response Information', {
+            'fields': (
+                'submission',
+                'question',
+                'answer',
+                'remarks',
+                'photo',
+                'answered_at'
+            )
+        }),
+        ('Assignment Details', {
+            'fields': (
+                'assigned_to',
+                'assigned_by',
+                'assigned_at',
+                'assignment_remarks'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Hazard Conversion', {
+            'fields': (
+                'converted_to_hazard',
+            ),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def submission_link(self, obj):
+        return format_html(
+            '<a href="/admin/inspections/inspectionsubmission/{}/change/">{}</a>',
+            obj.submission.id,
+            obj.submission.schedule.schedule_code
+        )
+    submission_link.short_description = 'Inspection'
+    
+    def question_code(self, obj):
+        return obj.question.question_code
+    question_code.short_description = 'Question Code'
+    
+    def answer_badge(self, obj):
+        colors = {
+            'Yes': '#28a745',
+            'No': '#dc3545',
+            'N/A': '#6c757d'
+        }
+        return format_html(
+            '<span style="background: {}; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold;">{}</span>',
+            colors.get(obj.answer, '#6c757d'),
+            obj.answer
+        )
+    answer_badge.short_description = 'Answer'
+    
+    def is_critical(self, obj):
+        if obj.question.is_critical:
+            return format_html(
+                '<span style="color: #dc3545; font-weight: bold;">⚠ Critical</span>'
+            )
+        return format_html('<span style="color: #999;">Normal</span>')
+    is_critical.short_description = 'Priority'
+    
+    def assignment_badge(self, obj):
+        if obj.assigned_to:
+            return format_html(
+                '<span style="background: #0066cc; color: white; padding: 3px 8px; border-radius: 3px;">👤 {}</span>',
+                obj.assigned_to.get_full_name()
+            )
+        return format_html('<span style="color: #999;">Not Assigned</span>')
+    assignment_badge.short_description = 'Assignment'
+    
+    def hazard_link(self, obj):
+        if obj.converted_to_hazard:
+            return format_html(
+                '<a href="/admin/hazards/hazard/{}/change/" style="color: #28a745; font-weight: bold;">✓ {}</a>',
+                obj.converted_to_hazard.id,
+                obj.converted_to_hazard.report_number
+            )
+        return format_html('<span style="color: #999;">-</span>')
+    hazard_link.short_description = 'Hazard'
+    
+    actions = ['bulk_assign', 'clear_assignments']
+    
+    def bulk_assign(self, request, queryset):
+        """Bulk assign selected responses"""
+        # Filter only 'No' answers that are not already assigned
+        valid_responses = queryset.filter(
+            answer='No',
+            assigned_to__isnull=True,
+            converted_to_hazard__isnull=True
+        )
+        count = valid_responses.count()
+        
+        if count > 0:
+            self.message_user(
+                request, 
+                f'{count} responses are ready for assignment. Use the front-end bulk assignment feature.'
+            )
+        else:
+            self.message_user(
+                request, 
+                'No valid responses selected (must be "No" answers, unassigned, and not converted)',
+                level='warning'
+            )
+    bulk_assign.short_description = "Prepare for bulk assignment"
+    
+    def clear_assignments(self, request, queryset):
+        """Clear assignments from responses (only if not converted to hazard)"""
+        valid_responses = queryset.filter(
+            assigned_to__isnull=False,
+            converted_to_hazard__isnull=True
+        )
+        updated = valid_responses.update(
+            assigned_to=None,
+            assigned_by=None,
+            assigned_at=None,
+            assignment_remarks=''
+        )
+        self.message_user(request, f'{updated} assignments cleared.')
+    clear_assignments.short_description = "Clear assignments (not converted)"
+
+
+@admin.register(InspectionFinding)
+class InspectionFindingAdmin(admin.ModelAdmin):
+    list_display = [
+        'finding_code',
+        'submission',
+        'question',
+        'priority_badge',
+        'status_badge',
+        'assigned_to',
+        'created_at'
+    ]
+    list_filter = [
+        'priority',
+        'status',
+        'created_at'
+    ]
+    search_fields = [
+        'finding_code',
+        'description',
+        'question__question_code'
+    ]
+    readonly_fields = ['finding_code', 'created_at']  # ✅ REMOVED 'updated_at'
+    
+    fieldsets = (
+        ('Finding Information', {
+            'fields': (
+                'finding_code',
+                'submission',
+                'question',
+                'description',
+                'priority'
+            )
+        }),
+        ('Assignment', {
+            'fields': (
+                'assigned_to',
+                'status'
+            )
+        }),
+        ('Audit', {
+            'fields': ('created_at',),  # ✅ REMOVED 'updated_at'
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def priority_badge(self, obj):
+        colors = {
+            'LOW': '#28a745',
+            'MEDIUM': '#ffc107',
+            'HIGH': '#fd7e14',
+            'CRITICAL': '#dc3545'
+        }
+        return format_html(
+            '<span style="background: {}; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold;">{}</span>',
+            colors.get(obj.priority, '#6c757d'),
+            obj.get_priority_display()
+        )
+    priority_badge.short_description = 'Priority'
+    
+    def status_badge(self, obj):
+        colors = {
+            'OPEN': '#dc3545',
+            'IN_PROGRESS': '#ffc107',
+            'RESOLVED': '#28a745',
+            'CLOSED': '#6c757d'
+        }
+        return format_html(
+            '<span style="background: {}; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold;">{}</span>',
+            colors.get(obj.status, '#6c757d'),
+            obj.get_status_display()
+        )
+    status_badge.short_description = 'Status'
+    
+    actions = ['mark_as_resolved', 'mark_as_closed']
+    
+    def mark_as_resolved(self, request, queryset):
+        updated = queryset.update(status='RESOLVED')
+        self.message_user(request, f'{updated} findings marked as resolved.')
+    mark_as_resolved.short_description = "Mark as resolved"
+    
+    def mark_as_closed(self, request, queryset):
+        updated = queryset.update(status='CLOSED')
+        self.message_user(request, f'{updated} findings marked as closed.')
+    mark_as_closed.short_description = "Mark as closed"

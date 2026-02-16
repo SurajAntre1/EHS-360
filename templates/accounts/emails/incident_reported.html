@@ -26,7 +26,7 @@
             <div class="detail-box">
                 <h3>Injury Details:</h3>
                 <p><strong>Report Number:</strong> {{ incident.report_number }}</p>
-                <p><strong>Type:</strong> {{ incident.get_incident_type_display }}</p>
+                <p><strong>Type:</strong> {{ incident.incident_type.name }}</p>
                 <p><strong>Date & Time:</strong> {{ incident.incident_date }} at {{ incident.incident_time }}</p>
                 <p><strong>Location:</strong> {{ incident.plant.name }} - {{ incident.location.name }}</p>
                 <p><strong>Reported By:</strong> {{ incident.reported_by.get_full_name }}</p>

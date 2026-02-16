@@ -607,24 +607,40 @@ class InspectionSubmission(models.Model):
 
 
 class InspectionResponse(models.Model):
-    """Individual question responses"""
-    
     submission = models.ForeignKey(
-        InspectionSubmission,
+        'InspectionSubmission',
         on_delete=models.CASCADE,
         related_name='responses'
     )
     question = models.ForeignKey(
-        InspectionQuestion,
+        'InspectionQuestion',
         on_delete=models.CASCADE
     )
-    answer = models.CharField(max_length=500)  # Yes, No, or text answer
-    remarks = models.TextField(blank=True, null=True)
-    photo = models.ImageField(
-        upload_to='inspection_photos/',
+    answer = models.CharField(max_length=10)
+    remarks = models.TextField(blank=True)
+    photo = models.ImageField(upload_to='inspection_responses/', blank=True, null=True)
+    answered_at = models.DateTimeField(auto_now_add=True)
+    
+    # ✅ ADD THESE NEW FIELDS
+    assigned_to = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
-        null=True
+        related_name='assigned_inspection_responses',
+        help_text="Person assigned to address this non-compliance"
     )
+    assigned_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='inspection_responses_assigned_by',
+        help_text="Person who assigned this response"
+    )
+    assigned_at = models.DateTimeField(null=True, blank=True)
+    assignment_remarks = models.TextField(blank=True)
+    
     converted_to_hazard = models.ForeignKey(
         'hazards.Hazard',
         on_delete=models.SET_NULL,
@@ -633,18 +649,12 @@ class InspectionResponse(models.Model):
         related_name='source_inspection_responses',
         help_text="Hazard created from this inspection response"
     )
-    answered_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        db_table = 'inspection_responses'
-        unique_together = ['submission', 'question']
+        ordering = ['-answered_at']
     
     def __str__(self):
-        return f"{self.question.question_code}: {self.answer}"
-
-    def is_converted_to_hazard(self):
-        """Check if this response has been converted to a hazard"""
-        return self.converted_to_hazard is not None
+        return f"{self.question.question_code} - {self.answer}"
 class InspectionFinding(models.Model):
     """Issues found during inspection (auto-generated from 'No' answers)"""
     
