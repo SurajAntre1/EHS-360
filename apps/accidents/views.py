@@ -33,7 +33,7 @@ from .forms import IncidentAttachmentForm # <-- Import the new form
 from django.views.generic import UpdateView
 from django.views.generic import ListView
 from .models import IncidentActionItem
-
+from django.db.models import Exists, OuterRef
 
 
 
@@ -1683,22 +1683,25 @@ class MyActionItemsView(LoginRequiredMixin, ListView):
     paginate_by = 15
 
     def get_queryset(self):
-        """
-        Filter action items to show only those where the current
-        user is listed in the 'responsible_person' field.
-        """
         user = self.request.user
         
-        # Filter items where the logged-in user is one of the responsible persons.
+        # Subquery: Check if the current user is in the completed_by field for this item
+        user_completed = IncidentActionItem.objects.filter(
+            pk=OuterRef('pk'),
+            completed_by=user
+        )
+
         queryset = IncidentActionItem.objects.filter(
             responsible_person=user
+        ).annotate(
+            is_done_by_me=Exists(user_completed) # Naya field annotate kiya
         ).select_related( 
             'incident', 
             'incident__plant',
-            'created_by'  # Also fetch the creator for efficiency
+            'created_by'
         ).order_by('target_date')
 
-        # Allow filtering by status from the URL query parameter.
+        # ... rest of your status filter logic ...
         status_filter = self.request.GET.get('status', '')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
