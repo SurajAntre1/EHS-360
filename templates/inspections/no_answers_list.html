@@ -30,7 +30,7 @@
 
     <!-- Statistics Cards -->
     <div class="row mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card">
                 <div class="card-body text-center">
                     <h3 class="text-danger">{{ total_no_answers }}</h3>
@@ -38,7 +38,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card">
                 <div class="card-body text-center">
                     <h3 class="text-warning">{{ critical_no_answers }}</h3>
@@ -46,11 +46,19 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card">
                 <div class="card-body text-center">
                     <h3 class="text-info">{{ category_summary|length }}</h3>
                     <p class="mb-0">Categories Affected</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-success">{{ converted_hazards_count }}</h3>
+                    <p class="mb-0">Converted to Hazards</p>
                 </div>
             </div>
         </div>
@@ -129,13 +137,13 @@
                     <div class="col-md-2">
                         <label>Date From</label>
                         <input type="date" name="date_from" class="form-control" 
-                               value="{{ date_from }}">
+                               value="{% if date_from %}{{ date_from }}{% endif %}">
                     </div>
                     
                     <div class="col-md-2">
                         <label>Date To</label>
                         <input type="date" name="date_to" class="form-control" 
-                               value="{{ date_to }}">
+                               value="{% if date_to %}{{ date_to }}{% endif %}">
                     </div>
                 </div>
                 
@@ -164,117 +172,183 @@
         </div>
     </div>
 
-    <!-- No Answers List -->
+    <!-- No Answers List with Checkboxes -->
     <div class="card">
         <div class="card-header">
-            <h5 class="mb-0">
-                Non-Compliant Items List ({{ page_obj.paginator.count }})
-            </h5>
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    Non-Compliant Items List ({{ page_obj.paginator.count }})
+                </h5>
+                
+                <!-- Assign Button -->
+                <div>
+                    <button type="button" 
+                            class="btn btn-primary" 
+                            id="assignSelectedBtn"
+                            disabled>
+                        <i class="fas fa-user-plus"></i> 
+                        Assign Selected (<span id="selectedCount">0</span>)
+                    </button>
+                </div>
+            </div>
         </div>
+        
         <div class="card-body p-0">
             {% if page_obj %}
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th style="width: 5%;">#</th>
-                                <th style="width: 10%;">Question Code</th>
-                                <th style="width: 20%;">Question</th>  <!-- Reduced from 25% -->
-                                <th style="width: 12%;">Category</th>   <!-- Reduced from 15% -->
-                                <th style="width: 12%;">Inspection</th> <!-- Reduced from 15% -->
-                                <th style="width: 8%;">Plant</th>       <!-- Reduced from 10% -->
-                                <th style="width: 8%;">Date</th>        <!-- Reduced from 10% -->
-                                <th style="width: 5%;">Photo</th>
-                                <th style="width: 5%;">View</th>        <!-- Changed label -->
-                                <th style="width: 10%;">Hazard</th>     <!-- NEW COLUMN -->
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for response in page_obj %}
+                <form method="post" action="{% url 'inspections:no_answers_list' %}" id="assignForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="assign_responses">
+                    <input type="hidden" name="selected_responses" id="selectedResponsesInput">
+                    <input type="hidden" name="assigned_to" id="assignedToInput">
+                    <input type="hidden" name="assignment_remarks" id="assignmentRemarksInput">
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="noAnswersTable">
+                            <thead class="table-light">
                                 <tr>
-                                    <td>
-                                        {{ forloop.counter }}
-                                        {% if response.question.is_critical %}
-                                            <span class="badge bg-danger" title="Critical">
-                                                <i class="fas fa-star"></i>
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <strong>{{ response.question.question_code }}</strong>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            {{ response.question.question_text|truncatewords:15 }}
-                                        </div>
-                                        {% if response.remarks %}
-                                            <small class="text-muted">
-                                                <i class="fas fa-comment"></i>
-                                                {{ response.remarks|truncatewords:10 }}
-                                            </small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-secondary">
-                                            {{ response.question.category.category_name }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <small>
-                                            {{ response.submission.schedule.schedule_code }}
-                                            <br>
-                                            <span class="text-muted">
-                                                By: {{ response.submission.submitted_by.get_full_name }}
-                                            </span>
-                                        </small>
-                                    </td>
-                                    <td>
-                                        {{ response.submission.schedule.plant.name }}
-                                    </td>
-                                    <td>
-                                        <small>
-                                            {{ response.answered_at|date:"d M Y" }}
-                                            <br>
-                                            {{ response.answered_at|time:"h:i A" }}
-                                        </small>
-                                    </td>
-                                    <td class="text-center">
-                                        {% if response.photo %}
-                                            <a href="{{ response.photo.url }}" target="_blank">
-                                                <i class="fas fa-image text-primary"></i>
-                                            </a>
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-center">
-                                        <a href="{% url 'inspections:inspection_review' response.submission.id %}" 
-                                        class="btn btn-sm btn-info"
-                                        title="View Full Inspection">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </td>
-                                    <td class="text-center">
-                                        {% if response.converted_to_hazard %}
-                                            <a href="{% url 'hazards:hazard_detail' response.converted_to_hazard.id %}" 
-                                            class="btn btn-sm btn-success"
-                                            title="View Hazard: {{ response.converted_to_hazard.report_number }}">
-                                                <i class="fas fa-check-circle"></i>
-                                                <small>{{ response.converted_to_hazard.report_number|slice:"-7:" }}</small>
-                                            </a>
-                                        {% else %}
-                                            <a href="{% url 'inspections:convert_no_answer_to_hazard' response.id %}" 
-                                            class="btn btn-sm btn-warning"
-                                            title="Convert to Hazard Report">
-                                                <i class="fas fa-exclamation-triangle"></i> Create
-                                            </a>
-                                        {% endif %}
-                                    </td>
+                                    <th style="width: 3%;" class="text-center">
+                                        <input type="checkbox" id="selectAllCheckbox" class="form-check-input">
+                                    </th>
+                                    <th style="width: 4%;">#</th>
+                                    <th style="width: 10%;">Question Code</th>
+                                    <th style="width: 22%;">Question</th>
+                                    <th style="width: 12%;">Category</th>
+                                    <th style="width: 12%;">Inspection</th>
+                                    <th style="width: 8%;">Plant</th>
+                                    <th style="width: 8%;">Date</th>
+                                    <th style="width: 4%;">Photo</th>
+                                    <th style="width: 5%;">View</th>
+                                    <th style="width: 12%;">Status</th>
                                 </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {% for response in page_obj %}
+                                    <tr class="{% if response.assigned_to %}table-info{% elif response.converted_to_hazard %}table-success{% endif %}">
+                                        <!-- Checkbox -->
+                                        <td class="text-center">
+                                            {% if not response.converted_to_hazard and not response.assigned_to %}
+                                                <input type="checkbox" 
+                                                       value="{{ response.id }}" 
+                                                       class="form-check-input response-checkbox">
+                                            {% else %}
+                                                <i class="fas fa-lock text-muted" title="Already assigned or converted"></i>
+                                            {% endif %}
+                                        </td>
+                                        
+                                        <!-- Serial Number -->
+                                        <td>
+                                            {{ forloop.counter }}
+                                            {% if response.question.is_critical %}
+                                                <span class="badge bg-danger" title="Critical">
+                                                    <i class="fas fa-star"></i>
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        
+                                        <!-- Question Code -->
+                                        <td>
+                                            <strong>{{ response.question.question_code }}</strong>
+                                        </td>
+                                        
+                                        <!-- Question Text -->
+                                        <td>
+                                            <div>
+                                                {{ response.question.question_text|truncatewords:15 }}
+                                            </div>
+                                            {% if response.remarks %}
+                                                <small class="text-muted">
+                                                    <i class="fas fa-comment"></i>
+                                                    {{ response.remarks|truncatewords:10 }}
+                                                </small>
+                                            {% endif %}
+                                        </td>
+                                        
+                                        <!-- Category -->
+                                        <td>
+                                            <span class="badge bg-secondary">
+                                                {{ response.question.category.category_name }}
+                                            </span>
+                                        </td>
+                                        
+                                        <!-- Inspection -->
+                                        <td>
+                                            <small>
+                                                {{ response.submission.schedule.schedule_code }}
+                                                <br>
+                                                <span class="text-muted">
+                                                    By: {{ response.submission.submitted_by.get_full_name }}
+                                                </span>
+                                            </small>
+                                        </td>
+                                        
+                                        <!-- Plant -->
+                                        <td>
+                                            {{ response.submission.schedule.plant.name }}
+                                        </td>
+                                        
+                                        <!-- Date -->
+                                        <td>
+                                            <small>
+                                                {{ response.answered_at|date:"d M Y" }}
+                                                <br>
+                                                {{ response.answered_at|time:"h:i A" }}
+                                            </small>
+                                        </td>
+                                        
+                                        <!-- Photo -->
+                                        <td class="text-center">
+                                            {% if response.photo %}
+                                                <a href="{{ response.photo.url }}" target="_blank">
+                                                    <i class="fas fa-image text-primary"></i>
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        
+                                        <!-- View Inspection -->
+                                        <td class="text-center">
+                                            <a href="{% url 'inspections:inspection_review' response.submission.id %}" 
+                                               class="btn btn-sm btn-info"
+                                               title="View Full Inspection">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                        
+                                        <!-- Status / Action -->
+                                        <td class="text-center">
+                                            {% if response.converted_to_hazard %}
+                                                <a href="{% url 'hazards:hazard_detail' response.converted_to_hazard.id %}" 
+                                                   class="btn btn-sm btn-success"
+                                                   title="View Hazard: {{ response.converted_to_hazard.report_number }}">
+                                                    <i class="fas fa-check-circle"></i>
+                                                    {{ response.converted_to_hazard.report_number|slice:"-7:" }}
+                                                </a>
+                                            {% elif response.assigned_to %}
+                                                <div>
+                                                    <span class="badge bg-info d-block mb-1">
+                                                        <i class="fas fa-user"></i> 
+                                                        {{ response.assigned_to.get_full_name }}
+                                                    </span>
+                                                    {% if request.user == response.assigned_to or request.user.is_superuser or request.user.can_access_inspection_module %}
+                                                        <a href="{% url 'inspections:convert_no_answer_to_hazard' response.id %}" 
+                                                           class="btn btn-sm btn-warning w-100">
+                                                            <i class="fas fa-exclamation-triangle"></i> Convert
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-clock"></i> Not Assigned
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
                 
                 <!-- Pagination -->
                 {% if page_obj.has_other_pages %}
@@ -325,6 +399,213 @@
             {% endif %}
         </div>
     </div>
-
 </div>
+
+<!-- Assign User Modal -->
+<div class="modal fade" id="assignUserModal" tabindex="-1" aria-labelledby="assignUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="assignUserModalLabel">
+                    <i class="fas fa-user-plus"></i> Assign to Responsible Person
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 
+                    You are assigning <strong><span id="modalSelectedCount">0</span></strong> non-compliant item(s)
+                </div>
+                
+                <div class="mb-3">
+                    <label for="userSelect" class="form-label fw-bold">Select Responsible Person</label>
+                    <select class="form-select" id="userSelect" required>
+                        <option value="">-- Choose a user --</option>
+                        {% for user in available_users %}
+                            <option value="{{ user.id }}">
+                                {{ user.get_full_name }} ({{ user.email }}) - 
+                                {% if user.department %}{{ user.department.name }}{% else %}No Department{% endif %}
+                            </option>
+                        {% empty %}
+                            <option value="" disabled>No users available</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="assignmentRemarks" class="form-label fw-bold">Remarks (Optional)</label>
+                    <textarea id="assignmentRemarks" class="form-control" rows="3" 
+                              placeholder="Add any specific instructions for the responsible person..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="confirmAssignBtn">
+                    <i class="fas fa-check"></i> Assign to Selected Person
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table-info { background-color: #cfe2ff !important; }
+.table-success { background-color: #d1e7dd !important; }
+#noAnswersTable tbody tr:hover { background-color: #f8f9fa; }
+.response-checkbox { cursor: pointer; width: 18px; height: 18px; }
+</style>
+
+<script>
+// Wait for the DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM fully loaded');
+    
+    // Get all necessary elements
+    const checkboxes = document.querySelectorAll('.response-checkbox');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const assignSelectedBtn = document.getElementById('assignSelectedBtn');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    const modalSelectedCountSpan = document.getElementById('modalSelectedCount');
+    const selectedResponsesInput = document.getElementById('selectedResponsesInput');
+    const assignedToInput = document.getElementById('assignedToInput');
+    const assignmentRemarksInput = document.getElementById('assignmentRemarksInput');
+    
+    // Modal elements
+    const modalElement = document.getElementById('assignUserModal');
+    const userSelect = document.getElementById('userSelect');
+    const assignmentRemarks = document.getElementById('assignmentRemarks');
+    const confirmAssignBtn = document.getElementById('confirmAssignBtn');
+    const assignForm = document.getElementById('assignForm');
+    
+    // Check if Bootstrap is available
+    if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap is not loaded! Modal will not work.');
+        alert('Error: Bootstrap JavaScript is not loaded. Please check your base template.');
+        return;
+    }
+    
+    // Initialize modal
+    let assignModal = null;
+    if (modalElement) {
+        assignModal = new bootstrap.Modal(modalElement);
+        console.log('Modal initialized');
+    }
+    
+    // Function to update selected count
+    function updateSelectedCount() {
+        const selectedCheckboxes = document.querySelectorAll('.response-checkbox:checked');
+        const count = selectedCheckboxes.length;
+        
+        selectedCountSpan.textContent = count;
+        if (modalSelectedCountSpan) {
+            modalSelectedCountSpan.textContent = count;
+        }
+        
+        assignSelectedBtn.disabled = count === 0;
+        
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+        selectedResponsesInput.value = selectedIds.join(',');
+        
+        if (selectAllCheckbox && checkboxes.length > 0) {
+            selectAllCheckbox.checked = count === checkboxes.length;
+            selectAllCheckbox.indeterminate = count > 0 && count < checkboxes.length;
+        }
+        
+        console.log('Selected count updated:', count);
+    }
+    
+    // Add change event to all checkboxes
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+    
+    // Select all checkbox
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateSelectedCount();
+        });
+    }
+    
+    // Assign button click
+    if (assignSelectedBtn) {
+        assignSelectedBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const selectedCount = document.querySelectorAll('.response-checkbox:checked').length;
+            
+            if (selectedCount === 0) {
+                alert('Please select at least one non-compliant item first!');
+                return;
+            }
+            
+            // Show modal
+            if (assignModal) {
+                assignModal.show();
+                console.log('Modal shown');
+            } else {
+                console.error('Modal not initialized');
+            }
+        });
+    }
+    
+    // Confirm assignment button
+    if (confirmAssignBtn) {
+        confirmAssignBtn.addEventListener('click', function() {
+            const selectedCount = document.querySelectorAll('.response-checkbox:checked').length;
+            
+            if (selectedCount === 0) {
+                alert('Please select at least one non-compliant item!');
+                assignModal.hide();
+                return;
+            }
+            
+            if (!userSelect || !userSelect.value) {
+                alert('Please select a person to assign these items to!');
+                userSelect.focus();
+                return;
+            }
+            
+            const userName = userSelect.options[userSelect.selectedIndex].text;
+            if (!confirm(`Assign ${selectedCount} non-compliant item(s) to ${userName}?`)) {
+                return;
+            }
+            
+            // Set form values
+            assignedToInput.value = userSelect.value;
+            if (assignmentRemarksInput) {
+                assignmentRemarksInput.value = assignmentRemarks ? assignmentRemarks.value : '';
+            }
+            
+            console.log('Submitting form with:', {
+                selected: selectedResponsesInput.value,
+                assigned_to: assignedToInput.value,
+                remarks: assignmentRemarksInput ? assignmentRemarksInput.value : ''
+            });
+            
+            // Hide modal and submit form
+            assignModal.hide();
+            assignForm.submit();
+        });
+    }
+    
+    // Reset modal when hidden
+    if (modalElement) {
+        modalElement.addEventListener('hidden.bs.modal', function() {
+            if (userSelect) userSelect.value = '';
+            if (assignmentRemarks) assignmentRemarks.value = '';
+            console.log('Modal hidden and reset');
+        });
+    }
+    
+    // Initial update
+    updateSelectedCount();
+    console.log('Initialization complete');
+});
+</script>
+
 {% endblock %}

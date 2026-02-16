@@ -1,4 +1,3 @@
-
 from django.urls import path
 from . import views
 
@@ -27,13 +26,11 @@ urlpatterns = [
     path('templates/<int:pk>/', views.template_detail, name='template_detail'),
     path('templates/<int:pk>/edit/', views.template_edit, name='template_edit'),
     path('templates/<int:pk>/delete/', views.template_delete, name='template_delete'),
-    path('templates/<int:pk>/clone/', views.template_clone, name='template_clone'),
-    
-    # Template Questions Management
     path('templates/<int:pk>/add-question/', views.template_add_question, name='template_add_question'),
     path('templates/<int:pk>/bulk-add-questions/', views.template_bulk_add_questions, name='template_bulk_add_questions'),
     path('templates/<int:template_pk>/remove-question/<int:question_pk>/', views.template_remove_question, name='template_remove_question'),
     path('templates/<int:pk>/reorder-questions/', views.template_reorder_questions, name='template_reorder_questions'),
+    path('templates/<int:pk>/clone/', views.template_clone, name='template_clone'),
     
     # Schedules
     path('schedules/', views.schedule_list, name='schedule_list'),
@@ -43,22 +40,27 @@ urlpatterns = [
     path('schedules/<int:pk>/cancel/', views.schedule_cancel, name='schedule_cancel'),
     path('schedules/<int:pk>/send-reminder/', views.schedule_send_reminder, name='schedule_send_reminder'),
     
-    # My Inspections (for HOD)
+    # My Inspections (for HODs)
     path('my-inspections/', views.my_inspections, name='my_inspections'),
     
-    # AJAX Endpoints
-    path('ajax/zones-by-plant/', views.get_zones_by_plant, name='get_zones_by_plant'),
-    path('ajax/locations-by-zone/', views.get_locations_by_zone, name='get_locations_by_zone'),
-    path('ajax/sublocations-by-location/', views.get_sublocations_by_location, name='get_sublocations_by_location'),
-    path('ajax/questions-by-category/', views.get_questions_by_category, name='get_questions_by_category'),
-
+    # Inspection Execution
     path('inspection/<int:schedule_id>/start/', views.inspection_start, name='inspection_start'),
     path('inspection/<int:schedule_id>/submit/', views.inspection_submit, name='inspection_submit'),
-
-    ##########
-    path('submission/<int:submission_id>/review/', views.inspection_review, name='inspection_review'),
+    path('inspection/review/<int:submission_id>/', views.inspection_review, name='inspection_review'),
+    
+    # ✅ No Answers Views - ADD THESE
     path('no-answers/', views.no_answers_list, name='no_answers_list'),
     path('no-answers/by-question/', views.no_answers_by_question, name='no_answers_by_question'),
-    path('response/<int:response_id>/convert-to-hazard/', views.convert_no_answer_to_hazard,name='convert_no_answer_to_hazard'),
+    
+    # ✅ Bulk Assignment - ADD THIS
+    # path('no-answers/bulk-assign/', views.bulk_assign_no_answers, name='bulk_assign_no_answers'),
+    
+    # ✅ Convert to Hazard - ADD THIS
+    path('response/<int:response_id>/convert-to-hazard/', views.convert_no_answer_to_hazard, name='convert_no_answer_to_hazard'),
+    
+    # AJAX Endpoints
+    path('ajax/get-zones/', views.get_zones_by_plant, name='get_zones_by_plant'),
+    path('ajax/get-locations/', views.get_locations_by_zone, name='get_locations_by_zone'),
+    path('ajax/get-sublocations/', views.get_sublocations_by_location, name='get_sublocations_by_location'),
+    path('ajax/get-questions/', views.get_questions_by_category, name='get_questions_by_category'),
 ]
-
