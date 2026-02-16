@@ -2,7 +2,13 @@
 {% load static %}
 
 {% block title %}Close Injury - {{ incident.report_number }}{% endblock %}
+{% block page_title %}Close Injury - {{ incident.report_number }}{% endblock %}
 
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'accidents:dashboard' %}">Injury Management</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:incident_list' %}">All Injuries</a></li>
+<li class="breadcrumb-item">Close Injury</li>
+{% endblock %}
 {% block content %}
 <div class="container-fluid">
     <div class="row">
@@ -19,8 +25,8 @@
                     <div class="alert alert-info">
                         <h5><i class="fas fa-info-circle mr-2"></i>Injury Details</h5>
                         <p class="mb-1"><strong>Report Number:</strong> {{ incident.report_number }}</p>
-                        <p class="mb-1"><strong>Title:</strong> {{ incident.incident_title }}</p>
-                        <p class="mb-1"><strong>Type:</strong> {{ incident.get_incident_type_display }}</p>
+                        <p class="mb-1"><strong>Affected Person:</strong> {{ incident.affected_person_name }}</p>
+                        <p class="mb-1"><strong>Type:</strong> {{ incident.incident_type.name }}</p>
                         <p class="mb-0"><strong>Reported Date:</strong> {{ incident.reported_date|date:"d M Y" }}</p>
                     </div>
 
