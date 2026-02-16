@@ -370,7 +370,7 @@
         {% endif %}
 
         <!-- Approvals -->
-        {% if user.can_approve %}
+        {% if user|has_perm:'APPROVE_PERMIT' or user|has_perm:'APPROVE_HAZARD' or user|has_perm:'APPROVE_INCIDENT' or user|has_perm:'APPROVE_INSPECTION' %}
         <li class="nav-item">
             <a href="{% url 'dashboards:approvals' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals' %}active{% endif %}">
                 <i class="nav-icon fas fa-clipboard-check text-warning"></i>

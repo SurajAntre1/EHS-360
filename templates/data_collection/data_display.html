@@ -223,7 +223,7 @@
     <div class="header-section">
         <h2><i class="fas fa-eye"></i> View Monthly Environmental Data</h2>
         <p><i class="fas fa-industry"></i> Plant: {{ plant.name }}</p>
-        <a href="{% url 'environmental:export_excel' %}" class="btn btn-export"><i class="fas fa-file-excel"></i> Export to Excel</a>
+        <button type="button" class="btn btn-export" id="exportBtn"><i class="fas fa-file-excel"></i> Export to Excel</button>
     </div>
 
     {% if user_plants.count > 1 %}
@@ -280,4 +280,24 @@
     </div>
     {% endif %}
 </div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const exportBtn = document.getElementById('exportBtn');
+
+    exportBtn.addEventListener("click", function () {
+        if (exportBtn.dataset.clicked === "true") return;
+
+        exportBtn.dataset.clicked = "true";
+        exportBtn.disabled = true;
+        exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+        window.location.href = "{% url 'environmental:export_excel' %}?plant_id={{ plant.id }}";
+
+        setTimeout(() => {
+            exportBtn.disabled = false;
+            exportBtn.dataset.clicked = "false";
+            exportBtn.innerHTML = '<i class="fas fa-file-excel"></i> Export to Excel';
+        }, 3000);
+    });
+});
+</script>
 {% endblock %}

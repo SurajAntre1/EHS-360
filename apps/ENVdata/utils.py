@@ -215,7 +215,7 @@ def get_all_plants_environmental_data(plants):
             has_values = False
             unit_name = q.default_unit.name if q.default_unit else "Count"
 
-            for month_label, month_db in MonthlyIndicatorData.MONTH_CHOICES:
+            for month_db, month_label in MonthlyIndicatorData.MONTH_CHOICES:
 
                 entry = all_data.filter(
                     plant=plant,
@@ -223,9 +223,9 @@ def get_all_plants_environmental_data(plants):
                     month=month_db    
                 ).first()
 
-                if entry and entry.value:
+                if entry and entry.value is not None:
                     value = entry.value
-                    month_data[month_db.title()] = value
+                    month_data[month_label] = value
 
                     try:
                         total += float(str(value).replace(",", ""))
@@ -233,7 +233,7 @@ def get_all_plants_environmental_data(plants):
                     except (ValueError, TypeError):
                         pass
                 else:
-                    month_data[month_db.title()] = ""
+                    month_data[month_label] = ""
 
             questions_data.append({
                 "question": q.question_text,

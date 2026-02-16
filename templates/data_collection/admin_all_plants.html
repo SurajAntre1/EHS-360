@@ -152,7 +152,7 @@
                 Plants with Data: {{ plants_with_data }} |
                 Total Questions: {{ total_questions }}
             </p>
-            <a href="{% url 'environmental:export_excel' %}" class="btn btn-export"><i class="fas fa-file-excel"></i> Export to Excel</a>
+        <button type="button" class="btn btn-export" id="exportBtn"><i class="fas fa-file-excel"></i> Export to Excel</button>
         </div>
 
         <div>
@@ -207,7 +207,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const plantFilter = document.getElementById('plantFilter');
     const sections = document.querySelectorAll('.plant-section');
-
+    const exportBtn = document.getElementById('exportBtn');
     plantFilter.addEventListener('change', function () {
         const selected = this.value;
 
@@ -217,6 +217,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 ? 'block'
                 : 'none';
         });
+    });
+    exportBtn.addEventListener("click", function () {
+        if (exportBtn.dataset.clicked === "true") return;
+
+        exportBtn.dataset.clicked = "true";
+        exportBtn.disabled = true;
+        exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+        window.location.href = "{% url 'environmental:export_excel' %}?plant_id={{ plant.id }}";
+
+        setTimeout(() => {
+            exportBtn.disabled = false;
+            exportBtn.dataset.clicked = "false";
+            exportBtn.innerHTML = '<i class="fas fa-file-excel"></i> Export to Excel';
+        }, 3000);
     });
 });
 </script>
