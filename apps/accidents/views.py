@@ -1100,10 +1100,34 @@ class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
             investigation_completed_date__isnull=True
         ).count()
 
-        context['lti_count'] = incidents.filter(incident_type__code='LTI').count()
-        context['mtc_count'] = incidents.filter(incident_type__code='MTC').count()
-        context['fa_count']  = incidents.filter(incident_type__code='FA').count()
-        context['hlfi_count'] = incidents.filter(incident_type__code='HLFI').count()
+        # =================================================================
+        # START: MODIFIED SECTION
+        # =================================================================
+
+        # REMOVE these hardcoded lines:
+        # context['lti_count'] = incidents.filter(incident_type__code='LTI').count()
+        # context['mtc_count'] = incidents.filter(incident_type__code='MTC').count()
+        # context['fa_count']  = incidents.filter(incident_type__code='FA').count()
+        # context['hlfi_count'] = incidents.filter(incident_type__code='HLFI').count()
+
+        # ADD this dynamic query for the doughnut chart:
+        type_distribution = incidents.values(
+            'incident_type__name', 'incident_type__code'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        # Prepare data for Chart.js
+        type_chart_labels = [item['incident_type__name'] for item in type_distribution if item['incident_type__name']]
+        type_chart_data = [item['count'] for item in type_distribution if item['incident_type__name']]
+
+        # Pass the dynamic data to the template context
+        context['type_chart_labels'] = json.dumps(type_chart_labels)
+        context['type_chart_data'] = json.dumps(type_chart_data)
+
+        # =================================================================
+        # END: MODIFIED SECTION
+        # =================================================================
 
         context['recent_incidents'] = incidents.select_related(
             'plant', 'location', 'reported_by'

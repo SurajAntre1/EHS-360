@@ -531,6 +531,16 @@ class HazardActionItem(models.Model):
         blank=True,
         help_text="Remarks about action completion"
     )
+
+    # --- ADD THIS FIELD ---
+    completed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='hazard_actions_completed',
+        help_text="User who completed this action item"
+    )
     
     verified_by = models.ForeignKey(
         User,

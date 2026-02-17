@@ -823,13 +823,21 @@ document.addEventListener('DOMContentLoaded', function() {
         new Chart(incidentTypeCtx, {
             type: 'doughnut',
             data: {
-                labels: ['LTI', 'MTC', 'FA', 'HLFI'],
+                // Use the new dynamic labels from the view
+                labels: {{ type_chart_labels|safe }},
                 datasets: [{
-                    data: [{{ lti_count }}, {{ mtc_count }}, {{ fa_count }}, {{ hlfi_count }}],
-                    backgroundColor: [colors.danger, colors.warning, colors.info, colors.success]
+                    // Use the new dynamic data from the view
+                    data: {{ type_chart_data|safe }},
+                    backgroundColor: [
+                        colors.danger, colors.warning, colors.info, colors.success,
+                        colors.primary, colors.purple, colors.orange
+                    ]
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false 
+            }
         });
     }
 

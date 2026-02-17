@@ -574,7 +574,7 @@ class HazardUpdateView(LoginRequiredMixin, UpdateView):
 class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
     """
     Create an action item for a specific hazard.
-    Handles form submission for creating a new HazardActionItem,
+    Handles form submission for creating new HazardActionItem(s),
     including file attachments.
     """
     model = HazardActionItem
@@ -589,167 +589,164 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['hazard'] = self.hazard
-        
+
         # Calculate auto target date based on severity
         if hasattr(self.hazard, 'get_severity_deadline_days'):
             severity_days = self.hazard.get_severity_deadline_days()
         else:
             severity_map = {'low': 30, 'medium': 15, 'high': 7, 'critical': 1}
             severity_days = severity_map.get(self.hazard.severity, 15)
-        
-        auto_target_date = (timezone.now().date() + timezone.timedelta(days=severity_days))
+
+        auto_target_date = timezone.now().date() + timezone.timedelta(days=severity_days)
         context['auto_target_date'] = auto_target_date.strftime('%Y-%m-%d')
         context['severity_days'] = severity_days
-        
-        # Get plant users
+
         user = self.request.user
-        
+
         if self.hazard.plant:
             from django.db.models import Q
-            
-            # Get users from the same plant
+
             plant_users = User.objects.filter(
                 Q(plant=self.hazard.plant) | Q(assigned_plants=self.hazard.plant),
                 is_active=True,
                 is_active_employee=True
             ).exclude(
-                id=user.id  # Exclude current user
+                id=user.id
             ).distinct().select_related(
                 'department', 'role'
             ).order_by('first_name', 'last_name')
-            
+
             context['plant_users'] = plant_users
             context['plant_name'] = self.hazard.plant.name
-            
-            # Debug print
+
             print(f"\n🔍 Plant Users Found: {plant_users.count()}")
             for u in plant_users:
                 print(f"  - {u.get_full_name()} ({u.email}) - Plant: {u.plant}")
+
         else:
             context['plant_users'] = []
             context['plant_name'] = 'Unknown Plant'
-        
+
         return context
 
     def post(self, request, *args, **kwargs):
-        """Handle the POST request to create a new action item."""
-        
-        print("\n" + "="*80)
+        """Handle the POST request to create new action item(s)."""
+
+        print("\n" + "=" * 80)
         print("🎯 ACTION ITEM CREATION")
-        print("="*80)
-        
+        print("=" * 80)
+
         assignment_type = request.POST.get('assignment_type')
         print(f"Assignment Type: {assignment_type}")
-        
+
         try:
-            # Check for attachment
-            if assignment_type == 'self':
-                if 'attachment' not in request.FILES:
-                    messages.error(request, 'An attachment is required to create an action item.')
-                    return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
-            
-            # Create action item
-            action_item = HazardActionItem()
-            action_item.hazard = self.hazard
-            action_item.action_description = request.POST.get('action_description', '').strip()
-            action_item.created_by = request.user  # Track who created it
-            action_item.is_self_assigned = (assignment_type == 'self')
-
-            # Handle target date
+            action_description = request.POST.get('action_description', '').strip()
             target_date_str = request.POST.get('target_date')
-            if not target_date_str:
-                messages.error(request, 'Target date is required')
-                return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
-            
-            target_date = datetime.datetime.strptime(target_date_str, '%Y-%m-%d').date()
-            action_item.target_date = target_date
-
-            # Handle assignment
-            if assignment_type == 'self':
-                # ✅ SELF ASSIGNMENT - Complete immediately and close hazard
-                action_item.responsible_emails = request.user.email
-                action_item.status = 'COMPLETED'
-                action_item.completion_date = timezone.now().date()
-                action_item.completion_remarks = 'Self-assigned and completed by reporter'
-                
-                print(f"✅ Self-assigned to: {request.user.email}")
-                print(f"✅ Status: COMPLETED")
-                
-            else:
-                # ✅ FORWARD ASSIGNMENT - Set to pending
-                responsible_emails = request.POST.getlist('responsible_emails')
-                
-                print(f"📧 Responsible emails from POST: {responsible_emails}")
-                
-                if not responsible_emails:
-                    messages.error(request, 'Please select at least one user to assign this action to.')
-                    return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
-                
-                action_item.responsible_emails = ','.join(responsible_emails)
-                action_item.status = 'PENDING'
-                action_item.completion_date = None
-                action_item.completion_remarks = ''
-                
-                print(f"📤 Forwarded to: {action_item.responsible_emails}")
-                print(f"⏳ Status: PENDING")
-
-            # Handle file attachment
             attachment = request.FILES.get('attachment')
-            if attachment:
-                action_item.attachment = attachment
 
-            # Save action item
-            action_item.save()
-            print(f"💾 Action item saved with ID: {action_item.id}")
-            
-            self.object = action_item
-            
-            # ✅ UPDATE HAZARD STATUS
+            if not target_date_str:
+                messages.error(request, 'Target date is required.')
+                return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
+
+            target_date = datetime.datetime.strptime(target_date_str, '%Y-%m-%d').date()
+
+            # ============================================================
+            # ✅ SELF ASSIGNMENT (Complete immediately + Close hazard)
+            # ============================================================
             if assignment_type == 'self':
-                # Self-assigned and completed - CLOSE the hazard
+
+                if not attachment:
+                    messages.error(request, 'An attachment is required to self-assign and close an action.')
+                    return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
+
+                action_item = HazardActionItem.objects.create(
+                    hazard=self.hazard,
+                    action_description=action_description,
+                    created_by=request.user,
+                    is_self_assigned=True,
+                    target_date=target_date,
+                    responsible_emails=request.user.email,
+                    status='COMPLETED',
+                    completion_date=timezone.now().date(),
+                    completion_remarks='Self-assigned and completed by reporter.',
+                    completed_by=request.user,
+                    attachment=attachment
+                )
+
+                print(f"✅ Self-assigned to: {request.user.email}")
+                print(f"💾 Action item ID: {action_item.id}")
+
+                # Close hazard
                 self.hazard.status = 'CLOSED'
                 self.hazard.save(update_fields=['status'])
-                print(f"🔒 Hazard status updated to: CLOSED")
-            else:
-                # Forwarded to others - Set to ACTION_ASSIGNED
-                self.hazard.status = 'ACTION_ASSIGNED'
-                self.hazard.save(update_fields=['status'])
-                print(f"📋 Hazard status updated to: ACTION_ASSIGNED")
-            
-            # Send notifications
-            try:
-                if assignment_type != 'self':
-                    emails = action_item.responsible_emails.split(',')
-                    responsible_users = User.objects.filter(email__in=emails, is_active=True)
+                print("🔒 Hazard status updated to: CLOSED")
 
-                    NotificationService.notify(
-                        content_object=action_item,
-                        notification_type='HAZARD_ACTION_ASSIGNED',
-                        module='HAZARD_ACTION',
-                        extra_recipients=list(responsible_users)
-                    )
-            except Exception as e:
-                print(f"⚠️ Notification error: {e}")
-
-            # Success message
-            email_count = len(action_item.responsible_emails.split(','))
-            
-            if assignment_type == 'self':
                 message = mark_safe(
                     f'✅ <strong>Action item created and completed!</strong><br>'
                     f'Assigned to: <strong>You ({request.user.email})</strong><br>'
                     f'Hazard status: <strong>CLOSED</strong>'
                 )
+                messages.success(request, message)
+
+            # ============================================================
+            # ✅ FORWARD ASSIGNMENT (Create one per selected user)
+            # ============================================================
             else:
+                responsible_emails = request.POST.getlist('responsible_emails')
+                print(f"📧 Responsible emails from POST: {responsible_emails}")
+
+                if not responsible_emails:
+                    messages.error(request, 'Please select at least one user to assign this action to.')
+                    return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
+
+                created_items = []
+
+                for email in responsible_emails:
+                    item = HazardActionItem.objects.create(
+                        hazard=self.hazard,
+                        action_description=action_description,
+                        created_by=request.user,
+                        is_self_assigned=False,
+                        target_date=target_date,
+                        responsible_emails=email,
+                        status='PENDING',
+                        attachment=attachment
+                    )
+                    created_items.append(item)
+
+                print(f"💾 {len(created_items)} action item(s) created.")
+
+                # Update hazard status
+                self.hazard.status = 'ACTION_ASSIGNED'
+                self.hazard.save(update_fields=['status'])
+                print("📋 Hazard status updated to: ACTION_ASSIGNED")
+
+                # Send notifications
+                try:
+                    responsible_users = User.objects.filter(
+                        email__in=responsible_emails,
+                        is_active=True
+                    )
+
+                    NotificationService.notify(
+                        content_object=self.hazard,
+                        notification_type='HAZARD_ACTION_ASSIGNED',
+                        module='HAZARD_ACTION',
+                        extra_recipients=list(responsible_users)
+                    )
+
+                except Exception as e:
+                    print(f"⚠️ Notification error: {e}")
+
                 message = mark_safe(
-                    f'✅ <strong>Action item created successfully!</strong><br>'
-                    f'Assigned to <strong>{email_count}</strong> user(s)<br>'
+                    f'✅ <strong>{len(created_items)} Action Item(s) Created!</strong><br>'
+                    f'Assigned to <strong>{len(created_items)}</strong> user(s)<br>'
                     f'Status: <strong>PENDING</strong><br>'
                     f'Hazard status: <strong>ACTION_ASSIGNED</strong>'
                 )
-            
-            messages.success(request, message)
-            print("="*80 + "\n")
+                messages.success(request, message)
+
+            print("=" * 80 + "\n")
             return redirect('hazards:hazard_detail', pk=self.hazard.pk)
 
         except Exception as e:
@@ -758,12 +755,11 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             traceback.print_exc()
             messages.error(request, f'Error creating action item: {str(e)}')
             return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
-    
-    def get_success_url(self):
-        """Redirect to the hazard detail page on successful creation."""
-        return reverse_lazy('hazards:hazard_detail', kwargs={'pk': self.hazard.pk})
-     
 
+    def get_success_url(self):
+        """Redirect to hazard detail page on success."""
+        return reverse_lazy('hazards:hazard_detail', kwargs={'pk': self.hazard.pk})
+    
 
 class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
     """
@@ -1466,7 +1462,6 @@ class ActionItemCompleteView(LoginRequiredMixin, UpdateView):
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
         
-        # Check if user is assigned to this action item
         user_email = request.user.email
         if user_email not in self.object.responsible_emails:
             messages.error(request, 'You are not assigned to this action item.')
@@ -1484,7 +1479,6 @@ class ActionItemCompleteView(LoginRequiredMixin, UpdateView):
         action_item = self.get_object()
         
         try:
-            # Get completion data
             completion_remarks = request.POST.get('completion_remarks', '').strip()
             completion_date_str = request.POST.get('completion_date')
             
@@ -1492,27 +1486,25 @@ class ActionItemCompleteView(LoginRequiredMixin, UpdateView):
                 messages.error(request, 'Completion remarks are required.')
                 return redirect('hazards:action_item_complete', pk=action_item.pk)
             
-            # Parse completion date
             if completion_date_str:
                 completion_date = datetime.datetime.strptime(completion_date_str, '%Y-%m-%d').date()
             else:
                 completion_date = timezone.now().date()
             
-            # Update action item
+            # --- UPDATE ACTION ITEM ---
             action_item.status = 'COMPLETED'
             action_item.completion_date = completion_date
             action_item.completion_remarks = completion_remarks
-            
-            # Handle attachment if provided
+            action_item.completed_by = request.user  # <<< KEY CHANGE: SET THE COMPLETER
+
             if 'completion_attachment' in request.FILES:
                 action_item.attachment = request.FILES['completion_attachment']
             
             action_item.save()
             
-            # Update hazard status
+            # This will now check if ALL related action items are complete
             action_item.hazard.update_status_from_action_items()
             
-            # Send notification
             try:
                 from apps.notifications.services import NotificationService
                 NotificationService.notify(
