@@ -1,6 +1,131 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% block page_title %}{% endblock %}
+{% block extra_css %}
+<style>
 
+/* =====================================================
+   GLOBAL CLEANUP
+===================================================== */
+
+.container-fluid.py-4 {
+    max-width: 1600px;
+}
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+h3 {
+    font-weight: 600;
+}
+
+/* =====================================================
+   TOP KPI CARDS
+===================================================== */
+
+.stats-card {
+    border-radius: 10px;
+    transition: 0.2s ease-in-out;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+}
+
+.stats-card .icon {
+    font-size: 22px;
+    margin-bottom: 6px;
+}
+
+.stats-card h3 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.stats-card small {
+    font-size: 13px;
+}
+
+/* =====================================================
+   FILTER CARD
+===================================================== */
+
+.filter-card .card-body {
+    padding: 18px 20px;
+}
+
+.filter-card label {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.filter-card .form-control,
+.filter-card .form-select {
+    height: 36px;
+    font-size: 13px;
+    border-radius: 6px;
+}
+
+.filter-card .btn {
+    height: 36px;
+    font-size: 13px;
+    border-radius: 6px;
+}
+
+/* =====================================================
+   TABLE
+===================================================== */
+
+#noAnswersTable th {
+    font-size: 13px;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+#noAnswersTable td {
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+#noAnswersTable td:first-child,
+#noAnswersTable th:first-child {
+    text-align: center;
+    width: 42px;
+}
+
+#noAnswersTable input[type="checkbox"] {
+    transform: scale(1.05);
+    cursor: pointer;
+}
+
+/* Question column formatting */
+.question-code {
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.question-text {
+    font-size: 13px;
+}
+
+/* Action column */
+.action-cell .btn {
+    font-size: 12px;
+    padding: 6px 8px;
+}
+
+/* Bulk bar */
+#bulkActionsBar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+</style>
+{% endblock %}
 {% block content %}
 <div class="container-fluid py-4">
 
@@ -24,7 +149,7 @@
         </div>
     </div>
 
-    <!-- Stats -->
+    {% comment %} <!-- Stats -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card border-0 shadow-sm text-center p-3">
@@ -54,15 +179,16 @@
                 <small class="text-muted">Pending Assignment</small>
             </div>
         </div>
-    </div>
+    </div> {% endcomment %}
 
     <!-- Filters -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body py-3">
+  <div class="card shadow-sm filter-card mb-4">
+        <div class="card-body">
             <form method="get" class="row g-2 align-items-end">
+
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold mb-1">Plant</label>
-                    <select name="plant" class="form-select form-select-sm">
+                    <label>Plant</label>
+                    <select name="plant" class="form-control">
                         <option value="">All Plants</option>
                         {% for plant in plants %}
                         <option value="{{ plant.id }}" {% if selected_plant == plant.id|stringformat:"s" %}selected{% endif %}>
@@ -71,9 +197,10 @@
                         {% endfor %}
                     </select>
                 </div>
+
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold mb-1">Category</label>
-                    <select name="category" class="form-select form-select-sm">
+                    <label>Category</label>
+                    <select name="category" class="form-control">
                         <option value="">All Categories</option>
                         {% for cat in categories %}
                         <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>
@@ -82,34 +209,47 @@
                         {% endfor %}
                     </select>
                 </div>
+
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold mb-1">Priority</label>
-                    <select name="priority" class="form-select form-select-sm">
+                    <label>Priority</label>
+                    <select name="priority" class="form-control">
                         <option value="">All Items</option>
-                        <option value="critical" {% if selected_priority == 'critical' %}selected{% endif %}>Critical Only</option>
+                        <option value="critical" {% if selected_priority == 'critical' %}selected{% endif %}>
+                            Critical Only
+                        </option>
                     </select>
                 </div>
+
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold mb-1">From Date</label>
-                    <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from|default:'' }}">
+                    <label>From Date</label>
+                    <input type="date" name="date_from" class="form-control"
+                           value="{{ date_from|default:'' }}">
                 </div>
+
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold mb-1">To Date</label>
-                    <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to|default:'' }}">
+                    <label>To Date</label>
+                    <input type="date" name="date_to" class="form-control"
+                           value="{{ date_to|default:'' }}">
                 </div>
+
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold mb-1">Search</label>
-                    <input type="text" name="search" class="form-control form-control-sm"
-                           placeholder="Question / Code..." value="{{ search|default:'' }}">
+                    <label>Search</label>
+                    <input type="text" name="search" class="form-control"
+                           placeholder="Question / Code..."
+                           value="{{ search|default:'' }}">
                 </div>
-                <div class="col-12">
+
+                <div class="col-12 mt-2">
                     <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="fas fa-search"></i> Filter
+                        <i class="fas fa-search mr-1"></i> Filter
                     </button>
-                    <a href="{% url 'inspections:no_answers_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
-                        <i class="fas fa-times"></i> Clear
+
+                    <a href="{% url 'inspections:no_answers_list' %}"
+                       class="btn btn-outline-secondary btn-sm ml-2">
+                        <i class="fas fa-times mr-1"></i> Clear
                     </a>
                 </div>
+
             </form>
         </div>
     </div>

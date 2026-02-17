@@ -212,6 +212,26 @@ $(document).ready(function() {
     
     // Show tooltip for flags
     $('[data-toggle="tooltip"]').tooltip();
+    
+        let formSubmitting = false;
+    $('form').on('submit', function(e) {
+
+        if (formSubmitting) {
+            e.preventDefault();   // Stop second submission
+            return false;
+        }
+
+        formSubmitting = true;
+
+        // Disable all submit buttons
+        $(this).find('button[type="submit"]').prop('disabled', true);
+
+        // Optional: Show loading state
+        $(this).find('button[type="submit"]').each(function() {
+            $(this).data('original-text', $(this).html());
+            $(this).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+        });
+    });
 });
 </script>
 {% endblock %}

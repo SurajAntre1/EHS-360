@@ -142,13 +142,11 @@ def category_edit(request, pk):
 
 @login_required
 def category_delete(request, pk):
-    """Soft delete category"""
-    
+    """Permanently delete category"""
     category = get_object_or_404(InspectionCategory, pk=pk)
     
     if request.method == 'POST':
-        category.is_active = False
-        category.save()
+        category.delete()
         messages.success(request, f'Category "{category.category_name}" deleted successfully!')
         return redirect('inspections:category_list')
     
@@ -642,7 +640,7 @@ def template_remove_question(request, template_pk, question_pk):
         'template': template,
         'template_question': template_question
     }
-    return render(request, 'inspections/template_remove_question.html', context)
+    return render(request, 'inspections/question_confirm_delete.html', context)
 
 
 @login_required

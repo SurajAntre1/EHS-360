@@ -257,6 +257,15 @@ $(document).ready(function() {
         var scheduledDate = $(this).val();
         $('#id_due_date').attr('min', scheduledDate);
     });
+        // Prevent multiple form submission
+    $('form').on('submit', function() {
+        var $submitBtn = $(this).find('button[type="submit"]');
+        if ($submitBtn.prop('disabled')) {
+            return false;
+        }
+        $submitBtn.prop('disabled', true);
+        $submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+    });
 });
 </script>
 {% endblock %}
