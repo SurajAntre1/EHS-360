@@ -1332,13 +1332,20 @@ def no_answers_list(request):
     # Apply user-based filtering
     if not request.user.is_superuser:
         if hasattr(request.user, 'has_permission') and request.user.has_permission('VIEW_INSPECTION'):
+            # HOD sees their own inspections
             no_responses = no_responses.filter(
                 submission__submitted_by=request.user
             )
         elif hasattr(request.user, 'can_access_inspection_module') and request.user.can_access_inspection_module:
+            # Safety manager sees all from their plants
             user_plants = request.user.get_all_plants()
             no_responses = no_responses.filter(
                 submission__schedule__plant__in=user_plants
+            )
+        else:
+            # Regular user - only see items assigned to them
+            no_responses = no_responses.filter(
+                assigned_to=request.user
             )
     
     # Filters
@@ -1383,7 +1390,7 @@ def no_answers_list(request):
     
     no_responses = no_responses.order_by('-answered_at')
     
-    # Statistics
+    # Statistics - only count items the user can see
     total_no_answers = no_responses.count()
     critical_no_answers = no_responses.filter(question__is_critical=True).count()
     converted_hazards_count = no_responses.filter(converted_to_hazard__isnull=False).count()
@@ -1402,15 +1409,30 @@ def no_answers_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    # Get all active users
-    available_users = User.objects.filter(
-        is_active=True
-    ).select_related('department', 'role', 'plant').order_by('first_name', 'last_name')
+    # Get users based on role and plant
+    if request.user.is_superuser:
+        # Admin sees all active users
+        available_users = User.objects.filter(
+            is_active=True
+        ).select_related('department', 'role', 'plant').order_by('first_name', 'last_name')
+    else:
+        # Non-admin users see only users from their plants
+        user_plants = request.user.get_all_plants()
+        
+        # Get users who belong to these plants or have no plant assigned
+        available_users = User.objects.filter(
+            is_active=True
+        ).filter(
+            Q(plant__in=user_plants) | Q(plant__isnull=True)
+        ).select_related('department', 'role', 'plant').order_by('first_name', 'last_name')
     
     # For filters
     from apps.organizations.models import Plant
     plants = Plant.objects.filter(is_active=True)
     categories = InspectionCategory.objects.filter(is_active=True)
+    
+    # Add user role info to context
+    user_role = 'admin' if request.user.is_superuser else 'safety_manager' if request.user.can_access_inspection_module else 'hod' if request.user.has_permission('VIEW_INSPECTION') else 'regular'
     
     context = {
         'page_obj': page_obj,
@@ -1427,6 +1449,9 @@ def no_answers_list(request):
         'selected_priority': priority,
         'search': search,
         'available_users': available_users,
+        'is_admin': request.user.is_superuser or request.user.can_access_inspection_module,
+        'user_role': user_role,
+        'current_user': request.user,
     }
     
     return render(request, 'inspections/no_answers_list.html', context)
@@ -1462,8 +1487,15 @@ def handle_response_assignment(request):
             messages.error(request, 'No valid items selected!')
             return redirect('inspections:no_answers_list')
         
-        # Get assigned user
+        # Get assigned user - verify they are from allowed plants
         assigned_to = get_object_or_404(User, pk=assigned_to_id, is_active=True)
+        
+        # For non-admin users, verify the assigned user belongs to their plant
+        if not request.user.is_superuser and not request.user.can_access_inspection_module:
+            user_plants = request.user.get_all_plants()
+            if assigned_to.plant and assigned_to.plant not in user_plants:
+                messages.error(request, 'You can only assign to users from your plants!')
+                return redirect('inspections:no_answers_list')
         
         # Get responses
         responses = InspectionResponse.objects.filter(
@@ -1736,13 +1768,11 @@ def convert_no_answer_to_hazard(request, response_id):
         )
         return redirect('inspections:no_answers_list')
     
-    # Check permission - only assigned person or safety manager can convert
-    if not (request.user == response.assigned_to or 
-            request.user.is_superuser or 
-            request.user.can_access_inspection_module):
+    # CRITICAL: Only the assigned person can convert
+    if request.user != response.assigned_to:
         messages.error(
             request,
-            f'Only {response.assigned_to.get_full_name()} or safety managers can convert this to hazard!'
+            f'This item is assigned to {response.assigned_to.get_full_name()}. Only they can convert it to a hazard.'
         )
         return redirect('inspections:no_answers_list')
     
@@ -1881,6 +1911,5 @@ def convert_no_answer_to_hazard(request, response_id):
     }
     
     return render(request, 'inspections/convert_to_hazard.html', context)
-
 
     

@@ -315,9 +315,10 @@
                                             </a>
                                         </td>
                                         
-                                        <!-- Status / Action -->
+                                        <!-- Status / Action - SHOW ONLY ONCE -->
                                         <td class="text-center">
                                             {% if response.converted_to_hazard %}
+                                                <!-- Already Converted to Hazard -->
                                                 <a href="{% url 'hazards:hazard_detail' response.converted_to_hazard.id %}" 
                                                    class="btn btn-sm btn-success"
                                                    title="View Hazard: {{ response.converted_to_hazard.report_number }}">
@@ -330,14 +331,26 @@
                                                         <i class="fas fa-user"></i> 
                                                         {{ response.assigned_to.get_full_name }}
                                                     </span>
-                                                    {% if request.user == response.assigned_to or request.user.is_superuser or request.user.can_access_inspection_module %}
+                                                    
+                                                    <!-- Show Convert button ONLY to the assigned person -->
+                                                    {% if request.user == response.assigned_to %}
                                                         <a href="{% url 'inspections:convert_no_answer_to_hazard' response.id %}" 
-                                                           class="btn btn-sm btn-warning w-100">
-                                                            <i class="fas fa-exclamation-triangle"></i> Convert
+                                                           class="btn btn-sm btn-warning w-100"
+                                                           title="Convert this item to a hazard report">
+                                                            <i class="fas fa-exclamation-triangle"></i> Convert to Hazard
                                                         </a>
+                                                    {% else %}
+                                                        <!-- For other users, show that it's assigned -->
+                                                        <span class="badge bg-secondary w-100">
+                                                            <i class="fas fa-clock"></i> Awaiting Action
+                                                        </span>
+                                                        <small class="text-muted d-block mt-1">
+                                                            Assigned to {{ response.assigned_to.get_full_name }}
+                                                        </small>
                                                     {% endif %}
                                                 </div>
                                             {% else %}
+                                                <!-- Not Assigned -->
                                                 <span class="badge bg-secondary">
                                                     <i class="fas fa-clock"></i> Not Assigned
                                                 </span>
@@ -412,6 +425,16 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <!-- Plant Info Alert -->
+                <div class="alert alert-light small mb-3">
+                    <i class="fas fa-info-circle"></i> 
+                    {% if is_admin %}
+                        Showing all active users (Admin view)
+                    {% else %}
+                        Showing users from your plants only
+                    {% endif %}
+                </div>
+                
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i> 
                     You are assigning <strong><span id="modalSelectedCount">0</span></strong> non-compliant item(s)
@@ -424,7 +447,8 @@
                         {% for user in available_users %}
                             <option value="{{ user.id }}">
                                 {{ user.get_full_name }} ({{ user.email }}) - 
-                                {% if user.department %}{{ user.department.name }}{% else %}No Department{% endif %}
+                                {% if user.department %}{{ user.department.name }}{% else %}No Dept{% endif %}
+                                {% if user.plant %} - Plant: {{ user.plant.name }}{% endif %}
                             </option>
                         {% empty %}
                             <option value="" disabled>No users available</option>
@@ -455,6 +479,7 @@
 .table-success { background-color: #d1e7dd !important; }
 #noAnswersTable tbody tr:hover { background-color: #f8f9fa; }
 .response-checkbox { cursor: pointer; width: 18px; height: 18px; }
+.badge { white-space: normal; word-wrap: break-word; }
 </style>
 
 <script>
@@ -489,7 +514,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize modal
     let assignModal = null;
     if (modalElement) {
-        assignModal = new bootstrap.Modal(modalElement);
+        assignModal = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',  // This ensures backdrop doesn't close modal
+            keyboard: false       // This prevents ESC key from closing
+        });
         console.log('Modal initialized');
     }
     
@@ -517,9 +545,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add change event to all checkboxes
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateSelectedCount);
-    });
+    if (checkboxes.length > 0) {
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedCount);
+        });
+    }
     
     // Select all checkbox
     if (selectAllCheckbox) {
@@ -535,6 +565,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (assignSelectedBtn) {
         assignSelectedBtn.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             
             const selectedCount = document.querySelectorAll('.response-checkbox:checked').length;
             
@@ -555,7 +586,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Confirm assignment button
     if (confirmAssignBtn) {
-        confirmAssignBtn.addEventListener('click', function() {
+        confirmAssignBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
             const selectedCount = document.querySelectorAll('.response-checkbox:checked').length;
             
             if (selectedCount === 0) {
@@ -589,16 +623,20 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Hide modal and submit form
             assignModal.hide();
-            assignForm.submit();
+            
+            // Small delay to allow modal to hide before form submission
+            setTimeout(function() {
+                assignForm.submit();
+            }, 300);
         });
     }
     
     // Reset modal when hidden
     if (modalElement) {
         modalElement.addEventListener('hidden.bs.modal', function() {
+            console.log('Modal hidden - resetting form');
             if (userSelect) userSelect.value = '';
             if (assignmentRemarks) assignmentRemarks.value = '';
-            console.log('Modal hidden and reset');
         });
     }
     
