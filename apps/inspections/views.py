@@ -1619,14 +1619,14 @@ def convert_no_answer_to_hazard(request, response_id):
 
     # Only assigned person can convert
     if request.user != response.assigned_to:
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'success': False, 'error': 'Only the assigned person can convert this item!'}, status=403)
         messages.error(request, 'Only the assigned person can convert this item!')
         return redirect('inspections:no_answers_list')
 
     # Already converted
     if response.converted_to_hazard:
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
                 'success': False,
                 'already_converted': True,
@@ -1637,7 +1637,7 @@ def convert_no_answer_to_hazard(request, response_id):
 
     # Not assigned yet
     if not response.assigned_to:
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'success': False, 'error': 'This item must be assigned before converting!'}, status=400)
         messages.error(request, 'This item must be assigned before converting!')
         return redirect('inspections:no_answers_list')
@@ -1728,31 +1728,31 @@ def convert_no_answer_to_hazard(request, response_id):
             except Exception as e:
                 print(f"Notification error: {e}")
 
-            # AJAX response
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': True,
-                    'hazard_number': hazard.report_number,
-                    'hazard_id': hazard.id,
-                    'hazard_url': f"/hazards/{hazard.id}/",
-                    'message': f'Hazard {hazard.report_number} created successfully!'
-                })
+            # Always return JSON — this view is called via AJAX only
+            from django.urls import reverse
+            try:
+                hazard_url = reverse('hazards:hazard_detail', kwargs={'pk': hazard.pk})
+            except Exception:
+                hazard_url = f"/hazards/{hazard.id}/"
 
-            messages.success(request, f'Hazard {hazard.report_number} created successfully!')
-            return redirect('hazards:hazard_detail', pk=hazard.pk)
+            return JsonResponse({
+                'success': True,
+                'hazard_number': hazard.report_number,
+                'hazard_id': hazard.id,
+                'hazard_url': hazard_url,
+                'message': f'Hazard {hazard.report_number} created successfully!'
+            })
 
         except Exception as e:
             import traceback
             traceback.print_exc()
-            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                return JsonResponse({'success': False, 'error': str(e)}, status=500)
-            messages.error(request, f'Error creating hazard: {str(e)}')
-            return redirect('inspections:no_answers_list')
+            error_msg = str(e)
+            print(f"[convert_no_answer_to_hazard] ERROR: {error_msg}")
+            # Always return JSON for AJAX calls
+            return JsonResponse({
+                'success': False,
+                'error': f'Server error: {error_msg}'
+            }, status=500)
 
     # GET - not used anymore, redirect back
     return redirect('inspections:no_answers_list')
-
-
-    
-
-    

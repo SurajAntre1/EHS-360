@@ -727,61 +727,73 @@ document.addEventListener('DOMContentLoaded', function () {
             submitConvertBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
             convertError.classList.add('d-none');
 
-            const formData = new FormData();
-            formData.append('hazard_type', hazardType);
-            formData.append('hazard_category', hazardCategory);
-            formData.append('severity', severity);
-            formData.append('immediate_action', immediateAction);
+            // Use jQuery $.ajax — works reliably with Django CSRF + Bootstrap 4
+            var convertUrl = '/inspections/response/' + responseId + '/convert-to-hazard/';
 
-            fetch(`/inspections/response/${responseId}/convert-to-hazard/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
+            $.ajax({
+                url: convertUrl,
+                type: 'POST',
+                data: {
+                    hazard_type: hazardType,
+                    hazard_category: hazardCategory,
+                    severity: severity,
+                    immediate_action: immediateAction,
+                    csrfmiddlewaretoken: csrfToken
                 },
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    // Close modal
-                    $('#convertHazardModal').modal('hide');
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(data) {
+                    if (data.success) {
+                        // Close modal
+                        $('#convertHazardModal').modal('hide');
 
-                    // Replace the button in the row with hazard link
-                    const row = document.getElementById('row-' + responseId);
-                    if (row) {
-                        const actionCell = row.querySelector('td:last-child');
-                        actionCell.innerHTML = `
-                            <a href="${data.hazard_url}"
-                               class="btn btn-success btn-sm w-100" target="_blank">
-                                <i class="fas fa-shield-alt"></i><br>
-                                <small>${data.hazard_number}</small>
-                            </a>`;
-                        // Remove warning highlight from row
-                        row.classList.remove('table-warning');
-                        row.classList.add('table-success');
+                        // Replace Convert button with hazard link in the row
+                        var row = document.getElementById('row-' + responseId);
+                        if (row) {
+                            var actionCell = row.querySelector('td:last-child');
+                            actionCell.innerHTML =
+                                '<a href="' + data.hazard_url + '" ' +
+                                '   class="btn btn-success btn-sm w-100" target="_blank">' +
+                                '    <i class="fas fa-shield-alt"></i><br>' +
+                                '    <small>' + data.hazard_number + '</small>' +
+                                '</a>';
+                            row.classList.remove('table-warning');
+                            row.classList.add('table-success');
+                        }
+
+                        // Show success toast
+                        document.getElementById('successToastBody').innerHTML =
+                            '<i class="fas fa-check-circle mr-2"></i> Hazard <strong>' +
+                            data.hazard_number + '</strong> created! ' +
+                            '<a href="' + data.hazard_url + '" class="text-white ml-2" target="_blank">View &rarr;</a>';
+                        $('#successToast').toast({ delay: 6000 });
+                        $('#successToast').toast('show');
+
+                    } else {
+                        convertError.textContent = data.error || 'Something went wrong. Please try again.';
+                        convertError.classList.remove('d-none');
+                        submitConvertBtn.disabled = false;
+                        submitConvertBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Create Hazard Report';
                     }
-
-                    // Show success toast
-                    document.getElementById('successToastBody').innerHTML =
-                        '<i class="fas fa-check-circle me-2"></i> Hazard <strong>' +
-                        data.hazard_number + '</strong> created! ' +
-                        '<a href="' + data.hazard_url + '" class="text-white text-decoration-underline ms-2" target="_blank">View →</a>';
-                    $('#successToast').toast({ delay: 6000 });
-                    $('#successToast').toast('show');
-
-                } else {
-                    convertError.textContent = data.error || 'Something went wrong. Please try again.';
+                },
+                error: function(xhr, status, error) {
+                    var msg = 'Error saving hazard.';
+                    try {
+                        var resp = JSON.parse(xhr.responseText);
+                        msg = resp.error || msg;
+                    } catch(e) {
+                        // Use status code to give useful message
+                        if (xhr.status === 403) msg = 'Permission denied. Are you the assigned person?';
+                        else if (xhr.status === 404) msg = 'Item not found. Please refresh the page.';
+                        else if (xhr.status === 500) msg = 'Server error. Check Django logs for details.';
+                        else msg = 'Error ' + xhr.status + ': ' + error;
+                    }
+                    convertError.textContent = msg;
                     convertError.classList.remove('d-none');
                     submitConvertBtn.disabled = false;
                     submitConvertBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Create Hazard Report';
                 }
-            })
-            .catch(() => {
-                convertError.textContent = 'Network error. Please check your connection and try again.';
-                convertError.classList.remove('d-none');
-                submitConvertBtn.disabled = false;
-                submitConvertBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Create Hazard Report';
             });
         });
     }
