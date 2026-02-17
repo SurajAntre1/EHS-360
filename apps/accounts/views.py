@@ -264,7 +264,7 @@ class UserCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
         return super().form_invalid(form)
 
     
-class UserUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
+class UserUpdateView(LoginRequiredMixin, UpdateView):
     """Update user - Only accessible by Admin"""
     model = User
     form_class = UserUpdateForm
@@ -358,7 +358,10 @@ class UserUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
         return super().form_invalid(form)
     
     def get_queryset(self):
-        return User.objects.filter(is_superuser=False)
+        if self.request.user.is_superuser or self.request.user.is_admin_user:
+            return User.objects.filter(is_superuser=False)
+        
+        return User.objects.filter(pk=self.request.user.pk)
 
 
 class UserDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
@@ -385,10 +388,11 @@ class UserDetailView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user_id = self.kwargs.get('pk')
         # Only show employee details, not superuser
-        user_obj = get_object_or_404(
-            User.objects.filter(is_superuser=False), 
-            pk=user_id
-        )
+        if not(self.request.user.is_superuser or self.request.user.is_admin_user):
+            user_obj = get_object_or_404(User, pk=self.request.user.pk)
+        else:
+            user_obj = get_object_or_404(User.objects.filter(is_superuser=False),pk=user_id)
+        
         context['user_detail'] = user_obj
         return context
 
