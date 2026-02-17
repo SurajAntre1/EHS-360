@@ -349,6 +349,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     
     // --- CASCADING DROPDOWNS LOGIC ---
+    // ... (This section remains unchanged) ...
     const plantSelect = document.getElementById('plant_filter');
     const zoneSelect = document.getElementById('zone_filter');
     const locationSelect = document.getElementById('location_filter');
@@ -411,13 +412,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- CHART INITIALIZATION ---
     const colors = {danger: '#dc3545', warning: '#ffc107', info: '#17a2b8', success: '#28a745', primary: '#007bff'};
     
-    // Severity Chart
+    // Severity Chart (Hazards by Risk Level)
     const severityCtx = document.getElementById('severityChart').getContext('2d');
     const severityChart = new Chart(severityCtx, {
         type: 'doughnut',
         data: { labels: {{ severity_labels|safe }}, datasets: [{ data: {{ severity_data|safe }}, backgroundColor: [colors.danger, colors.warning, colors.info, colors.success] }] },
         options: {
-            responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } },
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { 
+                legend: { position: 'bottom' },
+                datalabels: {
+                    color: '#fff',
+                    font: { weight: 'bold', size: 16 },
+                    formatter: (value) => value > 0 ? value : ''
+                }
+            },
             onClick: (e, elements) => {
                 if (elements.length > 0) {
                     const label = severityChart.data.labels[elements[0].index].toLowerCase();
@@ -426,13 +436,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.location.href = window.location.pathname + '?' + currentParams.toString();
                 }
             }
-        }
+        },
+        plugins: [ChartDataLabels]
     });
 
     // Monthly Trend Chart
     new Chart(document.getElementById('monthlyTrendChart').getContext('2d'), { type: 'line', data: { labels: {{ monthly_labels|safe }}, datasets: [{ label: 'Hazards', data: {{ monthly_data|safe }}, borderColor: colors.primary, backgroundColor: 'rgba(0,123,255,0.1)', tension: 0.4, fill: true }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
     
-    // Status Chart
+    // Status Chart (Status Distribution) - UPDATED
     const statusChartCtx = document.getElementById('statusChart').getContext('2d');
     new Chart(statusChartCtx, { 
         type: 'bar', 
@@ -447,8 +458,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 
         options: { 
             responsive: true, maintainAspectRatio: false, 
-            plugins: { legend: { display: false } }, 
-            scales: { y: { beginAtZero: true } },
+            plugins: { 
+                legend: { display: false },
+                // ✅ CHANGED: Data labels configuration for Status chart
+                datalabels: {
+                    anchor: 'end',
+                    align: 'bottom',  // <-- CHANGE: Aligns label inside the bar from the top
+                    color: '#fff',      // <-- CHANGE: White color for contrast
+                    offset: 4,          // Optional: Adds a little padding from the top edge
+                    font: {
+                        weight: 'bold'
+                    },
+                    formatter: (value) => value > 0 ? value : ''
+                }
+            }, 
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
             onClick: (e, elements) => {
                 if (elements.length > 0) {
                     const statusKeys = {{ status_keys|safe }};
@@ -458,14 +482,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.location.href = window.location.pathname + '?' + currentParams.toString();
                 }
             }
-        } 
+        },
+        plugins: [ChartDataLabels] // Registering the plugin
     });
 
-    // ✅ **FIX:** Top Categories Pie Chart ko DOMContentLoaded ke ANDAR move kiya gaya hai.
+    // Top Categories Pie Chart
     const topCategoriesCtx = document.getElementById('topCategoriesChart');
     if (topCategoriesCtx) {
         const topCategoryLabels = {{ top_category_labels|safe }};
-        const topCategoryValues = {{ top_category_values|safe }}; // Internal values for filtering
+        const topCategoryValues = {{ top_category_values|safe }};
 
         new Chart(topCategoriesCtx.getContext('2d'), {
             type: 'pie',
@@ -481,16 +506,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        position: 'bottom'
-                    },
+                    legend: { position: 'bottom' },
                     datalabels: {
                         color: '#fff',
-                        font: {
-                            weight: 'bold',
-                            size: 20
-                        },
-                        formatter: (value) => value   // 👈 COUNT SHOW HOGA
+                        font: { weight: 'bold', size: 20 },
+                        formatter: (value) => value  
                     }
                 },
                 onClick: (e, elements) => {
@@ -502,11 +522,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             },
-            plugins: [ChartDataLabels] // 👈 IMPORTANT
+            plugins: [ChartDataLabels]
         });
     }
 
-     const departmentChartCtx = document.getElementById('departmentChart');
+    // Department Chart (Hazards by Department) - UPDATED
+    const departmentChartCtx = document.getElementById('departmentChart');
     if (departmentChartCtx) {
         new Chart(departmentChartCtx.getContext('2d'), {
             type: 'bar',
@@ -515,7 +536,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Hazards',
                     data: {{ department_data|safe }},
-                    backgroundColor: '#6f42c1', // Indigo color
+                    backgroundColor: '#6f42c1',
                     barPercentage: 0.6
                 }]
             },
@@ -523,31 +544,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        display: false // Ek hi dataset hai, isliye legend ki zaroorat nahi
+                    legend: { display: false },
+                    // ✅ CHANGED: Data labels configuration for Department chart
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'bottom',  // <-- CHANGE: Aligns label inside the bar from the top
+                        color: '#fff',      // <-- CHANGE: White color for contrast
+                        offset: 4,          // Optional: Adds a little padding from the top edge
+                        font: {
+                            weight: 'bold'
+                        },
+                        formatter: (value) => value > 0 ? value : ''
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            // Y-axis par decimal values na dikhaye agar count kam ho
                             precision: 0
                         }
                     }
                 }
-            }
+            },
+            plugins: [ChartDataLabels] // Registering the plugin
         });
     }
 
-}); // DOMContentLoaded listener yahan band hota hai.
+}); // DOMContentLoaded listener ends here.
 
 // --- REMOVE FILTER FUNCTION ---
+// ... (This section remains unchanged) ...
 function removeFilter(filterName) {
     const urlParams = new URLSearchParams(window.location.search);
     urlParams.delete(filterName);
     
-    // Agar plant remove ho to uske child filters bhi remove karein
     if (filterName === 'plant') {
         urlParams.delete('zone');
         urlParams.delete('location'); 
@@ -563,8 +593,6 @@ function removeFilter(filterName) {
     
     window.location.href = window.location.pathname + '?' + urlParams.toString();
 }
-
-
 
 </script>
 {% endblock %}

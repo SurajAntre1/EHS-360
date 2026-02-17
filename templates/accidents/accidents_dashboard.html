@@ -699,28 +699,28 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- Chart.js Library -->
+<!-- Chart.js Libraries -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-
+<!-- ✅ STEP 1: Datalabels Plugin Library ko add kiya gaya hai -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     
+    // ... (Aapka saara filter aur cascading dropdown ka logic waise hi rahega) ...
     // ============================================================
     // SCRIPT FOR INTERACTIVE, AUTO-SUBMITTING FILTERS
     // ============================================================
     const filterForm = document.getElementById('filterForm');
-    const filterSelects = filterForm.querySelectorAll('.form-select');
+    const filterSelects = filterForm.querySelectorAll('select.form-control'); // Corrected selector
     const applyButton = filterForm.querySelector('button[type="submit"]');
 
     filterSelects.forEach(select => {
         select.addEventListener('change', function() {
-            // Provide visual feedback
             if (applyButton) {
                 applyButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
                 applyButton.disabled = true;
             }
-            // Submit the form automatically to refresh the dashboard
             filterForm.submit();
         });
     });
@@ -734,7 +734,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const locationSelect = document.getElementById('location_filter');
         const sublocationSelect = document.getElementById('sublocation_filter');
         
-        // Reset and disable dependent dropdowns
         zoneSelect.innerHTML = '<option value="">All Zones</option>';
         locationSelect.innerHTML = '<option value="">All Locations</option>';
         sublocationSelect.innerHTML = '<option value="">All Sub-Locations</option>';
@@ -789,59 +788,59 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ============================================================
-    // SCRIPT FOR REMOVING A SINGLE FILTER
-    // ============================================================
     window.removeFilter = function(filterName) {
-        const input = document.querySelector(`[name="${filterName}"]`);
-        if (input) {
-            input.value = ''; // Reset the value
-            document.getElementById('filterForm').submit();
-        }
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.delete(filterName);
+        window.location.href = window.location.pathname + '?' + urlParams.toString();
     }
+    
+    document.getElementById('exportExcelBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        const currentParams = window.location.search;
+        const exportUrl = "{% url 'accidents:export_incidents_excel' %}" + currentParams;
+        window.location.href = exportUrl;
+    });
 
     // ============================================================
-    // CHART RENDERING CODE (No changes needed here)
+    // CHART RENDERING CODE (UPDATED WITH DATALABELS)
     // ============================================================
-        document.getElementById('exportExcelBtn').addEventListener('click', function(e) {
-            e.preventDefault();
-            // Get the current filter parameters from the URL
-            const currentParams = window.location.search;
-            // Construct the full export URL with the same filters
-            const exportUrl = "{% url 'accidents:export_incidents_excel' %}" + currentParams;
-            // Redirect the browser to the export URL to trigger the download
-            window.location.href = exportUrl;
-        });
     const colors = {
         danger: '#dc3545', warning: '#ffc107', info: '#17a2b8',
-        success: '#28a745', primary: '#007bff', secondary: '#6c757d'
+        success: '#28a745', primary: '#007bff', secondary: '#6c757d',
+        purple: '#6f42c1', orange: '#fd7e14'
     };
 
-    // Incident Type Doughnut Chart
+    // Incident Type Doughnut Chart - UPDATED
     const incidentTypeCtx = document.getElementById('incidentTypeChart')?.getContext('2d');
     if (incidentTypeCtx) {
         new Chart(incidentTypeCtx, {
             type: 'doughnut',
             data: {
-                // Use the new dynamic labels from the view
                 labels: {{ type_chart_labels|safe }},
                 datasets: [{
-                    // Use the new dynamic data from the view
                     data: {{ type_chart_data|safe }},
-                    backgroundColor: [
-                        colors.danger, colors.warning, colors.info, colors.success,
-                        colors.primary, colors.purple, colors.orange
-                    ]
+                    backgroundColor: [colors.danger, colors.warning, colors.info, colors.success, colors.primary, colors.purple, colors.orange]
                 }]
             },
             options: { 
                 responsive: true, 
-                maintainAspectRatio: false 
-            }
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    // Datalabels config for doughnut chart
+                    datalabels: {
+                        color: '#fff',
+                        font: { weight: 'bold', size: 16 },
+                        formatter: (value) => value > 0 ? value : ''
+                    }
+                }
+            },
+            // ✅ STEP 2: Plugin ko register kiya gaya hai
+            plugins: [ChartDataLabels]
         });
     }
 
-    // Monthly Trend Line Chart
+    // Monthly Trend Line Chart (No change needed here)
     const monthlyTrendCtx = document.getElementById('monthlyTrendChart')?.getContext('2d');
     if (monthlyTrendCtx) {
         new Chart(monthlyTrendCtx, {
@@ -859,99 +858,94 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } }
             }
         });
     }
 
-    // Severity Distribution Bar Chart
+    // Severity Distribution Bar Chart - UPDATED
     const severityCtx = document.getElementById('severityChart')?.getContext('2d');
     if (severityCtx) {
         new Chart(severityCtx, {
             type: 'bar',
             data: {
-                // MODIFICATION: Replaced dynamic labels with short, static labels for clarity.
                 labels: ['LTI', 'MTC/RWC', 'First Aid (FA)', 'HLFI', 'Fatality'],
                 datasets: [{
                     label: 'Incidents',
                     data: {{ severity_data|safe }},
-                    backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545', '#000000']
+                    backgroundColor: ['#dc3545', '#ffc107', '#17a2b8', '#28a745', '#000000']
                 }]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: { 
+                    legend: { display: false },
+                    // Datalabels config for Severity chart (inside the bar)
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'bottom',
+                        color: '#fff',
+                        font: { weight: 'bold' },
+                        formatter: (value) => value > 0 ? value : ''
+                    }
+                },
                 scales: { 
                     y: { 
                         beginAtZero: true, 
-                        ticks: { 
-                            // Ensures y-axis ticks are whole numbers (e.g., 1, 2, 3)
-                            stepSize: 1,
-                            precision: 0
-                        } 
+                        ticks: { stepSize: 1, precision: 0 } 
                     } 
                 }
-            }
+            },
+            // ✅ STEP 2: Plugin ko register kiya gaya hai
+            plugins: [ChartDataLabels]
         });
     }
 
-    // Status Distribution Horizontal Bar Chart
+    // Status Distribution Horizontal Bar Chart - UPDATED
     const statusCtx = document.getElementById('statusChart')?.getContext('2d');
-        if (statusCtx) {
-            // We get the data from the context, which now includes URLs
-            const statusData = {{ status_data|safe }};
-
-            new Chart(statusCtx, {
-                type: 'bar',
-                data: {
-                    labels: {{ status_labels|safe }},
-                    datasets: [{
-                        label: 'Incidents',
-                        // The chart will use the 'count' from each object for the bar length
-                        data: statusData.map(item => item.count), 
-                        backgroundColor: colors.primary
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { display: false },
-                        // Add a tooltip to show users it's clickable
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.x !== null) {
-                                        label += context.parsed.x;
-                                    }
-                                    return label + ' (Click to view)';
-                                }
-                            }
-                        }
-                    },
-                    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
-                    // This is the main part that makes the chart clickable
-                    onClick: (event, elements, chart) => {
-                        if (elements.length > 0) {
-                            const clickedElementIndex = elements[0].index;
-                            // Get the corresponding URL from our data
-                            const url = statusData[clickedElementIndex].url;
-                            // Redirect the user to the filtered incident list
-                            window.location.href = url;
-                        }
-                    },
-                    // Change cursor to a pointer on hover to indicate it's clickable
-                    onHover: (event, chartElement) => {
-                        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+    if (statusCtx) {
+        const statusData = {{ status_data|safe }};
+        new Chart(statusCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ status_labels|safe }},
+                datasets: [{
+                    label: 'Incidents',
+                    data: statusData.map(item => item.count), 
+                    backgroundColor: colors.primary
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false },
+                    // Datalabels config for Status chart (inside the bar)
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'left', // 'left' for horizontal bars to be inside
+                        color: '#fff',
+                        font: { weight: 'bold' },
+                        formatter: (value) => value > 0 ? value : ''
                     }
+                },
+                scales: { x: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } },
+                onClick: (event, elements) => {
+                    if (elements.length > 0) {
+                        const clickedElementIndex = elements[0].index;
+                        const url = statusData[clickedElementIndex].url;
+                        window.location.href = url;
+                    }
+                },
+                onHover: (event, chartElement) => {
+                    event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
                 }
-            });
-        }
+            },
+            // ✅ STEP 2: Plugin ko register kiya gaya hai
+            plugins: [ChartDataLabels]
+        });
+    }
 });
 </script>
 {% endblock %}
