@@ -1092,92 +1092,83 @@ class GetSubLocationsForLocationAjaxView(LoginRequiredMixin, TemplateView):
         
         # Return the queryset as a JSON response.
         return JsonResponse(list(sublocations), safe=False)
-class ExportHazardsView(LoginRequiredMixin, TemplateView):
+class ExportHazardsView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
-
         user = self.request.user
-        if user.is_superuser or getattr(user, 'role', None) == 'ADMIN':
-            hazards = Hazard.objects.all()
+
+        # 1. First, establish the base queryset based on user permissions.
+        # This logic now mirrors the Incident export view.
+        if user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'ADMIN'):
+            queryset = Hazard.objects.all()
         elif getattr(user, 'plant', None):
-            hazards = Hazard.objects.filter(plant=user.plant)
+            queryset = Hazard.objects.filter(plant=user.plant)
         else:
-            hazards = Hazard.objects.filter(reported_by=user)
+            queryset = Hazard.objects.filter(reported_by=user)
 
-        filter_params = {
-            'plant': request.GET.get('plant'),
-            'zone': request.GET.get('zone'),
-            'location': request.GET.get('location'),
-            'sublocation': request.GET.get('sublocation'),
-            'severity': request.GET.get('severity'),
-            'status': request.GET.get('status'),
-            'month': request.GET.get('month'),
-        }
+        # 2. Now, apply filters from the URL.
+        selected_plant = request.GET.get('plant')
+        selected_zone = request.GET.get('zone')
+        selected_location = request.GET.get('location')
+        selected_sublocation = request.GET.get('sublocation')
+        selected_severity = request.GET.get('severity')
+        selected_status = request.GET.get('status')
+        selected_month = request.GET.get('month')
 
-        if filter_params['plant']:
-            hazards = hazards.filter(plant_id=filter_params['plant'])
-        if filter_params['zone']:
-            hazards = hazards.filter(zone_id=filter_params['zone'])
-        if filter_params['location']:
-            hazards = hazards.filter(location_id=filter_params['location'])
-        if filter_params['sublocation']:
-            hazards = hazards.filter(sublocation_id=filter_params['sublocation'])
-        if filter_params['severity']:
-            hazards = hazards.filter(severity=filter_params['severity'])
-        if filter_params['status'] == 'open':
-            hazards = hazards.exclude(status__in=['RESOLVED', 'CLOSED'])
-        if filter_params['month']:
+        # The plant filter from the URL is ONLY applied if the user is an Admin/Superuser.
+        if selected_plant and (user.is_superuser or (hasattr(user, 'role') and user.role.name == 'ADMIN')):
+            queryset = queryset.filter(plant_id=selected_plant)
+        
+        # Apply other filters to the permission-scoped queryset.
+        if selected_zone:
+            queryset = queryset.filter(zone_id=selected_zone)
+        if selected_location:
+            queryset = queryset.filter(location_id=selected_location)
+        if selected_sublocation:
+            queryset = queryset.filter(sublocation_id=selected_sublocation)
+        if selected_severity:
+            queryset = queryset.filter(severity__iexact=selected_severity)
+        if selected_status == 'open':
+            queryset = queryset.exclude(status__in=['RESOLVED', 'CLOSED'])
+        
+        if selected_month:
             try:
-                year, month = map(int, filter_params['month'].split('-'))
-                hazards = hazards.filter(incident_datetime__year=year, incident_datetime__month=month)
+                year, month = map(int, selected_month.split('-'))
+                queryset = queryset.filter(incident_datetime__year=year, incident_datetime__month=month)
             except (ValueError, TypeError):
                 pass
+        
+        # Optimize database queries.
+        queryset = queryset.select_related(
+            'plant', 'zone', 'location', 'sublocation', 'reported_by'
+        )
 
-
+        # --- Excel generation code starts here ---
         workbook = openpyxl.Workbook()
         sheet = workbook.active
         sheet.title = 'Hazards Report'
 
-
-        title_font = Font(name='Calibri', size=18, bold=True, color='002060')
+        # --- Define Styles ---
         header_font = Font(name='Calibri', size=12, bold=True, color='FFFFFF')
         header_fill = PatternFill(start_color='4F81BD', end_color='4F81BD', fill_type='solid')
         header_align = Alignment(horizontal='center', vertical='center')
-        cell_align = Alignment(horizontal='left', vertical='center', wrap_text=True)
-        thin_border = Border(left=Side(style='thin'), right=Side(style='thin'),
-                             top=Side(style='thin'), bottom=Side(style='thin'))
+        wrap_alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
 
-
-        critical_fill = PatternFill(start_color='FFC7CE', end_color='FFC7CE', fill_type='solid') # Red
-        high_fill = PatternFill(start_color='FFEB9C', end_color='FFEB9C', fill_type='solid')     # Yellow
-        resolved_fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid') # Green
-
-
-        sheet.merge_cells('A1:O1')
-        title_cell = sheet['A1']
-        title_cell.value = 'Hazards Export Report'
-        title_cell.font = title_font
-        title_cell.alignment = Alignment(horizontal='center')
-
-        sheet.append([f"Report Generated On: {datetime.date.today().strftime('%d %B %Y')}"])
-        sheet.append([])
-
-
+        # --- Headers ---
         headers = [
             'Report Number', 'Title', 'Type', 'Category', 'Severity', 'Status',
             'Incident Datetime', 'Reported By', 'Reported Date', 'Plant', 'Zone',
             'Location', 'Sub-Location', 'Description', 'Action Deadline'
         ]
         sheet.append(headers)
-        header_row = sheet.max_row
-
-        for cell in sheet[header_row]:
+        
+        # Style header row
+        for cell in sheet[1]:
             cell.font = header_font
             cell.fill = header_fill
             cell.alignment = header_align
-            cell.border = thin_border
 
-
-        for hazard in hazards.select_related('plant', 'zone', 'location', 'sublocation', 'reported_by'):
+        # --- Data Population ---
+        for hazard in queryset:
             row_data = [
                 hazard.report_number,
                 hazard.hazard_title,
@@ -1196,49 +1187,36 @@ class ExportHazardsView(LoginRequiredMixin, TemplateView):
                 hazard.action_deadline.strftime('%Y-%m-%d') if hazard.action_deadline else ''
             ]
             sheet.append(row_data)
-            current_row = sheet.max_row
-            
-            for cell in sheet[current_row]:
-                cell.alignment = cell_align
-                cell.border = thin_border
 
-          
-            severity_cell = sheet[f'E{current_row}']
-            if hazard.severity == 'critical':
-                severity_cell.fill = critical_fill
-            elif hazard.severity == 'high':
-                severity_cell.fill = high_fill
+        # --- Auto-adjust Column Widths and Apply Wrapping ---
+        desc_col_letter = get_column_letter(headers.index('Description') + 1)
+        title_col_letter = get_column_letter(headers.index('Title') + 1)
 
-            status_cell = sheet[f'F{current_row}']
-            if hazard.status in ['RESOLVED', 'CLOSED']:
-                status_cell.fill = resolved_fill
-
-       
         for col_idx, column_cells in enumerate(sheet.columns, 1):
-            max_length = 0
             column_letter = get_column_letter(col_idx)
-            for cell in column_cells:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(cell.value)
-                except:
-                    pass
-          
-            adjusted_width = (max_length + 2)
-            if adjusted_width < 15:
-                adjusted_width = 15
-            if adjusted_width > 50:
-                adjusted_width = 50 
-            sheet.column_dimensions[column_letter].width = adjusted_width
+            # Set a fixed width for columns that need text wrapping
+            if column_letter in [desc_col_letter, title_col_letter]:
+                sheet.column_dimensions[column_letter].width = 50
+                # Apply wrap text to all cells in the description/title column
+                for cell in column_cells:
+                    cell.alignment = wrap_alignment
+            else:
+                # Auto-size other columns
+                max_length = 0
+                for cell in column_cells:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                sheet.column_dimensions[column_letter].width = max_length + 2
 
-   
-        sheet.freeze_panes = 'A5' 
-
-
+        # --- HTTP Response ---
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         )
-        response['Content-Disposition'] = f'attachment; filename="hazards_report_{datetime.date.today()}.xlsx"'
+        filename = f"Hazards_Report_{timezone.now().strftime('%Y-%m-%d')}.xlsx"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
         workbook.save(response)
         return response

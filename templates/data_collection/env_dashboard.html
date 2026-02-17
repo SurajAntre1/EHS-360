@@ -193,13 +193,16 @@
 </div>
 
 {% endblock %}
-
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- ✅ STEP 1: Chart.js ke saath Datalabels Plugin Library add ki gayi hai -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     
     // --- 1. Submission Trend (Line Chart) ---
+    // Is chart mein koi badlav nahi hai
     const trendCtx = document.getElementById('trendChart').getContext('2d');
     new Chart(trendCtx, {
         type: 'line',
@@ -227,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- 2. Category Distribution (Doughnut Chart) ---
+    // --- 2. Category Distribution (Doughnut Chart) - UPDATED ---
     const catCtx = document.getElementById('categoryChart').getContext('2d');
     new Chart(catCtx, {
         type: 'doughnut',
@@ -236,36 +239,53 @@ document.addEventListener('DOMContentLoaded', function() {
             datasets: [{
                 data: {{ cat_data_json|safe }},
                 backgroundColor: ['#17a2b8', '#5e72e4', '#2dce89', '#f5365c', '#fb6340', '#007bff'],
-                borderWidth: 1
+                borderWidth: 2, // Thoda border accha lagega
+                borderColor: '#fff'
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                legend: { 
+                    position: 'bottom', 
+                    labels: { boxWidth: 12, font: { size: 11 } } 
+                },
+                // ✅ STEP 3: Datalabels ko configure kiya gaya hai
+                datalabels: {
+                    color: '#fff', // Text color white hoga
+                    font: {
+                        weight: 'bold', // Text bold hoga
+                        size: 16       // Font size 16px
+                    },
+                    // Formatter function value ko display karega
+                    formatter: (value) => {
+                        // Agar value 0 hai to label nahi dikhega
+                        return value > 0 ? value : ''; 
+                    }
+                }
             },
             cutout: '65%'
-        }
+        },
+        // ✅ STEP 2: Plugin ko chart ke liye register kiya gaya hai
+        plugins: [ChartDataLabels]
     });
 
 
-const btnShowMore = document.getElementById('btn-show-more');
+    // --- Show More Button Logic (No changes here) ---
+    const btnShowMore = document.getElementById('btn-show-more');
     if (btnShowMore) {
         btnShowMore.addEventListener('click', function() {
-            // 1. Select all hidden rows and make them visible
             const hiddenRows = document.querySelectorAll('.entry-row.d-none');
             hiddenRows.forEach(row => {
                 row.classList.remove('d-none');
             });
 
-            // 2. Add scroll functionality to the wrapper
             const wrapper = document.getElementById('table-scroll-wrapper');
-            wrapper.style.maxHeight = "500px"; // Fixed height for scrollable area
+            wrapper.style.maxHeight = "500px";
             wrapper.style.overflowY = "auto";
             wrapper.style.borderBottom = "2px solid #007bff";
 
-            // 3. Hide the button container after expanding
             document.getElementById('show-more-container').style.display = 'none';
         });
     }
