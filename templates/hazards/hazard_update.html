@@ -434,22 +434,22 @@
                                         <label class="required-field">Hazard Category</label>
                                         <select name="{{ prefix }}hazard_category" class="form-control" required>
                                             <option value="">-- Select Category --</option>
-                                            <option value="slip_trip_fall" {% if hazard.hazard_category == 'slip_trip_fall' %}selected{% endif %}>Slip/Trip/Fall</option>
-                                            <option value="chemical" {% if hazard.hazard_category == 'chemical' %}selected{% endif %}>Chemical</option>
                                             <option value="electrical" {% if hazard.hazard_category == 'electrical' %}selected{% endif %}>Electrical</option>
+                                            <option value="machine_guarding" {% if hazard.hazard_category == 'machine_guarding' %}selected{% endif %}>Machine Guarding</option>
+                                            <option value="height_work" {% if hazard.hazard_category == 'height_work' %}selected{% endif %}>Height work</option>
                                             <option value="fire" {% if hazard.hazard_category == 'fire' %}selected{% endif %}>Fire</option>
-                                            <option value="equipment" {% if hazard.hazard_category == 'equipment' %}selected{% endif %}>Equipment/Machinery</option>
-                                            <option value="ergonomic" {% if hazard.hazard_category == 'ergonomic' %}selected{% endif %}>Ergonomic</option>
-                                            <option value="biological" {% if hazard.hazard_category == 'biological' %}selected{% endif %}>Biological</option>
-                                            <option value="environmental" {% if hazard.hazard_category == 'environmental' %}selected{% endif %}>Environmental</option>
-                                            <option value="confined_space" {% if hazard.hazard_category == 'confined_space' %}selected{% endif %}>Confined Space</option>
-                                            <option value="working_at_height" {% if hazard.hazard_category == 'working_at_height' %}selected{% endif %}>Working at Height</option>
-                                            <option value="manual_handling" {% if hazard.hazard_category == 'manual_handling' %}selected{% endif %}>Manual Handling</option>
-                                            <option value="noise" {% if hazard.hazard_category == 'noise' %}selected{% endif %}>Noise/Vibration</option>
-                                            <option value="temperature" {% if hazard.hazard_category == 'temperature' %}selected{% endif %}>Temperature Extremes</option>
-                                            <option value="radiation" {% if hazard.hazard_category == 'radiation' %}selected{% endif %}>Radiation</option>
-                                            <option value="vehicular" {% if hazard.hazard_category == 'vehicular' %}selected{% endif %}>Vehicular/Traffic</option>
-                                            <option value="other" {% if hazard.hazard_category == 'other' %}selected{% endif %}>Other</option>
+                                            <option value="vehicle_including_forklift" {% if hazard.hazard_category == 'vehicle_including_forklift' %}selected{% endif %}>Vehicle including forklift</option>
+                                            <option value="ppe_violation" {% if hazard.hazard_category == 'ppe_violation' %}selected{% endif %}>PPE Violation</option>
+                                            <option value="asbestos_spillage_bag_torn" {% if hazard.hazard_category == 'asbestos_spillage_bag_torn' %}selected{% endif %}>Asbestos Spillage/Bag Torn</option>
+                                            <option value="hot_work" {% if hazard.hazard_category == 'hot_work' %}selected{% endif %}>Hot work</option>
+                                            <option value="loto" {% if hazard.hazard_category == 'loto' %}selected{% endif %}>LOTO</option>
+                                            <option value="sop_violations" {% if hazard.hazard_category == 'sop_violations' %}selected{% endif %}>SOP Violations</option>
+                                            <option value="unsafe_storage" {% if hazard.hazard_category == 'unsafe_storage' %}selected{% endif %}>Unsafe Storage</option>
+                                            <option value="slip_trip" {% if hazard.hazard_category == 'slip_trip' %}selected{% endif %}>Slip Trip</option>
+                                            <option value="noise" {% if hazard.hazard_category == 'noise' %}selected{% endif %}>Noise</option>
+                                            <option value="illumination" {% if hazard.hazard_category == 'illumination' %}selected{% endif %}>Illumination</option>
+                                            <option value="dust_collection_ventillation" {% if hazard.hazard_category == 'dust_collection_ventillation' %}selected{% endif %}>Dust collection / Ventillation</option>
+                                            <option value="others" {% if hazard.hazard_category == 'others' %}selected{% endif %}>Others</option>
                                         </select>
                                     </div>
                                 </div>
