@@ -507,7 +507,7 @@ class ZoneCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
                     
                     # print(f"    Sublocation {j}:")
                     # print(f"      Name: {subloc_name}")
-                    # print(f"      Code: {subloc_code}")
+                    # print(f"      Code: {subloc_code}") 
                     # print(f"      Active: {subloc_active}")
                     
                     if subloc_name:

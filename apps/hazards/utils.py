@@ -187,7 +187,7 @@ def generate_hazard_pdf(hazard):
     
     location_data = [
         [Paragraph("<b>Full Location:</b>", styles['Label']), Paragraph(hazard.get_full_location(), styles['Value'])],
-        [Paragraph("<b>Specific Location Details:</b>", styles['Label']), Paragraph(hazard.location_details or 'N/A', styles['Value'])],
+        # [Paragraph("<b>Specific Location Details:</b>", styles['Label']), Paragraph(hazard.location_details or 'N/A', styles['Value'])],
         [Paragraph("<b>Reported By:</b>", styles['Label']), Paragraph(f"{hazard.reported_by.get_full_name()} ({hazard.reporter_email})", styles['Value'])],
         [Paragraph("<b>Report Submitted On:</b>", styles['Label']), Paragraph(hazard.reported_date.strftime('%d-%b-%Y, %I:%M %p'), styles['Value'])],
     ]
