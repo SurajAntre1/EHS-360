@@ -470,7 +470,7 @@ class InspectionSubmissionAdmin(admin.ModelAdmin):
     )
     
     def compliance_score_badge(self, obj):
-        score = obj.compliance_score or 0
+        score = float(obj.compliance_score or 0)   # ← convert to float first
         if score >= 90:
             color = '#28a745'
         elif score >= 75:
@@ -479,9 +479,10 @@ class InspectionSubmissionAdmin(admin.ModelAdmin):
             color = '#dc3545'
         
         return format_html(
-            '<span style="background: {}; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold;">{:.1f}%</span>',
+            '<span style="background: {}; color: white; padding: 4px 10px; '
+            'border-radius: 4px; font-weight: bold;">{}%</span>',
             color,
-            score
+            round(score, 1)        # ← pass as plain value, not :.1f format spec
         )
     compliance_score_badge.short_description = 'Compliance Score'
     
