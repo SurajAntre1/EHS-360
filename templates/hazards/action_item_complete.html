@@ -2,6 +2,13 @@
 {% load static %}
 
 {% block title %}Complete Action Item{% endblock %}
+{% block page_title %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'accidents:my_action_items' %}">My Action Items</a></li>
+<li class="breadcrumb-item active">Complete Action Item</li>
+{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -99,7 +106,7 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form method="post" enctype="multipart/form-data">
+                    <form method="post" enctype="multipart/form-data" id="completionForm">
                         {% csrf_token %}
 
                         <div class="form-group">
@@ -137,7 +144,7 @@
                         </div>
 
                         <div class="form-group mt-4">
-                            <button type="submit" class="btn btn-success btn-lg px-5">
+                            <button type="submit" class="btn btn-success btn-lg px-5" id="submitBtn">
                                 <i class="fas fa-check-circle"></i> Mark as Completed
                             </button>
                             <a href="{% url 'hazards:my_action_items' %}" class="btn btn-outline-secondary btn-lg ml-2">
@@ -150,4 +157,15 @@
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('completionForm');
+    const btn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', function () {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    });
+});
+</script>
 {% endblock %}
