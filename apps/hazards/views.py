@@ -484,10 +484,6 @@ class HazardUpdateView(LoginRequiredMixin, UpdateView):
         hazard = form.save(commit=False)
         user = self.request.user
 
-        print(f"\n{'='*80}")
-        print(f"🔄 UPDATING HAZARD: {hazard.report_number}")
-        print(f"{'='*80}\n")
-
         # Update reporter fields
         hazard.reporter_name = user.get_full_name()
         hazard.reporter_email = user.email

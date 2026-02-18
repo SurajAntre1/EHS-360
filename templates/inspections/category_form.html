@@ -20,7 +20,7 @@
                 <h3 class="card-title"><i class="fas fa-folder"></i> {{ title }}</h3>
             </div>
             <div class="card-body">
-                <form method="post" novalidate>
+                <form method="post" novalidate onsubmit="disableSubmit(this);">
                     {% csrf_token %}
                     
                     <div class="form-group">
@@ -92,4 +92,15 @@
         </div>
     </div>
 </div>
+<script>
+    function disableSubmit(form){
+        const btn = form.querySelector('button[type="submit"]');
+        if (btn.disabled){
+            return false;  
+        }
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        return true;
+    }
+</script>
 {% endblock %}

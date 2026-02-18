@@ -21,22 +21,22 @@ class NotificationMaster(models.Model):
     NOTIFICATION_EVENT_CHOICES = [
         # Incident Module
         ('INCIDENT_REPORTED', 'Incident Reported'),
-        ('INCIDENT_INVESTIGATION_DUE', 'Investigation Due Soon'),
-        ('INCIDENT_INVESTIGATION_OVERDUE', 'Investigation Overdue'),
+        # ('INCIDENT_INVESTIGATION_DUE', 'Investigation Due Soon'),
+        # ('INCIDENT_INVESTIGATION_OVERDUE', 'Investigation Overdue'),
         ('INCIDENT_ACTION_ASSIGNED', 'Action Item Assigned'),
         ('INCIDENT_CLOSED', 'Incident Closed'),
         
         # Hazard Module
         ('HAZARD_REPORTED', 'Hazard/Near Miss Reported'),
-        ('HAZARD_INVESTIGATION_DUE', 'Hazard Investigation Due'),
-        ('HAZARD_INVESTIGATION_OVERDUE', 'Hazard Investigation Overdue'),
-        ('HAZARD_ACTION_PLAN_OVERDUE', 'Action Plan Overdue'),
-        ('HAZARD_CLOSURE_OVERDUE', 'Closure Overdue'),
+        # ('HAZARD_INVESTIGATION_DUE', 'Hazard Investigation Due'),
+        # ('HAZARD_INVESTIGATION_OVERDUE', 'Hazard Investigation Overdue'),
+        # ('HAZARD_ACTION_PLAN_OVERDUE', 'Action Plan Overdue'),
+        # ('HAZARD_CLOSURE_OVERDUE', 'Closure Overdue'),
         ('HAZARD_CLOSED', 'Hazard Closed'),
         
         # Environmental Module
         ('ENV_MONTHLY_REPORT_GENERATED', 'Monthly Report Generated'),
-        ('ENV_SUBMISSION_OVERDUE', 'Submission Overdue'),
+        # ('ENV_SUBMISSION_OVERDUE', 'Submission Overdue'),
         ('ENV_DATA_SUBMITTED', 'Environmental Data Submitted'),
         
         # Inspection Module

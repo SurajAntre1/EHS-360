@@ -39,6 +39,9 @@ class UserCreationFormCustom(UserCreationForm):
         self.fields['email'].required = True
         self.fields['first_name'].required = True
         self.fields['last_name'].required = True
+
+        self.fields['date_of_birth'].required = False
+        self.fields['date_joined_company'].required = False
     
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -80,6 +83,9 @@ class UserUpdateForm(BaseUserChangeForm):
         self.fields['email'].required = True
         self.fields['first_name'].required = True
         self.fields['last_name'].required = True
+
+        self.fields['date_of_birth'].required = False
+        self.fields['date_joined_company'].required = False
     
     def clean_email(self):
         email = self.cleaned_data.get("email")

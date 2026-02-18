@@ -74,7 +74,7 @@
         </div>
     </div>
 
-    <div class="row mb-4">
+    <div class="row mb-4 justify-content-center">
         <div class="col-md-3">
             <div class="card summary-card bg-primary text-white">
                 <div class="card-body">
@@ -91,14 +91,14 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        {% comment %} <div class="col-md-3">
             <div class="card summary-card bg-danger text-white">
                 <div class="card-body">
                     <h6>Failed Notifications</h6>
                     <h2>{{ failed_count }}</h2>
                 </div>
             </div>
-        </div>
+        </div> {% endcomment %}
         <div class="col-md-3">
             <div class="card summary-card bg-info text-white">
                 <div class="card-body">
@@ -127,7 +127,7 @@
                     <th width="30%">Notification Event</th>
                     <th width="10%">Sent</th>
                     <th width="10%">Success</th>
-                    <th width="10%">Failed</th>
+                    {% comment %} <th width="10%">Failed</th> {% endcomment %}
                     <th width="15%">Last Sent At</th>
                     <th width="10%">Channel</th>
                 </tr>
@@ -154,7 +154,7 @@
 
                     <td><span class="badge badge-primary">{{ row.total_sent }}</span></td>
                     <td><span class="badge badge-success">{{ row.success_count }}</span></td>
-                    <td><span class="badge badge-danger">{{ row.failed_count }}</span></td>
+                    {% comment %} <td><span class="badge badge-danger">{{ row.failed_count }}</span></td> {% endcomment %}
 
                     <td>
                         {% if row.last_sent_at %}

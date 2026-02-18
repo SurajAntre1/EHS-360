@@ -83,10 +83,10 @@
             </div>
           </div>
 
-          <hr class="my-4">
+          {% comment %} <hr class="my-4"> {% endcomment %}
 
           <!-- Contact Information -->
-          <h5 class="mb-3">Contact Information</h5>
+          {% comment %} <h5 class="mb-3">Contact Information</h5>
           <div class="row">
             <div class="col-md-4 mb-3">
               <label for="{{ form.contact_person.id_for_label }}">Contact Person</label>
@@ -109,9 +109,9 @@
                 <div class="text-danger">{{ form.contact_phone.errors }}</div>
               {% endif %}
             </div>
-          </div>
+          </div> {% endcomment %}
 
-          <hr class="my-4">
+          {% comment %} <hr class="my-4"> {% endcomment %}
 
           <!-- Status -->
           <div class="row">
