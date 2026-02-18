@@ -15,22 +15,22 @@ class Hazard(models.Model):
     
     # Detailed Hazard Categories (16 types)
     HAZARD_CATEGORIES = [
-        ('slip_trip_fall', 'Slip/Trip/Fall'),
-        ('chemical', 'Chemical'),
         ('electrical', 'Electrical'),
+        ('machine_guarding', 'Machine Guarding'),
+        ('height_work', 'Height work'),
         ('fire', 'Fire'),
-        ('equipment', 'Equipment/Machinery'),
-        ('ergonomic', 'Ergonomic'),
-        ('biological', 'Biological'),
-        ('environmental', 'Environmental'),
-        ('confined_space', 'Confined Space'),
-        ('working_at_height', 'Working at Height'),
-        ('manual_handling', 'Manual Handling'),
-        ('noise', 'Noise/Vibration'),
-        ('temperature', 'Temperature Extremes'),
-        ('radiation', 'Radiation'),
-        ('vehicular', 'Vehicular/Traffic'),
-        ('other', 'Other'),
+        ('vehicle_including_forklift', 'Vehicle including forklift'),
+        ('ppe_violation', 'PPE Violation'),
+        ('asbestos_spillage_bag_torn', 'Asbestos Spillage/Bag Torn'),
+        ('hot_work', 'Hot work'),
+        ('loto', 'LOTO'),
+        ('sop_violations', 'SOP Violations'),
+        ('unsafe_storage', 'Unsafe Storage'),
+        ('slip_trip', 'Slip Trip'),
+        ('noise', 'Noise'),
+        ('illumination', 'Illumination'),
+        ('dust_collection_ventillation', 'Dust collection / Ventillation'),
+        ('others', 'Others'),
     ]
     
     SEVERITY_CHOICES = [
