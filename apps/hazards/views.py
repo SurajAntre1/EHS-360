@@ -725,7 +725,7 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
                     )
 
                     NotificationService.notify(
-                        content_object=self.hazard,
+                        content_object=item,
                         notification_type='HAZARD_ACTION_ASSIGNED',
                         module='HAZARD_ACTION',
                         extra_recipients=list(responsible_users)

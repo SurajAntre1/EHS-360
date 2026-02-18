@@ -912,8 +912,10 @@
                   <h6 class="alert-heading"><i class="fas fa-clock mr-2"></i>Pending Approval</h6>
                   <p class="mb-0">The investigation report is awaiting approval.</p>
                   <!-- Optional: Link for approvers to go to the approval page -->
+                   {% if user|has_perm:'APPROVE_INCIDENT' %}
                   <hr>
                   <a href="{% url 'accidents:incident_approve' incident.pk %}" class="btn btn-sm btn-warning">Review & Approve</a>
+                  {% endif %}
               </div>
           {% elif incident.approval_status == 'APPROVED' %}
               <div class="alert alert-success mb-0">
