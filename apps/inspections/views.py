@@ -1500,29 +1500,35 @@ def handle_response_assignment(request):
             assigned_to__isnull=True,
             converted_to_hazard__isnull=True
         )
+        response_list = list(valid_responses)
         
-        if not valid_responses.exists():
+        if not response_list:
             messages.error(request, 'All selected items are already assigned or converted!')
             return redirect('inspections:no_answers_list')
+        
+        assigned_count = len(response_list)
         
         # Bulk assign using transaction
         from django.db import transaction
         with transaction.atomic():
-            assigned_count = valid_responses.update(
-                assigned_to=assigned_to,
-                assigned_by=request.user,
-                assigned_at=timezone.now(),
-                assignment_remarks=assignment_remarks
-            )
+            for response in response_list:
+                response.assigned_to = assigned_to
+                response.assigned_by = request.user
+                response.assigned_at = timezone.now()
+                response.assignment_remarks = assignment_remarks
+                response.save()
+
+        # Send notification (use first response or loop)
+        
         
         # Send notification
         try:
             from apps.notifications.services import NotificationService
-            first_response = valid_responses.first()
+            first_response = response_list[0]
             NotificationService.notify(
                 content_object=first_response,
                 notification_type='INSPECTION_NONCOMPLIANCE_ASSIGNED',
-                module='INSPECTION',
+                module='INSPECTION_NONCOMPLIANCE',
                 extra_recipients=[assigned_to]
             )
         except Exception as e:
@@ -1539,7 +1545,7 @@ def handle_response_assignment(request):
         )
         
     except Exception as e:
-        print(f"Error in assignment: {e}")
+        # print(f"Error in assignment: {e}")
         messages.error(request, f'Error assigning items: {str(e)}')
     
     return redirect('inspections:no_answers_list')
@@ -1745,7 +1751,7 @@ def convert_no_answer_to_hazard(request, response_id):
             import traceback
             traceback.print_exc()
             error_msg = str(e)
-            print(f"[convert_no_answer_to_hazard] ERROR: {error_msg}")
+            # print(f"[convert_no_answer_to_hazard] ERROR: {error_msg}")
             # Always return JSON for AJAX calls
             return JsonResponse({
                 'success': False,

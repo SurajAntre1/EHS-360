@@ -3,27 +3,12 @@
 {% block page_title %}{% endblock %}
 {% block extra_css %}
 <style>
-
-/* =====================================================
-   GLOBAL CLEANUP
-===================================================== */
-
 .container-fluid.py-4 {
     max-width: 1600px;
 }
-
-/* =====================================================
-   HEADER
-===================================================== */
-
 h3 {
     font-weight: 600;
 }
-
-/* =====================================================
-   TOP KPI CARDS
-===================================================== */
-
 .stats-card {
     border-radius: 10px;
     transition: 0.2s ease-in-out;
@@ -47,11 +32,6 @@ h3 {
 .stats-card small {
     font-size: 13px;
 }
-
-/* =====================================================
-   FILTER CARD
-===================================================== */
-
 .filter-card .card-body {
     padding: 18px 20px;
 }
@@ -74,11 +54,6 @@ h3 {
     font-size: 13px;
     border-radius: 6px;
 }
-
-/* =====================================================
-   TABLE
-===================================================== */
-
 #noAnswersTable th {
     font-size: 13px;
     font-weight: 600;
@@ -123,7 +98,179 @@ h3 {
     align-items: center;
     gap: 10px;
 }
+.ehs-table-wrapper {
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
 
+/* Table */
+.ehs-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 14px;
+}
+
+/* Header */
+.ehs-table thead {
+    background: linear-gradient(135deg, #f8f9fa, #eef2f6);
+}
+
+.ehs-table thead th {
+    font-weight: 600;
+    color: #34495e;
+    padding: 14px 12px;
+    text-align: left;
+    border-bottom: 2px solid #e3e6ea;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+/* Body */
+.ehs-table tbody td {
+    padding: 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+/* Hover effect */
+.ehs-table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.ehs-table tbody tr:hover {
+    background-color: #f8fbff;
+    transform: scale(1.002);
+}
+
+/* Checkbox column */
+.ehs-table th:first-child,
+.ehs-table td:first-child {
+    text-align: center;
+    width: 50px;
+}
+
+/* Question code style */
+.question-code {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* Small muted text */
+.small-muted {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* Action column */
+.action-cell {
+    text-align: center;
+    width: 140px;
+}
+
+/* Buttons */
+.ehs-btn-sm {
+    padding: 6px 8px;
+    font-size: 12px;
+    border-radius: 8px;
+}
+
+/* Row States */
+.table-warning {
+    background-color: #fff8e1 !important;
+}
+
+.table-success {
+    background-color: #e8f5e9 !important;
+}
+
+/* Bulk action bar */
+#bulkActionsBar {
+    background: #ffffff;
+    border-top: 1px solid #e9ecef;
+    padding: 12px 16px;
+    box-shadow: 0 -3px 10px rgba(0,0,0,0.05);
+}
+
+/* Responsive */
+.table-responsive {
+    border-radius: 14px;
+    overflow: auto;
+}
+
+/* Status badge improvement */
+.badge-soft {
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 20px;
+}
+
+.badge-soft-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-soft-success {
+    background: #d4edda;
+    color: #155724;
+}
+.ehs-table-wrapper {
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
+
+.ehs-table thead {
+    background: linear-gradient(135deg, #f8f9fa, #eef2f6);
+}
+
+.ehs-table thead th {
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    padding: 14px 12px;
+    border-bottom: 2px solid #e9ecef;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.ehs-table tbody td {
+    padding: 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f3f5;
+}
+
+.ehs-row {
+    transition: all .2s ease;
+}
+
+.ehs-row:hover {
+    background: #f8fbff;
+}
+
+.ehs-critical {
+    background-color: #fff8e1;
+}
+
+.ehs-thumb {
+    width: 42px;
+    height: 42px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    transition: transform .2s ease;
+}
+
+.ehs-thumb:hover {
+    transform: scale(1.2);
+}
 </style>
 {% endblock %}
 {% block content %}
@@ -280,138 +427,160 @@ h3 {
                 <input type="hidden" name="assigned_to" id="assignedToHidden">
                 <input type="hidden" name="assignment_remarks" id="assignmentRemarksHidden">
 
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0" id="noAnswersTable">
-                        <thead class="table-light">
-                            <tr>
-                                {% if is_admin %}
-                                <th style="width:40px;">
-                                    <input type="checkbox" id="selectAll" class="form-check-input" title="Select All">
-                                </th>
-                                {% endif %}
-                                <th>#</th>
-                                <th>Question</th>
-                                <th>Category</th>
-                                <th>Inspection</th>
-                                <th>Plant</th>
-                                <th>Date</th>
-                                <th>Photo</th>
-                                <th>Assigned To</th>
-                                <th style="width:160px;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for response in page_obj %}
-                            <tr id="row-{{ response.id }}"
-                                class="{% if response.question.is_critical %}table-warning{% endif %}">
+                <div class="ehs-table-wrapper">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0 ehs-table" id="noAnswersTable">
 
-                                {% if is_admin %}
-                                <td>
-                                    {% if not response.assigned_to and not response.converted_to_hazard %}
-                                    <input type="checkbox"
-                                           class="form-check-input row-checkbox"
-                                           value="{{ response.id }}">
+                            <thead class="ehs-thead">
+                                <tr>
+                                    {% if is_admin %}
+                                    <th class="text-center" style="width:50px;">
+                                        <input type="checkbox"
+                                            id="selectAll"
+                                            class="form-check-input">
+                                    </th>
                                     {% endif %}
-                                </td>
-                                {% endif %}
+                                    <th style="width:60px;">#</th>
+                                    <th style="min-width:260px;">Question</th>
+                                    <th>Category</th>
+                                    <th>Inspection</th>
+                                    <th>Plant</th>
+                                    <th style="width:110px;">Date</th>
+                                    <th class="text-center" style="width:80px;">Photo</th>
+                                    <th style="min-width:160px;">Assigned To</th>
+                                    <th class="text-center" style="width:170px;">Action</th>
+                                </tr>
+                            </thead>
 
-                                <td>
-                                    {{ forloop.counter }}
-                                    {% if response.question.is_critical %}
-                                    <span class="badge bg-danger ms-1" title="Critical">
-                                        <i class="fas fa-star"></i>
-                                    </span>
-                                    {% endif %}
-                                </td>
+                            <tbody>
+                                {% for response in page_obj %}
+                                <tr id="row-{{ response.id }}"
+                                    class="ehs-row {% if response.question.is_critical %}ehs-critical{% endif %}">
 
-                                <td>
-                                    <strong class="text-primary small">{{ response.question.question_code }}</strong>
-                                    <div class="small text-dark mt-1">
-                                        {{ response.question.question_text|truncatechars:75 }}
-                                    </div>
-                                    {% if response.remarks %}
-                                    <div class="small text-muted mt-1">
-                                        <i class="fas fa-comment text-info"></i>
-                                        <em>{{ response.remarks|truncatechars:50 }}</em>
-                                    </div>
-                                    {% endif %}
-                                    {% if response.assignment_remarks %}
-                                    <div class="small text-info mt-1">
-                                        <i class="fas fa-sticky-note"></i>
-                                        <em>{{ response.assignment_remarks|truncatechars:50 }}</em>
-                                    </div>
-                                    {% endif %}
-                                </td>
-
-                                <td>
-                                    <span class="badge bg-secondary">
-                                        {{ response.question.category.category_name }}
-                                    </span>
-                                </td>
-
-                                <td>
-                                    <strong class="small">{{ response.submission.schedule.schedule_code }}</strong>
-                                    <div class="small text-muted">
-                                        by {{ response.submission.submitted_by.get_full_name }}
-                                    </div>
-                                </td>
-
-                                <td>
-                                    <small>{{ response.submission.schedule.plant.name }}</small>
-                                </td>
-
-                                <td>
-                                    <small class="text-muted">
-                                        {% if response.answered_at %}
-                                            {{ response.answered_at|date:"d M Y" }}
-                                        {% else %}
-                                            {{ response.submission.schedule.scheduled_date|date:"d M Y" }}
+                                    {% if is_admin %}
+                                    <td class="text-center">
+                                        {% if not response.assigned_to and not response.converted_to_hazard %}
+                                        <input type="checkbox"
+                                            class="form-check-input row-checkbox"
+                                            value="{{ response.id }}">
                                         {% endif %}
-                                    </small>
-                                </td>
-
-                                <td class="text-center">
-                                    {% if response.photo %}
-                                    <a href="{{ response.photo.url }}" target="_blank">
-                                        <img src="{{ response.photo.url }}"
-                                             style="width:38px;height:38px;object-fit:cover;border-radius:4px;"
-                                             class="border">
-                                    </a>
-                                    {% else %}
-                                    <span class="text-muted">—</span>
+                                    </td>
                                     {% endif %}
-                                </td>
 
-                                <td>
-                                    {% if response.assigned_to %}
-                                    <div class="small">
-                                        <i class="fas fa-user text-success"></i>
-                                        <strong>{{ response.assigned_to.get_full_name }}</strong>
-                                    </div>
-                                    {% if response.assigned_at %}
-                                    <div class="small text-muted">
-                                        {{ response.assigned_at|date:"d M Y" }}
-                                    </div>
-                                    {% endif %}
-                                    {% else %}
-                                    <span class="badge bg-warning text-dark">
-                                        <i class="fas fa-clock"></i> Unassigned
-                                    </span>
-                                    {% endif %}
-                                </td>
+                                    <!-- INDEX -->
+                                    <td>
+                                        <span class="fw-semibold">{{ forloop.counter }}</span>
+                                        {% if response.question.is_critical %}
+                                        <span class="badge bg-danger ms-1">
+                                            <i class="fas fa-star"></i>
+                                        </span>
+                                        {% endif %}
+                                    </td>
 
-                                <!-- ACTION COLUMN -->
-                                <td>
-                                    {% if response.converted_to_hazard %}
-                                        <!-- Already converted -->
+                                    <!-- QUESTION -->
+                                    <td>
+                                        <div class="fw-semibold text-primary small">
+                                            {{ response.question.question_code }}
+                                        </div>
+
+                                        <div class="small text-dark mt-1">
+                                            {{ response.question.question_text|truncatechars:75 }}
+                                        </div>
+
+                                        {% if response.remarks %}
+                                        <div class="small text-muted mt-1">
+                                            <i class="fas fa-comment text-info me-1"></i>
+                                            <em>{{ response.remarks|truncatechars:50 }}</em>
+                                        </div>
+                                        {% endif %}
+
+                                        {% if response.assignment_remarks %}
+                                        <div class="small text-info mt-1">
+                                            <i class="fas fa-sticky-note me-1"></i>
+                                            <em>{{ response.assignment_remarks|truncatechars:50 }}</em>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- CATEGORY -->
+                                    <td>
+                                        <span class="badge bg-light text-dark border">
+                                            {{ response.question.category.category_name }}
+                                        </span>
+                                    </td>
+
+                                    <!-- INSPECTION -->
+                                    <td>
+                                        <div class="fw-semibold small">
+                                            {{ response.submission.schedule.schedule_code }}
+                                        </div>
+                                        <div class="small text-muted">
+                                            by {{ response.submission.submitted_by.get_full_name }}
+                                        </div>
+                                    </td>
+
+                                    <!-- PLANT -->
+                                    <td>
+                                        <span class="small">
+                                            {{ response.submission.schedule.plant.name }}
+                                        </span>
+                                    </td>
+
+                                    <!-- DATE -->
+                                    <td>
+                                        <span class="small text-muted">
+                                            {% if response.answered_at %}
+                                                {{ response.answered_at|date:"d M Y" }}
+                                            {% else %}
+                                                {{ response.submission.schedule.scheduled_date|date:"d M Y" }}
+                                            {% endif %}
+                                        </span>
+                                    </td>
+
+                                    <!-- PHOTO -->
+                                    <td class="text-center">
+                                        {% if response.photo %}
+                                        <a href="{{ response.photo.url }}" target="_blank">
+                                            <img src="{{ response.photo.url }}"
+                                                class="ehs-thumb">
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- ASSIGNED -->
+                                    <td>
+                                        {% if response.assigned_to %}
+                                        <div class="small">
+                                            <i class="fas fa-user text-success me-1"></i>
+                                            <strong>{{ response.assigned_to.get_full_name }}</strong>
+                                        </div>
+                                        {% if response.assigned_at %}
+                                        <div class="small text-muted">
+                                            {{ response.assigned_at|date:"d M Y" }}
+                                        </div>
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-clock me-1"></i> Unassigned
+                                        </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- ACTION -->
+                                    <td class="text-center">
+
+                                        {% if response.converted_to_hazard %}
+
                                         <a href="{% url 'hazards:hazard_detail' response.converted_to_hazard.id %}"
-                                           class="btn btn-success btn-sm w-100">
+                                        class="btn btn-success btn-sm w-100">
                                             <i class="fas fa-shield-alt"></i><br>
                                             <small>{{ response.converted_to_hazard.report_number }}</small>
                                         </a>
 
-                                    {% elif response.assigned_to and response.assigned_to == current_user %}
-                                        <!-- Assigned to ME → Show Convert button -->
+                                        {% elif response.assigned_to and response.assigned_to == current_user %}
+
                                         <button type="button"
                                                 class="btn btn-warning btn-sm w-100 convert-btn"
                                                 data-response-id="{{ response.id }}"
@@ -427,42 +596,47 @@ h3 {
                                             Convert to Hazard
                                         </button>
 
-                                    {% elif response.assigned_to and response.assigned_to != current_user %}
-                                        <!-- Assigned to someone else -->
+                                        {% elif response.assigned_to and response.assigned_to != current_user %}
+
                                         <span class="badge bg-info text-white">
-                                            <i class="fas fa-user-check"></i> Assigned
+                                            <i class="fas fa-user-check me-1"></i> Assigned
                                         </span>
 
-                                    {% else %}
-                                        <!-- Not assigned yet -->
-                                        {% if is_admin %}
-                                        <span class="badge bg-warning text-dark">
-                                            <i class="fas fa-clock"></i> Pending
-                                        </span>
                                         {% else %}
-                                        <span class="badge bg-secondary">
-                                            Not assigned
-                                        </span>
-                                        {% endif %}
-                                    {% endif %}
-                                </td>
 
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="{% if is_admin %}11{% else %}10{% endif %}"
-                                    class="text-center py-5 text-muted">
-                                    <i class="fas fa-check-circle fa-3x mb-3 text-success d-block"></i>
-                                    {% if is_admin %}
-                                    No non-compliant items found.
-                                    {% else %}
-                                    No items assigned to you yet.
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                            {% if is_admin %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-clock me-1"></i> Pending
+                                            </span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">
+                                                Not assigned
+                                            </span>
+                                            {% endif %}
+
+                                        {% endif %}
+                                    </td>
+
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="{% if is_admin %}11{% else %}10{% endif %}"
+                                        class="text-center py-5 text-muted">
+
+                                        <i class="fas fa-check-circle fa-3x mb-3 text-success d-block"></i>
+
+                                        {% if is_admin %}
+                                        No non-compliant items found.
+                                        {% else %}
+                                        No items assigned to you yet.
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+
+                        </table>
+                    </div>
                 </div>
             </form>
         </div>
@@ -707,6 +881,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // ============================================================
     // ADMIN: Select All + Bulk Assign
     // ============================================================
+    if (window.__NO_ANSWERS_SCRIPT_LOADED__) return;
+    window.__NO_ANSWERS_SCRIPT_LOADED__ = true;
     const selectAll = document.getElementById('selectAll');
     const bulkActionsBar = document.getElementById('bulkActionsBar');
     const selectedCountEl = document.getElementById('selectedCount');
@@ -715,19 +891,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const selectedResponsesInput = document.getElementById('selectedResponsesInput');
 
     function getCheckedIds() {
-        return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(b => b.value);
+        return Array.from(document.querySelectorAll('.row-checkbox:checked'))
+            .map(cb => cb.value);
     }
 
     function updateBulkBar() {
         if (!bulkActionsBar) return;
         const ids = getCheckedIds();
-        bulkActionsBar.style.display = ids.length > 0 ? 'block' : 'none';
+        bulkActionsBar.style.display = ids.length ? 'flex' : 'none';
         if (selectedCountEl) selectedCountEl.textContent = ids.length + ' selected';
     }
 
     if (selectAll) {
         selectAll.addEventListener('change', function () {
-            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = selectAll.checked);
+            document.querySelectorAll('.row-checkbox').forEach(cb => {
+                cb.checked = selectAll.checked;
+            });
             updateBulkBar();
         });
     }
@@ -735,12 +914,19 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.row-checkbox').forEach(cb => {
         cb.addEventListener('change', updateBulkBar);
     });
+    let isAssignSubmitting = false;
 
     if (openAssignModalBtn) {
         openAssignModalBtn.addEventListener('click', function () {
             const ids = getCheckedIds();
-            if (!ids.length) { alert('Please select at least one item.'); return; }
-            document.getElementById('assignSummaryText').textContent = ids.length + ' item(s) selected for assignment';
+            if (!ids.length) {
+                alert('Please select at least one item.');
+                return;
+            }
+
+            document.getElementById('assignSummaryText').textContent =
+                ids.length + ' item(s) selected for assignment';
+
             selectedResponsesInput.value = ids.join(',');
             $('#assignModal').modal('show');
         });
@@ -748,11 +934,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (confirmAssignBtn) {
         confirmAssignBtn.addEventListener('click', function () {
+
+            if (isAssignSubmitting) return;
+
             const assignTo = document.getElementById('assignToSelect').value;
-            if (!assignTo) { alert('Please select a person to assign.'); return; }
+            if (!assignTo) {
+                alert('Please select a person to assign.');
+                return;
+            }
+
+            isAssignSubmitting = true;
+            confirmAssignBtn.disabled = true;
+            confirmAssignBtn.innerHTML =
+                '<i class="fas fa-spinner fa-spin"></i> Assigning...';
+
             document.getElementById('assignedToHidden').value = assignTo;
             document.getElementById('assignmentRemarksHidden').value =
                 document.getElementById('assignRemarksInput').value;
+
             document.getElementById('assignForm').submit();
         });
     }
@@ -761,55 +960,74 @@ document.addEventListener('DOMContentLoaded', function () {
     // ============================================================
     // CONVERT TO HAZARD MODAL
     // ============================================================
-    // convertHazardModal — controlled via jQuery $('#convertHazardModal')
+
     const severitySelect = document.getElementById('severitySelect');
     const deadlinePreview = document.getElementById('deadlinePreview');
     const convertError = document.getElementById('convertError');
     const submitConvertBtn = document.getElementById('submitConvertBtn');
 
-    const severityDays = { low: 30, medium: 15, high: 7, critical: 1 };
+    const severityDays = {
+        low: 30,
+        medium: 15,
+        high: 7,
+        critical: 1
+    };
 
-    // Bootstrap 4 modal — use jQuery API
-    // No instance needed — $('#id').modal() handles everything
+    let isConvertSubmitting = false;
 
-    // Open modal on Convert button click
+    // ---------------------------
+    // OPEN CONVERT MODAL
+    // ---------------------------
+
     document.querySelectorAll('.convert-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
+            isConvertSubmitting = false;
             const isCritical = this.dataset.isCritical === 'true';
 
-            // Fill source info
-            document.getElementById('convertResponseId').value = this.dataset.responseId;
-            document.getElementById('modalQuestionCode').textContent = this.dataset.questionCode;
-            document.getElementById('modalQuestionText').textContent = this.dataset.questionText;
-            document.getElementById('modalCategory').textContent = this.dataset.category;
-            document.getElementById('modalSchedule').textContent = this.dataset.schedule;
-            document.getElementById('modalPlant').textContent = this.dataset.plant;
+            document.getElementById('convertResponseId').value =
+                this.dataset.responseId;
 
-            // Critical badge
+            document.getElementById('modalQuestionCode').textContent =
+                this.dataset.questionCode;
+
+            document.getElementById('modalQuestionText').textContent =
+                this.dataset.questionText;
+
+            document.getElementById('modalCategory').textContent =
+                this.dataset.category;
+
+            document.getElementById('modalSchedule').textContent =
+                this.dataset.schedule;
+
+            document.getElementById('modalPlant').textContent =
+                this.dataset.plant;
+
             const critBadge = document.getElementById('modalCriticalBadge');
             critBadge.classList.toggle('d-none', !isCritical);
 
             // Remarks
-            const remarks = this.dataset.remarks;
             const remarksBlock = document.getElementById('modalRemarksBlock');
-            if (remarks) {
+            if (this.dataset.remarks) {
                 remarksBlock.classList.remove('d-none');
-                document.getElementById('modalRemarksText').textContent = remarks;
+                document.getElementById('modalRemarksText').textContent =
+                    this.dataset.remarks;
             } else {
                 remarksBlock.classList.add('d-none');
             }
 
             // Assignment remarks
-            const assignRemarks = this.dataset.assignmentRemarks;
             const assignBlock = document.getElementById('modalAssignRemarksBlock');
-            if (assignRemarks) {
+            if (this.dataset.assignmentRemarks) {
                 assignBlock.classList.remove('d-none');
-                document.getElementById('modalAssignRemarksText').textContent = assignRemarks;
+                document.getElementById('modalAssignRemarksText').textContent =
+                    this.dataset.assignmentRemarks;
             } else {
                 assignBlock.classList.add('d-none');
             }
 
-            // Auto-set severity
+            // Reset form
+            document.getElementById('hazardTypeSelect').value = 'UC';
+            document.getElementById('hazardCategorySelect').value = '';
             severitySelect.value = isCritical ? 'high' : 'medium';
 
             // Reset
@@ -824,51 +1042,92 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Update deadline when severity changes
-    if (severitySelect) {
-        severitySelect.addEventListener('change', updateDeadline);
-    }
 
     function updateDeadline() {
-        const severity = severitySelect ? severitySelect.value : '';
+        const severity = severitySelect.value;
         if (severity && severityDays[severity]) {
             const days = severityDays[severity];
             const date = new Date();
             date.setDate(date.getDate() + days);
-            const dateStr = date.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
-            const colorMap = { low: 'success', medium: 'info', high: 'warning', critical: 'danger' };
+
+            const dateStr = date.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            });
+
+            const colorMap = {
+                low: 'success',
+                medium: 'info',
+                high: 'warning',
+                critical: 'danger'
+            };
+
             const color = colorMap[severity] || 'secondary';
-            deadlinePreview.className = `alert alert-${color} mb-0 py-2`;
-            deadlinePreview.innerHTML = `<i class="fas fa-calendar-check"></i> <strong>${dateStr}</strong> <span class="text-muted ms-2">(${days} days from today)</span>`;
+
+            deadlinePreview.className = 'alert alert-' + color + ' mb-0 py-2';
+            deadlinePreview.innerHTML =
+                '<i class="fas fa-calendar-check"></i> <strong>' +
+                dateStr +
+                '</strong> <span class="text-muted ms-2">(' +
+                days +
+                ' days from today)</span>';
+
         } else {
             deadlinePreview.className = 'alert alert-secondary mb-0 py-2';
-            deadlinePreview.innerHTML = '<small><i class="fas fa-calendar-alt"></i> Select severity to see deadline</small>';
+            deadlinePreview.innerHTML =
+                '<small><i class="fas fa-calendar-alt"></i> Select severity to see deadline</small>';
         }
     }
 
-    // Submit via AJAX
+    if (severitySelect) {
+        severitySelect.addEventListener('change', updateDeadline);
+    }
+
+    // ---------------------------
+    // SAFE CONVERT SUBMIT
+    // ---------------------------
+
     if (submitConvertBtn) {
+
         submitConvertBtn.addEventListener('click', function () {
-            const responseId = document.getElementById('convertResponseId').value;
-            const hazardType = document.getElementById('hazardTypeSelect').value;
-            const hazardCategory = document.getElementById('hazardCategorySelect').value;
+
+            if (isConvertSubmitting) return;
+
+            const responseId =
+                document.getElementById('convertResponseId').value;
+
+            const hazardType =
+                document.getElementById('hazardTypeSelect').value;
+
+            const hazardCategory =
+                document.getElementById('hazardCategorySelect').value;
+
             const severity = severitySelect.value;
-            const immediateAction = document.getElementById('immediateActionText').value;
-            const csrfToken = document.getElementById('convertHazardForm')
-                                       .querySelector('[name=csrfmiddlewaretoken]').value;
+
+            const immediateAction =
+                document.getElementById('immediateActionText').value;
+
+            const csrfToken =
+                document.getElementById('convertHazardForm')
+                    .querySelector('[name=csrfmiddlewaretoken]').value;
 
             if (!hazardType || !hazardCategory || !severity) {
-                convertError.textContent = 'Please fill in all required fields.';
+                convertError.textContent =
+                    'Please fill in all required fields.';
                 convertError.classList.remove('d-none');
                 return;
             }
 
-            // Disable button to prevent double-click
+            isConvertSubmitting = true;
             submitConvertBtn.disabled = true;
-            submitConvertBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-            convertError.classList.add('d-none');
+            submitConvertBtn.innerHTML =
+                '<i class="fas fa-spinner fa-spin"></i> Creating...';
 
-            // Use jQuery $.ajax — works reliably with Django CSRF + Bootstrap 4
-            var convertUrl = '/inspections/response/' + responseId + '/convert-to-hazard/';
+            const convertUrl =
+                '/inspections/response/' +
+                responseId +
+                '/convert-to-hazard/';
 
             $.ajax({
                 url: convertUrl,
@@ -880,59 +1139,45 @@ document.addEventListener('DOMContentLoaded', function () {
                     immediate_action: immediateAction,
                     csrfmiddlewaretoken: csrfToken
                 },
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: function(data) {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+
+                success: function (data) {
+
                     if (data.success) {
-                        // Close modal
+
                         $('#convertHazardModal').modal('hide');
 
-                        // Replace Convert button with hazard link in the row
-                        var row = document.getElementById('row-' + responseId);
+                        const row =
+                            document.getElementById('row-' + responseId);
+
                         if (row) {
-                            var actionCell = row.querySelector('td:last-child');
+                            const actionCell =
+                                row.querySelector('td:last-child');
+
                             actionCell.innerHTML =
                                 '<a href="' + data.hazard_url + '" ' +
-                                '   class="btn btn-success btn-sm w-100" target="_blank">' +
-                                '    <i class="fas fa-shield-alt"></i><br>' +
-                                '    <small>' + data.hazard_number + '</small>' +
+                                'class="btn btn-success btn-sm w-100" target="_blank">' +
+                                '<i class="fas fa-shield-alt"></i><br>' +
+                                '<small>' + data.hazard_number + '</small>' +
                                 '</a>';
+
                             row.classList.remove('table-warning');
                             row.classList.add('table-success');
                         }
 
-                        // Show success toast
-                        document.getElementById('successToastBody').innerHTML =
-                            '<i class="fas fa-check-circle mr-2"></i> Hazard <strong>' +
-                            data.hazard_number + '</strong> created! ' +
-                            '<a href="' + data.hazard_url + '" class="text-white ml-2" target="_blank">View &rarr;</a>';
-                        $('#successToast').toast({ delay: 6000 });
-                        $('#successToast').toast('show');
-
                     } else {
-                        convertError.textContent = data.error || 'Something went wrong. Please try again.';
-                        convertError.classList.remove('d-none');
-                        submitConvertBtn.disabled = false;
-                        submitConvertBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Create Hazard Report';
+                        throw new Error(data.error || 'Something went wrong.');
                     }
                 },
-                error: function(xhr, status, error) {
-                    var msg = 'Error saving hazard.';
-                    try {
-                        var resp = JSON.parse(xhr.responseText);
-                        msg = resp.error || msg;
-                    } catch(e) {
-                        // Use status code to give useful message
-                        if (xhr.status === 403) msg = 'Permission denied. Are you the assigned person?';
-                        else if (xhr.status === 404) msg = 'Item not found. Please refresh the page.';
-                        else if (xhr.status === 500) msg = 'Server error. Check Django logs for details.';
-                        else msg = 'Error ' + xhr.status + ': ' + error;
-                    }
-                    convertError.textContent = msg;
+
+                error: function () {
+                    convertError.textContent =
+                        'Server error. Please try again.';
                     convertError.classList.remove('d-none');
                     submitConvertBtn.disabled = false;
-                    submitConvertBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Create Hazard Report';
+                    submitConvertBtn.innerHTML =
+                        '<i class="fas fa-exclamation-triangle"></i> Create Hazard Report';
+                    isConvertSubmitting = false;
                 }
             });
         });

@@ -215,6 +215,11 @@ class NotificationService:
             plant = hazard.plant
             location = hazard.location
             zone = hazard.zone
+        elif hasattr(content_object, 'submission'):
+            schedule = content_object.submission.schedule
+            plant = schedule.plant
+            location = schedule.location
+            zone = schedule.zone
         else:
             # Incident / Hazard
             plant = getattr(content_object, 'plant', None)
@@ -257,7 +262,7 @@ class NotificationService:
        
 
 
-        if not stakeholders:
+        if not stakeholders and not extra_recipients:
             # print("\n❌ ERROR: No stakeholders found!")
             return
 
@@ -281,6 +286,8 @@ class NotificationService:
             context = NotificationService._build_environment_context(content_object)
         elif notification_type == 'NOTIFY_INSPECTION':
             context = NotificationService._build_notify_inspection_context(content_object)
+        elif notification_type == 'INSPECTION_NONCOMPLIANCE_ASSIGNED':
+            context = NotificationService._build_noncompliance_assigned_context(content_object)
         elif module == 'INSPECTION':
             context = NotificationService._build_inspection_context(content_object)
         else:
@@ -691,4 +698,39 @@ EHS Management System
 """,
         'schedule': schedule,
         'recipient': schedule.assigned_to,
+    }
+
+    @staticmethod
+    def _build_noncompliance_assigned_context(response):
+        schedule = response.submission.schedule
+
+        return {
+            'title': f"Non-Compliance Assigned | {schedule.schedule_code}",
+            'subject': f"⚠️ Non-Compliance Assigned - {schedule.schedule_code}",
+            'message': f"""
+
+Hello {response.assigned_to.get_full_name()},
+
+A non-compliance item has been assigned to you for corrective action.
+
+NON-COMPLIANCE DETAILS
+--------------------------------------------------
+Schedule Code      : {schedule.schedule_code}
+Inspection Type    : {schedule.template.get_inspection_type_display()}
+Template           : {schedule.template.template_name}
+Plant              : {schedule.plant.name}
+Department         : {schedule.department.name if schedule.department else 'N/A'}
+Question           : {response.question.question_text}
+Response           : {response.answer}
+Assigned By        : {response.assigned_by.get_full_name()}
+Assigned On        : {response.assigned_at}
+Remarks            : {response.assignment_remarks if response.assignment_remarks else 'N/A'}
+
+Please review the issue and take necessary corrective action at the earliest.
+
+Regards,
+EHS Management System
+""",
+        'response': response,
+        'recipient': response.assigned_to,
     }

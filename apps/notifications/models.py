@@ -45,6 +45,7 @@ class NotificationMaster(models.Model):
         ('INSPECTION_FINDING_CLOSED', 'Finding Closed'),
         ('INSPECTION_OVERDUE', 'Inspection Overdue'),
         ('NOTIFY_INSPECTION', 'Inspection Assigned / Reminder'),
+        ('INSPECTION_NONCOMPLIANCE_ASSIGNED', 'Non-Compliance Assigned'),
     ]
     
     REMINDER_TYPE_CHOICES = [

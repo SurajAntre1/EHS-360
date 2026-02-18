@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Non-Compliance Assigned</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body
+    style="
+        margin: 0;
+        padding: 0;
+        background-color: #f2f4f7;
+        font-family: Arial, Helvetica, sans-serif;
+    "
+>
+    <table
+        width="100%"
+        cellpadding="0"
+        cellspacing="0"
+        style="background-color:#f2f4f7; padding:20px 0;"
+    >
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+                    
+                    <!-- HEADER -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg,#dc3545,#ff9800); padding:25px; text-align:center; color:#ffffff;">
+                            <h1 style="margin:0; font-size:22px;">
+                                ⚠️ Non-Compliance Assigned
+                            </h1>
+                            <p style="margin:8px 0 0; font-size:14px; opacity:0.95;">
+                                EHS-360 Inspection Management
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- BODY -->
+                    <tr>
+                        <td style="padding:30px; color:#333333; font-size:14px; line-height:1.6;">
+                            
+                            <p>
+                                Dear
+                                <strong>{{ response.assigned_to.get_full_name }}</strong>,
+                            </p>
+
+                            <p>
+                                A non-compliance item has been assigned to you for corrective action.
+                                Please review the details below and take necessary action promptly.
+                            </p>
+
+                            <!-- NON-COMPLIANCE DETAILS -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                                <tr>
+                                    <td style="background:#f9fafb; padding:18px; border-left:4px solid #dc3545; border-radius:4px;">
+                                        <h3 style="margin:0 0 12px; color:#dc3545; font-size:16px;">
+                                            🚨 Non-Compliance Details
+                                        </h3>
+
+                                        <p><strong>Schedule Code:</strong> {{ response.submission.schedule.schedule_code }}</p>
+                                        <p><strong>Template:</strong> {{ response.submission.schedule.template.template_name }}</p>
+                                        <p><strong>Inspection Type:</strong> {{ response.submission.schedule.template.get_inspection_type_display }}</p>
+                                        <p><strong>Question:</strong> {{ response.question.question_text }}</p>
+                                        <p><strong>Response Given:</strong> {{ response.answer }}</p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- LOCATION DETAILS -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                                <tr>
+                                    <td style="background:#f9fafb; padding:18px; border-left:4px solid #4CAF50; border-radius:4px;">
+                                        <h3 style="margin:0 0 12px; color:#4CAF50; font-size:16px;">
+                                            📍 Location Details
+                                        </h3>
+
+                                        <p><strong>Plant:</strong> {{ response.submission.schedule.plant.name }}</p>
+
+                                        {% if response.submission.schedule.zone %}
+                                            <p><strong>Zone:</strong> {{ response.submission.schedule.zone.name }}</p>
+                                        {% endif %}
+
+                                        {% if response.submission.schedule.location %}
+                                            <p><strong>Location:</strong> {{ response.submission.schedule.location.name }}</p>
+                                        {% endif %}
+
+                                        {% if response.submission.schedule.department %}
+                                            <p><strong>Department:</strong> {{ response.submission.schedule.department.name }}</p>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- ASSIGNMENT DETAILS -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                                <tr>
+                                    <td
+                                        style="
+                                            background:#fff4e5;
+                                            padding:18px;
+                                            border-left:4px solid #ff9800;
+                                            border-radius:4px;
+                                        "
+                                    >
+                                        <h3
+                                            style="
+                                                margin:0 0 10px;
+                                                color:#ff9800;
+                                                font-size:16px;
+                                            "
+                                        >
+                                            ⏰ Assignment Details
+                                        </h3>
+
+                                        <p>
+                                            <strong>Assigned By:</strong>
+                                            {{ response.assigned_by.get_full_name }}
+                                        </p>
+
+                                        <p>
+                                            <strong>Assigned On:</strong>
+                                            {{ response.assigned_at|date:"d M Y H:i" }}
+                                        </p>
+
+                                        {% if response.assignment_remarks %}
+                                            <p>
+                                                <strong>Remarks:</strong>
+                                                {{ response.assignment_remarks }}
+                                            </p>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin-top:30px; font-size:13px; color:#555;">
+                                Please ensure corrective action is completed promptly
+                                to maintain compliance standards.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- FOOTER -->
+                    <tr>
+                        <td style="background:#f2f4f7; padding:20px; text-align:center; font-size:12px; color:#777;">
+                            <p>This is an automated message from EHS-360</p>
+                            <p>Please do not reply to this email</p>
+                            <p>© {{ current_year }} EHS-360. All rights reserved.</p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
