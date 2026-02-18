@@ -33,10 +33,10 @@ class InspectionHazardService:
             question__auto_generate_finding=True
         ).select_related('question', 'question__category')
         
-        print(f"\n{'='*80}")
-        print(f"🔄 Auto-creating hazards from inspection: {submission.schedule.schedule_code}")
-        print(f"Found {no_responses.count()} 'No' answers to process")
-        print(f"{'='*80}\n")
+        # print(f"\n{'='*80}")
+        # print(f"🔄 Auto-creating hazards from inspection: {submission.schedule.schedule_code}")
+        # print(f"Found {no_responses.count()} 'No' answers to process")
+        # print(f"{'='*80}\n")
         
         for response in no_responses:
             try:

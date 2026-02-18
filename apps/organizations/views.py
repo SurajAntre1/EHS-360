@@ -505,10 +505,10 @@ class ZoneCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
                     subloc_code = self.request.POST.get(f'location_{i}_sublocation_code_{j}', '').strip()
                     subloc_active = self.request.POST.get(f'location_{i}_sublocation_active_{j}') == '1'
                     
-                    print(f"    Sublocation {j}:")
-                    print(f"      Name: {subloc_name}")
-                    print(f"      Code: {subloc_code}")
-                    print(f"      Active: {subloc_active}")
+                    # print(f"    Sublocation {j}:")
+                    # print(f"      Name: {subloc_name}")
+                    # print(f"      Code: {subloc_code}") 
+                    # print(f"      Active: {subloc_active}")
                     
                     if subloc_name:
                         new_subloc = SubLocation.objects.create(
@@ -561,11 +561,11 @@ class ZoneUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
             location_description = self.request.POST.get(f'location_description_{i}', '').strip()
             location_active = self.request.POST.get(f'location_active_{i}') == '1'
             
-            print(f"\nProcessing Location {i}:")
-            print(f"  ID: {location_id}")
-            print(f"  Name: {location_name}")
-            print(f"  Code: {location_code}")
-            print(f"  Active: {location_active}")
+            # print(f"\nProcessing Location {i}:")
+            # print(f"  ID: {location_id}")
+            # print(f"  Name: {location_name}")
+            # print(f"  Code: {location_code}")
+            # print(f"  Active: {location_active}")
 
             if location_name and location_code:
                 loc_data = {
@@ -621,9 +621,9 @@ class ZoneUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
                     subloc_code = self.request.POST.get(f'location_{i}_sublocation_code_{j}', '').strip()
                     subloc_active = self.request.POST.get(f'location_{i}_sublocation_active_{j}') == '1'
 
-                    print(f"    Sublocation {j}:")
-                    print(f"      ID: {subloc_id}")
-                    print(f"      Name: {subloc_name}")
+                    # print(f"    Sublocation {j}:")
+                    # print(f"      ID: {subloc_id}")
+                    # print(f"      Name: {subloc_name}")
 
                     if subloc_name:
                         if subloc_id:
