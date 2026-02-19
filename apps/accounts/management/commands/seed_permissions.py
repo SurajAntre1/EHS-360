@@ -79,7 +79,8 @@ class Command(BaseCommand):
              'INSPECTION', 'VIEW', 3),
             ('APPROVE_INSPECTION', 'Approve Inspection', 'Can approve inspections', 
              'INSPECTION', 'APPROVE', 4),
-            
+            ('VIEW_NO_ANSWER_ITEMS', 'View No Answer Items', 'Can view no answer assigned items',
+            'INSPECTION', 'VIEW', 5),
             # === REPORTS MODULE ===
             ('ACCESS_REPORTS_MODULE', 'Access Reports Module', 'Can access reports module', 
              'REPORTS', 'MODULE_ACCESS', 0),
