@@ -359,7 +359,7 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
         messages.success(
             self.request, 
             f'User {user.username} updated successfully!'
-        )
+        ) 
         
         return super().form_valid(form)
     

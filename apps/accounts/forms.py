@@ -99,6 +99,7 @@ class UserUpdateForm(BaseUserChangeForm):
             # Provide help text to inform the user why the field is disabled.
             self.fields['role'].help_text = "You do not have permission to change the role."
             self.fields['department'].help_text = "You do not have permission to change the department."
+            self.fields['is_active'].widget.attrs['disabled'] = 'disabled'
         # --- NEW CODE ENDS HERE ---
 
     def clean_email(self):
