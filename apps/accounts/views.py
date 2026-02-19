@@ -310,44 +310,53 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
         return context
     
     def form_valid(self, form):
-        # Store the user's role before any changes are made.
+        # Store the user's state before any changes are made.
         old_user = User.objects.get(pk=self.object.pk)
         old_role = old_user.role
         
-        # Save the form. This will update basic user details.
-        # For non-admins, disabled fields (role, department) won't be in the POST data,
-        # so their original values are preserved.
-        user = form.save()
+        # --- START OF FIX ---
+        # Get the user instance from the form without saving it to the database yet.
+        user = form.save(commit=False)
         
-        # --- MODIFIED CODE BLOCK STARTS HERE ---
-        # Ensure only superusers or admins can modify location assignments.
-        # This is a critical security check on the server-side.
-        if self.request.user.is_superuser or self.request.user.is_admin_user:
-            # Handle Plant assignments from checkboxes
-            plant_ids = self.request.POST.getlist('assigned_plants')
-            user.assigned_plants.set(plant_ids)
-            user.plant = Plant.objects.filter(id__in=plant_ids).first()
-            
-            # Handle Zone assignments from checkboxes
-            zone_ids = self.request.POST.getlist('assigned_zones')
-            user.assigned_zones.set(zone_ids)
-            user.zone = Zone.objects.filter(id__in=zone_ids).first()
-            
-            # Handle Location assignments from checkboxes
-            location_ids = self.request.POST.getlist('assigned_locations')
-            user.assigned_locations.set(location_ids)
-            user.location = Location.objects.filter(id__in=location_ids).first()
-            
-            # Handle SubLocation assignments from checkboxes
-            sublocation_ids = self.request.POST.getlist('assigned_sublocations')
-            user.assigned_sublocations.set(sublocation_ids)
-            user.sublocation = SubLocation.objects.filter(id__in=sublocation_ids).first()
+        # If the logged-in user is a non-admin, they are not allowed to change
+        # organization or active status. We must restore the original values for
+        # these fields because disabled form inputs are not sent in the request.
+        if not (self.request.user.is_superuser or self.request.user.is_admin_user):
+            user.role = old_user.role
+            user.department = old_user.department
+            user.is_active = old_user.is_active
+        
+        # Now, save the user instance with the corrected data.
+        user.save()
+        # --- END OF FIX ---
 
-            # Save all location-related changes at once.
+        # The rest of the logic remains the same, but it now operates on the correctly saved user.
+        # Ensure only superusers or admins can modify location assignments.
+        if self.request.user.is_superuser or self.request.user.is_admin_user:
+            # Handle MULTIPLE PLANT ASSIGNMENTS (from checkboxes)
+            assigned_plants = self.request.POST.getlist('assigned_plants')
+            user.assigned_plants.set(assigned_plants)
+            user.plant = Plant.objects.filter(id__in=assigned_plants).first()
+            
+            # Handle MULTIPLE ZONE ASSIGNMENTS (from checkboxes)
+            assigned_zones = self.request.POST.getlist('assigned_zones')
+            user.assigned_zones.set(assigned_zones)
+            user.zone = Zone.objects.filter(id__in=assigned_zones).first()
+            
+            # Handle MULTIPLE LOCATION ASSIGNMENTS (from checkboxes)
+            assigned_locations = self.request.POST.getlist('assigned_locations')
+            user.assigned_locations.set(assigned_locations)
+            user.location = Location.objects.filter(id__in=assigned_locations).first()
+            
+            # Handle MULTIPLE SUBLOCATION ASSIGNMENTS (from checkboxes)
+            assigned_sublocations = self.request.POST.getlist('assigned_sublocations')
+            user.assigned_sublocations.set(assigned_sublocations)
+            user.sublocation = SubLocation.objects.filter(id__in=assigned_sublocations).first()
+            
+            # Save all location-related changes.
             user.save()
-        # --- MODIFIED CODE BLOCK ENDS HERE ---
-        
-        # If the user's role was changed, sync their permissions.
+
+        # If the user's role was changed (which can now only happen by an admin), sync permissions.
         if old_role != user.role:
             if user.role:
                 updated = user.sync_permissions_to_flags()
@@ -359,9 +368,10 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
         messages.success(
             self.request, 
             f'User {user.username} updated successfully!'
-        ) 
+        )
         
-        return super().form_valid(form)
+        # Use return redirect() as form.save() was already called
+        return redirect(self.get_success_url())
     
     def form_invalid(self, form):
         messages.error(self.request, 'Please correct the errors below.')
