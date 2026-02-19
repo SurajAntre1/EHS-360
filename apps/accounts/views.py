@@ -271,75 +271,83 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'accounts/user_update.html'
 
     def get_success_url(self):
-        return reverse_lazy('accounts:user_detail',kwargs={'pk':self.object.pk})
+        return reverse_lazy('accounts:user_detail', kwargs={'pk': self.object.pk})
     
+    # --- NEW METHOD STARTS HERE ---
+    def get_form_kwargs(self):
+        """
+        Pass the request object to the form's constructor.
+        This allows the form to know about the current user.
+        """
+        kwargs = super().get_form_kwargs()
+        kwargs.update({'request': self.request})
+        return kwargs
+    # --- NEW METHOD ENDS HERE ---
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Load all active plants
+        user = self.object
+        
+        # Load all active plants for the admin interface
         context['all_plants'] = Plant.objects.filter(is_active=True).order_by('name')
         
-        # Get user's existing assignments as Python lists
-        user = self.object
-        context['user_assigned_plants'] = list(user.assigned_plants.all().values_list('id', flat=True))
-        context['user_assigned_zones'] = list(user.assigned_zones.all().values_list('id', flat=True))
-        context['user_assigned_locations'] = list(user.assigned_locations.all().values_list('id', flat=True))
-        context['user_assigned_sublocations'] = list(user.assigned_sublocations.all().values_list('id', flat=True))
-        context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
+        # Get user's existing assignments as lists of IDs for the JavaScript.
+        context['user_assigned_plants'] = list(user.assigned_plants.values_list('id', flat=True))
+        context['user_assigned_zones'] = list(user.assigned_zones.values_list('id', flat=True))
+        context['user_assigned_locations'] = list(user.assigned_locations.values_list('id', flat=True))
+        context['user_assigned_sublocations'] = list(user.assigned_sublocations.values_list('id', flat=True))
         
+        # --- NEW CODE STARTS HERE ---
+        # If the user is not an admin, provide the full objects for the read-only display.
+        if not (self.request.user.is_superuser or self.request.user.is_admin_user):
+            context['user_assigned_plants_details'] = user.assigned_plants.all().order_by('name')
+            context['user_assigned_zones_details'] = user.assigned_zones.all().order_by('name')
+            context['user_assigned_locations_details'] = user.assigned_locations.all().order_by('name')
+            context['user_assigned_sublocations_details'] = user.assigned_sublocations.all().order_by('name')
+        # --- NEW CODE ENDS HERE ---
+
+        context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
         return context
     
     def form_valid(self, form):
-        # ✅ NEW: Store old role to detect changes
+        # Store the user's role before any changes are made.
         old_user = User.objects.get(pk=self.object.pk)
         old_role = old_user.role
         
-        # Save user first
-        user = form.save(commit=False)
-        user.save()
+        # Save the form. This will update basic user details.
+        # For non-admins, disabled fields (role, department) won't be in the POST data,
+        # so their original values are preserved.
+        user = form.save()
         
-        # Handle MULTIPLE PLANT ASSIGNMENTS (from checkboxes)
-        assigned_plants = self.request.POST.getlist('assigned_plants')
-        if assigned_plants:
-            user.assigned_plants.set(assigned_plants)
-            user.plant = Plant.objects.get(id=assigned_plants[0])
-        else:
-            user.assigned_plants.clear()
-            user.plant = None
-        
-        # Handle MULTIPLE ZONE ASSIGNMENTS (from checkboxes)
-        assigned_zones = self.request.POST.getlist('assigned_zones')
-        if assigned_zones:
-            user.assigned_zones.set(assigned_zones)
-            user.zone = Zone.objects.get(id=assigned_zones[0])
-        else:
-            user.assigned_zones.clear()
-            user.zone = None
-        
-        user.save()
-        
-        # Handle MULTIPLE LOCATION ASSIGNMENTS (from checkboxes)
-        assigned_locations = self.request.POST.getlist('assigned_locations')
-        if assigned_locations:
-            user.assigned_locations.set(assigned_locations)
-            user.location = Location.objects.get(id=assigned_locations[0])
+        # --- MODIFIED CODE BLOCK STARTS HERE ---
+        # Ensure only superusers or admins can modify location assignments.
+        # This is a critical security check on the server-side.
+        if self.request.user.is_superuser or self.request.user.is_admin_user:
+            # Handle Plant assignments from checkboxes
+            plant_ids = self.request.POST.getlist('assigned_plants')
+            user.assigned_plants.set(plant_ids)
+            user.plant = Plant.objects.filter(id__in=plant_ids).first()
+            
+            # Handle Zone assignments from checkboxes
+            zone_ids = self.request.POST.getlist('assigned_zones')
+            user.assigned_zones.set(zone_ids)
+            user.zone = Zone.objects.filter(id__in=zone_ids).first()
+            
+            # Handle Location assignments from checkboxes
+            location_ids = self.request.POST.getlist('assigned_locations')
+            user.assigned_locations.set(location_ids)
+            user.location = Location.objects.filter(id__in=location_ids).first()
+            
+            # Handle SubLocation assignments from checkboxes
+            sublocation_ids = self.request.POST.getlist('assigned_sublocations')
+            user.assigned_sublocations.set(sublocation_ids)
+            user.sublocation = SubLocation.objects.filter(id__in=sublocation_ids).first()
+
+            # Save all location-related changes at once.
             user.save()
-        else:
-            user.assigned_locations.clear()
-            user.location = None
-            user.save()
+        # --- MODIFIED CODE BLOCK ENDS HERE ---
         
-        # Handle MULTIPLE SUBLOCATION ASSIGNMENTS (from checkboxes)
-        assigned_sublocations = self.request.POST.getlist('assigned_sublocations')
-        if assigned_sublocations:
-            user.assigned_sublocations.set(assigned_sublocations)
-            user.sublocation = SubLocation.objects.get(id=assigned_sublocations[0])
-            user.save()
-        else:
-            user.assigned_sublocations.clear()
-            user.sublocation = None
-            user.save()
-        
-        # ✅ NEW: Auto-sync if role changed
+        # If the user's role was changed, sync their permissions.
         if old_role != user.role:
             if user.role:
                 updated = user.sync_permissions_to_flags()
@@ -357,7 +365,7 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
     
     def form_invalid(self, form):
         messages.error(self.request, 'Please correct the errors below.')
-        print("Form errors:", form.errors)
+        # print("Form errors:", form.errors)
         return super().form_invalid(form)
     
     def get_queryset(self):

@@ -382,15 +382,15 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
             )
         
         # ===== ADD NOTIFICATION HERE - AFTER INCIDENT IS SAVED =====
-        print("\n\n" + "#" * 70)
-        print("VIEW: INCIDENT SAVED SUCCESSFULLY")
-        print("#" * 70)
-        print(f"Report Number: {self.object.report_number}")
-        print(f"Incident ID: {self.object.id}")
-        print(f"Plant: {self.object.plant}")
-        print(f"Location: {self.object.location}")
-        print("#" * 70)
-        print("\nVIEW: Calling notify_incident_reported()...")
+        # print("\n\n" + "#" * 70)
+        # print("VIEW: INCIDENT SAVED SUCCESSFULLY")
+        # print("#" * 70)
+        # print(f"Report Number: {self.object.report_number}")
+        # print(f"Incident ID: {self.object.id}")
+        # print(f"Plant: {self.object.plant}")
+        # print(f"Location: {self.object.location}")
+        # print("#" * 70)
+        # print("\nVIEW: Calling notify_incident_reported()...")
 
         try:
             # ✅ NEW: Use NotificationService instead of old notification_utils
@@ -1308,7 +1308,7 @@ class IncidentClosureView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         incident.closed_by = self.request.user
         incident.save()
 
-        print(f"Incident {incident.report_number} closed. Sending notification...")
+        # print(f"Incident {incident.report_number} closed. Sending notification...")
 
         # For sending notifications
         try:

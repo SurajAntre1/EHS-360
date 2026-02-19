@@ -70,23 +70,37 @@ class UserUpdateForm(BaseUserChangeForm):
         }
     
     def __init__(self, *args, **kwargs):
+        # Pop the request object passed from the view.
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
     
         self.fields['department'].queryset = Department.objects.filter(is_active=True)
         
-        # Add Bootstrap classes
+        # Add Bootstrap classes to all fields
         for field_name, field in self.fields.items():
             if field.widget.__class__.__name__ != 'CheckboxInput':
                 field.widget.attrs['class'] = 'form-control'
         
-        # Make certain fields required
+        # Define required fields
         self.fields['email'].required = True
         self.fields['first_name'].required = True
         self.fields['last_name'].required = True
 
         self.fields['date_of_birth'].required = False
         self.fields['date_joined_company'].required = False
-    
+        
+        # --- NEW CODE STARTS HERE ---
+        # Conditionally disable organization fields if the user is not an admin.
+        if self.request and not (self.request.user.is_superuser or self.request.user.is_admin_user):
+            # Disable Role and Department fields
+            self.fields['role'].widget.attrs['disabled'] = 'disabled'
+            self.fields['department'].widget.attrs['disabled'] = 'disabled'
+            
+            # Provide help text to inform the user why the field is disabled.
+            self.fields['role'].help_text = "You do not have permission to change the role."
+            self.fields['department'].help_text = "You do not have permission to change the department."
+        # --- NEW CODE ENDS HERE ---
+
     def clean_email(self):
         email = self.cleaned_data.get("email")
         qs = User.objects.filter(email=email).exclude(pk=self.instance.pk)

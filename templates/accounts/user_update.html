@@ -206,6 +206,12 @@
             <div class="col-md-6 mb-3">
               <label for="{{ form.role.id_for_label }}">Role *</label>
               {{ form.role }}
+              
+              <!-- Display help text if it exists (for non-admins) -->
+              {% if form.role.help_text %}
+                <small class="form-helper-text">{{ form.role.help_text }}</small>
+              {% endif %}
+              
               {% if form.role.errors %}
                 <div class="text-danger">{{ form.role.errors }}</div>
               {% endif %}
@@ -213,6 +219,12 @@
             <div class="col-md-6 mb-3">
               <label for="{{ form.department.id_for_label }}">Department</label>
               {{ form.department }}
+
+              <!-- Display help text if it exists (for non-admins) -->
+              {% if form.department.help_text %}
+                <small class="form-helper-text">{{ form.department.help_text }}</small>
+              {% endif %}
+
               {% if form.department.errors %}
                 <div class="text-danger">{{ form.department.errors }}</div>
               {% endif %}
@@ -224,38 +236,32 @@
           <!-- Location Assignment Section - ALL CHECKBOXES -->
           <h5 class="mb-3"><i class="fas fa-map-marked-alt mr-2"></i>Location Assignment</h5>
 
-          <!-- Plants (Multiple Checkboxes) - LOADED FROM BACKEND -->
-          <div class="mb-4">
-            <label><strong>Assigned Plants</strong></label>
-            <small class="form-helper-text d-block mb-2">Select multiple plants</small>
+          <!-- Check if the logged-in user is a superuser or admin -->
+          {% if request.user.is_superuser or request.user.is_admin_user %}
             
-            <div class="select-all-section">
-              <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllPlants()">
-                <i class="fas fa-check-square mr-1"></i>Select All
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-secondary ml-2" onclick="deselectAllPlants()">
-                <i class="fas fa-square mr-1"></i>Deselect All
-              </button>
-            </div>
-            
-            <div class="checkbox-grid" id="plantsCheckboxGrid">
-              {% if all_plants %}
+            <!-- EDITABLE VIEW FOR ADMINS -->
+            <!-- This block contains the interactive checkboxes for location assignment -->
+
+            <!-- Plants (Multiple Checkboxes) - LOADED FROM BACKEND -->
+            <div class="mb-4">
+              <!-- ... your existing code for Plants checkbox grid ... -->
+              <label><strong>Assigned Plants</strong></label>
+              <small class="form-helper-text d-block mb-2">Select multiple plants</small>
+              <div class="select-all-section">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllPlants()"><i class="fas fa-check-square mr-1"></i>Select All</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary ml-2" onclick="deselectAllPlants()"><i class="fas fa-square mr-1"></i>Deselect All</button>
+              </div>
+              <div class="checkbox-grid" id="plantsCheckboxGrid">
                 {% for plant in all_plants %}
                 <div class="checkbox-item">
-                  <input type="checkbox" name="assigned_plants" value="{{ plant.id }}" 
-                         id="plant_{{ plant.id }}" class="plant-checkbox" 
-                         onchange="loadZonesForSelectedPlants()"
-                         {% if plant.id in user_assigned_plants %}checked{% endif %}>
-                  <label for="plant_{{ plant.id }}" class="mb-0">
-                    <strong>{{ plant.name }}</strong> ({{ plant.code }})
-                  </label>
+                    <input type="checkbox" name="assigned_plants" value="{{ plant.id }}" id="plant_{{ plant.id }}" class="plant-checkbox" onchange="loadZonesForSelectedPlants()" {% if plant.id in user_assigned_plants %}checked{% endif %}>
+                    <label for="plant_{{ plant.id }}" class="mb-0"><strong>{{ plant.name }}</strong> ({{ plant.code }})</label>
                 </div>
-                {% endfor %}
-              {% else %}
+                {% empty %}
                 <div class="text-muted">No plants available</div>
-              {% endif %}
+                {% endfor %}
+              </div>
             </div>
-          </div>
 
           <!-- Zones (Multiple Checkboxes) -->
           <div class="mb-4">
@@ -313,6 +319,63 @@
               <div class="text-muted">Please select locations first</div>
             </div>
           </div>
+
+          {% else %}
+            
+            <!-- READ-ONLY VIEW FOR OTHER USERS -->
+            <!-- This block displays the assigned locations as a simple list -->
+
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle mr-2"></i>
+              Location assignments can only be changed by an administrator.
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                  <h6><strong>Plants</strong></h6>
+                  <ul class="list-group">
+                      {% for plant in user_assigned_plants_details %}
+                          <li class="list-group-item">{{ plant.name }} ({{ plant.code }})</li>
+                      {% empty %}
+                          <li class="list-group-item">No plants assigned.</li>
+                      {% endfor %}
+                  </ul>
+              </div>
+              <div class="col-md-6 mb-3">
+                  <h6><strong>Assigned Zones</strong></h6>
+                  <ul class="list-group">
+                      {% for zone in user_assigned_zones_details %}
+                          <li class="list-group-item">{{ zone.name }} ({{ zone.code }})</li>
+                      {% empty %}
+                          <li class="list-group-item">No zones assigned.</li>
+                      {% endfor %}
+                  </ul>
+              </div>
+            </div>
+            <div class="row mt-3">
+              <div class="col-md-6 mb-3">
+                  <h6><strong>Assigned Locations</strong></h6>
+                  <ul class="list-group">
+                      {% for location in user_assigned_locations_details %}
+                          <li class="list-group-item">{{ location.name }} ({{ location.code }})</li>
+                      {% empty %}
+                          <li class="list-group-item">No locations assigned.</li>
+                      {% endfor %}
+                  </ul>
+              </div>
+              <div class="col-md-6 mb-3">
+                  <h6><strong>Assigned Sub-Locations</strong></h6>
+                  <ul class="list-group">
+                      {% for sublocation in user_assigned_sublocations_details %}
+                          <li class="list-group-item">{{ sublocation.name }}{% if sublocation.code %} ({{ sublocation.code }}){% endif %}</li>
+                      {% empty %}
+                          <li class="list-group-item">No sub-locations assigned.</li>
+                      {% endfor %}
+                  </ul>
+              </div>
+            </div>
+
+          {% endif %}
 
           <hr class="my-4">
 

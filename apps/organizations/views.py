@@ -466,10 +466,10 @@ class ZoneCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
             location_description = self.request.POST.get(f'location_description_{i}', '').strip()
             location_active = self.request.POST.get(f'location_active_{i}') == '1'
             
-            print(f"\nProcessing Location {i}:")
-            print(f"  Name: {location_name}")
-            print(f"  Code: {location_code}")
-            print(f"  Active: {location_active}")
+            # print(f"\nProcessing Location {i}:")
+            # print(f"  Name: {location_name}")
+            # print(f"  Code: {location_code}")
+            # print(f"  Active: {location_active}")
             
             if location_name and location_code:
                 # Create location 
