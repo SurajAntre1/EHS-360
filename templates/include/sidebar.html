@@ -431,6 +431,14 @@
               </a>
             </li>
             {% endif %}
+            {% if user|has_perm:'VIEW_NO_ANSWER_ITEMS' %}
+              <li class="nav-item">
+                <a href="{% url 'inspections:no_answers_list' %}" class="nav-link {% if request.resolver_match.url_name == 'no_answers' %}active{% endif %}">
+                  <i class="nav-icon far fa-circle"></i>
+                  <p>No Answer Items</p>
+                </a>
+              </li>
+            {% endif %}
           </ul>
         </li>
         {% endif %}
