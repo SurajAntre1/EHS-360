@@ -58,7 +58,7 @@
           <tr>
             <th>Code</th>
             <th>Name</th>
-            <th>Department Head</th>
+            {% comment %} <th>Department Head</th> {% endcomment %}
             <th>Employees</th>
             <th>Status</th>
             <th>Actions</th>
@@ -69,14 +69,14 @@
           <tr>
             <td><strong>{{ department.code }}</strong></td>
             <td>{{ department.name }}</td>
-            <td>
+            {% comment %} <td>
               {% if department.head_name %}
                 {{ department.head_name }}<br>
                 <small class="text-muted">{{ department.head_phone }}</small>
               {% else %}
                 <span class="text-muted">N/A</span>
               {% endif %}
-            </td>
+            </td> {% endcomment %}
             <td>
               <span class="badge badge-info">{{ department.total_employees }} Total</span>
               <span class="badge badge-success">{{ department.active_employees }} Active</span>

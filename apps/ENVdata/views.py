@@ -9,6 +9,8 @@ from datetime import datetime
 from django.core.paginator import Paginator 
 from apps.accounts.models import User
 from apps.accidents.models import Incident
+from apps.hazards.models import Hazard
+from apps.inspections.models import InspectionTemplate, InspectionSchedule
 from apps.organizations.models import Plant
 from .models import *
 from .utils import *
@@ -431,7 +433,8 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
         # Fetch saved monthly data
         saved_data = MonthlyIndicatorData.objects.filter(
             plant=selected_plant,
-            indicator__isnull=False
+            indicator__isnull=False,
+            indicator__source_type='MANUAL'  # only manual data
         ).select_related('indicator', 'unit')
         
         # Organize saved data including units
@@ -453,7 +456,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
             default_unit_id = q.default_unit.id if q.default_unit else None
             
             # Check if this question has auto-calculation
-            is_auto = q.question_text in auto_data
+            is_auto = q.source_type != 'MANUAL'
 
             # Get available units for this question
             available_units = []
@@ -466,16 +469,19 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
             for month_code, month_name in MONTHS:
                 month_key = month_code.lower()
                 value = ''
-                saved_unit_name = default_unit_name  # Default
-                
-                # Priority 1: Check saved manual data
-                if q in saved_dict and month_key in saved_dict[q]:
-                    value = saved_dict[q][month_key]['value']
-                    saved_unit_name = saved_dict[q][month_key]['unit'].name if saved_dict[q][month_key]['unit'] else default_unit_name
-                # Priority 2: Check auto-calculated data
-                elif is_auto and month_name in auto_data.get(q.question_text, {}):
-                    value = auto_data[q.question_text][month_name]
-                    saved_unit_name = "Count"  # Auto-calculated are counts
+                saved_unit_name = default_unit_name
+
+                # MANUAL data
+                if q.source_type == 'MANUAL':
+                    if q in saved_dict and month_key in saved_dict[q]:
+                        value = saved_dict[q][month_key]['value']
+                        saved_unit_name = saved_dict[q][month_key]['unit'].name if saved_dict[q][month_key]['unit'] else default_unit_name
+
+                # AUTO data 
+                else:
+                    if month_name in auto_data.get(q.question_text, {}):
+                        value = auto_data[q.question_text][month_name]
+                        saved_unit_name = "Count"
 
                 # Find the unit ID for the saved unit
                 saved_unit_id = default_unit_id
@@ -534,6 +540,10 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
         saved_count = 0
 
         for q in questions:
+            # Skip auto-calculated questions
+            if q.source_type != 'MANUAL':
+                continue
+
             slug = self.slugify_field(q.question_text)
             default_unit = q.default_unit  # fallback Unit object
             for month_code, month_name in MONTHS:
@@ -561,8 +571,6 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                     continue
 
                 try:
-                    # --- YAHAN CHANGES KIYE GAYE HAIN ---
-                    
                     # Convert input string to float first to handle decimals entered by user
                     raw_numeric_value = float(value.replace(",", ""))
 
@@ -1094,6 +1102,7 @@ class GetCategoryUnitsAPIView(LoginRequiredMixin, View):
 # =========================================================
 # VIEW SUBMITTED DATA - USER VIEW (Read-only)
 # =========================================================
+from decimal import Decimal
 
 class PlantDataDisplayView(LoginRequiredMixin, View):
     template_name = "data_collection/data_display.html"
@@ -1116,10 +1125,7 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
         plant_id = request.GET.get('plant_id')
         user_plants = self.get_user_plants(request)
         
-        if plant_id:
-            plant = user_plants.filter(id=plant_id).first()
-        else:
-            plant = user_plants.first()
+        plant = user_plants.filter(id=plant_id).first() if plant_id else user_plants.first()
         
         if not plant:
             return render(request, "no_plant_assigned.html")
@@ -1128,30 +1134,19 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
             is_active=True
         ).select_related('unit_category', 'default_unit').order_by("is_system", "order", "id")
 
-        if not questions.exists():
-            return render(request, self.template_name, {
-                "plant": plant,
-                "user_plants": user_plants,
-                "no_questions": True,
-            })
+        MONTHS = MonthlyIndicatorData.MONTH_CHOICES
 
-        # Get saved data for this plant - FILTER OUT NULL indicators
+        # Manual data
         saved_data = MonthlyIndicatorData.objects.filter(
-            plant=plant,
-            indicator__isnull=False
+            plant=plant
         ).select_related('indicator')
 
-        # Organize data by question
-        data_dict = {}
+        manual_dict = {}
         for d in saved_data:
-            if d.indicator is None:
+            if not d.indicator_id:
                 continue
-                
-            if d.indicator not in data_dict:
-                data_dict[d.indicator] = {}
-            data_dict[d.indicator][d.month.lower()] = d.value
-
-        MONTHS = MonthlyIndicatorData.MONTH_CHOICES
+            manual_dict.setdefault(d.indicator_id, {})
+            manual_dict[d.indicator_id][d.month] = d.value
 
         # Build display structure
         questions_data = []
@@ -1160,20 +1155,56 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
             
             # Create a list of month values in order
             month_values = []
-            total = 0
+            total = Decimal("0")
             has_values = False
             
             for month_code, month_name in MONTHS:
-                month_key = month_code.lower()
-                value = data_dict.get(q, {}).get(month_key, '')
-                
-                # Store the value
-                month_values.append(value if value else '-')
-                
-                # Calculate total
-                if value:
+
+                value = None
+
+                # MANUAL QUESTION
+                if q.source_type == "MANUAL":
+                    value = manual_dict.get(q.id, {}).get(month_code)
+
+                # AUTOMATIC QUESTION
+                else:
+                    start_date = datetime(datetime.now().year, 
+                                          datetime.strptime(month_code, "%b").month, 1)
+                    
+                    if month_code == "DEC":
+                        end_date = datetime(datetime.now().year + 1, 1, 1)
+                    else:
+                        next_month = datetime.strptime(month_code, "%b").month + 1
+                        end_date = datetime(datetime.now().year, next_month, 1)
+
+                    model_map = {
+                        "INCIDENT": Incident,
+                        "HAZARD": Hazard,
+                        "INSPECTION": InspectionSchedule,
+                    }
+
+                    model = model_map.get(q.source_type)
+
+                    if model:
+                        filters = {
+                            "plant": plant,
+                            "created_at__gte": start_date,
+                            "created_at__lt": end_date,
+                        }
+
+                        if q.filter_field and q.filter_value:
+                            filters[q.filter_field] = q.filter_value
+
+                        if q.filter_field_2 and q.filter_value_2:
+                            filters[q.filter_field_2] = q.filter_value_2
+
+                        value = model.objects.filter(**filters).count()
+
+                month_values.append(value if value not in [None, ""] else "-")
+
+                if value not in [None, "", "-"]:
                     try:
-                        total += float(str(value).replace(',', ''))
+                        total += Decimal(str(value))
                         has_values = True
                     except (ValueError, TypeError):
                         pass
@@ -1182,7 +1213,7 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
                 "question": q.question_text,
                 "unit": default_unit_name,
                 "month_values": month_values,  # List of values in order
-                "annual": f"{total:,.2f}" if has_values else '-',
+                "annual": f"{total}" if has_values else '-',
             })
 
         context = {
@@ -1238,6 +1269,13 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
             indicator__isnull=False
         ).select_related("plant", "indicator")
 
+        # Organize manual data in dictionary for performance
+        manual_dict = {}
+        for d in all_data:
+            manual_dict.setdefault(d.plant_id, {})
+            manual_dict[d.plant_id].setdefault(d.indicator_id, {})
+            manual_dict[d.plant_id][d.indicator_id][d.month] = d.value
+
         MONTHS = MonthlyIndicatorData.MONTH_CHOICES
 
         plants_data = []
@@ -1253,27 +1291,60 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
                 has_values = False
 
                 for month_code, month_name in MONTHS:
-                    data = all_data.filter(
-                        plant=plant,
-                        indicator=q,
-                        month=month_code.upper()
-                    ).first()
+                    value = None
 
-                    if data and data.value:
-                        month_data[month_name] = data.value
+                    # MANUAL QUESTION
+                    if q.source_type == "MANUAL":
+                        value = manual_dict.get(plant.id, {}).get(q.id, {}).get(month_code)
+
+                    # AUTOMATIC QUESTION
+                    else:
+                        start_date = datetime(datetime.now().year,
+                                              datetime.strptime(month_code, "%b").month, 1)
+
+                        if month_code == "DEC":
+                            end_date = datetime(datetime.now().year + 1, 1, 1)
+                        else:
+                            next_month = datetime.strptime(month_code, "%b").month + 1
+                            end_date = datetime(datetime.now().year, next_month, 1)
+
+                        model_map = {
+                            "INCIDENT": Incident,
+                            "HAZARD": Hazard,
+                            "INSPECTION": InspectionSchedule,
+                        }
+
+                        model = model_map.get(q.source_type)
+
+                        if model:
+                            filters = {
+                                "plant": plant,
+                                "created_at__gte": start_date,
+                                "created_at__lt": end_date,
+                            }
+
+                            if q.filter_field and q.filter_value:
+                                filters[q.filter_field] = q.filter_value
+
+                            if q.filter_field_2 and q.filter_value_2:
+                                filters[q.filter_field_2] = q.filter_value_2
+
+                            value = model.objects.filter(**filters).count()
+
+                    month_data[month_name] = value if value not in [None, ""] else "-"
+
+                    if value not in [None, "", "-"]:
                         try:
-                            total += float(str(data.value).replace(",", ""))
+                            total += Decimal(str(value))
                             has_values = True
                         except Exception:
                             pass
-                    else:
-                        month_data[month_name] = "-"
 
                 plant_questions_data.append({
                     "question": q.question_text,
                     "unit": unit_name,
                     "month_data": month_data,
-                    "annual": f"{total:,.2f}" if has_values else "-",
+                    "annual": f"{total}" if has_values else "-",
                 })
 
             plants_data.append({
@@ -1350,58 +1421,89 @@ class EnvironmentalDashboardView(LoginRequiredMixin, TemplateView):
         # --- 2. EXTRACT FILTERS ---
         selected_plant_id = self.request.GET.get('plant', '')
         selected_month_code = self.request.GET.get('month', '')
-        
+
         # --- 3. BASE DATA QUERYSET (Filter by accessible plants first) ---
         # Optimization: select_related to avoid N+1 queries on SQLite
-        data_qs = MonthlyIndicatorData.objects.filter(
+        manual_qs = MonthlyIndicatorData.objects.filter(
             plant__in=accessible_plants
         ).select_related('indicator', 'plant', 'unit', 'indicator__unit_category')
 
         # Apply user-selected filters
         if selected_plant_id:
-            data_qs = data_qs.filter(plant_id=selected_plant_id)
-            selected_plant_obj = accessible_plants.filter(id=selected_plant_id).first()
-            if selected_plant_obj:
-                context['selected_plant_name'] = selected_plant_obj.name
-                
-        if selected_month_code:
-            data_qs = data_qs.filter(month=selected_month_code)
-            month_dict = dict(MonthlyIndicatorData.MONTH_CHOICES)
-            context['selected_month_label'] = month_dict.get(selected_month_code)
+            manual_qs = manual_qs.filter(plant_id=selected_plant_id)
 
-        # Flag for active filter badges
-        context['has_active_filters'] = bool(selected_plant_id or selected_month_code)
+        if selected_month_code:
+            manual_qs = manual_qs.filter(month=selected_month_code)
 
         # --- 4. CALCULATE STATISTICS (Based on Filtered Data) ---
-        context['total_indicators_count'] = EnvironmentalQuestion.objects.filter(is_active=True).count()
-        context['total_data_points'] = data_qs.count()
-        context['plants_count'] = accessible_plants.count()
-        
-        # Sum of numeric values (Safe conversion for SQLite)
-        total_vol = 0
-        for entry in data_qs:
-            try:
-                total_vol += float(str(entry.value).replace(',', ''))
-            except (ValueError, TypeError):
+        auto_total = 0
+        auto_count = 0
+
+        auto_questions = EnvironmentalQuestion.objects.filter(
+            is_active=True
+        ).exclude(source_type="MANUAL")
+
+        for plant in accessible_plants:
+            if selected_plant_id and str(plant.id) != selected_plant_id:
                 continue
-        context['total_volume'] = total_vol
+
+            for q in auto_questions:
+                for month_code, _ in MonthlyIndicatorData.MONTH_CHOICES:
+                    if selected_month_code and month_code != selected_month_code:
+                        continue
+
+                    start_date = datetime(datetime.now().year,
+                                          datetime.strptime(month_code, "%b").month, 1)
+
+                    if month_code == "DEC":
+                        end_date = datetime(datetime.now().year + 1, 1, 1)
+                    else:
+                        next_month = datetime.strptime(month_code, "%b").month + 1
+                        end_date = datetime(datetime.now().year, next_month, 1)
+
+                    model_map = {
+                        "INCIDENT": Incident,
+                        "HAZARD": Hazard,
+                        "INSPECTION": InspectionTemplate,
+                    }
+
+                    model = model_map.get(q.source_type)
+
+                    if model:
+                        filters = {
+                            "plant": plant,
+                            "created_at__gte": start_date,
+                            "created_at__lt": end_date,
+                        }
+
+                        if q.filter_field and q.filter_value:
+                            filters[q.filter_field] = q.filter_value
+
+                        if q.filter_field_2 and q.filter_value_2:
+                            filters[q.filter_field_2] = q.filter_value_2
+
+                        count = model.objects.filter(**filters).count()
+                        auto_total += count
+                        auto_count += count
 
         # --- 5. PREPARE CHARTS (JSON format) ---
         # Category Chart
-        cat_dist = data_qs.values('indicator__unit_category__name').annotate(count=Count('id')).order_by('-count')
-        context['cat_labels_json'] = json.dumps([item['indicator__unit_category__name'] or "Other" for item in cat_dist])
-        context['cat_data_json'] = json.dumps([item['count'] for item in cat_dist])
+        context['total_indicators_count'] = EnvironmentalQuestion.objects.filter(is_active=True).count()
+        context['total_data_points'] = manual_qs.count() + auto_count
+        context['plants_count'] = accessible_plants.count()
+        total_vol = Decimal("0")
 
-        # Trend Chart (Calendar order)
-        month_order = [m[0] for m in MonthlyIndicatorData.MONTH_CHOICES]
-        trend_query = data_qs.values('month').annotate(count=Count('id'))
-        trend_map = {item['month']: item['count'] for item in trend_query}
-        
-        context['trend_labels_json'] = json.dumps([dict(MonthlyIndicatorData.MONTH_CHOICES).get(m) for m in month_order])
-        context['trend_values_json'] = json.dumps([trend_map.get(m, 0) for m in month_order])
+        for entry in manual_qs:
+            try:
+                total_vol += Decimal(str(entry.value).replace(',', ''))
+            except:
+                pass
+
+        total_vol += Decimal(str(auto_total))
+        context['total_volume'] = total_vol
 
         # --- 6. DATA TABLE (Show ALL filtered data) ---
-        context['data_entries'] = data_qs.order_by('plant__name', 'indicator__order')
+        context['data_entries'] = manual_qs.order_by('plant__name', 'indicator__order')
 
         # --- 7. FILTER OPTIONS ---
         context['plants'] = accessible_plants

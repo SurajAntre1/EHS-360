@@ -204,6 +204,7 @@ def get_all_plants_environmental_data(plants):
         .select_related("plant", "indicator", "unit")
     )
 
+    current_year = datetime.now().year
     plants_data = []
 
     for plant in plants:
@@ -216,24 +217,29 @@ def get_all_plants_environmental_data(plants):
             unit_name = q.default_unit.name if q.default_unit else "Count"
 
             for month_db, month_label in MonthlyIndicatorData.MONTH_CHOICES:
+                if q.source_type in ['INCIDENT', 'HAZARD', 'INSPECTION']:
+                    month_number = list(calendar.month_name).index(month_label)
 
-                entry = all_data.filter(
-                    plant=plant,
-                    indicator=q,      
-                    month=month_db    
-                ).first()
-
-                if entry and entry.value is not None:
-                    value = entry.value
+                    value = EnvironmentalDataFetcher.calculate_question_value(q, plant, month_number, current_year)
                     month_data[month_label] = value
 
-                    try:
-                        total += float(str(value).replace(",", ""))
+                    if value:
+                        total += value
                         has_values = True
-                    except (ValueError, TypeError):
-                        pass
                 else:
-                    month_data[month_label] = ""
+                    entry = all_data.filter(plant=plant,indicator=q,month=month_db).first()
+
+                    if entry and entry.value is not None:
+                        value = entry.value
+                        month_data[month_label] = value
+
+                        try:
+                            total += float(str(value).replace(",", ""))
+                            has_values = True
+                        except (ValueError, TypeError):
+                            pass
+                    else:
+                        month_data[month_label] = ""
 
             questions_data.append({
                 "question": q.question_text,
