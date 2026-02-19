@@ -232,7 +232,7 @@
                     </h3>
                     <p class="text-muted mb-0">Report unsafe acts, unsafe conditions, or near-miss incidents</p>
                 </div>
-                <a href="{{ request.GET.next|default:request.META.HTTP_REFERER|default:'/' }}" class="btn btn-outline-secondary">
+                <a href="{{ cancel_url }}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> Back to List
                 </a>
             </div>
@@ -541,7 +541,7 @@
                                 <button type="submit" class="btn btn-primary btn-lg px-5">
                                     <i class="fas fa-paper-plane"></i> Submit Report(s)
                                 </button>
-                                <a href="{{ request.GET.next|default:request.META.HTTP_REFERER|default:'/' }}" class="btn btn-outline-secondary btn-lg ml-2">
+                                <a href="{{ cancel_url }}" class="btn btn-outline-secondary btn-lg ml-2">
                                     <i class="fas fa-times"></i> Cancel
                                 </a>
                             </div>

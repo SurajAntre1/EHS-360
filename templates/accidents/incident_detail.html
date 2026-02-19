@@ -216,7 +216,7 @@
             </a>
           </div> -->
           <div class="col-auto">
-            <a href="{{ request.GET.next|default:request.META.HTTP_REFERER|default:'/' }}"
+            <a href="{{ cancel_url }}"
               class="btn btn-secondary">
                 <i class="fas fa-arrow-left mr-1"></i> Back
             </a>

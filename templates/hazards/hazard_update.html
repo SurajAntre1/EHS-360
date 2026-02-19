@@ -168,7 +168,7 @@
                     <a href="{% url 'hazards:hazard_detail' hazard.pk %}" class="btn btn-outline-info">
                         <i class="fas fa-eye"></i> View Details
                     </a>
-                    <a href="{{ request.GET.next|default:request.META.HTTP_REFERER|default:'/' }}" class="btn btn-outline-secondary ml-2">
+                    <a href="{{ cancel_url }}" class="btn btn-outline-secondary ml-2">
                         <i class="fas fa-arrow-left"></i> Back to List
                     </a>
                 </div>
