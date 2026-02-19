@@ -157,6 +157,7 @@ class HazardCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
+        context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
         context['user_assigned_plants'] = user.assigned_plants.filter(is_active=True)
         if context['user_assigned_plants'].count() == 1:
             plant = context['user_assigned_plants'].first()
@@ -436,6 +437,7 @@ class HazardDetailView(LoginRequiredMixin, DetailView):
         hazard = self.get_object()
         context['action_items'] = hazard.action_items.all()
         context['photos'] = hazard.photos.all()
+        context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
         
         return context
 
@@ -456,6 +458,7 @@ class HazardUpdateView(LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
+        context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
         # Get user's assigned locations for autofill logic
         context['user_assigned_plants'] = user.assigned_plants.filter(is_active=True)
         
@@ -596,6 +599,7 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
         auto_target_date = timezone.now().date() + timezone.timedelta(days=severity_days)
         context['auto_target_date'] = auto_target_date.strftime('%Y-%m-%d')
         context['severity_days'] = severity_days
+        context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
 
         user = self.request.user
 
@@ -775,6 +779,7 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
     def get_context_data(self,**kwargs):
         context = super().get_context_data(**kwargs)
         context['hazard'] = self.hazard
+        context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
         if self.hazard.action_deadline:
             context['action_deadline_date'] = self.hazard.action_deadline.strftime('%Y-%m-%d')
         return context

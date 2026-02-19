@@ -269,7 +269,9 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
     model = User
     form_class = UserUpdateForm
     template_name = 'accounts/user_update.html'
-    success_url = reverse_lazy('accounts:user_list')
+
+    def get_success_url(self):
+        return reverse_lazy('accounts:user_detail',kwargs={'pk':self.object.pk})
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -282,6 +284,7 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
         context['user_assigned_zones'] = list(user.assigned_zones.all().values_list('id', flat=True))
         context['user_assigned_locations'] = list(user.assigned_locations.all().values_list('id', flat=True))
         context['user_assigned_sublocations'] = list(user.assigned_sublocations.all().values_list('id', flat=True))
+        context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
         
         return context
     
@@ -394,6 +397,7 @@ class UserDetailView(LoginRequiredMixin, TemplateView):
             user_obj = get_object_or_404(User.objects.filter(is_superuser=False),pk=user_id)
         
         context['user_detail'] = user_obj
+        context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
         return context
 
 

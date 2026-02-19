@@ -333,6 +333,11 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
 
         context['active_incident_types'] = IncidentType.objects.filter(is_active=True)
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
+        context['cancel_url'] = (
+        self.request.GET.get('next') or
+        self.request.META.get('HTTP_REFERER') or
+        '/'
+    )
         return context
     
     def form_valid(self, form):
@@ -430,6 +435,7 @@ class IncidentDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context['photos'] = self.object.photos.all()
         context['action_items'] = self.object.action_items.all()
+        context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
         
         try:
             context['investigation_report'] = self.object.investigation_report
@@ -544,6 +550,7 @@ class IncidentUpdateView(LoginRequiredMixin, UpdateView):
             self.object.affected_body_parts or []
         )
         # ✅ END: ADDED CODE
+        context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
         
         return context
     
@@ -1368,6 +1375,8 @@ class InvestigationDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['incident'] = self.object.incident
+        context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
+
         return context    
     
 

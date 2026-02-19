@@ -878,6 +878,20 @@ class EnvironmentalQuestionsManagerView(LoginRequiredMixin, View):
             if not filter_field or not filter_value:
                 messages.error(request, "Primary filter field and value are required")
                 return redirect("environmental:questions-manager")
+
+            from apps.ENVdata.models import UnitCategory, Unit
+
+            count_category = UnitCategory.objects.filter(name__iexact="Count").first()
+            count_unit = Unit.objects.filter(name__iexact="Count").first()
+
+            if not count_category or not count_unit:
+                messages.error(request, "Count category or unit not configured.")
+                return redirect("environmental:questions-manager")
+
+            category_id = count_category.id
+            default_unit_id = count_unit.id
+            selected_unit_ids = [count_unit.id]
+
         else:
             # Manual entry requires units
             if not category_id or not default_unit_id or not selected_unit_ids:
