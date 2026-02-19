@@ -354,7 +354,7 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
     
     def form_invalid(self, form):
         messages.error(self.request, 'Please correct the errors below.')
-        print("Form errors:", form.errors)
+        # print("Form errors:", form.errors)
         return super().form_invalid(form)
     
     def get_queryset(self):
