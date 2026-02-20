@@ -53,10 +53,10 @@ class Command(BaseCommand):
             ('ACCESS_INCIDENT_MODULE', 'Access Incident Module', 'Can access incident management module'),
             ('ACCESS_HAZARD_MODULE', 'Access Hazard Module', 'Can access hazard management module'),
             ('ACCESS_INSPECTION_MODULE', 'Access Inspection Module', 'Can access inspection module'),
-            ('ACCESS_AUDIT_MODULE', 'Access Audit Module', 'Can access audit module'),
-            ('ACCESS_TRAINING_MODULE', 'Access Training Module', 'Can access training module'),
-            ('ACCESS_PERMIT_MODULE', 'Access Permit Module', 'Can access work permit module'),
-            ('ACCESS_OBSERVATION_MODULE', 'Access Observation Module', 'Can access safety observation module'),
+            # ('ACCESS_AUDIT_MODULE', 'Access Audit Module', 'Can access audit module'),
+            # ('ACCESS_TRAINING_MODULE', 'Access Training Module', 'Can access training module'),
+            # ('ACCESS_PERMIT_MODULE', 'Access Permit Module', 'Can access work permit module'),
+            # ('ACCESS_OBSERVATION_MODULE', 'Access Observation Module', 'Can access safety observation module'),
             ('ACCESS_REPORTS_MODULE', 'Access Reports Module', 'Can access reports and analytics'),
             
             # Other Permissions
