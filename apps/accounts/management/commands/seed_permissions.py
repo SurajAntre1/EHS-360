@@ -82,14 +82,14 @@ class Command(BaseCommand):
             ('VIEW_NO_ANSWER_ITEMS', 'View No Answer Items', 'Can view no answer assigned items',
             'INSPECTION', 'VIEW', 5),
             # === REPORTS MODULE ===
-            ('ACCESS_REPORTS_MODULE', 'Access Reports Module', 'Can access reports module', 
-             'REPORTS', 'MODULE_ACCESS', 0),
-            ('GENERATE_REPORTS', 'Generate Reports', 'Can generate reports', 
-             'REPORTS', 'MANAGE', 1),
-            ('VIEW_REPORTS', 'View Reports', 'Can view reports', 
-             'REPORTS', 'VIEW', 2),
-            ('EXPORT_REPORTS', 'Export Reports', 'Can export reports', 
-             'REPORTS', 'EXPORT', 3),
+            # ('ACCESS_REPORTS_MODULE', 'Access Reports Module', 'Can access reports module', 
+            #  'REPORTS', 'MODULE_ACCESS', 0),
+            # ('GENERATE_REPORTS', 'Generate Reports', 'Can generate reports', 
+            #  'REPORTS', 'MANAGE', 1),
+            # ('VIEW_REPORTS', 'View Reports', 'Can view reports', 
+            #  'REPORTS', 'VIEW', 2),
+            # ('EXPORT_REPORTS', 'Export Reports', 'Can export reports', 
+            #  'REPORTS', 'EXPORT', 3),
             
             # === ENV DATA MODULE ===
             ('ACCESS_ENV_DATA_MODULE', 'Access Env Data Module', 'Can access environmental data module', 
