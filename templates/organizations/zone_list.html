@@ -165,7 +165,7 @@
                     {% for location in zone.locations.all %}
                       {{ location.sublocations.count }}{% if not forloop.last %} + {% endif %}
                     {% endfor %}
-                    Total
+                    {% comment %} Total {% endcomment %}
                   </span>
                 {% else %}
                   <span class="badge badge-secondary">0</span>

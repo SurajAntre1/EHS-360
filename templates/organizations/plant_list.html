@@ -59,7 +59,7 @@
             <th>Code</th>
             <th>Name</th>
             <th>City</th>
-            <th>Contact Person</th>
+            {% comment %} <th>Contact Person</th> {% endcomment %}
             <th>Locations</th>
             <th>Status</th>
             <th>Actions</th>
@@ -71,14 +71,14 @@
             <td><strong>{{ plant.code }}</strong></td>
             <td>{{ plant.name }}</td>
             <td>{{ plant.city }}, {{ plant.state }}</td>
-            <td>
+            {% comment %} <td>
               {% if plant.contact_person %}
                 {{ plant.contact_person }}<br>
                 <small class="text-muted">{{ plant.contact_phone }}</small>
               {% else %}
                 <span class="text-muted">N/A</span>
               {% endif %}
-            </td>
+            </td> {% endcomment %}
             <td>
               <span class="badge badge-info">{{ plant.total_locations }} Total</span>
               <span class="badge badge-success">{{ plant.active_locations }} Active</span>
