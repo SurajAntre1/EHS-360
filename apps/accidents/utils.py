@@ -112,8 +112,8 @@ def generate_incident_pdf(incident):
     logo_img = Image(logo_path, width=2.2*inch, height=header_height) if os.path.exists(logo_path) else Paragraph("<b>COMPANY LOGO</b>", styles['HeaderTitle'])
 
     header_data = [
-        [logo_img, Paragraph("<b>INTEGRATED MANAGEMENT SYSTEM [QEMS]</b>", styles['HeaderTitle']), Paragraph(f"DOC NO: EIL/IRI/EHS/F-02", styles['HeaderInfo'])],
-        ['', Paragraph("<b>INCIDENT REPORT</b>", styles['HeaderTitle']), Paragraph(f"REV NO: 00 &<br/>DATE: 01-09-2021", styles['HeaderInfo'])],
+        [logo_img, Paragraph("<b>INJURY'S MANAGEMENT SYSTEM [QEMS]</b>", styles['HeaderTitle']), Paragraph(f"DOC NO: EIL/IRI/EHS/F-02", styles['HeaderInfo'])],
+        ['', Paragraph("<b>INJURY REPORT</b>", styles['HeaderTitle']), Paragraph(f"REV NO: 00 &<br/>DATE: 01-09-2021", styles['HeaderInfo'])],
     ]
     header_table = Table(header_data, colWidths=[drawable_width * 0.2875, drawable_width * 0.4875, drawable_width * 0.225], rowHeights=[0.8*inch, 0.8*inch])
     header_table.setStyle(TableStyle([
@@ -136,7 +136,7 @@ def generate_incident_pdf(incident):
     # ========================================
     story.append(Spacer(1, 4*mm))
     ref_number_data = [
-        [Paragraph("<b>Incident Report</b>", styles['ReportTitle']), Paragraph(f"<b>Reference number:</b><br/>{incident.report_number}", styles['HeaderInfo'])]
+        [Paragraph("<b>Injury Report</b>", styles['ReportTitle']), Paragraph(f"<b>Reference number:</b><br/>{incident.report_number}", styles['HeaderInfo'])]
     ]
     ref_number_table = Table(ref_number_data, colWidths=[drawable_width * 0.7, drawable_width * 0.3])
     ref_number_table.setStyle(TableStyle([
@@ -148,7 +148,7 @@ def generate_incident_pdf(incident):
     # ========================================
     # Employee & Incident Full Details
     # ========================================
-    story.append(Paragraph("<b>SECTION 1: INCIDENT & PERSONNEL DETAILS</b>", styles['SectionHeader']))
+    story.append(Paragraph("<b>SECTION 1: INJURY & PERSONNEL DETAILS</b>", styles['SectionHeader']))
     
     # Get values directly from the incident model for manual entries
     dob_display = incident.affected_date_of_birth.strftime('%d/%m/%Y') if incident.affected_date_of_birth else 'N/A'
@@ -176,7 +176,7 @@ def generate_incident_pdf(incident):
     story.append(employee_table)
     
     description_data = [
-        [Paragraph("<b>Brief description of the incident / Sequence of events:</b>", styles['Label'])],
+        [Paragraph("<b>Brief description of the Injury / Sequence of events:</b>", styles['Label'])],
         [Paragraph(get_val(incident.description), styles['Value'])]
     ]
     description_table = Table(description_data, colWidths=[drawable_width])
@@ -193,7 +193,7 @@ def generate_incident_pdf(incident):
     story.append(Paragraph("<b>SECTION 2: INJURY & CAUSAL FACTORS</b>", styles['SectionHeader']))
 
     injury_data = [
-        [Paragraph('<b>Incident Type:</b>', styles['Label']), Paragraph(get_val(incident.incident_type.name if incident.incident_type else 'N/A'), styles['Value'])],
+        [Paragraph('<b>Injury Type:</b>', styles['Label']), Paragraph(get_val(incident.incident_type.name if incident.incident_type else 'N/A'), styles['Value'])],
         [Paragraph('<b>Nature of Injury:</b>', styles['Label']), Paragraph(get_val(incident.nature_of_injury), styles['Value'])],
     ]
     injury_table = Table(injury_data, colWidths=[drawable_width * 0.25, drawable_width * 0.75])
@@ -326,7 +326,7 @@ def generate_incident_pdf(incident):
     # ========================================================
     if incident.status == 'CLOSED':
         story.append(Spacer(1, 6*mm))
-        story.append(Paragraph("<b>SECTION 5: INCIDENT CLOSURE DETAILS</b>", styles['SectionHeader']))
+        story.append(Paragraph("<b>SECTION 5: INJURY CLOSURE DETAILS</b>", styles['SectionHeader']))
         
         # Using a single-column table style for long remarks
         closure_details_data = [
@@ -384,7 +384,7 @@ def generate_incident_pdf(incident):
     buffer.close()
     
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="Incident_Report_{incident.report_number}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="Injury_Report_{incident.report_number}.pdf"'
     response.write(pdf)
     
     
