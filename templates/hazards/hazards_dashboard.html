@@ -416,7 +416,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const severityCtx = document.getElementById('severityChart').getContext('2d');
     const severityChart = new Chart(severityCtx, {
         type: 'doughnut',
-        data: { labels: {{ severity_labels|safe }}, datasets: [{ data: {{ severity_data|safe }}, backgroundColor: [colors.danger, colors.warning, colors.info, colors.success] }] },
+        data: { labels: {{ severity_labels|safe }}, datasets: [{ data: {{ severity_data|safe }}, backgroundColor: [colors.success, colors.warning, colors.danger, colors.orange] }] },
         options: {
             responsive: true, 
             maintainAspectRatio: false, 
