@@ -95,7 +95,7 @@
 <div class="container">
 
     <div class="header">
-        <h1>Incident Closed</h1>
+        <h1>Injury Closed</h1>
         <div class="badge">✔ Successfully Closed</div>
     </div>
 
@@ -104,20 +104,20 @@
         <p>Hello <strong>{{ recipient.get_full_name|default:"User" }}</strong>,</p>
 
         <p>
-            The below incident has been <strong>successfully closed</strong>.
+            The below injury has been <strong>successfully closed</strong>.
             Please review the final details below.
         </p>
 
         <!-- Incident Details -->
         <div class="section">
-            <div class="section-title">Incident Information</div>
+            <div class="section-title">Injury Information</div>
             <table>
                 <tr>
-                    <td class="label">Incident Number</td>
+                    <td class="label">Injury Number</td>
                     <td>{{ incident.report_number|default:"N/A" }}</td>
                 </tr>
                 <tr>
-                    <td class="label">Incident Type</td>
+                    <td class="label">Injury Type</td>
                     <td>{{ incident.incident_type.name|default:"N/A" }}</td>
                 </tr>
                 <tr>
@@ -164,7 +164,7 @@
 
         <!-- Description -->
         <div class="section">
-            <div class="section-title">Incident Description</div>
+            <div class="section-title">Injury Description</div>
             <div class="highlight">
                 {{ incident.description|default:"N/A" }}
             </div>

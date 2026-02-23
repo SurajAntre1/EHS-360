@@ -1,66 +1,217 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <title>New Injury Reported</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #dc3545; color: white; padding: 20px; text-align: center; }
-        .content { background: #f8f9fa; padding: 20px; margin: 20px 0; }
-        .details { background: white; padding: 15px; border-left: 4px solid #dc3545; }
-        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
-        table { width: 100%; }
-        table td { padding: 8px; }
-        .label { font-weight: bold; color: #495057; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 720px;
+            margin: 30px auto;
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+        }
+        .header {
+            background-color: #dc3545;
+            color: #ffffff;
+            padding: 18px;
+            border-radius: 6px 6px 0 0;
+            text-align: center;
+        }
+        .header h2 {
+            margin: 0;
+        }
+        .section {
+            margin-top: 25px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333333;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 5px;
+            margin-bottom: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td {
+            padding: 8px 6px;
+            vertical-align: top;
+            font-size: 14px;
+        }
+        td.label {
+            width: 40%;
+            font-weight: bold;
+            color: #555;
+        }
+        .highlight {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .button {
+            background-color: #dc3545;
+            color: #ffffff;
+            padding: 12px 22px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .footer {
+            margin-top: 35px;
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+        }
     </style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="header">
-            <h2>⚠️ New Incident Reported</h2>
-        </div>
-        
-        <div class="content">
-            <p>Hello {{ recipient.get_full_name }},</p>
-            <p>A new incident has been reported and requires your attention.</p>
-            
-            <div class="details">
-                <h3>Incident Details</h3>
-                <table>
-                    <tr>
-                        <td class="label">Incident Number:</td>
-                        <td>{{ incident.report_number }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Type:</td>
-                        <td>{{ incident.incident_type.name }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Date & Time:</td>
-                        <td>{{ incident.incident_date }} {{ incident.incident_time }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Plant:</td>
-                        <td>{{ incident.plant.name }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Location:</td>
-                        <td>{{ incident.location.name }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Reported By:</td>
-                        <td>{{ incident.reported_by.get_full_name }}</td>
-                    </tr>
-                </table>
-                
-                <h4>Description:</h4>
-                <p>{{ incident.description|truncatewords:50 }}</p>
-            </div>
-        </div>
-        
-        <div class="footer">
-            <p>This is an automated notification from EHS Management System</p>
-            <p>&copy; {{ current_year }} EHS-360. All rights reserved.</p>
-        </div>
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <h2>⚠️ New Injury Reported</h2>
     </div>
+
+    <p>Hello <strong>{{ recipient.get_full_name }}</strong>,</p>
+
+    <p>
+        A new injury has been reported and requires your attention.
+        Please review the details below.
+    </p>
+
+    <!-- INCIDENT DETAILS -->
+    <div class="section">
+        <div class="section-title">Injury Details</div>
+        <table>
+            <tr>
+                <td class="label">Injury Number</td>
+                <td class="highlight">{{ incident.report_number }}</td>
+            </tr>
+            <tr>
+                <td class="label">Classification</td>
+                <td>
+                    <span class="highlight">
+                        {{ incident.incident_type.name|default:"N/A" }}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Current Status</td>
+                <td>{{ incident.get_status_display }}</td>
+            </tr>
+            <tr>
+                <td class="label">Date & Time</td>
+                <td>
+                    {{ incident.incident_date|date:"d M Y" }}
+                    at
+                    {{ incident.incident_time|time:"H:i" }}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Plant</td>
+                <td>{{ incident.plant.name }}</td>
+            </tr>
+            <tr>
+                <td class="label">Zone</td>
+                <td>{{ incident.zone.name|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Location</td>
+                <td>{{ incident.location.name }}</td>
+            </tr>
+            <tr>
+                <td class="label">Sub-Location</td>
+                <td>{{ incident.sublocation.name|default:"N/A" }}</td>
+            </tr>
+        </table>
+    </div>
+
+        <!-- DESCRIPTION -->
+    <div class="section">
+        <div class="section-title">Injury Description</div>
+        <p>{{ incident.description|truncatewords:60 }}</p>
+    </div>
+
+    <!-- AFFECTED PERSON DETAILS -->
+    <div class="section">
+        <div class="section-title">Affected Person Details</div>
+        <table>
+            <tr>
+                <td class="label">Name</td>
+                <td>{{ incident.affected_person_name }}</td>
+            </tr>
+            <tr>
+                <td class="label">Employee ID</td>
+                <td>{{ incident.affected_person_employee_id|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Department</td>
+                <td>{{ incident.affected_person_department.name|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Employment Category</td>
+                <td>{{ incident.get_affected_employment_category_display|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Nature of Injury</td>
+                <td>{{ incident.nature_of_injury|truncatewords:30 }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- INVESTIGATION DETAILS -->
+    <div class="section">
+        <div class="section-title">Investigation Details</div>
+        <table>
+            <tr>
+                <td class="label">Investigation Required</td>
+                <td>
+                    {% if incident.investigation_required %}
+                        Yes
+                    {% else %}
+                        No
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Investigation Deadline</td>
+                <td>
+                    {{ incident.investigation_deadline|date:"d M Y" }}
+                    {% if incident.is_investigation_overdue %}
+                        <span class="highlight">(Overdue)</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Reported By</td>
+                <td>{{ incident.reported_by.get_full_name }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <p>
+            This is an automated notification from the EHS Management System.
+            Please do not reply directly to this email.
+        </p>
+        <p>&copy; EHS-360. All rights reserved.</p>
+    </div>
+
+</div>
 </body>
 </html>

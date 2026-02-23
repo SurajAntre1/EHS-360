@@ -75,26 +75,32 @@
 <div class="container">
 
     <div class="header">
-        <h1>Incident Investigation Completed</h1>
+        <h1>Injury Investigation Completed</h1>
     </div>
 
     <div class="content">
         <p>Hello {{ recipient.get_full_name }},</p>
 
         <p>
-            The investigation report for the following incident has been
+            The investigation report for the following injury has been
             <strong>completed and submitted</strong>.
         </p>
 
+        <!-- Description -->
+        <div class="section-title">Injury Description</div>
+        <div class="highlight">
+            {{ incident.description|default:"No description provided." }}
+        </div>
+
         <!-- Incident Details -->
-        <div class="section-title">Incident Details</div>
+        <div class="section-title">Injury Details</div>
         <table>
             <tr>
-                <td class="label">Incident Number</td>
+                <td class="label">Injury Number</td>
                 <td>{{ incident.report_number }}</td>
             </tr>
             <tr>
-                <td class="label">Incident Type</td>
+                <td class="label">Injury Type</td>
                 <td>{{ incident.incident_type.name }}</td>
             </tr>
             <tr>
@@ -139,12 +145,6 @@
                 <td>{{ investigation_report.completed_date }}</td>
             </tr>
         </table>
-
-        <!-- Description -->
-        <div class="section-title">Incident Description</div>
-        <div class="highlight">
-            {{ incident.description|default:"No description provided." }}
-        </div>
 
         <!-- Findings -->
         <div class="section-title">Key Findings</div>

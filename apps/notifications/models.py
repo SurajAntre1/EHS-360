@@ -21,6 +21,7 @@ class NotificationMaster(models.Model):
     NOTIFICATION_EVENT_CHOICES = [
         # Incident Module
         ('INCIDENT_REPORTED', 'Incident Reported'),
+        ('INCIDENT_INVESTIGATION_COMPLETED', 'Investigation Completed'),
         # ('INCIDENT_INVESTIGATION_DUE', 'Investigation Due Soon'),
         # ('INCIDENT_INVESTIGATION_OVERDUE', 'Investigation Overdue'),
         ('INCIDENT_ACTION_ASSIGNED', 'Action Item Assigned'),

@@ -351,16 +351,16 @@ class NotificationService:
             if incident.incident_type else 'NA'
         )
         return {
-            'title': f"New Incident Reported | {incident.report_number}",
-            'subject': f"⚠️ New Incident Reported - {incident.report_number}",
+            'title': f"New Injury Reported | {incident.report_number}",
+            'subject': f"⚠️ New Injury Reported - {incident.report_number}",
             'message': f"""
 Hello,
 
 A new {incident_type} has been reported.
 
-INCIDENT DETAILS
+INJURY DETAILS
 --------------------------------------------------
-Incident Number      : {incident.report_number}
+Injury Number      : {incident.report_number}
 Date & Time          : {incident.incident_date} {incident.incident_time}
 Plant                : {incident.plant.name}
 Location             : {incident.location.name if incident.location else 'N/A'}

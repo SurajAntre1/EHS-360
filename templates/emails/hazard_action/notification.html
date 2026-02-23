@@ -14,27 +14,33 @@
             max-width: 720px;
             margin: 30px auto;
             background-color: #ffffff;
-            padding: 25px;
             border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
         }
         .header {
             background-color: #dc3545;
             color: #ffffff;
-            padding: 15px;
-            border-radius: 6px 6px 0 0;
+            padding: 18px;
             text-align: center;
         }
         .header h2 {
             margin: 0;
+            font-size: 20px;
+        }
+        .content {
+            padding: 24px;
+            font-size: 14px;
+            color: #333;
+            line-height: 1.6;
         }
         .section {
             margin-top: 25px;
         }
         .section-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
-            color: #333333;
-            border-bottom: 2px solid #e0e0e0;
+            border-bottom: 1px solid #e5e7eb;
             padding-bottom: 5px;
             margin-bottom: 10px;
         }
@@ -43,23 +49,49 @@
             border-collapse: collapse;
         }
         td {
-            padding: 8px 6px;
+            padding: 7px 5px;
             vertical-align: top;
-            font-size: 14px;
         }
         td.label {
-            width: 35%;
+            width: 38%;
             font-weight: bold;
-            color: #555;
+            color: #374151;
+        }
+        .highlight-box {
+            background: #f9fafb;
+            padding: 12px;
+            border-left: 4px solid #dc3545;
+            margin-top: 8px;
+            white-space: pre-line;
+        }
+        .badge-critical {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        .badge-overdue {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 25px;
+        }
+        .btn {
+            background: #2563eb;
+            color: #ffffff !important;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            display: inline-block;
         }
         .footer {
             margin-top: 30px;
             font-size: 13px;
             color: #666;
-        }
-        .highlight {
-            color: #dc3545;
-            font-weight: bold;
+            text-align: center;
+            padding: 15px;
+            background: #f3f4f6;
         }
     </style>
 </head>
@@ -71,75 +103,122 @@
         <h2>⚠️ Hazard Action Assigned</h2>
     </div>
 
-    <p>Hello <strong>{{ recipient.get_full_name }}</strong>,</p>
+    <div class="content">
 
-    <p>
-        A <span class="highlight">hazard action item</span> has been assigned to you.
-        Please review the details below and ensure completion before the target date.
-    </p>
+        <p>Hello <strong>{{ recipient.get_full_name|default:"User" }}</strong>,</p>
 
-    <!-- HAZARD DETAILS -->
-    <div class="section">
-        <div class="section-title">Hazard Details</div>
-        <table>
-            <tr>
-                <td class="label">Hazard Number</td>
-                <td>{{ hazard.report_number }}</td>
-            </tr>
-            <tr>
-                <td class="label">Hazard Type</td>
-                <td>{{ hazard.get_hazard_type_display }}</td>
-            </tr>
-            <tr>
-                <td class="label">Reported Date</td>
-                <td>{{ hazard.reported_date }}</td>
-            </tr>
-            <tr>
-                <td class="label">Plant</td>
-                <td>{{ hazard.plant.name }}</td>
-            </tr>
-            <tr>
-                <td class="label">Zone</td>
-                <td>{{ hazard.zone.name|default:"N/A" }}</td>
-            </tr>
-            <tr>
-                <td class="label">Location</td>
-                <td>{{ hazard.location.name|default:"N/A" }}</td>
-            </tr>
-            <tr>
-                <td class="label">Sub-Location</td>
-                <td>{{ hazard.sublocation.name|default:"N/A" }}</td>
-            </tr>
-        </table>
-    </div>
+        <p>
+            A hazard action item has been assigned to you. Please review the details
+            and ensure completion before the target date.
+        </p>
 
-    <!-- ACTION DETAILS -->
-    <div class="section">
-        <div class="section-title">Action Item Details</div>
-        <table>
-            <tr>
-                <td class="label">Action Description</td>
-                <td>{{ action_item.action_description }}</td>
-            </tr>
-            <tr>
-                <td class="label">Target Date</td>
-                <td>{{ action_item.target_date }}</td>
-            </tr>
-            <tr>
-                <td class="label">Status</td>
-                <td>{{ action_item.status }}</td>
-            </tr>
-        </table>
+        <!-- HAZARD DETAILS -->
+        <div class="section">
+            <div class="section-title">Hazard Details</div>
+            <table>
+                <tr>
+                    <td class="label">Hazard Number</td>
+                    <td>{{ hazard.report_number }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Hazard Title</td>
+                    <td>{{ hazard.hazard_title|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Hazard Type</td>
+                    <td>{{ hazard.get_hazard_type_display|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Severity</td>
+                    <td>
+                        <span class="badge-critical">
+                            {{ hazard.get_severity_display|default:"N/A" }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">Current Status</td>
+                    <td>{{ hazard.get_status_display|default:"N/A" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Identified On</td>
+                    <td>{{ hazard.incident_datetime|date:"d M Y H:i" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Location</td>
+                    <td>{{ hazard.get_full_location }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Reported By</td>
+                    <td>{{ hazard.reported_by.get_full_name|default:"N/A" }}</td>
+                </tr>
+            </table>
+
+            <div class="highlight-box">
+                {{ hazard.hazard_description|default:"No description provided." }}
+            </div>
+        </div>
+
+        <!-- ACTION DETAILS -->
+        <div class="section">
+            <div class="section-title">Action Item Details</div>
+            <table>
+                <tr>
+                    <td class="label">Assigned By</td>
+                    <td>{{ action_item.created_by.get_full_name|default:"System" }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Target Date</td>
+                    <td>
+                        {{ action_item.target_date|date:"d M Y" }}
+                        {% if action_item.is_overdue %}
+                            <span class="badge-overdue">(Overdue)</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">Days Remaining</td>
+                    <td>
+                        {% if action_item.days_until_deadline != None %}
+                            {{ action_item.days_until_deadline }} day(s)
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">Current Status</td>
+                    <td>{{ action_item.get_status_display }}</td>
+                </tr>
+                {% if action_item.attachment %}
+                <tr>
+                    <td class="label">Attachment</td>
+                    <td>
+                        {{ action_item.get_attachment_name }}
+                        ({{ action_item.get_attachment_size }})
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+
+            <div class="highlight-box">
+                {{ action_item.action_description }}
+            </div>
+        </div>
+
+        <p style="margin-top:25px;">
+            Please ensure timely completion of the assigned action to prevent
+            escalation and risk exposure.
+        </p>
+
     </div>
 
     <div class="footer">
         <p>
-            Please ensure the action is completed within the specified timeline.
+            This is an automated notification from the EHS Management System.
+            Please do not reply directly to this email.
         </p>
-        <p>
-            Regards,<br>
-            <strong>EHS Management System</strong>
-        </p>
+        <p>&copy; EHS-360. All rights reserved.</p>
     </div>
 
 </div>

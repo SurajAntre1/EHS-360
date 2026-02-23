@@ -70,17 +70,21 @@
         <div class="email-body">
             <p>Hello {{ recipient.get_full_name }},</p>
 
-            <p>The following investigation action for an incident has been assigned to you.</p>
+            <p>The following investigation action for an injury has been assigned to you.</p>
+
+            <!-- Incident Description -->
+            <div class="section-title">Injury Description</div>
+            <p>{{ incident.description }}</p>
 
             <!-- Incident Details -->
-            <div class="section-title">Incident Details</div>
+            <div class="section-title">Injury Details</div>
             <table class="info-table">
                 <tr>
-                    <th>Incident Number</th>
+                    <th>Injury Number</th>
                     <td>{{ incident.report_number }}</td>
                 </tr>
                 <tr>
-                    <th>Incident Type</th>
+                    <th>Injury Type</th>
                     <td>{{ incident.incident_type.name }}</td>
                 </tr>
                 <tr>
@@ -129,10 +133,6 @@
                     <td>{{ action_item.completion_date|default:"Pending" }}</td>
                 </tr>
             </table>
-
-            <!-- Incident Description -->
-            <div class="section-title">Incident Description</div>
-            <p>{{ incident.description }}</p>
 
             <p>Please review the assigned action item and take necessary steps.</p>
 
