@@ -93,18 +93,18 @@
                     <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
                         
-                        <!-- Completion Date -->
+                        <!-- Fecha de finalización -->
                         <div class="form-group">
                             <label for="{{ form.completion_date.id_for_label }}" class="font-weight-bold">
                                 <i class="fas fa-calendar-check mr-2"></i>Completion Date <span class="text-danger">*</span>
                             </label>
                             {{ form.completion_date }}
                             {% if form.completion_date.errors %}
-                                <div class="text-danger small mt-1">{{ form.completion_date.errors }}</div>
+                                <div class="text-danger small mt-1">{{ form.completion_date.errors|join:", " }}</div>
                             {% endif %}
                         </div>
 
-                        <!-- Completion Remarks -->
+                        <!-- Comentarios de finalización -->
                         <div class="form-group mt-4">
                             <label for="{{ form.completion_remarks.id_for_label }}" class="font-weight-bold">
                                 <i class="fas fa-comments mr-2"></i>Completion Remarks <span class="text-danger">*</span>
@@ -112,11 +112,11 @@
                             {{ form.completion_remarks }}
                             <small class="form-text text-muted">Please provide a clear and detailed description of the actions taken.</small>
                             {% if form.completion_remarks.errors %}
-                                <div class="text-danger small mt-1">{{ form.completion_remarks.errors }}</div>
+                                <div class="text-danger small mt-1">{{ form.completion_remarks.errors|join:", " }}</div>
                             {% endif %}
                         </div>
 
-                        <!-- Attachment -->
+                        <!-- Archivo adjunto -->
                         <div class="form-group mt-4">
                             <label for="{{ form.attachment.id_for_label }}" class="font-weight-bold">
                                 <i class="fas fa-paperclip mr-2"></i>{{ form.attachment.label }} <span class="text-danger">*</span>
@@ -124,13 +124,13 @@
                             {{ form.attachment }}
                             <small class="form-text text-muted">Please upload photos, documents, or other required proof of completion.</small>
                             {% if form.attachment.errors %}
-                                <div class="text-danger small mt-1">{{ form.attachment.errors }}</div>
+                                <div class="text-danger small mt-1">{{ form.attachment.errors|join:", " }}</div>
                             {% endif %}
                         </div>
 
                         <hr class="mt-4">
 
-                        <!-- Buttons -->
+                        <!-- Botones -->
                         <div class="text-right">
                             <a href="{% url 'accidents:my_action_items' %}" class="btn btn-secondary btn-lg">
                                 <i class="fas fa-times mr-2"></i>Cancel

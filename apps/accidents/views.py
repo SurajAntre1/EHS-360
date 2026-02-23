@@ -1,7 +1,7 @@
 from multiprocessing import context
 from urllib.parse import urlencode
 from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
-from django.views.generic import ListView, CreateView, UpdateView, DetailView, TemplateView,DeleteView
+from django.views.generic import FormView, ListView, CreateView, UpdateView, DetailView, TemplateView,DeleteView
 from django.urls import reverse, reverse_lazy
 from django.shortcuts import get_object_or_404, redirect
 from django.db.models import Q, Count, Sum
@@ -1670,83 +1670,69 @@ class ExportIncidentsExcelView(LoginRequiredMixin, IncidentFilterMixin, View):
 #         return redirect('accidents:incident_detail', pk=incident.pk)
 
 
-
-class IncidentActionItemCompleteView(LoginRequiredMixin, UpdateView):
+class IncidentActionItemCompleteView(LoginRequiredMixin, FormView): # Cambiado de UpdateView a FormView
     """
-    Allows an assigned user to mark an incident action item as complete
-    using a detailed form.
+    Permite a un usuario asignado marcar un elemento de acción de incidente como completo
+    creando un registro de finalización.
     """
-    model = IncidentActionItem
-    form_class = IncidentActionItemCompleteForm  # MODIFIED: Use the new form
+    form_class = IncidentActionItemCompleteForm
     template_name = 'accidents/action_item_complete.html'
-    context_object_name = 'action_item' # Use a more descriptive name
-
-    def get_success_url(self):
-        return reverse_lazy('accidents:my_action_items')
+    
+    def setup(self, request, *args, **kwargs):
+        """Obtiene el objeto de elemento de acción antes."""
+        super().setup(request, *args, **kwargs)
+        self.action_item = get_object_or_404(IncidentActionItem, pk=self.kwargs['pk'])
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # action_item object pehle se 'object' ya 'action_item' naam se context me hai
-        context['incident'] = self.object.incident
-        # We can also pass the investigation report if it exists
-        if hasattr(self.object.incident, 'investigation_report'):
-            context['investigation'] = self.object.incident.investigation_report
+        context['action_item'] = self.action_item
+        context['incident'] = self.action_item.incident
+        if hasattr(self.action_item.incident, 'investigation_report'):
+            context['investigation'] = self.action_item.incident.investigation_report
         else:
             context['investigation'] = None
         return context
 
     def form_valid(self, form):
         """
-        UPDATED LOGIC:
-        - Records the current user's completion in the 'completed_by' field.
-        - Only marks the action item as 'COMPLETED' if ALL responsible persons have completed it.
-        - Then checks if the entire incident can be moved to 'PENDING_APPROVAL'.
+        - Crea un registro de ActionItemCompletion.
+        - Verifica si TODOS los usuarios responsables han completado.
+        - Si es así, actualiza el estado del elemento de acción principal a 'COMPLETED'.
         """
-        action_item = self.get_object() 
-        current_user = self.request.user
+        # Crear la nueva entrada de finalización
+        completion = form.save(commit=False)
+        completion.action_item = self.action_item
+        completion.completed_by = self.request.user
+        completion.save()
 
-        
-        action_item.completed_by.add(current_user)
+        # Comprobar si todas las personas han completado
+        assigned_users_count = self.action_item.responsible_person.count()
+        completing_users_count = self.action_item.completions.count()
 
-        
-        assigned_users = set(action_item.responsible_person.all())
-        completing_users = set(action_item.completed_by.all())
-
-        if assigned_users == completing_users: 
-            # 
-            action_item.status = 'COMPLETED'
+        if assigned_users_count > 0 and assigned_users_count == completing_users_count:
+            # Todos han completado, así que actualiza el elemento de acción principal
+            self.action_item.status = 'COMPLETED'
+            self.action_item.save()
+            messages.success(self.request, f"Action item for incident '{self.action_item.incident.report_number}' is now fully completed by all responsible persons.")
             
-            # 
-            completion_data = form.cleaned_data
-            action_item.completion_date = completion_data.get('completion_date', timezone.now().date())
-            action_item.completion_remarks = completion_data.get('completion_remarks', '') # Assuming remarks field exists in form
-            
-            action_item.save()
-            messages.success(self.request, f"Action item for incident '{action_item.incident.report_number}' is now fully completed by all responsible persons.")
-
-            #
-            incident = action_item.incident
-            all_incident_items_completed = not incident.action_items.exclude(status='COMPLETED').exists()
-
-            if all_incident_items_completed:
+            # (Lógica existente para verificar si el incidente se puede mover a PENDING_APPROVAL)
+            incident = self.action_item.incident
+            if not incident.action_items.exclude(status='COMPLETED').exists():
                 incident.status = 'PENDING_APPROVAL'
                 incident.save()
                 messages.info(self.request, f"All action items for incident {incident.report_number} are complete. The incident is now pending final approval.")
-        
         else:
-            #
-            action_item.save() # 
-            remaining_count = len(assigned_users - completing_users)
-            messages.info(self.request, f"Your completion for action item has been recorded. Still waiting for {remaining_count} other person(s) to complete.")
+            remaining_count = assigned_users_count - completing_users_count
+            messages.info(self.request, f"Your completion for the action item has been recorded. Still waiting for {remaining_count} other person(s) to complete.")
 
         return redirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse_lazy('accidents:my_action_items')
 
 
 
 class MyActionItemsView(LoginRequiredMixin, ListView):
-    """
-    Display incident action items assigned to the logged-in user.
-    """
     model = IncidentActionItem
     template_name = 'accidents/my_action_items.html'
     context_object_name = 'action_items'
@@ -1755,48 +1741,45 @@ class MyActionItemsView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         user = self.request.user
         
-        # Subquery: Check if the current user is in the completed_by field for this item
-        user_completed = IncidentActionItem.objects.filter(
-            pk=OuterRef('pk'),
+        # Subconsulta: Verificar si existe un registro de finalización para el usuario actual
+        user_completed_subquery = ActionItemCompletion.objects.filter(
+            action_item=OuterRef('pk'),
             completed_by=user
         )
 
         queryset = IncidentActionItem.objects.filter(
             responsible_person=user
         ).annotate(
-            is_done_by_me=Exists(user_completed) # Naya field annotate kiya
+            is_done_by_me=Exists(user_completed_subquery) # Lógica de anotación actualizada
         ).select_related( 
             'incident', 
             'incident__plant',
             'created_by'
         ).order_by('target_date')
 
-        # ... rest of your status filter logic ...
+        # ... el resto de su lógica de filtro de estado ...
         status_filter = self.request.GET.get('status', '')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
             
         return queryset
 
+    # ... get_context_data permanece igual ...
     def get_context_data(self, **kwargs):
         """
-        Add statistics and filter choices to the template context.
+        Añade estadísticas y opciones de filtro al contexto de la plantilla.
         """
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
-        # Get all items assigned to the user for calculating stats.
         all_my_items = IncidentActionItem.objects.filter(responsible_person=user)
 
-        # Calculate statistics.
         context['total_assigned'] = all_my_items.count()
         context['pending_count'] = all_my_items.filter(status__in=['PENDING', 'IN_PROGRESS']).count()
         
-        # Calculate overdue items correctly using the is_overdue property.
         overdue_items = [item for item in all_my_items if item.is_overdue]
         context['overdue_count'] = len(overdue_items)
 
-        # Pass choices and selected values to the template for the filter dropdown.
         context['status_choices'] = IncidentActionItem.STATUS_CHOICES
         context['selected_status'] = self.request.GET.get('status', '')
 

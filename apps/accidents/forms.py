@@ -700,3 +700,26 @@ class IncidentActionItemCompleteForm(forms.ModelForm):
         # Set today's date as the initial value for completion_date
         self.fields['completion_date'].initial = timezone.now().date()
 
+class IncidentActionItemCompleteForm(forms.ModelForm):
+    class Meta:
+        model = ActionItemCompletion
+        fields = ['completion_date', 'completion_remarks', 'attachment']
+        widgets = {
+            'completion_date': forms.DateInput(
+                attrs={'type': 'date', 'class': 'form-control'}
+            ),
+            'completion_remarks': forms.Textarea(
+                attrs={'class': 'form-control', 'rows': 4}
+            ),
+            'attachment': forms.ClearableFileInput(
+                attrs={'class': 'form-control-file'}
+            )
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Hace que los campos sean obligatorios
+        self.fields['completion_date'].required = True
+        self.fields['completion_remarks'].required = True
+        self.fields['attachment'].required = True
+        self.fields['attachment'].label = "Upload Proof/Attachment"

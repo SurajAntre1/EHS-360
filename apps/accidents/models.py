@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from apps.organizations.models import *
 import datetime
+from django.conf import settings
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -522,7 +524,41 @@ class IncidentActionItem(models.Model):
         if self.status != 'COMPLETED' and self.target_date:
             from django.utils import timezone
             return timezone.now().date() > self.target_date
-        return False    
+        return False  
+    
+    
+class ActionItemCompletion(models.Model):
+    """
+    Registra los detalles de finalización para cada usuario responsable
+    de un IncidentActionItem.
+    """
+    action_item = models.ForeignKey(
+        IncidentActionItem,
+        on_delete=models.CASCADE,
+        related_name='completions'
+    )
+    completed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='action_completions'
+    )
+    completion_date = models.DateField(default=timezone.now)
+    completion_remarks = models.TextField()
+    attachment = models.FileField(
+        upload_to='action_item_completion_proofs/%Y/%m/',
+        help_text="Upload Proof/Attachment"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ('action_item', 'completed_by') # Cada usuario puede completar una acción solo una vez
+        verbose_name = 'Action Item Completion'
+        verbose_name_plural = 'Action Item Completions'
+
+    def __str__(self):
+        return f"Completion for {self.action_item.id} by {self.completed_by.get_full_name()}"
+  
 
 ###notification module 
 
