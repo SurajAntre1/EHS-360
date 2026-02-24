@@ -72,7 +72,7 @@ def generate_incident_pdf(incident):
     drawable_width = A4[0] - left_margin - right_margin
 
     # ========================================
-    # Font & Style Definitions
+    # Font & Style Definitions (No changes here)
     # ========================================
     try:
         # Ensure the font file is available at this path in your project
@@ -106,7 +106,7 @@ def generate_incident_pdf(incident):
         return default
 
     # ========================================
-    # Header Table (Defined once)
+    # Header Table (No changes here)
     # ========================================
     logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.jpg')
     logo_img = Image(logo_path, width=2.2*inch, height=header_height) if os.path.exists(logo_path) else Paragraph("<b>COMPANY LOGO</b>", styles['HeaderTitle'])
@@ -123,7 +123,7 @@ def generate_incident_pdf(incident):
     ]))
 
     # ========================================
-    # Page Template Function to draw the header
+    # Page Template Function (No changes here)
     # ========================================
     def draw_header(canvas, doc):
         canvas.saveState()
@@ -131,6 +131,9 @@ def generate_incident_pdf(incident):
         header_table.drawOn(canvas, doc.leftMargin, doc.height + doc.topMargin - h + 5*mm)
         canvas.restoreState()
 
+    # --- The rest of the report sections remain the same ---
+    # ... (Employee Details, Injury Details, Investigation, etc.) ...
+    
     # ========================================
     # Incident Report Title & Reference Number
     # ========================================
@@ -241,7 +244,7 @@ def generate_incident_pdf(incident):
     # Investigation Report (if it exists)
     # ========================================================
     if hasattr(incident, 'investigation_report') and incident.investigation_report:
-        story.append(PageBreak())
+        # story.append(PageBreak())
         story.append(Paragraph("<b>SECTION 3: INVESTIGATION FINDINGS</b>", styles['SectionHeader']))
         investigation = incident.investigation_report
         
@@ -353,10 +356,75 @@ def generate_incident_pdf(incident):
 
 
     # ========================================================
+    # Photo Evidence Section
+    # ========================================================
+    incident_photos = incident.photos.all()
+    if incident_photos.exists():
+        # story.append(PageBreak())
+        # ✅ CHANGE: Corrected Section Number
+        story.append(Paragraph("<b>SECTION 6: ATTACHED PHOTO EVIDENCE</b>", styles['SectionHeader']))
+        story.append(Spacer(1, 4*mm))
+
+        photo_data = []
+        temp_row = []
+        # ✅ CHANGE: Increased max width and height for larger images
+        max_img_width = drawable_width / 2.1 # Approx 47.5% of page width
+        max_img_height = 4.5 * inch           # Increased max height
+
+        for photo in incident_photos:
+            try:
+                # Create a ReportLab Image object
+                img = Image(photo.photo.path)
+                
+                # Get original dimensions
+                img_w, img_h = img.imageWidth, img.imageHeight
+                aspect_ratio = img_h / float(img_w)
+                
+                # Calculate new dimensions to fit while maintaining aspect ratio
+                new_w = max_img_width
+                new_h = new_w * aspect_ratio
+                
+                if new_h > max_img_height:
+                    new_h = max_img_height
+                    new_w = new_h / aspect_ratio
+                    
+                img.drawWidth = new_w
+                img.drawHeight = new_h
+                
+                temp_row.append(img)
+                
+                # Add row to table if it has 2 images
+                if len(temp_row) == 2:
+                    photo_data.append(temp_row)
+                    temp_row = []
+
+            except Exception as e:
+                # If an image file is broken or missing, add a placeholder text
+                error_text = Paragraph(f"Error loading image:<br/>{os.path.basename(photo.photo.name)}", styles['Value'])
+                temp_row.append(error_text)
+                print(f"PDF Generation Error: Could not load image {photo.photo.path}. Reason: {e}")
+
+        # Add the last row if it's not full (contains only 1 image)
+        if temp_row:
+            photo_data.append(temp_row)
+        
+        if photo_data:
+            photo_table = Table(photo_data, colWidths=[drawable_width / 2, drawable_width / 2])
+            photo_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ]))
+            story.append(photo_table)
+
+    # ========================================================
     # Reporting & Administrative Information
     # ========================================================
-    story.append(PageBreak())
-    story.append(Paragraph("<b>SECTION 6: ADMINISTRATIVE DETAILS</b>", styles['SectionHeader']))
+    # story.append(PageBreak())
+    story.append(Paragraph("<b>SECTION 7: ADMINISTRATIVE DETAILS</b>", styles['SectionHeader']))
     reporting_data = [
         [Paragraph('<b>Current Status:</b>', styles['Label']), Paragraph(incident.get_status_display(), styles['Value'])],
         [Paragraph('<b>Reported By:</b>', styles['Label']), Paragraph(incident.reported_by.get_full_name(), styles['Value'])],

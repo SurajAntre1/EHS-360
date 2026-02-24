@@ -229,33 +229,47 @@
                                 </table>
                             </div>
                         {% else %}
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle mr-2"></i>
-                                All action items have been completed!
-                            </div>
-                            <hr>
-                            <h5 class="mt-3 font-weight-bold">
-                                <i class="fas fa-paperclip mr-1"></i>Attachment <span class="text-danger">*</span>
-                            </h5>
-                            <p>Please attach the final closure document to proceed. This is required.</p>
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            All action items have been completed!
+                        </div>
 
-                            <form method="post" enctype="multipart/form-data">
-                                {% csrf_token %}
-                                <div class="file-drop-area">
-                                    <div class="file-drop-zone-title">
-                                        <i class="fas fa-cloud-upload-alt fa-3x text-secondary mb-3"></i>
-                                        <p class="file-drop-message">Click to upload file or drag and drop</p>
-                                        <small class="text-muted">PDF, DOC, Excel, Images (Max 10MB)</small>
-                                    </div>
-                                    {{ attachment_form.attachment }}
+                        {# START: Replace the entire form section with this code #}
+                        <hr>
+                        <h5 class="mt-3 font-weight-bold">
+                            <i class="fas fa-paperclip mr-1"></i>Attachment <span class="text-danger">*</span>
+                        </h5>
+                        <p>Please attach the final closure document to proceed. This is required.</p>
+
+                        <!-- The form tag now has an ID for JavaScript to target -->
+                        <form id="attachmentUploadForm" method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <!-- This is the styled dropzone -->
+                            <div class="file-drop-area">
+                                <div class="file-drop-zone-title">
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-secondary mb-3"></i>
+                                    <p class="file-drop-message">Click to upload file or drag and drop</p>
+                                    <small class="text-muted">PDF, DOC, Excel, Images (Max 10MB)</small>
                                 </div>
-                                
-                                {% if attachment_form.attachment.errors %}
-                                    <div class="invalid-feedback d-block mt-2">
-                                        {{ attachment_form.attachment.errors }}
-                                    </div>
-                                {% endif %}
-                                
+                                <!-- This is the actual file input, which is now watched by JavaScript -->
+                                {{ attachment_form.attachment }}
+                            </div>
+                            
+                            <!-- NEW: Add a loading indicator, initially hidden -->
+                            <div id="uploading-indicator" style="display: none;" class="alert alert-info mt-3 py-2">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>
+                                <strong>Uploading...</strong> Please wait, the page will refresh automatically.
+                            </div>
+                            
+                            <!-- Display errors if any -->
+                            {% if attachment_form.attachment.errors %}
+                                <div class="invalid-feedback d-block mt-2">
+                                    {{ attachment_form.attachment.errors }}
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Display the name of the currently attached file -->
                                 {% if incident.attachment %}
                                     <div class="alert alert-info py-2 mt-3">
                                         <strong>Current File:</strong> 
@@ -264,9 +278,9 @@
                                     </div>
                                 {% endif %}
                                 
-                                <button type="submit" class="btn btn-primary mt-3">
+                                <!-- <button type="submit" class="btn btn-primary mt-3">
                                     <i class="fas fa-upload mr-2"></i>Upload Attachment
-                                </button>
+                                </button> -->
                             </form>
                         {% endif %}
                     </div>
@@ -295,4 +309,32 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Find the file input field generated by Django's form
+    const fileInput = document.querySelector('#id_attachment');
+    // Find the form using the ID we added
+    const attachmentForm = document.querySelector('#attachmentUploadForm');
+    // Find the loading indicator
+    const uploadingIndicator = document.querySelector('#uploading-indicator');
+
+    // Ensure all elements are present before adding the listener
+    if (fileInput && attachmentForm && uploadingIndicator) {
+        
+        // Listen for the 'change' event on the file input
+        fileInput.addEventListener('change', function() {
+            // Check if the user has actually selected a file
+            if (this.files.length > 0) {
+                // Show the "Uploading..." message to the user
+                uploadingIndicator.style.display = 'block';
+                
+                // Automatically submit the form
+                attachmentForm.submit();
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
