@@ -345,7 +345,9 @@
                                         <label>Sub-Location</label>
                                         {% if user_assigned_sublocations.count == 1 %}
                                             <input type="text" class="form-control readonly-field" readonly value="{{ user_assigned_sublocations.first.name }}">
-                                            {{ form.sublocation.as_hidden }}
+                                            <input type="hidden" 
+                                                    name="sublocation" 
+                                                    value="{{ user_assigned_sublocations.first.id }}">
                                         {% else %}
                                             {{ form.sublocation }}
                                         {% endif %}

@@ -91,36 +91,13 @@ class HazardForm(forms.ModelForm):
         # Filter querysets based on user's assigned locations
         if self.user:
             # Plant filtering
-            if self.user.assigned_plants.exists():
-                self.fields['plant'].queryset = self.user.assigned_plants.filter(is_active=True)
-            elif self.user.plant:
-                self.fields['plant'].queryset = Plant.objects.filter(id=self.user.plant.id, is_active=True)
-            else:
-                self.fields['plant'].queryset = Plant.objects.filter(is_active=True)
-            
+            self._set_filtered_queryset('plant', 'assigned_plants', 'plant', Plant)
             # Zone filtering
-            if self.user.assigned_zones.exists():
-                self.fields['zone'].queryset = self.user.assigned_zones.filter(is_active=True)
-            elif self.user.zone:
-                self.fields['zone'].queryset = Zone.objects.filter(id=self.user.zone.id, is_active=True)
-            else:
-                self.fields['zone'].queryset = Zone.objects.filter(is_active=True)
-            
+            self._set_filtered_queryset('zone', 'assigned_zones', 'zone', Zone)
             # Location filtering
-            if self.user.assigned_locations.exists():
-                self.fields['location'].queryset = self.user.assigned_locations.filter(is_active=True)
-            elif self.user.location:
-                self.fields['location'].queryset = Location.objects.filter(id=self.user.location.id, is_active=True)
-            else:
-                self.fields['location'].queryset = Location.objects.filter(is_active=True)
-            
+            self._set_filtered_queryset('location', 'assigned_locations', 'location', Location)
             # Sublocation filtering
-            if self.user.assigned_sublocations.exists():
-                self.fields['sublocation'].queryset = self.user.assigned_sublocations.filter(is_active=True)
-            elif self.user.sublocation:
-                self.fields['sublocation'].queryset = SubLocation.objects.filter(id=self.user.sublocation.id, is_active=True)
-            else:
-                self.fields['sublocation'].queryset = SubLocation.objects.filter(is_active=True)
+            self._set_filtered_queryset('sublocation', 'assigned_sublocations', 'sublocation', SubLocation)
         
         # Make zone and sublocation optional
         self.fields['zone'].required = False
@@ -136,6 +113,23 @@ class HazardForm(forms.ModelForm):
         self.fields['location'].empty_label = "-- Select Location --"
         self.fields['sublocation'].empty_label = "-- Select Sub-Location --"
         self.fields['behalf_person_dept'].empty_label = "-- Select Department --"
+    
+    def _set_filtered_queryset(self, field_name, assigned_attr, default_attr, model):
+        base_qs = model.objects.filter(is_active=True)
+        queryset = base_qs.none() 
+        
+        if self.user:
+            assigned = getattr(self.user, assigned_attr, None)
+            if assigned and assigned.exists():
+                queryset = assigned.filter(is_active=True)
+            elif getattr(self.user, default_attr, None):
+                default_obj = getattr(self.user, default_attr)
+                queryset = base_qs.filter(id=default_obj.id)
+        instance_value = getattr(self.instance, field_name, None)
+        if instance_value:
+            queryset = (queryset | model.objects.filter(id=instance_value.id)).distinct()
+
+        self.fields[field_name].queryset = queryset
     
     def clean(self):
         cleaned_data = super().clean()
