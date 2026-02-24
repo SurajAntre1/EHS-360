@@ -846,7 +846,7 @@ class ActionItemCreateView(LoginRequiredMixin, CreateView):
         kwargs['incident'] = self.incident
         return kwargs
 
-
+ 
 
 class IncidentApprovalView(LoginRequiredMixin, DetailView):
     """

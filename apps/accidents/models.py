@@ -325,6 +325,40 @@ class Incident(models.Model):
     def days_since_incident(self):
         return (datetime.date.today() - self.incident_date).days
     
+    
+    @property
+    def can_be_closed(self):
+        """
+        Checks if the incident meets all conditions to be closed.
+        Now includes a check for approval status.
+        
+        Returns:
+            (bool, str): A tuple containing a boolean and a message.
+        """
+        # 1. NEW: Check if the incident has been approved. This is the first and most important check.
+        if self.approval_status != 'APPROVED':
+            return False, 'The incident has not been approved yet.'
+
+        # 2. Check if the incident is already closed.
+        if self.status == 'CLOSED':
+            return False, "The incident is already closed."
+            
+        # 3. Check if investigation is completed (if required).
+        if self.investigation_required and not self.investigation_completed:
+            return False, "The investigation has not been completed."
+        
+        # 4. Check for any pending action items.
+        pending_actions = self.action_items.exclude(status='COMPLETED').count()
+        if pending_actions > 0:
+            return False, f"{pending_actions} action item(s) are still pending."
+        
+        # 5. Check if the final closure attachment has been uploaded.
+        if not self.attachment:
+            return False, "A final closure attachment is required."
+        
+        # If all checks pass
+        return True, "Ready for closure"
+    
     @property
     def can_be_closed(self):
        

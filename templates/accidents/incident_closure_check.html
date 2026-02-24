@@ -30,6 +30,13 @@
                             <div class="d-flex flex-wrap">
                                 <span class="badge badge-dark mr-2 mb-1">{{ incident.incident_type.name }}</span>
                                 <span class="badge badge-info mr-2 mb-1">Status: {{ incident.get_status_display }}</span>
+                                <!-- NEW: Show Approval Status Badge -->
+                                <span class="badge 
+                                    {% if incident.approval_status == 'APPROVED' %}badge-success
+                                    {% elif incident.approval_status == 'REJECTED' %}badge-danger
+                                    {% else %}badge-secondary{% endif %} mr-2 mb-1">
+                                    Approval: {{ incident.get_approval_status_display }}
+                                </span>
                                 {% if incident.incident_type == 'LTI' %}
                                     <span class="badge badge-danger mb-1">High Severity</span>
                                 {% endif %}
@@ -60,6 +67,26 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Approval Status Check First -->
+            {% if incident.approval_status != 'APPROVED' %}
+            <div class="card mt-3">
+                <div class="card-header bg-secondary">
+                    <h4 class="card-title text-white mb-0">
+                        <i class="fas fa-gavel mr-2"></i>Approval Status
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <strong>Pending Approval:</strong> This injury report must be approved before it can be closed.
+                    </div>
+                    <!-- <a href="{% url 'accidents:incident_approve' incident.pk %}" class="btn btn-primary">
+                        <i class="fas fa-check-double mr-1"></i>Go to Approval Page
+                    </a> -->
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Closure Eligibility Check -->
             <div class="card mt-3">
@@ -130,131 +157,121 @@
                 </div>
             </div>
 
-            <!-- Action Items Status & Attachment Upload -->
-            <div class="card mt-3">
-                <div class="card-header bg-info">
-                    <h5 class="card-title text-white mb-0">
-                        <i class="fas fa-tasks mr-2"></i>Action Items Status
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <div class="info-box bg-light">
-                                <span class="info-box-icon bg-primary"><i class="fas fa-list"></i></span>
-                                <div class="info-box-content">
-                                    <span class="info-box-text">Total Actions</span>
-                                    <span class="info-box-number">{{ total_actions }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="info-box bg-light">
-                                <span class="info-box-icon bg-success"><i class="fas fa-check"></i></span>
-                                <div class="info-box-content">
-                                    <span class="info-box-text">Completed</span>
-                                    <span class="info-box-number">{{ completed_count }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="info-box bg-light">
-                                <span class="info-box-icon bg-danger"><i class="fas fa-hourglass-half"></i></span>
-                                <div class="info-box-content">
-                                    <span class="info-box-text">Pending</span>
-                                    <span class="info-box-number">{{ pending_actions.count }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {% if pending_actions %}
-                        <h6 class="text-danger">Pending Action Items:</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered">
-                                <thead class="thead-light">
-                                    <tr>
-                                        <th>Action Description</th>
-                                        <th>Responsible Person</th>
-                                        <th>Target Date</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for action in pending_actions %}
-                                    <tr>
-                                        <td>{{ action.action_description }}</td>
-                                         <td>
-                                            {# Start loop for each user assigned to the action item #}
-                                            {% for user in action.responsible_person.all %}
-                                                <span class="badge badge-pill badge-secondary font-weight-normal">{{ user.email }}</span>
-                                            {% empty %}
-                                                <span class="text-muted">No person assigned</span>
-                                            {% endfor %}
-                                        </td>
-                                        <td>{{ action.target_date|date:"d M Y" }}</td>
-                                        <td><span class="badge badge-warning">{{ action.get_status_display }}</span></td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <div class="alert alert-success">
-                            <i class="fas fa-check-circle mr-2"></i>
-                            All action items have been completed!
-                        </div>
-
-
-                        <!-- ================================================================ -->
-                        <!-- NEW ATTACHMENT FORM SECTION WITH DRAG-AND-DROP STYLE             -->
-                        <!-- ================================================================ -->
-                        <hr>
-                        <h5 class="mt-3 font-weight-bold">
-                            <i class="fas fa-paperclip mr-1"></i>Attachment <span class="text-danger">*</span>
+            <!-- Action Items and Attachment Section -->
+            <!-- This section is only relevant if the incident is approved -->
+            {% if incident.approval_status == 'APPROVED' %}
+                <div class="card mt-3">
+                    <div class="card-header bg-info">
+                        <h5 class="card-title text-white mb-0">
+                            <i class="fas fa-tasks mr-2"></i>Action Items & Attachment
                         </h5>
-                        <p>Please attach the final closure document to proceed. This is required.</p>
-
-                        <!-- The form tag must have enctype -->
-                        <form method="post" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            
-                            <!-- This is the styled dropzone -->
-                            <div class="file-drop-area">
-                                <!-- The visible part of the dropzone -->
-                                <div class="file-drop-zone-title">
-                                    <i class="fas fa-cloud-upload-alt fa-3x text-secondary mb-3"></i>
-                                    <p class="file-drop-message">Click to upload file or drag and drop</p>
-                                    <small class="text-muted">PDF, DOC, Excel, Images (Max 10MB)</small>
+                    </div>
+                    <div class="card-body">
+                        <!-- Action Items Status -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="info-box bg-light">
+                                    <span class="info-box-icon bg-primary"><i class="fas fa-list"></i></span>
+                                    <div class="info-box-content">
+                                        <span class="info-box-text">Total Actions</span>
+                                        <span class="info-box-number">{{ total_actions }}</span>
+                                    </div>
                                 </div>
-                                <!-- This is the actual file input, which we hide.
-                                    To make it required, the 'required' attribute should be added
-                                    in the Django form widget definition. -->
-                                {{ attachment_form.attachment }}
                             </div>
-                            
-                            <!-- Display errors if any -->
-                            {% if attachment_form.attachment.errors %}
-                                <div class="invalid-feedback d-block mt-2">
-                                    {{ attachment_form.attachment.errors }}
+                            <div class="col-md-4">
+                                <div class="info-box bg-light">
+                                    <span class="info-box-icon bg-success"><i class="fas fa-check"></i></span>
+                                    <div class="info-box-content">
+                                        <span class="info-box-text">Completed</span>
+                                        <span class="info-box-number">{{ completed_count }}</span>
+                                    </div>
                                 </div>
-                            {% endif %}
-                            
-                            <!-- Display the name of the currently attached file -->
-                            {% if incident.attachment %}
-                                <div class="alert alert-info py-2 mt-3">
-                                    <strong>Current File:</strong> 
-                                    <a href="{{ incident.attachment.url }}" target="_blank">{{ incident.attachment.name|truncatechars:50 }}</a>
-                                    <p class="mb-0 small text-muted">Uploading a new file will replace this one.</p>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="info-box bg-light">
+                                    <span class="info-box-icon bg-danger"><i class="fas fa-hourglass-half"></i></span>
+                                    <div class="info-box-content">
+                                        <span class="info-box-text">Pending</span>
+                                        <span class="info-box-number">{{ pending_actions.count }}</span>
+                                    </div>
                                 </div>
-                            {% endif %}
-                            
-                            <button type="submit" class="btn btn-primary mt-3">
-                                <i class="fas fa-upload mr-2"></i>Upload Attachment
-                            </button>
-                        </form>                    {% endif %}
+                            </div>
+                        </div>
+
+                        {% if pending_actions %}
+                            <h6 class="text-danger">Pending Action Items:</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Action Description</th>
+                                            <th>Responsible Person</th>
+                                            <th>Target Date</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for action in pending_actions %}
+                                        <tr>
+                                            <td>{{ action.action_description }}</td>
+                                            <td>
+                                                {% for user in action.responsible_person.all %}
+                                                    <span class="badge badge-pill badge-secondary font-weight-normal">{{ user.email }}</span>
+                                                {% empty %}
+                                                    <span class="text-muted">No person assigned</span>
+                                                {% endfor %}
+                                            </td>
+                                            <td>{{ action.target_date|date:"d M Y" }}</td>
+                                            <td><span class="badge badge-warning">{{ action.get_status_display }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle mr-2"></i>
+                                All action items have been completed!
+                            </div>
+                            <hr>
+                            <h5 class="mt-3 font-weight-bold">
+                                <i class="fas fa-paperclip mr-1"></i>Attachment <span class="text-danger">*</span>
+                            </h5>
+                            <p>Please attach the final closure document to proceed. This is required.</p>
+
+                            <form method="post" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <div class="file-drop-area">
+                                    <div class="file-drop-zone-title">
+                                        <i class="fas fa-cloud-upload-alt fa-3x text-secondary mb-3"></i>
+                                        <p class="file-drop-message">Click to upload file or drag and drop</p>
+                                        <small class="text-muted">PDF, DOC, Excel, Images (Max 10MB)</small>
+                                    </div>
+                                    {{ attachment_form.attachment }}
+                                </div>
+                                
+                                {% if attachment_form.attachment.errors %}
+                                    <div class="invalid-feedback d-block mt-2">
+                                        {{ attachment_form.attachment.errors }}
+                                    </div>
+                                {% endif %}
+                                
+                                {% if incident.attachment %}
+                                    <div class="alert alert-info py-2 mt-3">
+                                        <strong>Current File:</strong> 
+                                        <a href="{{ incident.attachment.url }}" target="_blank">{{ incident.attachment.name|truncatechars:50 }}</a>
+                                        <p class="mb-0 small text-muted">Uploading a new file will replace this one.</p>
+                                    </div>
+                                {% endif %}
+                                
+                                <button type="submit" class="btn btn-primary mt-3">
+                                    <i class="fas fa-upload mr-2"></i>Upload Attachment
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
+            {% endif %}
 
             <!-- Action Buttons -->
             <div class="card mt-3">
