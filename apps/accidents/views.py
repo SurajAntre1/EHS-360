@@ -1331,7 +1331,7 @@ class IncidentClosureView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     
     def get_success_url(self):
         return reverse_lazy('accidents:incident_detail', kwargs={'pk': self.object.pk})
-
+ 
 
 class IncidentReopenView(LoginRequiredMixin, UserPassesTestMixin, View):
     """Reopen a closed incident"""
