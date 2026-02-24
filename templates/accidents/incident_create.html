@@ -158,6 +158,7 @@
             <div class="col-md-4 mb-3">
               <label for="id_incident_type">Type of Injury <span class="text-danger">*</span></label>
               <select name="incident_type" id="id_incident_type" class="form-control" required>
+                <option value="">Select Injury Type</option> 
                {%for incident_type in active_incident_types %}
                 <option value="{{incident_type.id}}" data-code="{{ incident_type.code }}">
                      {{ incident_type.name }}({{ incident_type.code }})

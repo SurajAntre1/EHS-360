@@ -10,6 +10,9 @@ from django.views import View
 from .models import *
 from .forms import *
 from django.forms import ValidationError
+from django.db.models.functions import Cast,Substr
+from django.db.models import IntegerField
+from django.db.models.functions import Lower
 
 
 class OrganizationDashboardView(LoginRequiredMixin, AdminRequiredMixin, TemplateView):
@@ -402,9 +405,9 @@ class ZoneListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
             'locations__sublocations'
         ).annotate(
             total_locations=Count('locations', distinct=True),
-            active_locations=Count('locations', filter=Q(locations__is_active=True), distinct=True)
-        ).order_by('-created_at')
-        
+            active_locations=Count('locations',filter=Q(locations__is_active=True),distinct=True),
+            zone_number=Cast(Substr('name', 6),IntegerField()))
+
         # Search
         search = self.request.GET.get('search')
         if search:
@@ -413,7 +416,7 @@ class ZoneListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
                 Q(code__icontains=search) |
                 Q(plant__name__icontains=search)
             )
-        
+
         # Filter by plant
         plant = self.request.GET.get('plant')
         if plant:
@@ -426,7 +429,7 @@ class ZoneListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
         elif status == 'inactive':
             queryset = queryset.filter(is_active=False)
         
-        return queryset
+        return queryset.order_by(Lower('name'))
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
