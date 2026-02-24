@@ -49,7 +49,22 @@ class CustomLoginView(LoginView):
         return reverse_lazy('dashboards:home')
     
     def form_valid(self, form):
+        from django.contrib.sessions.backends.db import SessionStore
+        from django.contrib.sessions.models import Session
+        from django.utils import timezone
+        
         user = form.get_user()
+        
+        # ============================================
+        # SINGLE SESSION: Delete all previous sessions
+        # for this user before creating a new one
+        # ============================================
+        active_sessions = Session.objects.filter(expire_date__gte=timezone.now())
+        for session in active_sessions:
+            session_data = session.get_decoded()
+            # _auth_user_id stores the logged-in user's PK
+            if str(session_data.get('_auth_user_id')) == str(user.pk):
+                session.delete()
         
         # Check if superuser
         if user.is_superuser:
