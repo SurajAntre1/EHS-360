@@ -22,6 +22,7 @@ from django.db.models import Count, Sum, Q
 from django.utils import timezone
 import json
 from .models import MonthlyIndicatorData, EnvironmentalQuestion, UnitCategory
+from collections import Counter
 
 # =========================================================
 # API ENDPOINTS FOR QUESTIONS MANAGER
@@ -1419,67 +1420,98 @@ class EnvironmentalDashboardView(LoginRequiredMixin, TemplateView):
                 accessible_plants = assigned.order_by('name')
 
         # --- 2. EXTRACT FILTERS ---
-        selected_plant_id = self.request.GET.get('plant', '')
-        selected_month_code = self.request.GET.get('month', '')
-        
+        selected_plant_id = self.request.GET.get('plant')
+        selected_month_code = self.request.GET.get('month')
+        if selected_plant_id:
+            accessible_plants = accessible_plants.filter(id=selected_plant_id)        
+        questions = EnvironmentalQuestion.objects.filter(is_active=True)
+
         # --- 3. BASE DATA QUERYSET (Filter by accessible plants first) ---
         # Optimization: select_related to avoid N+1 queries on SQLite
-        data_qs = MonthlyIndicatorData.objects.filter(
-            plant__in=accessible_plants
-        ).select_related('indicator', 'plant', 'unit', 'indicator__unit_category')
+        data_qs = []
+        current_year = datetime.now().year
+        month_choices = MonthlyIndicatorData.MONTH_CHOICES
 
-        # Apply user-selected filters
-        if selected_plant_id:
-            data_qs = data_qs.filter(plant_id=selected_plant_id)
-            selected_plant_obj = accessible_plants.filter(id=selected_plant_id).first()
-            if selected_plant_obj:
-                context['selected_plant_name'] = selected_plant_obj.name
-                
-        if selected_month_code:
-            data_qs = data_qs.filter(month=selected_month_code)
-            month_dict = dict(MonthlyIndicatorData.MONTH_CHOICES)
-            context['selected_month_label'] = month_dict.get(selected_month_code)
+        for plant in accessible_plants:
+            for q in questions:
+                for month_code, month_name in month_choices:
 
-        # Flag for active filter badges
-        context['has_active_filters'] = bool(selected_plant_id or selected_month_code)
+                    # Apply user-selected filters
+                    if selected_month_code and month_code != selected_month_code:
+                        continue
+                    value = None
+                    if q.source_type == "MANUAL":
+                        manual_entry = MonthlyIndicatorData.objects.filter(
+                            plant=plant,
+                            indicator=q,
+                            month=month_code
+                        ).first()
+
+                        if manual_entry:
+                            value = manual_entry.value
+                    else:
+                        month_number = datetime.strptime(month_code, "%b").month
+
+                        start_date = datetime(current_year, month_number, 1)
+
+                        if month_number == 12:
+                            end_date = datetime(current_year + 1, 1, 1)
+                        else:
+                            end_date = datetime(current_year, month_number + 1, 1)
+
+                        model_map = {"INCIDENT": Incident,"HAZARD": Hazard,"INSPECTION": InspectionSchedule,}
+
+                        model = model_map.get(q.source_type)
+
+                        if model:
+                            filters = {"plant": plant,"created_at__gte": start_date,"created_at__lt": end_date,}
+
+                            if q.filter_field and q.filter_value:
+                                filters[q.filter_field] = q.filter_value
+
+                            if q.filter_field_2 and q.filter_value_2:
+                                filters[q.filter_field_2] = q.filter_value_2
+
+                            value = model.objects.filter(**filters).count()
+
+                    if value not in [None, "", 0]:
+                        data_qs.append({"plant": plant,"indicator": q,"month": month_code,"value": value,"category": q.unit_category.name if q.unit_category else "Other"})
+
 
         # --- 4. CALCULATE STATISTICS (Based on Filtered Data) ---
-        context['total_indicators_count'] = EnvironmentalQuestion.objects.filter(is_active=True).count()
-        context['total_data_points'] = data_qs.count()
+        context['total_indicators_count'] = questions.count()
+        context['total_data_points'] = len(data_qs)
         context['plants_count'] = accessible_plants.count()
         
         # Sum of numeric values (Safe conversion for SQLite)
         total_vol = 0
         for entry in data_qs:
             try:
-                total_vol += float(str(entry.value).replace(',', ''))
+                total_vol += float(entry["value"])
             except (ValueError, TypeError):
                 continue
         context['total_volume'] = total_vol
 
         # --- 5. PREPARE CHARTS (JSON format) ---
         # Category Chart
-        cat_dist = data_qs.values('indicator__unit_category__name').annotate(count=Count('id')).order_by('-count')
-        context['cat_labels_json'] = json.dumps([item['indicator__unit_category__name'] or "Other" for item in cat_dist])
-        context['cat_data_json'] = json.dumps([item['count'] for item in cat_dist])
-
-        # Trend Chart (Calendar order)
-        month_order = [m[0] for m in MonthlyIndicatorData.MONTH_CHOICES]
-        trend_query = data_qs.values('month').annotate(count=Count('id'))
-        trend_map = {item['month']: item['count'] for item in trend_query}
-        
-        context['trend_labels_json'] = json.dumps([dict(MonthlyIndicatorData.MONTH_CHOICES).get(m) for m in month_order])
-        context['trend_values_json'] = json.dumps([trend_map.get(m, 0) for m in month_order])
+        cat_counter = Counter([e["category"] for e in data_qs])
+        context['cat_labels_json'] = json.dumps(list(cat_counter.keys()))
+        context['cat_data_json'] = json.dumps(list(cat_counter.values()))
 
         # --- 6. DATA TABLE (Show ALL filtered data) ---
-        context['data_entries'] = data_qs.order_by('plant__name', 'indicator__order')
+        context['data_entries'] = sorted(data_qs,key=lambda x: (x["plant"].name, x["indicator"].order))
+        month_order = [m[0] for m in month_choices]
+        trend_counter = Counter([e["month"] for e in data_qs])
+        context['trend_labels_json'] = json.dumps([dict(month_choices).get(m) for m in month_order])
+        context['trend_values_json'] = json.dumps([trend_counter.get(m, 0) for m in month_order])
 
         # --- 7. FILTER OPTIONS ---
-        context['plants'] = accessible_plants
-        context['month_choices'] = MonthlyIndicatorData.MONTH_CHOICES
+        context['plants'] = Plant.objects.filter(is_active=True)
+        context['month_choices'] = month_choices
         context['selected_plant'] = selected_plant_id
         context['selected_month'] = selected_month_code
-        
+        context['has_active_filters'] = bool(selected_plant_id or selected_month_code)
+
         return context
         
 class ExportExcelView(LoginRequiredMixin, View):
