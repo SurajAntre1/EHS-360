@@ -266,11 +266,48 @@ def generate_environmental_excel(plants_data):
     ws = wb.active
     ws.title = "Environmental Data"
 
-    headers = ["Plant", "Question", "Unit", "Annual"] + MONTH_LABELS
-    ws.append(headers)
+    all_questions = []
+    question_meta = {}
 
+    for plant_data in plants_data:
+        for q in plant_data["questions_data"]:
+            if q["question"] not in all_questions:
+                all_questions.append(q["question"])
+                question_meta[q["question"]] = {
+                    "unit": q.get("unit", ""),
+                }
+
+    ws.cell(row=1, column=1, value="Indicators")
+    # header row plant code
+    col = 2
+    for plant_data in plants_data:
+        plant = plant_data["plant"]
+
+        ws.merge_cells(
+            start_row=1,
+            start_column=col,
+            end_row=1,
+            end_column=col + len(MONTH_LABELS)
+        )
+
+        ws.cell(row=1, column=col, value=plant.code)
+        col += len(MONTH_LABELS) + 1  
+
+    ws.cell(row=2, column=1, value="")
+    # header row months + total
+    col = 2
+    for _ in plants_data:
+        for month in MONTH_LABELS:
+            ws.cell(row=2, column=col, value=month)
+            col += 1
+
+        ws.cell(row=2, column=col, value="Total")
+        col += 1
+
+    # styling for the excel
     header_font = Font(bold=True)
-    header_alignment = Alignment(horizontal="center", vertical="center")
+    center_align = Alignment(horizontal="center", vertical="center")
+    right_align = Alignment(horizontal="right", vertical="center")
 
     thin_border = Border(
         left=Side(style="thin"),
@@ -279,29 +316,43 @@ def generate_environmental_excel(plants_data):
         bottom=Side(style="thin"),
     )
 
-    for col_num, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col_num)
-        cell.font = header_font
-        cell.alignment = header_alignment
-        cell.border = thin_border
+    for row in ws.iter_rows(min_row=1, max_row=2):
+        for cell in row:
+            cell.font = header_font
+            cell.alignment = center_align
+            cell.border = thin_border
 
-    ws.freeze_panes = "A2"
+    # data rows
+    ws.freeze_panes = "B3"
+    current_row = 3
 
-    for plant_data in plants_data:
-        plant_name = plant_data["plant"].name
+    for question in all_questions:
+        ws.cell(row=current_row, column=1, value=question)
+        col = 2
 
-        for q in plant_data["questions_data"]:
-            row = [
-                plant_name,
-                q["question"],
-                q["unit"],
-                q["annual"],
-            ]
+        for plant_data in plants_data:
+            plant_question_map = {q["question"]: q for q in plant_data["questions_data"]}
+            q = plant_question_map.get(question)
+            total = 0
 
             for month in MONTH_LABELS:
-                row.append(q["month_data"].get(month, ""))
+                value = 0
+                if q:
+                    value = q["month_data"].get(month, 0)
 
-            ws.append(row)
+                ws.cell(row=current_row, column=col, value=value)
+                ws.cell(row=current_row, column=col).alignment = right_align
+
+                if isinstance(value, (int, float)):
+                    total += value
+
+                col += 1
+
+            ws.cell(row=current_row, column=col, value=total)
+            ws.cell(row=current_row, column=col).alignment = right_align
+
+            col += 1
+        current_row += 1
 
     for column_cells in ws.columns:
         max_length = 0
@@ -309,18 +360,8 @@ def generate_environmental_excel(plants_data):
 
         for cell in column_cells:
             cell.border = thin_border
-
-            if cell.row > 1:
-                if isinstance(cell.value, (int, float)) or (
-                    isinstance(cell.value, str) and cell.value.replace(".", "").replace(",", "").isdigit()
-                ):
-                    cell.alignment = Alignment(horizontal="right", vertical="center")
-                else:
-                    cell.alignment = Alignment(vertical="center")
-
             if cell.value:
                 max_length = max(max_length, len(str(cell.value)))
-
         ws.column_dimensions[col_letter].width = max_length + 3
 
     return wb
