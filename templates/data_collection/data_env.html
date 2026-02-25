@@ -554,7 +554,7 @@
     <div class="header-section">
         <div class="header-content">
             <div class="header-info">
-                <h2><i class="fas fa-leaf"></i> Monthly Environmental Data Entry</h2>
+                <h2><i class="fas fa-leaf"></i> Monthly EHS Indicators Entry</h2>
                 <div class="plant-info">
                     <span><strong>Currently Editing:</strong> {{ selected_plant.name }}</span>
                     <span><strong>Year:</strong> {{ current_year }}</span>
@@ -698,19 +698,6 @@ document.getElementById('dataEntryForm')?.addEventListener('submit', function(e)
     const saveBtn = document.getElementById('saveBtn');
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Saving...</span>';
-});
-
-// Auto-save warning on page leave
-let formChanged = false;
-document.getElementById('dataEntryForm')?.addEventListener('input', function() {
-    formChanged = true;
-});
-
-window.addEventListener('beforeunload', function(e) {
-    if (formChanged) {
-        e.preventDefault();
-        e.returnValue = '';
-    }
 });
 </script>
 
