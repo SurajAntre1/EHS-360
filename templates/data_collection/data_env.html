@@ -699,19 +699,6 @@ document.getElementById('dataEntryForm')?.addEventListener('submit', function(e)
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Saving...</span>';
 });
-
-// Auto-save warning on page leave
-let formChanged = false;
-document.getElementById('dataEntryForm')?.addEventListener('input', function() {
-    formChanged = true;
-});
-
-window.addEventListener('beforeunload', function(e) {
-    if (formChanged) {
-        e.preventDefault();
-        e.returnValue = '';
-    }
-});
 </script>
 
 {% endblock %}
