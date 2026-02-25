@@ -23,16 +23,13 @@ class NotificationMaster(models.Model):
         ('INCIDENT_REPORTED', 'Incident Reported'),
         ('INCIDENT_INVESTIGATION_COMPLETED', 'Investigation Completed'),
         # ('INCIDENT_INVESTIGATION_DUE', 'Investigation Due Soon'),
-        # ('INCIDENT_INVESTIGATION_OVERDUE', 'Investigation Overdue'),
+        ('INCIDENT_INVESTIGATION_OVERDUE', 'Investigation Overdue'),
         ('INCIDENT_ACTION_ASSIGNED', 'Action Item Assigned'),
         ('INCIDENT_CLOSED', 'Incident Closed'),
         
         # Hazard Module
         ('HAZARD_REPORTED', 'Hazard/Near Miss Reported'),
-        # ('HAZARD_INVESTIGATION_DUE', 'Hazard Investigation Due'),
-        # ('HAZARD_INVESTIGATION_OVERDUE', 'Hazard Investigation Overdue'),
-        # ('HAZARD_ACTION_PLAN_OVERDUE', 'Action Plan Overdue'),
-        # ('HAZARD_CLOSURE_OVERDUE', 'Closure Overdue'),
+        
         ('HAZARD_CLOSED', 'Hazard Closed'),
         
         # Environmental Module
