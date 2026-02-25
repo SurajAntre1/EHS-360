@@ -188,13 +188,13 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 # EMAIL_HOST_PASSWORD = 'your-app-password'
 # DEFAULT_FROM_EMAIL = 'EHS-360 <your-email@gmail.com>'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 's702.bom.secure-web.cloud' #config('EMAIL_HOST') #'mail.fireinspector.co.in' #'s437.bom7.mysecurecloudhost.com'
+EMAIL_HOST = 'smtp.office365.com' #config('EMAIL_HOST') #'mail.fireinspector.co.in' #'s437.bom7.mysecurecloudhost.com'
 EMAIL_USE_TLS = True               # Enable TLS
 EMAIL_USE_SSL = False 
 EMAIL_PORT = 587 
-EMAIL_HOST_USER = 'support@fireinspector.co.in'
-EMAIL_HOST_PASSWORD = 'Support@Fire'
-DEFAULT_FROM_EMAIL = 'EHS-360 System <noreply@ehs360.com>'
+EMAIL_HOST_USER = 'ehs.communication@everestind.com'
+EMAIL_HOST_PASSWORD = 'eil1012#'
+DEFAULT_FROM_EMAIL = 'EHS-360 System <ehs.communication@everestind.com>'
 
 
 
