@@ -288,6 +288,8 @@ class NotificationService:
             context = NotificationService._build_notify_inspection_context(content_object)
         elif notification_type == 'INSPECTION_NONCOMPLIANCE_ASSIGNED':
             context = NotificationService._build_noncompliance_assigned_context(content_object)
+        elif notification_type == 'INCIDENT_INVESTIGATION_OVERDUE':
+            context = NotificationService._build_investigation_overdue_context(content_object)
         elif module == 'INSPECTION':
             context = NotificationService._build_inspection_context(content_object)
         else:
@@ -734,3 +736,47 @@ EHS Management System
         'response': response,
         'recipient': response.assigned_to,
     }
+
+    @staticmethod
+    def _build_investigation_overdue_context(incident):
+        """Build context for investigation overdue notifications"""
+        import datetime
+        days_overdue = (datetime.date.today() - incident.investigation_deadline).days
+        
+        incident_type = (
+            incident.incident_type.name
+            if incident.incident_type else 'NA'
+        )
+        
+        return {
+            'title': f"Investigation Overdue | {incident.report_number}",
+            'subject': f"⚠️ Investigation Overdue ({days_overdue} day(s)) - {incident.report_number}",
+            'message': f"""
+    Hello,
+
+    The investigation for the following incident is OVERDUE by {days_overdue} day(s).
+
+    INCIDENT DETAILS
+    --------------------------------------------------
+    Incident Number       : {incident.report_number}
+    Incident Type         : {incident_type}
+    Date & Time           : {incident.incident_date} {incident.incident_time}
+    Plant                 : {incident.plant.name}
+    Zone                  : {incident.zone.name if incident.zone else 'N/A'}
+    Location              : {incident.location.name if incident.location else 'N/A'}
+    Reported By           : {incident.reported_by.get_full_name()}
+
+    INVESTIGATION STATUS
+    --------------------------------------------------
+    Investigation Deadline : {incident.investigation_deadline}
+    Days Overdue           : {days_overdue} day(s)
+    Current Status         : {incident.get_status_display()}
+
+    Please ensure the investigation is completed immediately.
+
+    Regards,
+    EHS Management System
+    """,
+            'incident': incident,
+            'days_overdue': days_overdue,
+        }
