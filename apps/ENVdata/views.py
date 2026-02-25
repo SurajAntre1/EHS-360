@@ -1506,7 +1506,8 @@ class EnvironmentalDashboardView(LoginRequiredMixin, TemplateView):
         context['trend_values_json'] = json.dumps([trend_counter.get(m, 0) for m in month_order])
 
         # --- 7. FILTER OPTIONS ---
-        context['plants'] = Plant.objects.filter(is_active=True)
+        # context['plants'] = Plant.objects.filter(is_active=True)
+        context['plants'] = accessible_plants 
         context['month_choices'] = month_choices
         context['selected_plant'] = selected_plant_id
         context['selected_month'] = selected_month_code
