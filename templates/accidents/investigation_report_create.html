@@ -373,7 +373,7 @@
             <button type="button" class="remove-action-item-btn" title="Remove Action Item">&times;</button>
             <div class="row">
                 <div class="col-md-12 mb-3">
-                    <label for="{{ form.action_description.id_for_label }}">Action Description <span class="text-danger">*</span></label>
+                    <label for="{{ form.action_description.id_for_label }}">Action Taken<span class="text-danger">*</span></label>
                     {{ form.action_description }}
                     {% if form.action_description.errors %}<div class="text-danger small">{{ form.action_description.errors }}</div>{% endif %}
                 </div>
@@ -457,7 +457,7 @@
         <button type="button" class="remove-action-item-btn" title="Remove Action Item">&times;</button>
         <div class="row">
             <div class="col-md-12 mb-3">
-                <label for="{{ action_item_formset.empty_form.action_description.id_for_label }}">Action Description <span class="text-danger">*</span></label>
+                <label for="{{ action_item_formset.empty_form.action_description.id_for_label }}">Action Taken <span class="text-danger">*</span></label>
                 {{ action_item_formset.empty_form.action_description }}
             </div>
         </div>
