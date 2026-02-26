@@ -762,94 +762,165 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
     
 
 class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
-    """
-    Update an existing action item.
-    Handles form submission for updating an action item,
-    including replacing file attachments. The attachment is always required.
-    """
     model = HazardActionItem
-    template_name = 'hazards/action_item_update.html'
-    fields = []  # We handle fields manually in the post method.
+    template_name = "hazards/action_item_update.html"
+    fields = []
 
+    # ----------------------------------
+    # LOAD OBJECT
+    # ----------------------------------
     def dispatch(self, request, *args, **kwargs):
-            self.object = self.get_object()
-            self.hazard = self.object.hazard
-            return super().dispatch(request, *args, **kwargs)
-    
-    def get_context_data(self,**kwargs):
-        context = super().get_context_data(**kwargs)
-        context['hazard'] = self.hazard
-        context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
-        if self.hazard.action_deadline:
-            context['action_deadline_date'] = self.hazard.action_deadline.strftime('%Y-%m-%d')
-        return context
-    
-    def get_success_url(self):
-        """
-        Redirect to the hazard detail page after a successful update.
-        """
-        return reverse_lazy('hazards:hazard_detail', kwargs={'pk': self.object.hazard.pk})
-
-    def post(self, request, *args, **kwargs):
-        """
-        Handle the POST request to update the action item.
-        """
         self.object = self.get_object()
-        
+        self.hazard = self.object.hazard
+        return super().dispatch(request, *args, **kwargs)
+
+    # ----------------------------------
+    # CONTEXT
+    # ----------------------------------
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context["hazard"] = self.hazard
+        context["plant_users"] = (
+            self.hazard.plant.users.filter(is_active=True)
+            if hasattr(self.hazard.plant, "users")
+            else []
+        )
+
+        context["plant_name"] = self.hazard.plant.name
+        context["severity_days"] = (
+            (self.hazard.action_deadline - self.hazard.incident_datetime.date()).days
+            if self.hazard.action_deadline
+            else 0
+        )
+
+        context["auto_target_date"] = (
+            self.hazard.action_deadline.strftime("%Y-%m-%d")
+            if self.hazard.action_deadline
+            else ""
+        )
+
+        context["cancel_url"] = (
+            self.request.GET.get("next")
+            or self.request.META.get("HTTP_REFERER")
+            or "/"
+        )
+        context["is_self_assignment"] = self.object.is_self_assigned
+
+        return context
+
+    # ----------------------------------
+    # SUCCESS URL
+    # ----------------------------------
+    def get_success_url(self):
+        return reverse_lazy(
+            "hazards:hazard_detail",
+            kwargs={"pk": self.object.hazard.pk},
+        )
+
+    # ----------------------------------
+    # POST
+    # ----------------------------------
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+
         try:
-            # *** MODIFIED: Validate that an attachment will exist after the update ***
-            # A new file is being uploaded, which is always acceptable.
-            if 'attachment' in request.FILES:
-                self.object.attachment = request.FILES['attachment']
-            # No new file is uploaded, AND the existing attachment is marked for removal.
-            # This logic prevents removing the file without replacing it.
-            elif not self.object.attachment:
-                messages.error(request, 'An attachment is required. Please upload a file.')
-                return redirect('hazards:action_item_update', pk=self.object.pk)
+            assignment_type = request.POST.get("assignment_type")
 
-            # Update standard fields from POST data
-            self.object.action_description = request.POST.get('action_description', '').strip()
-            self.object.responsible_emails = request.POST.get('responsible_emails', '').strip()
-            
-            # Update target date
-            target_date_str = request.POST.get('target_date')
-            if target_date_str:
-                self.object.target_date = datetime.datetime.strptime(target_date_str, '%Y-%m-%d').date()
-            
-            # Update status
-            self.object.status = request.POST.get('status', self.object.status)
+            # ----------------------------
+            # DESCRIPTION
+            # ----------------------------
+            self.object.action_description = request.POST.get(
+                "action_description", ""
+            ).strip()
 
-            # Handle completion details if status is 'COMPLETED'
-            if self.object.status == 'COMPLETED':
-                completion_date_str = request.POST.get('completion_date')
-                if completion_date_str:
-                    self.object.completion_date = datetime.datetime.strptime(completion_date_str, '%Y-%m-%d').date()
-                else:
-                    self.object.completion_date = datetime.date.today() # Default to today if not provided
-                
-                self.object.completion_remarks = request.POST.get('completion_remarks', '').strip()
-            
+            # ----------------------------
+            # TARGET DATE
+            # ----------------------------
+            target_date = request.POST.get("target_date")
+            if target_date:
+                self.object.target_date = datetime.datetime.strptime(
+                    target_date, "%Y-%m-%d"
+                ).date()
+
+            # ----------------------------
+            # ATTACHMENT HANDLING
+            # ----------------------------
+            if assignment_type == "self":
+                # Attachment REQUIRED
+                if "attachment" not in request.FILES and not self.object.attachment:
+                    messages.error(
+                        request,
+                        "Attachment is required for self-assignment.",
+                    )
+                    return redirect(
+                        "hazards:action_item_update",
+                        pk=self.object.pk,
+                    )
+
+            # If new file uploaded
+            if "attachment" in request.FILES:
+                self.object.attachment = request.FILES["attachment"]
+
+            # ----------------------------
+            # ASSIGNMENT LOGIC
+            # ----------------------------
+            if assignment_type == "self":
+                # Assign to current user
+                self.object.responsible_emails = request.user.email
+                self.object.is_self_assigned = True
+                self.object.status = "COMPLETED"
+                self.object.completed_by = request.user
+                self.object.completion_date = timezone.now().date()
+
+            elif assignment_type == "forward":
+                selected_emails = request.POST.getlist("responsible_emails")
+
+                if not selected_emails:
+                    messages.error(
+                        request,
+                        "Please select at least one user.",
+                    )
+                    return redirect(
+                        "hazards:action_item_update",
+                        pk=self.object.pk,
+                    )
+
+                self.object.responsible_emails = ",".join(selected_emails)
+                self.object.is_self_assigned = False
+                self.object.status = "PENDING"
+                self.object.completed_by = None
+                self.object.completion_date = None
+
+            # ----------------------------
+            # SAVE
+            # ----------------------------
             self.object.save()
-            # self.object.hazard.update_status_from_action_items()
-            
-            # Prepare success message
-            email_count = self.object.get_emails_count()
-            messages.success(
-                request, 
-                mark_safe(
-                    f'✅ <strong>Action item updated successfully!</strong><br>'
-                    f'Status: <strong>{self.object.get_status_display()}</strong> | '
-                    f'Assigned to: <strong>{email_count}</strong> email(s)'
-                )
-            )
-            return redirect(self.get_success_url())
-            
-        except Exception as e:
-            # Log the error for debugging purposes
-            print(f"Error updating action item: {e}")
-            messages.error(request, f'Error updating action-item: {str(e)}')
-            return redirect('hazards:action_item_update', pk=self.object.pk)
 
+            # Update parent hazard status
+            if hasattr(self.object.hazard, "update_status_from_action_items"):
+                self.object.hazard.update_status_from_action_items()
+
+            messages.success(
+                request,
+                mark_safe(
+                    f"✅ <strong>Action item updated successfully!</strong><br>"
+                    f"Status: <strong>{self.object.get_status_display()}</strong>"
+                ),
+            )
+
+            return redirect(self.get_success_url())
+
+        except Exception as e:
+            print("Update Error:", e)
+            messages.error(
+                request,
+                f"Error updating action item: {str(e)}",
+            )
+            return redirect(
+                "hazards:action_item_update",
+                pk=self.object.pk,
+            )
 
 
 class HazardDashboardViews(LoginRequiredMixin, TemplateView):
