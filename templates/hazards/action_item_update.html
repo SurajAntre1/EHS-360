@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block title %}Update Action Item{% endblock %}
-{% block page_title %}Update Action Item {{ hazard.report_number }}{% endblock %}
+{% block page_title %}{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
@@ -14,275 +14,296 @@
 
 {% block extra_css %}
 <style>
-    .email-tags-input {
-        min-height: 60px;
-        padding: 8px;
-        border: 2px solid #ced4da;
-        border-radius: 0.25rem;
-        cursor: text;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        align-items: center;
-    }
-    
-    .email-tag {
-        background-color: #007bff;
-        color: white;
-        padding: 5px 10px;
-        border-radius: 20px;
-        display: inline-flex;
-        align-items: center;
-        font-size: 14px;
-    }
-    
-    .email-tag .remove-tag {
-        margin-left: 8px;
+    .assignment-option {
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
         cursor: pointer;
-        font-weight: bold;
+        transition: 0.3s;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
     }
-    
-    .email-input-field {
-        border: none;
-        outline: none;
-        flex: 1;
-        min-width: 200px;
-        padding: 5px;
+    .assignment-option:hover {
+        border-color: #007bff;
+        background-color: #f8f9fa;
     }
-    
-    .self-assigned-badge {
-        background-color: #28a745;
-        color: white;
-        padding: 10px 15px;
-        border-radius: 5px;
-        display: inline-block;
-        margin-bottom: 15px;
+    .assignment-option.active {
+        border-color: #007bff;
+        background-color: #e7f3ff;
+    }
+    .option-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+    }
+    .self-icon { background:#d4edda; color:#28a745; }
+    .forward-icon { background:#d1ecf1; color:#17a2b8; }
+
+    .user-card {
+        border: 2px solid #dee2e6;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    .user-card.selected {
+        border-color:#28a745;
+        background:#d4edda;
+    }
+    .user-avatar {
+        width:50px;
+        height:50px;
+        border-radius:50%;
+        background:linear-gradient(135deg,#667eea,#764ba2);
+        color:white;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-weight:bold;
+    }
+    .user-card {
+        border: 2px solid #dee2e6;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .user-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .user-card.selected {
+        border-color: #28a745;
+        background: #d4edda;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-{% comment %} <section class="content-header">
-    <div class="container-fluid">
-        <h1><i class="fas fa-edit"></i> Update Action Item</h1>
-    </div>
-</section> {% endcomment %}
-
-<section class="content">
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show">
-                {{ message|safe }}
-                <button type="button" class="close" data-dismiss="alert">&times;</button>
-            </div>
-        {% endfor %}
-    {% endif %}
-
+<div class="container-fluid py-4">
     <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card">
-                <div class="card-header bg-warning">
-                    <h3 class="card-title text-white">Edit Action Item</h3>
+        <div class="col-12">
+
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 class="mb-1">
+                        <i class="fas fa-edit text-warning"></i> 
+                            Update Action Item
+                    </h3>
+                    <p class="text-muted mb-0">
+                        For Hazard {{ object.hazard.report_number }}
+                    </p>
                 </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-check"></i> Action Item Details
+                    </h5>
+                </div>
+
                 <div class="card-body">
-                    <!-- 🔹 enctype added for file upload -->
-                    <form method="POST" id="actionItemForm" enctype="multipart/form-data">
-                        {% csrf_token %}
+                    <form method="POST" enctype="multipart/form-data" id="actionItemForm">
+                    {% csrf_token %}
 
-                        <!-- Action Description -->
-                        <div class="form-group">
-                            <label>Action Taken *</label>
-                            <textarea name="action_description" class="form-control" rows="4" required>{{ object.action_description }}</textarea>
-                        </div>
+                    <!-- ================= Description ================= -->
+                    <div class="form-group">
+                        <label class="font-weight-bold">
+                            <i class="fas fa-align-left"></i> Action Taken *
+                        </label>
+                        <textarea name="action_description" class="form-control" rows="4" required>{{ object.action_description }}</textarea>
+                    </div>
 
-                        <!-- Self Assigned Check -->
-                        {% if object.get_emails_count == 1 and user.email in object.responsible_emails %}
-                        <div class="self-assigned-badge">
-                            <i class="fas fa-user-check"></i> <strong>Self-Assigned Action</strong><br>
-                            <small>Assigned to: {{ user.email }}</small>
-                        </div>
-                        <input type="hidden" name="responsible_emails" value="{{ object.responsible_emails }}">
-                        <input type="hidden" name="is_self_assigned" value="true">
-                        {% else %}
-                        <div class="form-group">
-                            <label><i class="fas fa-envelope"></i> Assigned To (Emails) *</label>
-                            <div class="email-tags-input" id="emailTagsContainer">
-                                <input type="text" class="email-input-field" id="emailInput"
-                                       placeholder="Type email and press Enter...">
+                    <!-- ================= Assignment Type ================= -->
+                    <div class="form-group">
+                        <label class="font-weight-bold">
+                            <i class="fas fa-user-check"></i> Assignment Type *
+                        </label>
+
+                        <!-- Self -->
+                        <div class="assignment-option {% if is_self_assignment %}active{% endif %}">
+                            <input type="radio" name="assignment_type" value="self" hidden
+                            {% if is_self_assignment %}checked{% endif %}>
+                            <div class="option-icon self-icon">
+                                <i class="fas fa-user-check"></i>
                             </div>
-                            <div class="email-count" id="emailCount"></div>
-                            <input type="hidden" name="responsible_emails" id="responsibleEmails">
-                            <input type="hidden" name="is_self_assigned" value="false">
-                        </div>
-                        {% endif %}
-
-                        <!-- Target Date -->
-                        <div class="form-group">
-                            <label>Target Date *</label>
-                            <input type="date" name="target_date" class="form-control"
-                                   value="{{ object.target_date|date:'Y-m-d' }}" required>
-                        </div>
-
-                        <!-- Status -->
-                        <div class="form-group">
-                            <label>Status *</label>
-                            <select name="status" id="statusSelect" class="form-control">
-                                {% for value, label in object.STATUS_CHOICES %}
-                                <option value="{{ value }}" {% if object.status == value %}selected{% endif %}>
-                                    {{ label }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <!-- Completion Date -->
-                        <div class="form-group" id="completionDateGroup" style="display:none;">
-                            <label>Completion Date</label>
-                            <input type="date" name="completion_date" class="form-control"
-                                   value="{{ object.completion_date|date:'Y-m-d' }}">
-                        </div>
-
-                        <!-- 📎 Attachment Section -->
-                        <div class="form-group">
-                            <!-- *** MODIFIED: Label now indicates requirement *** -->
-                            <label><i class="fas fa-paperclip"></i> Attachment *</label>
-
-                            {% if object.attachment %}
-                            <div id="currentAttachment" class="mb-2">
-                                <strong>Current File:</strong>
-                                <a href="{{ object.attachment.url }}" target="_blank">
-                                    <i class="fas fa-file-alt"></i> {{ object.get_attachment_name }}
-                                </a>
-                          
-                                <!-- *** MODIFIED: "Remove" button and hidden input are removed *** -->
-                            </div>
-                            <small id="replaceHelpText" class="form-text text-muted">
-                                To replace, choose a new file below. The current file will be overwritten.
-                            </small>
-                            {% endif %}
-
-                            <div class="custom-file">
-                                <!-- *** MODIFIED: Input is only required if no attachment exists *** -->
-                                <input type="file" class="custom-file-input"
-                                       id="attachment" name="attachment" {% if not object.attachment %}required{% endif %}>
-                                <label class="custom-file-label" for="attachment">
-                                    {% if object.attachment %}
-                                        Choose new file to replace
-                                    {% else %}
-                                        Choose file to attach
-                                    {% endif %}
-                                </label>
-                            </div>
-                        </div>
-
-                        <hr>
-                        <button type="submit" class="btn btn-warning btn-lg">
-                            <i class="fas fa-save"></i> Update
-                        </button>
-                        <a href="{{ cancel_url }}"
-                           class="btn btn-secondary btn-lg">Cancel</a>
-                    </form>
+                        <div>
+                        <strong>Assign to Self & Close</strong>
+                        <p class="text-muted small mb-0">
+                        Hazard will be marked <strong class="text-success">COMPLETED</strong>
+                        </p>
+                    </div>
                 </div>
+
+                <!-- Forward -->
+                <div class="assignment-option {% if not is_self_assignment %}active{% endif %}">
+                    <input type="radio" name="assignment_type" value="forward" hidden
+                        {% if not is_self_assignment %}checked{% endif %}>
+                    <div class="option-icon forward-icon">
+                        <i class="fas fa-share-square"></i>
+                    </div>
+                <div>
+                <strong>Forward to Others</strong>
+                <p class="text-muted small mb-0">
+                Status will remain <strong class="text-primary">PENDING</strong>
+                </p>
             </div>
         </div>
     </div>
-</section>
+
+    <!-- ================= User Selection ================= -->
+    <div id="user-selection-section" 
+    {% if is_self_assignment %}style="display:none"{% endif %}>
+
+        <label class="font-weight-bold">
+        <i class="fas fa-users"></i> Select Users *
+        </label>
+
+        <div class="row">
+        {% for user in plant_users %}
+            <div class="col-md-6 mb-3">
+                <div class="card user-card h-100 
+                {% if user in object.assigned_to.all %}selected{% endif %}">
+                    <div class="card-body p-3">
+
+                        <input type="checkbox"
+                            class="user-checkbox"
+                            name="responsible_emails"
+                            value="{{ user.email }}"
+                            {% if user in object.assigned_to.all %}checked{% endif %}>
+
+                        <div class="d-flex align-items-center mt-2">
+                            <div class="user-avatar mr-3">
+                                {{ user.first_name|first }}{{ user.last_name|first }}
+                            </div>
+                            <div>
+                                <strong>{{ user.get_full_name|default:user.username }}</strong><br>
+                                <small class="text-muted">{{ user.email }}</small>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ================= Target Date ================= -->
+    <div class="form-group mt-3">
+        <label class="font-weight-bold">
+        <i class="fas fa-calendar-alt"></i> Target Date *
+        </label>
+        <input type="date"
+            name="target_date"
+            class="form-control"
+            value="{{ object.target_date|date:'Y-m-d' }}"
+            readonly>
+    </div>
+
+
+    <!-- Completion Date -->
+    <div class="form-group" id="completionDateGroup" style="display:none;">
+        <label>Completion Date</label>
+        <input type="date"
+            name="completion_date"
+            class="form-control"
+            value="{{ object.completion_date|date:'Y-m-d' }}">
+    </div>
+
+    <!-- ================= Attachment ================= -->
+    <div class="form-group">
+        <label class="font-weight-bold">
+        <i class="fas fa-paperclip"></i> Attachment
+        <span id="attachment-star">*</span>
+        </label>
+
+        {% if object.attachment %}
+        <div class="mb-2">
+            <strong>Current:</strong>
+            <a href="{{ object.attachment.url }}" target="_blank">
+            {{ object.get_attachment_name }}
+            </a>
+        </div>
+        {% endif %}
+
+        <input type="file"
+            name="attachment"
+            id="attachment-input"
+            class="form-control-file">
+
+        <div id="attachment-help"></div>
+        </div>
+
+        <hr>
+        <button type="submit" class="btn btn-warning btn-lg px-5">
+            <i class="fas fa-save"></i> Update Action Item
+        </button>
+
+        <a href="{{ request.META.HTTP_REFERER|default:'/' }}"
+            class="btn btn-secondary btn-lg ml-2">
+            Cancel
+        </a>
+
+    </form>
+    </div>
+    </div>
+</div>
+</div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+$(function(){
 
-    // ... (email and status handling JavaScript remains the same) ...
-    const isSelfAssigned = document.querySelector('input[name="is_self_assigned"]').value === 'true';
+function toggleAssignmentUI(){
+    const type=$('input[name="assignment_type"]:checked').val();
+    console.log("Selected type:", type);
 
-    /* ================= EMAIL TAG HANDLING ================= */
-    if (!isSelfAssigned) {
-        const emailInput = document.getElementById('emailInput');
-        const emailTagsContainer = document.getElementById('emailTagsContainer');
-        const responsibleEmails = document.getElementById('responsibleEmails');
-        const emailCount = document.getElementById('emailCount');
-        let emails = [];
+    $('.assignment-option').removeClass('active');
+    $('input[name="assignment_type"]:checked')
+    .closest('.assignment-option')
+    .addClass('active');
 
-        const existingEmails = '{{ object.responsible_emails|escapejs }}';
-        if (existingEmails) {
-            emails = existingEmails.split(',').map(e => e.trim()).filter(Boolean);
-            updateUI();
-        }
-
-        function isValidEmail(email) {
-            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-        }
-
-        function addEmail(email) {
-            email = email.trim().toLowerCase();
-            if (!email || !isValidEmail(email) || emails.includes(email)) return;
-            emails.push(email);
-            updateUI();
-        }
-
-        function updateUI() {
-            emailTagsContainer.querySelectorAll('.email-tag').forEach(e => e.remove());
-            emails.forEach(email => {
-                const tag = document.createElement('span');
-                tag.className = 'email-tag';
-                tag.innerHTML = `${email} <span class="remove-tag" data-email="${email}">×</span>`;
-                emailTagsContainer.insertBefore(tag, emailInput);
-            });
-            responsibleEmails.value = emails.join(', ');
-            emailCount.textContent = `${emails.length} email(s) added`;
-            emailInput.value = '';
-        }
-
-        emailInput.addEventListener('keydown', e => {
-            if (e.key === 'Enter' || e.key === ',') {
-                e.preventDefault();
-                addEmail(emailInput.value);
-            }
-        });
-
-        emailTagsContainer.addEventListener('click', e => {
-            if (e.target.classList.contains('remove-tag')) {
-                emails = emails.filter(em => em !== e.target.dataset.email);
-                updateUI();
-            }
-        });
+    if(type==='forward'){
+        $('#user-selection-section').slideDown();
+        $('#attachment-input').removeAttr('required');
+        $('#attachment-star').hide();
+        $('#attachment-help').html('<div class="text-muted small">Attachment optional when forwarding.</div>');
+    }else{
+        $('#user-selection-section').slideUp();
+        $('#attachment-input').attr('required',true);
+        $('#attachment-star').show();
+        $('#attachment-help').html('<div class="text-warning small">Attachment required when self-closing.</div>');
     }
+}
 
-    /* ================= STATUS HANDLING ================= */
-    const statusSelect = document.getElementById('statusSelect');
-    const completionDateGroup = document.getElementById('completionDateGroup');
+$('.assignment-option').click(function(){
+    $(this).find('input[type="radio"]').prop('checked',true).trigger('change');
+});
 
-    function toggleCompletionFields() {
-        completionDateGroup.style.display =
-            statusSelect.value === 'COMPLETED' ? 'block' : 'none';
+$('input[name="assignment_type"]').change(toggleAssignmentUI);
+
+toggleAssignmentUI();
+
+});
+$('.user-card').click(function(e){
+    if($(e.target).is('input')) return;
+    const checkbox = $(this).find('.user-checkbox');
+    checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+});
+$('.user-checkbox').change(function(){
+    const card = $(this).closest('.user-card');
+    if($(this).is(':checked')){
+        card.addClass('selected');
+    }else{
+        card.removeClass('selected');
     }
-
-    statusSelect.addEventListener('change', toggleCompletionFields);
-    toggleCompletionFields();
-
-    /* ================= ATTACHMENT HANDLING ================= */
-    const removeBtn = document.getElementById('removeAttachmentBtn');
-    if (removeBtn) {
-        removeBtn.addEventListener('click', function () {
-            if (confirm('Remove current attachment?')) {
-                document.getElementById('removeAttachmentInput').value = 'true';
-                document.getElementById('currentAttachment').style.display = 'none';
-                if (document.getElementById('replaceHelpText')) {
-                    document.getElementById('replaceHelpText').style.display = 'none';
-                }
-                document.querySelector('.custom-file-label').textContent =
-                    'Attachment removed. Choose a new file if needed.';
-            }
-        });
-    }
-
-    document.querySelectorAll('.custom-file-input').forEach(input => {
-        input.addEventListener('change', function () {
-            this.nextElementSibling.textContent =
-                this.files.length ? this.files[0].name : 'Choose file';
-        });
-    });
 });
 </script>
 {% endblock %}
