@@ -193,11 +193,15 @@
 
     <!-- Investigation Report Form -->
     <div class="ehs-card">
-      <div class="card-header bg-warning">
+        <div class="card-header bg-warning d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">
-          <i class="fas fa-search mr-2"></i>Investigation Report (Required within 7 days)
+            <i class="fas fa-search mr-2"></i>Investigation Report (Required within 7 days)
         </h3>
-      </div>
+
+        <button type="button" id="add-action-item-btn" class="btn btn-success btn-sm ml-auto">
+            <i class="fas fa-plus mr-1"></i>Add Action Item
+        </button>
+    </div>
       
       <form method="POST" id="investigationForm" enctype="multipart/form-data">
         {% csrf_token %}
@@ -360,11 +364,11 @@
           <hr>
           
           <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0"><i class="fas fa-tasks mr-2"></i>Action Items</h5>
-    <button type="button" id="add-action-item-btn" class="btn btn-sm btn-success">
-        <i class="fas fa-plus mr-1"></i>Add Action Item
-    </button>
-</div>
+            <h5 class="mb-0"><i class="fas fa-tasks mr-2"></i>Action Items</h5>
+            <!-- <button type="button" id="add-action-item-btn" class="btn btn-sm btn-success">
+                <i class="fas fa-plus mr-1"></i>Add Action Item
+            </button> -->
+        </div>
 
 <div id="action-items-container">
     {{ action_item_formset.management_form }}
