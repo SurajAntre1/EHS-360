@@ -110,7 +110,7 @@
                     <form method="POST" enctype="multipart/form-data" id="actionItemForm">
                     {% csrf_token %}
 
-                    <!-- ================= Description ================= -->
+                    <!-- Description -->
                     <div class="form-group">
                         <label class="font-weight-bold">
                             <i class="fas fa-align-left"></i> Action Taken *
@@ -118,7 +118,7 @@
                         <textarea name="action_description" class="form-control" rows="4" required>{{ object.action_description }}</textarea>
                     </div>
 
-                    <!-- ================= Assignment Type ================= -->
+                    <!-- Assignment Type -->
                     <div class="form-group">
                         <label class="font-weight-bold">
                             <i class="fas fa-user-check"></i> Assignment Type *
@@ -155,7 +155,7 @@
         </div>
     </div>
 
-    <!-- ================= User Selection ================= -->
+    <!-- User Selection -->
     <div id="user-selection-section" 
     {% if is_self_assignment %}style="display:none"{% endif %}>
 
@@ -167,14 +167,15 @@
         {% for user in plant_users %}
             <div class="col-md-6 mb-3">
                 <div class="card user-card h-100 
-                {% if user in object.assigned_to.all %}selected{% endif %}">
+                {% if user.email in selected_emails %}selected{% endif %}">
+
                     <div class="card-body p-3">
 
                         <input type="checkbox"
                             class="user-checkbox"
                             name="responsible_emails"
                             value="{{ user.email }}"
-                            {% if user in object.assigned_to.all %}checked{% endif %}>
+                            {% if user.email in selected_emails %}checked{% endif %}>
 
                         <div class="d-flex align-items-center mt-2">
                             <div class="user-avatar mr-3">
@@ -193,7 +194,7 @@
         </div>
     </div>
 
-    <!-- ================= Target Date ================= -->
+    <!-- Target Date -->
     <div class="form-group mt-3">
         <label class="font-weight-bold">
         <i class="fas fa-calendar-alt"></i> Target Date *
@@ -215,7 +216,7 @@
             value="{{ object.completion_date|date:'Y-m-d' }}">
     </div>
 
-    <!-- ================= Attachment ================= -->
+    <!-- Attachment -->
     <div class="form-group">
         <label class="font-weight-bold">
         <i class="fas fa-paperclip"></i> Attachment

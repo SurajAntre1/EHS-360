@@ -766,28 +766,38 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
     template_name = "hazards/action_item_update.html"
     fields = []
 
-    # ----------------------------------
-    # LOAD OBJECT
-    # ----------------------------------
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
         self.hazard = self.object.hazard
         return super().dispatch(request, *args, **kwargs)
 
-    # ----------------------------------
-    # CONTEXT
-    # ----------------------------------
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         context["hazard"] = self.hazard
-        context["plant_users"] = (
-            self.hazard.plant.users.filter(is_active=True)
-            if hasattr(self.hazard.plant, "users")
-            else []
-        )
+        user = self.request.user
+        if self.hazard.plant:
+            plant_users = User.objects.filter(
+                Q(plant=self.hazard.plant) | Q(assigned_plants=self.hazard.plant),
+                is_active=True,
+                is_active_employee=True
+            ).exclude(
+                id=user.id
+            ).distinct().select_related(
+                'department', 'role'
+            ).order_by('first_name', 'last_name')
 
-        context["plant_name"] = self.hazard.plant.name
+            context['plant_users'] = plant_users
+            context['plant_name'] = self.hazard.plant.name
+        
+        selected_emails = self.object.get_emails_list()
+        selected_users = User.objects.filter(
+            email__in=selected_emails
+        ).select_related('department', 'role')
+
+        context['selected_users'] = selected_users
+        context['selected_emails'] = selected_emails
+
         context["severity_days"] = (
             (self.hazard.action_deadline - self.hazard.incident_datetime.date()).days
             if self.hazard.action_deadline
@@ -809,43 +819,28 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
 
         return context
 
-    # ----------------------------------
-    # SUCCESS URL
-    # ----------------------------------
     def get_success_url(self):
         return reverse_lazy(
             "hazards:hazard_detail",
             kwargs={"pk": self.object.hazard.pk},
         )
 
-    # ----------------------------------
-    # POST
-    # ----------------------------------
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
 
         try:
             assignment_type = request.POST.get("assignment_type")
 
-            # ----------------------------
-            # DESCRIPTION
-            # ----------------------------
             self.object.action_description = request.POST.get(
                 "action_description", ""
             ).strip()
 
-            # ----------------------------
-            # TARGET DATE
-            # ----------------------------
             target_date = request.POST.get("target_date")
             if target_date:
                 self.object.target_date = datetime.datetime.strptime(
                     target_date, "%Y-%m-%d"
                 ).date()
 
-            # ----------------------------
-            # ATTACHMENT HANDLING
-            # ----------------------------
             if assignment_type == "self":
                 # Attachment REQUIRED
                 if "attachment" not in request.FILES and not self.object.attachment:
@@ -862,9 +857,6 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
             if "attachment" in request.FILES:
                 self.object.attachment = request.FILES["attachment"]
 
-            # ----------------------------
-            # ASSIGNMENT LOGIC
-            # ----------------------------
             if assignment_type == "self":
                 # Assign to current user
                 self.object.responsible_emails = request.user.email
@@ -892,9 +884,6 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
                 self.object.completed_by = None
                 self.object.completion_date = None
 
-            # ----------------------------
-            # SAVE
-            # ----------------------------
             self.object.save()
 
             # Update parent hazard status
