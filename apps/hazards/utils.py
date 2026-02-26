@@ -222,7 +222,7 @@ def generate_hazard_pdf(hazard):
         story.append(Paragraph("<b>5. CORRECTIVE / PREVENTIVE ACTION ITEMS</b>", styles['SectionHeader']))
         
         action_header = [
-            Paragraph("<b>Action Description</b>", styles['Label']), 
+            Paragraph("<b>Action Taken</b>", styles['Label']), 
             Paragraph("<b>Assigned To</b>", styles['Label']), 
             Paragraph("<b>Target Date</b>", styles['Label']), 
             Paragraph("<b>Status</b>", styles['Label']),
