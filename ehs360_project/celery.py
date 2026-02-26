@@ -20,7 +20,7 @@ app.conf.beat_schedule = {
     },
     'check-investigation-overdue': {
     'task': 'apps.notifications.tasks.send_investigation_overdue_notifications',
-    'schedule': crontab(hour=11, minute=0),  # Daily at 8 AM IST
+    'schedule': crontab(hour=11, minute=0),  # Daily at 11 AM IST
     },
 }
 
