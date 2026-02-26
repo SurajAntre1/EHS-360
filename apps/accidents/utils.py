@@ -302,7 +302,7 @@ def generate_incident_pdf(incident):
         story.append(Spacer(1, 6*mm))
         story.append(Paragraph("<b>SECTION 4: CORRECTIVE & PREVENTIVE ACTION ITEMS</b>", styles['SectionHeader']))
         
-        action_items_header = [Paragraph("<b>Action Description</b>", styles['Label']), Paragraph("<b>Responsible Person(s)</b>", styles['Label']), Paragraph("<b>Target Date</b>", styles['Label']), Paragraph("<b>Status</b>", styles['Label'])]
+        action_items_header = [Paragraph("<b>Action Taken</b>", styles['Label']), Paragraph("<b>Responsible Person(s)</b>", styles['Label']), Paragraph("<b>Target Date</b>", styles['Label']), Paragraph("<b>Status</b>", styles['Label'])]
         action_items_data = [action_items_header]
         
         for item in action_items:
