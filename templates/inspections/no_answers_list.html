@@ -1,275 +1,288 @@
 {% extends 'base/base.html' %}
 {% load static %}
 {% block page_title %}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'inspections:inspection_dashboard' %}">Inspections</a></li>
+<li class="breadcrumb-item active">No Answers List</li>
+{% endblock %}
 {% block extra_css %}
 <style>
-.container-fluid.py-4 {
-    max-width: 1600px;
-}
-h3 {
-    font-weight: 600;
-}
-.stats-card {
-    border-radius: 10px;
-    transition: 0.2s ease-in-out;
-}
-
-.stats-card:hover {
-    transform: translateY(-2px);
-}
-
-.stats-card .icon {
-    font-size: 22px;
-    margin-bottom: 6px;
-}
-
-.stats-card h3 {
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 4px;
-}
-
-.stats-card small {
-    font-size: 13px;
-}
-.filter-card .card-body {
-    padding: 18px 20px;
-}
-
-.filter-card label {
-    font-size: 12px;
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.filter-card .form-control,
-.filter-card .form-select {
-    height: 36px;
-    font-size: 13px;
-    border-radius: 6px;
-}
-
-.filter-card .btn {
-    height: 36px;
-    font-size: 13px;
-    border-radius: 6px;
-}
-#noAnswersTable th {
-    font-size: 13px;
-    font-weight: 600;
-    vertical-align: middle;
-}
-
-#noAnswersTable td {
-    font-size: 13px;
-    vertical-align: middle;
-}
-
-#noAnswersTable td:first-child,
-#noAnswersTable th:first-child {
-    text-align: center;
-    width: 42px;
-}
-
-#noAnswersTable input[type="checkbox"] {
-    transform: scale(1.05);
-    cursor: pointer;
-}
-
-/* Question column formatting */
-.question-code {
-    font-weight: 600;
-    font-size: 12px;
-}
-
-.question-text {
-    font-size: 13px;
-}
-
-/* Action column */
-.action-cell .btn {
-    font-size: 12px;
-    padding: 6px 8px;
-}
-
-/* Bulk bar */
-#bulkActionsBar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.ehs-table-wrapper {
-    background: #ffffff;
-    border-radius: 14px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
-    overflow: hidden;
-}
-
-/* Table */
-.ehs-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    font-size: 14px;
-}
-
-/* Header */
-.ehs-table thead {
-    background: linear-gradient(135deg, #f8f9fa, #eef2f6);
-}
-
-.ehs-table thead th {
-    font-weight: 600;
-    color: #34495e;
-    padding: 14px 12px;
-    text-align: left;
-    border-bottom: 2px solid #e3e6ea;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-}
-
-/* Body */
-.ehs-table tbody td {
-    padding: 12px;
-    vertical-align: middle;
-    border-bottom: 1px solid #f0f2f5;
-}
-
-/* Hover effect */
-.ehs-table tbody tr {
-    transition: all 0.2s ease;
-}
-
-.ehs-table tbody tr:hover {
-    background-color: #f8fbff;
-    transform: scale(1.002);
-}
-
-/* Checkbox column */
-.ehs-table th:first-child,
-.ehs-table td:first-child {
-    text-align: center;
-    width: 50px;
-}
-
-/* Question code style */
-.question-code {
-    font-weight: 600;
-    color: #2c3e50;
-}
-
-/* Small muted text */
-.small-muted {
-    font-size: 12px;
-    color: #6c757d;
-}
-
-/* Action column */
-.action-cell {
-    text-align: center;
-    width: 140px;
-}
-
-/* Buttons */
-.ehs-btn-sm {
-    padding: 6px 8px;
-    font-size: 12px;
-    border-radius: 8px;
-}
-
-/* Row States */
-.table-warning {
-    background-color: #fff8e1 !important;
-}
-
-.table-success {
-    background-color: #e8f5e9 !important;
-}
-
-/* Bulk action bar */
-#bulkActionsBar {
-    background: #ffffff;
-    border-top: 1px solid #e9ecef;
-    padding: 12px 16px;
-    box-shadow: 0 -3px 10px rgba(0,0,0,0.05);
-}
-
-/* Responsive */
-.table-responsive {
-    border-radius: 14px;
-    overflow: auto;
-}
-
-/* Status badge improvement */
-.badge-soft {
-    padding: 6px 10px;
-    font-size: 11px;
-    font-weight: 600;
-    border-radius: 20px;
-}
-
-.badge-soft-warning {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.badge-soft-success {
-    background: #d4edda;
-    color: #155724;
-}
-.ehs-table-wrapper {
-    background: #ffffff;
-    border-radius: 14px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
-    overflow: hidden;
-}
-
-.ehs-table thead {
-    background: linear-gradient(135deg, #f8f9fa, #eef2f6);
-}
-
-.ehs-table thead th {
-    font-weight: 600;
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    padding: 14px 12px;
-    border-bottom: 2px solid #e9ecef;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-}
-
-.ehs-table tbody td {
-    padding: 12px;
-    vertical-align: middle;
-    border-bottom: 1px solid #f1f3f5;
-}
-
-.ehs-row {
-    transition: all .2s ease;
-}
-
-.ehs-row:hover {
-    background: #f8fbff;
-}
-
 .ehs-critical {
-    background-color: #fff8e1;
+    background: #fff6e6;
+    border-left: 4px solid #f59e0b;
+}
+
+.badge {
+    font-weight: 600;
+    font-size: 11px;
+    border-radius: 20px;
+    padding: 5px 10px;
+}
+
+.badge.bg-danger {
+    background: linear-gradient(135deg,#ef4444,#dc2626) !important;
+}
+
+.badge.bg-warning {
+    background: linear-gradient(135deg,#facc15,#eab308) !important;
+    color: #000 !important;
+}
+
+.badge.bg-success {
+    background: linear-gradient(135deg,#22c55e,#16a34a) !important;
+}
+
+.badge.bg-info {
+    background: linear-gradient(135deg,#0ea5e9,#0284c7) !important;
 }
 
 .ehs-thumb {
-    width: 42px;
-    height: 42px;
-    object-fit: cover;
-    border-radius: 6px;
-    border: 1px solid #dee2e6;
-    transition: transform .2s ease;
+    transition: all .25s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
 .ehs-thumb:hover {
-    transform: scale(1.2);
+    transform: scale(1.25);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    z-index: 10;
+    position: relative;
+}
+
+.btn-sm {
+    border-radius: 10px;
+    font-weight: 600;
+    letter-spacing: .3px;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg,#f59e0b,#d97706);
+    border: none;
+    color: #fff;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg,#d97706,#b45309);
+}
+
+.btn-success {
+    background: linear-gradient(135deg,#16a34a,#15803d);
+    border: none;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg,#15803d,#166534);
+}
+
+#bulkActionsBar {
+    background: #ffffff;
+    padding: 8px 14px;
+    border-radius: 30px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    animation: fadeSlideIn .2s ease forwards;
+}
+
+@keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-content {
+    border-radius: 18px;
+    border: none;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+}
+
+.modal-header {
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+}
+
+.modal-footer {
+    border-top: 1px solid #eef2f6;
+}
+
+#convertHazardModal .modal-header {
+    background: linear-gradient(135deg,#fbbf24,#f59e0b);
+    color: #000;
+}
+
+#assignModal .modal-header {
+    background: linear-gradient(135deg,#3b82f6,#2563eb);
+}
+
+#deadlinePreview {
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.pagination .page-link {
+    border-radius: 10px;
+    margin: 0 4px;
+    border: none;
+    background: #f1f5f9;
+    color: #334155;
+}
+
+.pagination .page-item.active .page-link {
+    background: linear-gradient(135deg,#3b82f6,#2563eb);
+    color: #fff;
+}
+
+.pagination .page-link:hover {
+    background: #e2e8f0;
+}
+
+.toast {
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.ehs-table td:first-child,
+.ehs-table th:first-child {
+    vertical-align: middle !important;
+    text-align: center;
+}
+
+.ehs-table .form-check-input {
+    margin: 0;
+    position: relative;
+    top: 0;
+}
+
+.ehs-table input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.ehs-table td:first-child {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.ehs-page-header {
+    background: linear-gradient(145deg, #ffffff, #f8fafc);
+    border-radius: 18px;
+    padding: 20px 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+}
+
+.ehs-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.ehs-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 20px;
+    box-shadow: 0 6px 14px rgba(239, 68, 68, 0.3);
+}
+
+.ehs-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    color: #1e293b;
+    letter-spacing: 0.3px;
+}
+
+.ehs-subtitle {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.ehs-back-btn {
+    border-radius: 12px;
+    font-weight: 600;
+    padding: 8px 14px;
+    transition: all .2s ease;
+}
+
+.ehs-back-btn:hover {
+    background: #f1f5f9;
+    transform: translateY(-1px);
+}
+
+.ehs-filter-wrapper {
+    position: relative;
+}
+
+.ehs-filter-card {
+    background: linear-gradient(145deg, #ffffff, #f8fafc);
+    border-radius: 18px;
+    padding: 20px 22px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    border: 1px solid #eef2f6;
+}
+
+.ehs-filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.ehs-filter-body .form-label,
+.ehs-filter-body label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.ehs-filter-body .form-control,
+.ehs-filter-body .form-select {
+    border-radius: 12px;
+    border: 1px solid #dbe2ea;
+    padding: 8px 12px;
+    font-size: 13px;
+    transition: all .2s ease;
+}
+
+.ehs-filter-body .form-control:focus,
+.ehs-filter-body .form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+}
+
+.ehs-filter-body input[type="date"] {
+    cursor: pointer;
+}
+
+.ehs-filter-body .btn-primary {
+    background: linear-gradient(135deg,#3b82f6,#2563eb);
+    border: none;
+    border-radius: 12px;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+.ehs-filter-body .btn-primary:hover {
+    background: linear-gradient(135deg,#2563eb,#1e40af);
+    transform: translateY(-1px);
+}
+
+.ehs-clear-btn {
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.ehs-clear-btn:hover {
+    background: #eef2f6;
 }
 </style>
 {% endblock %}
@@ -277,23 +290,23 @@ h3 {
 <div class="container-fluid py-4">
 
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h3 class="mb-1">
-                        <i class="fas fa-times-circle text-danger"></i>
-                        Non-Compliant Items
-                    </h3>
-                    <p class="text-muted mb-0">
-                        Inspection questions answered "No" — requiring corrective action
-                    </p>
-                </div>
-                <a href="{% url 'inspections:inspection_dashboard' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Dashboard
-                </a>
+    <div class="ehs-page-header">
+        <div class="ehs-header-left">
+            <div class="ehs-icon">
+                <i class="fas fa-times"></i>
+            </div>
+            <div>
+                <h3 class="ehs-title">Non-Compliant Items</h3>
+                <p class="ehs-subtitle">
+                    Inspection questions answered "No" — requiring corrective action
+                </p>
             </div>
         </div>
+
+        <a href="{% url 'inspections:inspection_dashboard' %}" 
+            class="btn btn-light ehs-back-btn">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
     </div>
 
     {% comment %} <!-- Stats -->
@@ -329,9 +342,26 @@ h3 {
     </div> {% endcomment %}
 
     <!-- Filters -->
-  <div class="card shadow-sm filter-card mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-2 align-items-end">
+    <div class="ehs-filter-wrapper mb-4">
+    <div class="ehs-filter-card">
+        <div class="ehs-filter-header">
+            <div>
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-filter text-primary me-2"></i>
+                    Filters
+                </h6>
+                <small class="text-muted">Refine non-compliant results</small>
+            </div>
+
+            <a href="{% url 'inspections:no_answers_list' %}" 
+               class="btn btn-light btn-sm ehs-clear-btn">
+                <i class="fas fa-rotate-left me-1"></i> Reset
+            </a>
+        </div>
+
+        <div class="ehs-filter-body">
+            <form method="get" class="row g-3">
+                <!-- KEEP your existing filter fields exactly same here -->
 
                 <div class="col-md-2">
                     <label>Plant</label>
@@ -400,14 +430,10 @@ h3 {
             </form>
         </div>
     </div>
+    </div>
 
     <!-- Main Table -->
     <div class="card shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center py-3">
-            <h5 class="mb-0">
-                <i class="fas fa-list"></i> Non-Compliant Items
-                <span class="badge bg-danger ms-2">{{ page_obj.paginator.count }}</span>
-            </h5>
             {% if is_admin %}
             <!-- Bulk assign bar — only visible when checkboxes selected -->
             <div id="bulkActionsBar" style="display:none;">
