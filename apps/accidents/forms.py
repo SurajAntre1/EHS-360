@@ -588,17 +588,22 @@ class IncidentActionItemForm(forms.ModelForm):
         assignment_type = cleaned_data.get('assignment_type')
         responsible_person = cleaned_data.get('responsible_person')
         attachment = cleaned_data.get('attachment')
+        action_description = cleaned_data.get('action_description')
 
+        # BARU: Validasi 'action_description' hanya jika menugaskan ke diri sendiri.
+        if assignment_type == 'SELF' and not action_description:
+            self.add_error('action_description', 'This field is required when assigning to self and closing.')
+
+        # Validasi yang sudah ada untuk 'responsible_person'.
         if assignment_type == 'FORWARD' and not responsible_person:
             self.add_error('responsible_person', 'This field is required when forwarding to others.')
 
+        # Validasi yang sudah ada untuk 'attachment'.
         if assignment_type == 'SELF' and not attachment:
-            # Check if an instance exists (i.e., this is an update)
             if not self.instance or not self.instance.attachment:
                  self.add_error('attachment', 'An attachment is required for self-assignment and immediate closure.')
         
-        return cleaned_data
-    
+        return cleaned_data    
 
 class IncidentPhotoForm(forms.ModelForm):
     """Form for incident photos"""

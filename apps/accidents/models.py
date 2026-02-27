@@ -492,8 +492,11 @@ class IncidentActionItem(models.Model):
 
     # --- Fields ---
     incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name='action_items')
-    action_description = models.TextField()
-    responsible_person = models.ManyToManyField(User, related_name='incident_actions_responsible', blank=True) # MODIFIED: Made blank=True
+    
+    action_description = models.TextField(blank=True)
+
+
+    responsible_person = models.ManyToManyField(User, related_name='incident_actions_responsible', blank=True)
     completed_by = models.ManyToManyField(
         User,
         related_name='incident_actions_completed',
