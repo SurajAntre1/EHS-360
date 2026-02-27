@@ -254,10 +254,12 @@
                         <div class="form-group">
                             <label class="font-weight-bold">
                                 <i class="fas fa-align-left"></i> Action Taken
-                                <span class="text-danger">*</span>
+                                <!-- Add ID to the asterisk -->
+                                <span class="text-danger" id="action-desc-star">*</span>
                             </label>
-                            <textarea name="action_description" class="form-control" rows="4" required 
-                                      placeholder="Describe the corrective/preventive action to be taken..."></textarea>
+                            <!-- Add ID and remove hardcoded 'required' -->
+                            <textarea name="action_description" id="action-description-textarea" class="form-control" rows="4" 
+                                    placeholder="Describe the corrective/preventive action to be taken..."></textarea>
                             <small class="form-text text-muted">
                                 Be specific about what needs to be done to address this hazard
                             </small>
@@ -281,7 +283,7 @@
                                         Assign to Self & Close
                                     </label>
                                     <p class="text-muted mb-0 small">
-                                        I will complete this action immediately. <strong class="text-success">Hazard will be CLOSED</strong>
+                                        Action is completed immediately <strong class="text-success">Hazard will be CLOSED</strong>
                                     </p>
                                 </div>
                             </div>
@@ -412,34 +414,72 @@
 $(document).ready(function() {
     let isSubmitting = false;
     console.log('🎯 Action Item Form Initialized');
-    
-    // Initialize attachment requirement for self-assignment (default)
+
+    // Function to update "Action Taken" requirement
+    function updateActionDescriptionRequirement(assignmentType) {
+        const actionTextarea = $('#action-description-textarea');
+        const actionStar = $('#action-desc-star');
+
+        if (assignmentType === 'self') {
+            actionTextarea.prop('required', true);
+            actionStar.show();
+        } else { // 'forward'
+            actionTextarea.prop('required', false);
+            actionStar.hide();
+        }
+    }
+
+    // Function to update attachment requirement
+    function updateAttachmentRequirement(assignmentType) {
+        const attachmentInput = $('#attachment-input');
+        const attachmentStar = $('#attachment-required-star');
+        const attachmentHelp = $('#attachment-help-text');
+        
+        if (assignmentType === 'self') {
+            attachmentInput.prop('required', true);
+            attachmentStar.show();
+            attachmentHelp.html(`
+                <div class="attachment-required mt-2">
+                    <i class="fas fa-exclamation-circle text-warning"></i>
+                    <strong>Attachment is REQUIRED</strong> for self-assignment.
+                </div>`);
+        } else { // 'forward'
+            attachmentInput.prop('required', false);
+            attachmentStar.hide();
+            attachmentHelp.html(`
+                <div class="attachment-optional mt-2">
+                    <i class="fas fa-info-circle text-secondary"></i>
+                    <strong>Attachment is OPTIONAL</strong> when forwarding.
+                </div>`);
+        }
+    }
+
+    // Initial state setup on page load
+    updateActionDescriptionRequirement('self');
     updateAttachmentRequirement('self');
     
-    // Assignment type toggle
+    // Assignment type change handler
     $('input[name="assignment_type"]').change(function() {
         const assignmentType = $(this).val();
-        console.log('📝 Assignment type changed to:', assignmentType);
         
-        // Update option styling
         $('.assignment-option').removeClass('active');
         $(this).closest('.assignment-option').addClass('active');
         
+        // Update UI based on selection
+        updateActionDescriptionRequirement(assignmentType);
+        updateAttachmentRequirement(assignmentType);
+        
         if (assignmentType === 'forward') {
             $('#user-selection-section').slideDown();
-            updateAttachmentRequirement('forward');
-            console.log('👥 User selection section shown');
         } else {
             $('#user-selection-section').slideUp();
             $('.user-checkbox').prop('checked', false);
             updateCardAppearance();
             updateSelectedCount();
-            updateAttachmentRequirement('self');
-            console.log('✅ Self-assignment selected');
         }
     });
 
-    // Assignment option click
+    // --- rest of your existing script ---
     $('.assignment-option').click(function() {
         $(this).find('input[type="radio"]').prop('checked', true).trigger('change');
     });
@@ -462,28 +502,23 @@ $(document).ready(function() {
         }
     }
 
-    // Checkbox change
     $('.user-checkbox').change(function() {
         updateCardAppearance();
         updateSelectedCount();
     });
 
-    // Select/Deselect All
     $('#select-all-btn').click(function() {
         $('.user-checkbox').prop('checked', true);
         updateCardAppearance();
         updateSelectedCount();
-        console.log('✅ All users selected');
     });
 
     $('#deselect-all-btn').click(function() {
         $('.user-checkbox').prop('checked', false);
         updateCardAppearance();
         updateSelectedCount();
-        console.log('❌ All users deselected');
     });
-
-    function updateCardAppearance() {
+        function updateCardAppearance() {
         $('.user-card').each(function() {
             const checkbox = $(this).find('.user-checkbox');
             if (checkbox.prop('checked')) {
@@ -497,52 +532,9 @@ $(document).ready(function() {
     function updateSelectedCount() {
         const count = $('.user-checkbox:checked').length;
         $('#selected-count').text(count + ' selected');
-        console.log('📊 Selected count:', count);
     }
 
-    // Function to update attachment requirement based on assignment type
-    function updateAttachmentRequirement(assignmentType) {
-        const attachmentInput = $('#attachment-input');
-        const attachmentStar = $('#attachment-required-star');
-        const attachmentHelp = $('#attachment-help-text');
-        
-        if (assignmentType === 'self') {
-            // Self assignment: attachment REQUIRED
-            attachmentInput.attr('required', true);
-            attachmentStar.show();
-            
-            // Update help text
-            attachmentHelp.html(`
-                <div class="attachment-required mt-2">
-                    <i class="fas fa-exclamation-circle text-warning"></i>
-                    <strong>Attachment is REQUIRED</strong> for self-assignment since the hazard will be closed immediately.
-                    <small class="d-block mt-1">Upload evidence that the action has been completed (photo, document, etc.)</small>
-                </div>
-            `);
-            
-            console.log('📎 Attachment requirement: REQUIRED for self-assignment');
-            
-        } else if (assignmentType === 'forward') {
-            // Forward to others: attachment OPTIONAL
-            attachmentInput.removeAttr('required');
-            attachmentStar.hide();
-            
-            // Update help text
-            attachmentHelp.html(`
-                <div class="attachment-optional mt-2">
-                    <i class="fas fa-info-circle text-secondary"></i>
-                    <strong>Attachment is OPTIONAL</strong> when forwarding to others.
-                    <small class="d-block mt-1">You can upload reference documents or skip and let assignees add their own attachments later.</small>
-                </div>
-            `);
-            
-            console.log('📎 Attachment requirement: OPTIONAL for forwarding');
-        }
-    }
-
-    // Form validation
     $('#actionItemForm').submit(function(e) {
-
         if (isSubmitting) {
             e.preventDefault();
             return false;

@@ -113,9 +113,12 @@
                     <!-- Description -->
                     <div class="form-group">
                         <label class="font-weight-bold">
-                            <i class="fas fa-align-left"></i> Action Taken *
+                            <i class="fas fa-align-left"></i> Action Taken
+                            <!-- Add ID to the asterisk -->
+                            <span class="text-danger" id="action-desc-star">*</span>
                         </label>
-                        <textarea name="action_description" class="form-control" rows="4" required>{{ object.action_description }}</textarea>
+                        <!-- Add ID and remove hardcoded 'required' -->
+                        <textarea name="action_description" id="action-description-textarea" class="form-control" rows="4">{{ object.action_description }}</textarea>
                     </div>
 
                     <!-- Assignment Type -->
@@ -261,50 +264,65 @@
 {% block extra_js %}
 <script>
 $(function(){
+    function toggleAssignmentUI() {
+        const type = $('input[name="assignment_type"]:checked').val();
+        
+        // Target UI elements
+        const actionTextarea = $('#action-description-textarea');
+        const actionStar = $('#action-desc-star');
 
-function toggleAssignmentUI(){
-    const type=$('input[name="assignment_type"]:checked').val();
-    console.log("Selected type:", type);
+        $('.assignment-option').removeClass('active');
+        $('input[name="assignment_type"]:checked')
+            .closest('.assignment-option')
+            .addClass('active');
 
-    $('.assignment-option').removeClass('active');
-    $('input[name="assignment_type"]:checked')
-    .closest('.assignment-option')
-    .addClass('active');
+        if (type === 'forward') {
+            $('#user-selection-section').slideDown();
+            $('#attachment-input').removeAttr('required');
+            $('#attachment-star').hide();
+            $('#attachment-help').html('<div class="text-muted small">Attachment optional when forwarding.</div>');
+            
+            // Make Action Taken optional
+            actionTextarea.prop('required', false);
+            actionStar.hide();
 
-    if(type==='forward'){
-        $('#user-selection-section').slideDown();
-        $('#attachment-input').removeAttr('required');
-        $('#attachment-star').hide();
-        $('#attachment-help').html('<div class="text-muted small">Attachment optional when forwarding.</div>');
-    }else{
-        $('#user-selection-section').slideUp();
-        $('#attachment-input').attr('required',true);
-        $('#attachment-star').show();
-        $('#attachment-help').html('<div class="text-warning small">Attachment required when self-closing.</div>');
+        } else { // 'self'
+            $('#user-selection-section').slideUp();
+            $('#attachment-input').attr('required', true);
+            $('#attachment-star').show();
+            $('#attachment-help').html('<div class="text-warning small">Attachment required when self-closing.</div>');
+
+            // Make Action Taken required
+            actionTextarea.prop('required', true);
+            actionStar.show();
+        }
     }
-}
 
-$('.assignment-option').click(function(){
-    $(this).find('input[type="radio"]').prop('checked',true).trigger('change');
-});
+    // Event handlers
+    $('.assignment-option').click(function(){
+        $(this).find('input[type="radio"]').prop('checked', true).trigger('change');
+    });
 
-$('input[name="assignment_type"]').change(toggleAssignmentUI);
+    $('input[name="assignment_type"]').change(toggleAssignmentUI);
 
-toggleAssignmentUI();
+    // Initial call on page load
+    toggleAssignmentUI();
 
-});
-$('.user-card').click(function(e){
-    if($(e.target).is('input')) return;
-    const checkbox = $(this).find('.user-checkbox');
-    checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
-});
-$('.user-checkbox').change(function(){
-    const card = $(this).closest('.user-card');
-    if($(this).is(':checked')){
-        card.addClass('selected');
-    }else{
-        card.removeClass('selected');
-    }
+    // --- rest of your existing script for user cards ---
+    $('.user-card').click(function(e){
+        if($(e.target).is('input')) return;
+        const checkbox = $(this).find('.user-checkbox');
+        checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+    });
+
+    $('.user-checkbox').change(function(){
+        const card = $(this).closest('.user-card');
+        if($(this).is(':checked')){
+            card.addClass('selected');
+        }else{
+            card.removeClass('selected');
+        }
+    });
 });
 </script>
 {% endblock %}

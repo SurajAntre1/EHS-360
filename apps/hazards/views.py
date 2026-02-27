@@ -632,9 +632,9 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
     def post(self, request, *args, **kwargs):
         """Handle the POST request to create new action item(s)."""
 
-        print("\n" + "=" * 80)
-        print("🎯 ACTION ITEM CREATION")
-        print("=" * 80)
+        # print("\n" + "=" * 80)
+        # print("🎯 ACTION ITEM CREATION")
+        # print("=" * 80)
 
         assignment_type = request.POST.get('assignment_type')
         print(f"Assignment Type: {assignment_type}")
@@ -643,6 +643,10 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
             action_description = request.POST.get('action_description', '').strip()
             target_date_str = request.POST.get('target_date')
             attachment = request.FILES.get('attachment')
+            
+            if assignment_type == 'self' and not action_description:
+                messages.error(request, 'The "Action Taken" description is required for self-assignment.')
+                return redirect('hazards:action_item_create', hazard_pk=self.hazard.pk)
 
             if not target_date_str:
                 messages.error(request, 'Target date is required.')
@@ -830,10 +834,13 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
 
         try:
             assignment_type = request.POST.get("assignment_type")
+            action_description = request.POST.get("action_description", "").strip()
+            
+            if assignment_type == 'self' and not action_description:
+                messages.error(request, 'The "Action Taken" description is required for self-assignment.')
+                return redirect('hazards:action_item_update', pk=self.object.pk)
 
-            self.object.action_description = request.POST.get(
-                "action_description", ""
-            ).strip()
+            self.object.action_description = action_description
 
             target_date = request.POST.get("target_date")
             if target_date:
