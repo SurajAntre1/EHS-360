@@ -402,9 +402,9 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
                 module='INCIDENT'
             )
             
-            print("\nVIEW: ✅ Notifications sent successfully")
+            # print("\nVIEW: ✅ Notifications sent successfully")
         except Exception as e:
-            print(f"\nVIEW: ❌ ERROR in notification system: {e}")
+            # print(f"\nVIEW: ❌ ERROR in notification system: {e}")
             import traceback
             traceback.print_exc()
     

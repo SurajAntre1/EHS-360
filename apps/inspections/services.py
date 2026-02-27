@@ -59,10 +59,10 @@ class InspectionHazardService:
                     pass
                     
             except Exception as e:
-                print(f"❌ Error creating hazard for question {response.question.question_code}: {e}")
+                # print(f"❌ Error creating hazard for question {response.question.question_code}: {e}")
                 continue
         
-        print(f"\n✅ Created {len(created_hazards)} hazards from inspection\n")
+        # print(f"\n✅ Created {len(created_hazards)} hazards from inspection\n")
         return created_hazards
     
     @staticmethod
@@ -156,7 +156,7 @@ class InspectionHazardService:
         
         hazard.save()
         
-        print(f"  ✅ Created hazard: {hazard.report_number} for question {question.question_code}")
+        # print(f"  ✅ Created hazard: {hazard.report_number} for question {question.question_code}")
         
         # Copy photo if exists
         if response.photo:
