@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db import models
-from django.http import JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from django.http import HttpResponse
 from datetime import datetime
 from django.core.paginator import Paginator 
@@ -23,6 +23,7 @@ from django.utils import timezone
 import json
 from .models import MonthlyIndicatorData, EnvironmentalQuestion, UnitCategory
 from collections import Counter
+from .models import MonthlyIndicatorAttachment
 
 # =========================================================
 # API ENDPOINTS FOR QUESTIONS MANAGER
@@ -490,6 +491,9 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                     if unit.name == saved_unit_name:
                         saved_unit_id = unit.id
                         break
+                attachments_dict = {}
+                for att in MonthlyIndicatorAttachment.objects.filter(plant=selected_plant).select_related('indicator'):
+                    attachments_dict[(att.indicator_id, att.month)] = att
 
                 month_rows.append({
                     "code": month_code,
@@ -497,6 +501,7 @@ class PlantMonthlyEntryView(LoginRequiredMixin, View):
                     "value": value,
                     "saved_unit_id": saved_unit_id,
                     "saved_unit_name": saved_unit_name,
+                    "attachment":attachments_dict.get((q.id,month_code))
                 })
 
             questions_with_data.append({
@@ -1547,3 +1552,102 @@ class ExportExcelView(LoginRequiredMixin, View):
 
         workbook.save(response)
         return response
+    
+
+import os 
+
+
+class UploadAttachmentView(LoginRequiredMixin, View):
+    """
+    Handles file upload for a specific plant + indicator + month cell.
+    If attachment already exists for that cell, it replaces it.
+    """
+    def post(self, request):
+        plant_id     = request.POST.get('plant_id')
+        indicator_id = request.POST.get('indicator_id')
+        month        = request.POST.get('month')
+        upload_file  = request.FILES.get('attachment_file')
+
+        if not all([plant_id, indicator_id, month, upload_file]):
+            messages.error(request, "Missing required fields for attachment upload.")
+            return redirect(f"{request.META.get('HTTP_REFERER', '/')}") 
+
+        try:
+            plant     = Plant.objects.get(id=plant_id)
+            indicator = EnvironmentalQuestion.objects.get(id=indicator_id)
+        except (Plant.DoesNotExist, EnvironmentalQuestion.DoesNotExist):
+            messages.error(request, "Invalid plant or indicator.")
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+        # If attachment already exists for this cell, delete old file and replace
+        existing = MonthlyIndicatorAttachment.objects.filter(
+            plant=plant,
+            indicator=indicator,
+            month=month
+        ).first()
+
+        if existing:
+            # Delete old file from storage
+            if existing.file:
+                if os.path.isfile(existing.file.path):
+                    os.remove(existing.file.path)
+            existing.delete()
+
+        # Save new attachment
+        original_name = upload_file.name
+        attachment = MonthlyIndicatorAttachment.objects.create(
+            plant=plant,
+            indicator=indicator,
+            month=month,
+            file=upload_file,
+            file_name=original_name,
+            uploaded_by=request.user,
+        )
+
+        messages.success(request, f"✓ File '{original_name}' attached successfully!")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+
+class DownloadAttachmentView(LoginRequiredMixin, View):
+    """
+    Serves the attached file for download/view.
+    """
+    def get(self, request, attachment_id):
+        try:
+            attachment = MonthlyIndicatorAttachment.objects.get(id=attachment_id)
+        except MonthlyIndicatorAttachment.DoesNotExist:
+            raise Http404("Attachment not found.")
+
+        if not attachment.file or not os.path.isfile(attachment.file.path):
+            raise Http404("File not found on server.")
+
+        response = FileResponse(
+            open(attachment.file.path, 'rb'),
+            as_attachment=False,  # Opens in browser if possible
+            filename=attachment.file_name or os.path.basename(attachment.file.name)
+        )
+        return response
+
+
+class DeleteAttachmentView(LoginRequiredMixin, View):
+    """
+    Deletes an attachment and removes the file from storage.
+    """
+    def get(self, request, attachment_id):
+        try:
+            attachment = MonthlyIndicatorAttachment.objects.get(id=attachment_id)
+        except MonthlyIndicatorAttachment.DoesNotExist:
+            messages.error(request, "Attachment not found.")
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+        # Delete file from disk
+        if attachment.file and os.path.isfile(attachment.file.path):
+            os.remove(attachment.file.path)
+
+        file_name = attachment.file_name
+        attachment.delete()
+
+        messages.success(request, f"✓ Attachment '{file_name}' removed successfully.")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+

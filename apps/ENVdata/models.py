@@ -160,3 +160,30 @@ class MonthlyIndicatorData(models.Model):
     
     def __str__(self):
         return f"{self.plant.name} - {self.indicator} - {self.month}: {self.value} {self.unit}"
+
+
+
+class MonthlyIndicatorAttachment(models.Model):
+    """
+    One file attachment per plant + indicator + month cell
+    """
+    plant = models.ForeignKey('organizations.Plant', on_delete=models.CASCADE)
+    indicator = models.ForeignKey(EnvironmentalQuestion, on_delete=models.CASCADE)
+    month = models.CharField(max_length=3, choices=MonthlyIndicatorData.MONTH_CHOICES)
+    file = models.FileField(upload_to='environmental/attachments/%Y/%m/')
+    file_name = models.CharField(max_length=255, blank=True)  # original filename
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # Enforce one file per cell
+        unique_together = ('plant', 'indicator', 'month')
+
+    def __str__(self):
+        return f"{self.plant.name} - {self.indicator} - {self.month} - {self.file_name}"
+
+    def save(self, *args, **kwargs):
+        # Auto-capture original filename before saving
+        if self.file and not self.file_name:
+            self.file_name = self.file.name
+        super().save(*args, **kwargs)        
