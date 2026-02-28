@@ -140,7 +140,15 @@
                     <h3 class="card-title text-white">
                         <i class="fas fa-exclamation-triangle"></i> Hazard Information
                     </h3>
-                </div>
+               
+                <div class="card-tools">
+                        {% if user|has_perm:'ADD_HAZARD_ACTION' %}
+                        <a href="{% url 'hazards:action_item_create' hazard.pk %}" class="btn btn-sm btn-success">
+                            <i class="fas fa-plus"></i> Add Action Item
+                        </a>
+                        {% endif %}
+                    </div>
+                     </div>
                 <div class="card-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -306,13 +314,13 @@
                     <h3 class="card-title">
                         <i class="fas fa-tasks"></i> Action Items ({{ action_items.count }})
                     </h3>
-                    <div class="card-tools">
+                    <!-- <div class="card-tools">
                         {% if user|has_perm:'ADD_HAZARD_ACTION' %}
                         <a href="{% url 'hazards:action_item_create' hazard.pk %}" class="btn btn-sm btn-success">
                             <i class="fas fa-plus"></i> Add Action Item
                         </a>
                         {% endif %}
-                    </div>
+                    </div> -->
                 </div>
                 <div class="card-body">
                     {% if action_items %}
