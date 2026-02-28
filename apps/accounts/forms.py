@@ -42,7 +42,22 @@ class UserCreationFormCustom(UserCreationForm):
 
         self.fields['date_of_birth'].required = False
         self.fields['date_joined_company'].required = False
-    
+        if self.request:
+            creator=self.request.user
+            is_admin=creator.is_superuser or creator.is_admin_user
+
+            if not is_admin:
+                self.fields['role'].querset=Role.objects.none()
+                self.fields['role'].required=False
+                self.fields['role'].widget.attrs['disabled']='disabled'
+                self.fields['role'].help_text="Role Assignment is restricted to admins only"
+
+                #restrict department to creator's own department 
+                if creator.department:
+                    self.fields['department'].queryset=Department.object.filter(id=creator.department.id)
+                else:
+                    self.fields['department'].queryset=Department.object.none()
+
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if User.objects.filter(email=email).exists():

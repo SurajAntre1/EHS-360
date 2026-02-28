@@ -25,7 +25,9 @@ class Command(BaseCommand):
             ('INSPECTION_DASHBOARD', 'Access Inspection Dashboard',
             'Can access Inspection dashboard',
             'DASHBOARD', 'VIEW', 3),
-            
+            # === USER MANAGEMENT ===
+            ('CAN_CREATE_USERS', 'Can Create Users', 'Can create users for their assigned plants only',
+            None, 'MANAGE', 0),
             # === INCIDENT MODULE ===
             ('ACCESS_INCIDENT_MODULE', 'Access Incident Module', 'Can access incident module', 
              'INCIDENT', 'MODULE_ACCESS', 0),
