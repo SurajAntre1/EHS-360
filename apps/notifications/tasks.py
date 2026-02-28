@@ -44,7 +44,7 @@ def send_investigation_overdue_notifications():
             NotificationService.notify(
                 content_object=incident,
                 notification_type='INCIDENT_INVESTIGATION_OVERDUE',
-                module='INCIDENT',
+                module='INVESTIGATION_OVERDUE',
                 extra_recipients=extra_recipients if extra_recipients else None
             )
             

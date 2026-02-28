@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ subject }}</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 720px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .header {
+            background-color: #b91c1c; /* Red for overdue */
+            color: #ffffff;
+            padding: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .content {
+            padding: 24px;
+            color: #333333;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-top: 24px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        table td {
+            padding: 6px 4px;
+            vertical-align: top;
+        }
+        table td.label {
+            width: 40%;
+            font-weight: bold;
+            color: #374151;
+        }
+        .highlight {
+            background: #fef2f2;
+            padding: 12px;
+            border-left: 4px solid #dc2626;
+            margin-top: 10px;
+            white-space: pre-line;
+        }
+        .warning-box {
+            background: #fff7ed;
+            border-left: 4px solid #f97316;
+            padding: 12px;
+            margin-top: 16px;
+        }
+        .footer {
+            background: #f3f4f6;
+            padding: 16px;
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>⚠️ Investigation Overdue</h1>
+    </div>
+
+    <div class="content">
+        <p>Hello {{ recipient.get_full_name }},</p>
+
+        <p>
+            This is to inform you that the investigation for the following injury
+            report is now <strong>OVERDUE</strong> and requires immediate attention.
+        </p>
+
+        <div class="warning-box">
+            The investigation deadline has passed and the report has not yet been completed.
+            Please take necessary action at the earliest.
+        </div>
+
+        <!-- Description -->
+        <div class="section-title">Injury Description</div>
+        <div class="highlight">
+            {{ incident.description|default:"No description provided." }}
+        </div>
+
+        <!-- Incident Details -->
+        <div class="section-title">Injury Details</div>
+        <table>
+            <tr>
+                <td class="label">Injury Number</td>
+                <td>{{ incident.report_number }}</td>
+            </tr>
+            <tr>
+                <td class="label">Injury Type</td>
+                <td>{{ incident.incident_type.name }}</td>
+            </tr>
+            <tr>
+                <td class="label">Date &amp; Time</td>
+                <td>{{ incident.incident_date }} {{ incident.incident_time }}</td>
+            </tr>
+            <tr>
+                <td class="label">Plant</td>
+                <td>{{ incident.plant.name }}</td>
+            </tr>
+            <tr>
+                <td class="label">Zone</td>
+                <td>{{ incident.zone.name|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Location</td>
+                <td>{{ incident.location.name|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Sub-Location</td>
+                <td>{{ incident.sublocation.name|default:"N/A" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Reported By</td>
+                <td>{{ incident.reported_by.get_full_name }}</td>
+            </tr>
+            <tr>
+                <td class="label">Investigator</td>
+                <td>{{ incident.investigator.get_full_name|default:"Not Assigned" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Investigation Deadline</td>
+                <td><strong>{{ incident.investigation_deadline }}</strong></td>
+            </tr>
+        </table>
+
+        <p style="margin-top:20px;">
+            Kindly complete the investigation and submit the report
+            to avoid further escalation.
+        </p>
+
+        <p>
+            Regards,<br>
+            <strong>EHS Management System</strong>
+        </p>
+    </div>
+
+    <div class="footer">
+        This is an automated notification. Please do not reply to this email.
+    </div>
+
+</div>
+
+</body>
+</html>
