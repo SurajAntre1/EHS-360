@@ -7,14 +7,26 @@
 <li class="breadcrumb-item"><a href="{% url 'dashboards:home' %}">Home</a></li>
 <li class="breadcrumb-item active">Inspection Dashboard</li>
 {% endblock %}
+{% block extra_css %}
+<style>
+.ehs-icon-categories {
+  background: linear-gradient(135deg, #3949ab, #1e88e5);
+  box-shadow: 0 4px 10px rgba(30, 136, 229, 0.35);
+}
 
+.ehs-icon-categories i {
+  font-size: 22px;
+  color: #ffffff;
+}
+</style>
+{% endblock %}
 {% block content %}
 <!-- Statistics Cards -->
 <div class="row">
     <div class="col-lg-3 col-6">
         <div class="ehs-stat-card">
-            <div class="ehs-stat-icon ehs-icon-inspection">
-                <i class="fas fa-folder"></i>
+            <div class="ehs-stat-icon ehs-icon-categories">
+                <i class="fa-solid fa-layer-group"></i>
             </div>
             <div class="ehs-stat-content">
                 <div class="ehs-stat-title">Total Categories</div>

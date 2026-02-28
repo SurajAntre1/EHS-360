@@ -27,7 +27,7 @@
                 <form method="get" class="form-inline">
                     <div class="input-group" style="width: 100%;">
                         <input type="text" name="search" class="form-control" 
-                               placeholder="Search categories..." value="{{ search }}">
+                               placeholder="Search categories...">
                         <div class="input-group-append">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-search"></i> Search
@@ -52,7 +52,7 @@
                                 <th>Code</th>
                                 <th>Category Name</th>
                                 <th>Description</th>
-                                <th>Display Order</th>
+                                {% comment %} <th>Display Order</th> {% endcomment %}
                                 <th>Questions</th>
                                 <th>Status</th>
                                 <th>Actions</th>
@@ -64,7 +64,7 @@
                                 <td><span class="category-badge">{{ category.category_code }}</span></td>
                                 <td><strong>{{ category.category_name }}</strong></td>
                                 <td>{{ category.description|truncatewords:10 }}</td>
-                                <td>{{ category.display_order }}</td>
+                                {% comment %} <td>{{ category.display_order }}</td> {% endcomment %}
                                 <td>
                                     <span class="badge badge-info">{{ category.questions_count }}</span>
                                 </td>

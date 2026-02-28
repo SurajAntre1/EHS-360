@@ -20,8 +20,8 @@ class InspectionCategoryForm(forms.ModelForm):
             'category_name',
             'category_code',
             'description',
-            'icon',
-            'display_order',
+            # 'icon',
+            # 'display_order',
             'is_active'
         ]
         widgets = {
@@ -39,14 +39,14 @@ class InspectionCategoryForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'Describe this category'
             }),
-            'icon': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'FontAwesome icon class (e.g., fa-fire)'
-            }),
-            'display_order': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': '0'
-            }),
+            # 'icon': forms.TextInput(attrs={
+            #     'class': 'form-control',
+            #     'placeholder': 'FontAwesome icon class (e.g., fa-fire)'
+            # }),
+            # 'display_order': forms.NumberInput(attrs={
+            #     'class': 'form-control',
+            #     'min': '0'
+            # }),
             'is_active': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             })
@@ -77,7 +77,7 @@ class InspectionQuestionForm(forms.ModelForm):
             'is_critical',
             'auto_generate_finding',
             'weightage',
-            'display_order',
+            # 'display_order',
             'reference_standard',
             'guidance_notes',
             'is_active'
@@ -97,11 +97,11 @@ class InspectionQuestionForm(forms.ModelForm):
                 'step': '0.01',
                 'value': '1.00'
             }),
-            'display_order': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': '0',
-                'value': '0'
-            }),
+            # 'display_order': forms.NumberInput(attrs={
+            #     'class': 'form-control',
+            #     'min': '0',
+            #     'value': '0'
+            # }),
             'reference_standard': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'e.g., OSHA 1910.36, IS 2309'
@@ -135,7 +135,7 @@ class InspectionTemplateForm(forms.ModelForm):
             'description',
             'applicable_plants',
             'applicable_departments',
-            'requires_approval',
+            # 'requires_approval',
             'min_compliance_score',
             'is_active'
         ]
@@ -165,7 +165,7 @@ class InspectionTemplateForm(forms.ModelForm):
                 'step': '0.01',
                 'value': '80.00'
             }),
-            'requires_approval': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            # 'requires_approval': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'})
         }
 
@@ -179,14 +179,14 @@ class InspectionTemplateForm(forms.ModelForm):
 class TemplateQuestionForm(forms.ModelForm):
     class Meta:
         model = TemplateQuestion
-        fields = ['question', 'display_order', 'section_name', 'is_mandatory']
+        fields = ['question', 'section_name', 'is_mandatory'] #removed - 'display_order',
         widgets = {
             'question': forms.Select(attrs={'class': 'form-control'}),
-            'display_order': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': '0',
-                'placeholder': 'Leave blank for auto-order'
-            }),
+            # 'display_order': forms.NumberInput(attrs={
+            #     'class': 'form-control',
+            #     'min': '0',
+            #     'placeholder': 'Leave blank for auto-order'
+            # }),
             'section_name': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Optional: Section name'

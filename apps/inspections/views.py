@@ -70,7 +70,7 @@ def category_list(request):
     
     categories = InspectionCategory.objects.annotate(
         questions_count=Count('questions', filter=Q(questions__is_active=True))
-    ).order_by('display_order', 'category_name')
+    ).order_by('category_name') #removed 'display_order',
     
     # Filter
     search = request.GET.get('search')
@@ -192,7 +192,7 @@ def question_list(request):
                 Q(reference_standard__icontains=search)
             )
     
-    questions = questions.order_by('category', 'display_order')
+    questions = questions.order_by('category') #removed , 'display_order'
     
     # Pagination
     paginator = Paginator(questions, 25)
@@ -428,7 +428,7 @@ def template_detail(request, pk):
     ).select_related(
         'question',
         'question__category'
-    ).order_by('display_order')
+    ) #removed .order_by('display_order')
     
     # Group questions by category
     questions_by_category = defaultdict(list)
@@ -436,10 +436,7 @@ def template_detail(request, pk):
         questions_by_category[tq.question.category].append(tq)
     
     # Convert to regular dict and sort by category display_order
-    questions_by_category = dict(sorted(
-        questions_by_category.items(),
-        key=lambda x: x[0].display_order
-    ))
+    questions_by_category = dict(questions_by_category.items()) #removed sorted(,key=lambda x: x[0].display_order)
     
     # Get unique categories - FIXED VERSION
     # Extract category IDs from template questions
@@ -451,7 +448,7 @@ def template_detail(request, pk):
     # Get categories by IDs
     categories = InspectionCategory.objects.filter(
         id__in=category_ids
-    ).order_by('display_order')
+    ) #removed .order_by('display_order')
     
     # Count total questions
     total_questions = template_questions.count()
@@ -543,9 +540,7 @@ def template_bulk_add_questions(request, pk):
         # Get current max display order
         max_order = TemplateQuestion.objects.filter(
             template=template
-        ).aggregate(
-            max_order=models.Max('display_order')
-        )['max_order'] or 0
+        ) #.aggregate(max_order=models.Max('display_order'))['max_order'] or 0
         
         # Add selected questions
         added_count = 0
@@ -561,11 +556,11 @@ def template_bulk_add_questions(request, pk):
                     continue
                 
                 # Create new template question
-                max_order += 1
+                # max_order += 1
                 TemplateQuestion.objects.create(
                     template=template,
                     question=question,
-                    display_order=max_order,
+                    # display_order=max_order,
                     section_name=section_name if section_name else None,
                     is_mandatory=is_mandatory
                 )
@@ -594,7 +589,7 @@ def template_bulk_add_questions(request, pk):
     # Get all active categories
     categories = InspectionCategory.objects.filter(
         is_active=True
-    ).order_by('display_order')
+    ) #.order_by('display_order')
     
     # Filter by category if selected
     selected_category = request.GET.get('category')
@@ -603,7 +598,7 @@ def template_bulk_add_questions(request, pk):
         is_active=True
     ).exclude(
         id__in=existing_question_ids
-    ).select_related('category').order_by('category__display_order', 'display_order')
+    ).select_related('category') #.order_by('category__display_order', 'display_order')
     
     if selected_category:
         available_questions = available_questions.filter(category_id=selected_category)
@@ -658,7 +653,7 @@ def template_reorder_questions(request, pk):
                 template=template,
                 id=item['id']
             )
-            template_question.display_order = item['order']
+            # template_question.display_order = item['order']
             template_question.save()
         
         return JsonResponse({'status': 'success', 'message': 'Questions reordered successfully'})
@@ -679,7 +674,7 @@ def template_clone(request, pk):
             template_code=f"{original_template.template_code}-COPY",
             inspection_type=original_template.inspection_type,
             description=original_template.description,
-            requires_approval=original_template.requires_approval,
+            # requires_approval=original_template.requires_approval,
             min_compliance_score=original_template.min_compliance_score,
             created_by=request.user
         )
@@ -694,7 +689,7 @@ def template_clone(request, pk):
                 template=new_template,
                 question=tq.question,
                 is_mandatory=tq.is_mandatory,
-                display_order=tq.display_order,
+                # display_order=tq.display_order,
                 section_name=tq.section_name
             )
         
@@ -1022,7 +1017,7 @@ def inspection_start(request, schedule_id):
     ).select_related(
         'question',
         'question__category'
-    ).order_by('display_order')
+    ) #removed .order_by('display_order')
     
     # Group questions by category
     from collections import defaultdict
@@ -1032,10 +1027,7 @@ def inspection_start(request, schedule_id):
         questions_by_category[tq.question.category].append(tq)
     
     # Sort by category display order
-    questions_by_category = dict(sorted(
-        questions_by_category.items(),
-        key=lambda x: x[0].display_order
-    ))
+    questions_by_category = dict(questions_by_category.items()) #removed - ,sorted(key=lambda x: x[0].display_order)
     
     context = {
         'schedule': schedule,
@@ -1186,7 +1178,7 @@ def inspection_review(request, submission_id):
     ).select_related(
         'question',
         'question__category'
-    ).order_by('question__category__display_order', 'question__display_order')
+    ) # removed .order_by('question__category__display_order', 'question__display_order')
     
     # Group by category
     from collections import defaultdict
