@@ -20,4 +20,8 @@ urlpatterns = [
     path('dashboard/', EnvironmentalDashboardView.as_view(), name='dashboard'),
 
     path("export_excel/",ExportExcelView.as_view(),name="export_excel"),
+
+    path('attachment/upload/',UploadAttachmentView.as_view(),   name='attachment-upload'),
+    path('attachment/<int:attachment_id>/download/',DownloadAttachmentView.as_view(), name='attachment-download'),
+    path('attachment/<int:attachment_id>/delete/', DeleteAttachmentView.as_view(),   name='attachment-delete'),
 ]
