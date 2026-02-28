@@ -65,7 +65,7 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="{{ form.weightage.id_for_label }}">
                                     Weightage
@@ -75,7 +75,7 @@
                             </div>
                         </div>
                         
-                        <div class="col-md-4">
+                        {% comment %} <div class="col-md-4">
                             <div class="form-group">
                                 <label for="{{ form.display_order.id_for_label }}">
                                     Display Order
@@ -83,9 +83,9 @@
                                 {{ form.display_order }}
                                 <small class="form-text text-muted">Order within category</small>
                             </div>
-                        </div>
+                        </div> {% endcomment %}
                         
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label for="{{ form.reference_standard.id_for_label }}">
                                     Reference Standard

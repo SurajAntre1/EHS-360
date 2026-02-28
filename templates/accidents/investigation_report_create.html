@@ -394,7 +394,7 @@
                             <div class="option-icon self-icon"><i class="fas fa-user-check"></i></div>
                             <div>
                                 <label for="id_{{ form.prefix }}-assignment_type_0" class="mb-0 font-weight-bold" style="cursor: pointer;">Assign to Self & Close</label>
-                                <p class="text-muted mb-0 small">Action will be completed. Incident will go for <strong>Approval</strong>.</p>
+                                <p class="text-muted mb-0 small">Action gets assigned to Self. Incident proceeds for <strong>Approval</strong>.</p>
                             </div>
                         </div>
                     </div>
@@ -475,7 +475,7 @@
                         <div class="option-icon self-icon"><i class="fas fa-user-check"></i></div>
                         <div>
                             <label for="id_{{ action_item_formset.empty_form.prefix }}-assignment_type_0" class="mb-0 font-weight-bold" style="cursor: pointer;">Assign to Self & Close</label>
-                            <p class="text-muted mb-0 small">Action will be completed. Incident will go for <strong>Approval</strong>.</p>
+                            <p class="text-muted mb-0 small">Action gets assigned to Self. Incident proceeds for <strong>Approval</strong>.</p>
                         </div>
                     </div>
                 </div>
@@ -576,56 +576,65 @@ document.addEventListener('DOMContentLoaded', function() {
        ASSIGNMENT TYPE UI LOGIC (NEW FEATURE)
     ---------------------------------------------------- */
     function updateActionItemUI(formElement) {
-    const form = $(formElement);
-    const assignmentType = form.find('input[name$="-assignment_type"]:checked').val();
+        const form = $(formElement);
+        const assignmentType = form.find('input[name$="-assignment_type"]:checked').val();
 
-    const responsiblePersonSection = form.find('.responsible-person-section');
-    const attachmentInput = form.find('input[name$="-attachment"]');
-    const attachmentStar = form.find('.attachment-required-star');
-    const attachmentHelp = form.find('.attachment-help-text');
-
-    // --- COMPLETION DATE KE LIYE NAYE VARIABLES ---
-    const completionDateSection = form.find('.completion-date-section');
-    const completionDateInput = form.find('input[name$="-completion_date"]');
-    // ---------------------------------------------
-
-    if (assignmentType === 'FORWARD') {
-        responsiblePersonSection.slideDown();
+        const responsiblePersonSection = form.find('.responsible-person-section');
+        const attachmentInput = form.find('input[name$="-attachment"]');
+        const attachmentStar = form.find('.attachment-required-star');
+        const attachmentHelp = form.find('.attachment-help-text');
+        const completionDateSection = form.find('.completion-date-section');
+        const completionDateInput = form.find('input[name$="-completion_date"]');
         
-        // Attachment ko optional karein
-        attachmentStar.hide();
-        attachmentInput.prop('required', false);
-        attachmentHelp.html('<div class="attachment-optional">Attachment is <strong>OPTIONAL</strong> when forwarding.</div>');
+        // --- LOGIC BARU UNTUK 'ACTION TAKEN' ---
+        const actionDescriptionInput = form.find('textarea[name$="-action_description"]');
+        const actionDescriptionLabel = actionDescriptionInput.prev('label'); // Asumsi label ada tepat sebelum input
+        const actionDescriptionStar = actionDescriptionLabel.find('.text-danger');
+        // ------------------------------------------
 
-        // --- COMPLETION DATE KO HIDE KAREIN ---
-        completionDateSection.slideUp();
-        completionDateInput.prop('required', false);
-        // ------------------------------------
+        if (assignmentType === 'FORWARD') {
+            responsiblePersonSection.slideDown();
+            
+            // Jadikan 'Action Taken' opsional
+            actionDescriptionInput.prop('required', false);
+            actionDescriptionStar.hide();
 
-    } else { // SELF
-        responsiblePersonSection.slideUp();
-        
-        // Attachment ko mandatory karein
-        attachmentStar.show();
-        attachmentInput.prop('required', true);
-        attachmentHelp.html('<div class="attachment-required">Attachment is <strong>REQUIRED</strong> for self-assignment.</div>');
+            // Jadikan lampiran opsional
+            attachmentStar.hide();
+            attachmentInput.prop('required', false);
+            attachmentHelp.html('<div class="attachment-optional">Attachment is <strong>OPTIONAL</strong> when forwarding.</div>');
 
-        // --- COMPLETION DATE KO SHOW KAREIN ---
-        completionDateSection.slideDown();
-        completionDateInput.prop('required', true);
-        // Agar date khali hai, to aaj ki date set kar dein
-        if (!completionDateInput.val()) {
-            completionDateInput.val(today);
+            // Sembunyikan tanggal penyelesaian
+            completionDateSection.slideUp();
+            completionDateInput.prop('required', false);
+
+        } else { // SELF
+            responsiblePersonSection.slideUp();
+            
+            // Jadikan 'Action Taken' wajib
+            actionDescriptionInput.prop('required', true);
+            actionDescriptionStar.show();
+
+            // Jadikan lampiran wajib
+            attachmentStar.show();
+            attachmentInput.prop('required', true);
+            attachmentHelp.html('<div class="attachment-required">Attachment is <strong>REQUIRED</strong> for self-assignment.</div>');
+
+            // Tampilkan tanggal penyelesaian
+            completionDateSection.slideDown();
+            completionDateInput.prop('required', true);
+            if (!completionDateInput.val()) {
+                completionDateInput.val(today);
+            }
         }
-        // ------------------------------------
+        
+        // Sorot opsi radio yang dipilih
+        form.find('.assignment-option').removeClass('active');
+        form.find('input[name$="-assignment_type"]:checked')
+            .closest('.assignment-option')
+            .addClass('active');
     }
     
-    // Highlight selected radio option
-    form.find('.assignment-option').removeClass('active');
-    form.find('input[name$="-assignment_type"]:checked')
-        .closest('.assignment-option')
-        .addClass('active');
-}
     /* ----------------------------------------------------
        SELECT2 INITIALIZATION
     ---------------------------------------------------- */
@@ -649,15 +658,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeSelect2(container.find(responsiblePersonSelector));
 
     /* ----------------------------------------------------
-       EVENT DELEGATION (IMPORTANT FOR DYNAMIC FORMS)
+       EVENT DELEGATION
     ---------------------------------------------------- */
-
-    // Assignment type change
     container.on('change', 'input[name$="-assignment_type"]', function() {
         updateActionItemUI($(this).closest('.action-item-form'));
     });
 
-    // Clicking entire assignment option card
     container.on('click', '.assignment-option', function() {
         $(this).find('input[type="radio"]').prop('checked', true).trigger('change');
     });
@@ -670,52 +676,35 @@ document.addEventListener('DOMContentLoaded', function() {
     const totalForms = document.getElementById('id_actionitems-TOTAL_FORMS');
 
     if (addActionItemBtn && emptyFormTemplate && totalForms) {
-
         addActionItemBtn.addEventListener('click', function() {
-
             let formNum = parseInt(totalForms.value);
-
             const newFormHtml = emptyFormTemplate.innerHTML.replace(/__prefix__/g, formNum);
-
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = newFormHtml;
             const newFormElement = tempDiv.firstElementChild;
-
             container.append(newFormElement);
 
-            // Initialize Select2
             const newSelect = $(newFormElement).find(responsiblePersonSelector);
             initializeSelect2(newSelect);
-
-            // Initialize assignment UI
             updateActionItemUI(newFormElement);
 
-            // Set min date
             const newTargetDateInput = newFormElement.querySelector('input[name$="-target_date"]');
             if (newTargetDateInput) {
                 newTargetDateInput.min = today;
             }
-
             totalForms.value = formNum + 1;
         });
 
-        // Remove action item
         container.on('click', '.remove-action-item-btn', function() {
-
             if (document.activeElement) {
                 document.activeElement.blur();
             }
-
             const formToRemove = $(this).closest('.action-item-form');
-
-            // Destroy Select2 before removing
             const selectElement = formToRemove.find(responsiblePersonSelector);
             if (selectElement.data('select2')) {
                 selectElement.select2('destroy');
             }
-
             formToRemove.remove();
-
             totalForms.value = parseInt(totalForms.value) - 1;
         });
     }

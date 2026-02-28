@@ -25,17 +25,17 @@ class InspectionCategory(models.Model):
         null=True,
         verbose_name="Description"
     )
-    icon = models.CharField(
-        max_length=50, 
-        blank=True, 
-        null=True,
-        help_text="FontAwesome icon class"
-    )
-    display_order = models.IntegerField(
-        default=0,
-        verbose_name="Display Order",
-        help_text="Order in which categories appear"
-    )
+    # icon = models.CharField(
+    #     max_length=50, 
+    #     blank=True, 
+    #     null=True,
+    #     help_text="FontAwesome icon class"
+    # )
+    # display_order = models.IntegerField(
+    #     default=0,
+    #     verbose_name="Display Order",
+    #     help_text="Order in which categories appear"
+    # )
     is_active = models.BooleanField(
         default=True,
         verbose_name="Active Status"
@@ -51,7 +51,7 @@ class InspectionCategory(models.Model):
 
     class Meta:
         db_table = 'inspection_categories'
-        ordering = ['display_order', 'category_name']
+        # ordering = ['display_order', 'category_name']
         verbose_name = "Inspection Category"
         verbose_name_plural = "Inspection Categories"
 
@@ -130,11 +130,11 @@ class InspectionQuestion(models.Model):
     )
     
     # Display configuration
-    display_order = models.IntegerField(
-        default=0,
-        verbose_name="Display Order",
-        help_text="Order within category"
-    )
+    # display_order = models.IntegerField(
+    #     default=0,
+    #     verbose_name="Display Order",
+    #     help_text="Order within category"
+    # )
     
     # Reference/guidance
     reference_standard = models.CharField(
@@ -176,7 +176,7 @@ class InspectionQuestion(models.Model):
 
     class Meta:
         db_table = 'inspection_questions'
-        ordering = ['category', 'display_order', 'question_code']
+        ordering = ['category', 'question_code'] #removed - 'display_order',
         verbose_name = "Inspection Question"
         verbose_name_plural = "Inspection Questions"
         indexes = [
@@ -265,11 +265,11 @@ class InspectionTemplate(models.Model):
     )
     
     # Configuration
-    requires_approval = models.BooleanField(
-        default=False,
-        verbose_name="Requires Approval",
-        help_text="Inspection needs approval after submission"
-    )
+    # requires_approval = models.BooleanField(
+    #     default=False,
+    #     verbose_name="Requires Approval",
+    #     help_text="Inspection needs approval after submission"
+    # )
     min_compliance_score = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -360,10 +360,10 @@ class TemplateQuestion(models.Model):
         verbose_name="Mandatory",
         help_text="Must be answered"
     )
-    display_order = models.IntegerField(
-        default=0,
-        verbose_name="Display Order"
-    )
+    # display_order = models.IntegerField(
+    #     default=0,
+    #     verbose_name="Display Order"
+    # )
     section_name = models.CharField(
         max_length=200,
         blank=True,
@@ -375,7 +375,7 @@ class TemplateQuestion(models.Model):
 
     class Meta:
         db_table = 'template_questions'
-        ordering = ['display_order', 'question__display_order']
+        # ordering = ['display_order', 'question__display_order']
         unique_together = ['template', 'question']
         verbose_name = "Template Question"
         verbose_name_plural = "Template Questions"

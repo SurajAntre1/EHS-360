@@ -20,23 +20,23 @@ class InspectionCategoryAdmin(admin.ModelAdmin):
     list_display = [
         'category_code', 
         'category_name', 
-        'display_order', 
+        # 'display_order', 
         'questions_count',
         'is_active',
         'created_at'
     ]
     list_filter = ['is_active', 'created_at']
     search_fields = ['category_name', 'category_code', 'description']
-    ordering = ['display_order', 'category_name']
+    # ordering = ['display_order', 'category_name']
     readonly_fields = ['created_at', 'updated_at']
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('category_name', 'category_code', 'description', 'icon')
+            'fields': ('category_name', 'category_code', 'description')
         }),
-        ('Display Settings', {
-            'fields': ('display_order', 'is_active')
-        }),
+        # ('Display Settings', {
+        #     'fields': ('is_active') #removed 'display_order',
+        # }),
         ('Audit Information', {
             'fields': ('created_by', 'created_at', 'updated_at'),
             'classes': ('collapse',)
@@ -60,9 +60,9 @@ class InspectionCategoryAdmin(admin.ModelAdmin):
 class TemplateQuestionInline(admin.TabularInline):
     model = TemplateQuestion
     extra = 1
-    fields = ['question', 'is_mandatory', 'display_order', 'section_name']
+    fields = ['question', 'is_mandatory', 'section_name'] #removed 'display_order',
     autocomplete_fields = ['question']
-    ordering = ['display_order']
+    # ordering = ['display_order']
 
 
 @admin.register(InspectionQuestion)
@@ -93,7 +93,7 @@ class InspectionQuestionAdmin(admin.ModelAdmin):
         'reference_standard',
         'guidance_notes'
     ]
-    ordering = ['category', 'display_order', 'question_code']
+    ordering = ['category', 'question_code'] #removed 'display_order',
     readonly_fields = ['question_code', 'created_at', 'updated_at', 'created_by', 'updated_by']
     
     fieldsets = (
@@ -112,7 +112,7 @@ class InspectionQuestionAdmin(admin.ModelAdmin):
                 'is_critical',
                 'auto_generate_finding',
                 'weightage',
-                'display_order'
+                # 'display_order'
             )
         }),
         ('Reference & Guidance', {
@@ -170,37 +170,40 @@ class InspectionTemplateAdmin(admin.ModelAdmin):
         'template_name',
         'inspection_type',
         'questions_count',
-        'requires_approval',
+        # 'requires_approval',
         'is_active',
         'created_at'
     ]
     list_filter = [
         'inspection_type',
-        'requires_approval',
+        # 'requires_approval',
         'is_active',
         'created_at',
         'applicable_plants'
     ]
     search_fields = ['template_name', 'template_code', 'description']
     filter_horizontal = ['applicable_plants', 'applicable_departments']
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['template_code','created_at', 'updated_at']
     inlines = [TemplateQuestionInline]
     
     fieldsets = (
         ('Basic Information', {
             'fields': (
                 'template_name',
-                'template_code',
+                # 'template_code',
                 'inspection_type',
                 'description'
             )
+        }),
+        ('Template Code', {
+        'fields': ('template_code',),
         }),
         ('Applicability', {
             'fields': ('applicable_plants', 'applicable_departments')
         }),
         ('Configuration', {
             'fields': (
-                'requires_approval',
+                # 'requires_approval',
                 'min_compliance_score',
                 'is_active'
             )

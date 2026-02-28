@@ -1436,7 +1436,7 @@ class EnvironmentalDashboardView(LoginRequiredMixin, TemplateView):
         data_qs = []
         current_year = datetime.now().year
         month_choices = MonthlyIndicatorData.MONTH_CHOICES
-
+        updated_at = None
         for plant in accessible_plants:
             for q in questions:
                 for month_code, month_name in month_choices:
@@ -1454,6 +1454,10 @@ class EnvironmentalDashboardView(LoginRequiredMixin, TemplateView):
 
                         if manual_entry:
                             value = manual_entry.value
+                            updated_at = manual_entry.updated_at
+                        else:
+                            updated_at = None
+
                     else:
                         month_number = datetime.strptime(month_code, "%b").month
 
@@ -1480,7 +1484,7 @@ class EnvironmentalDashboardView(LoginRequiredMixin, TemplateView):
                             value = model.objects.filter(**filters).count()
 
                     if value not in [None, "", 0]:
-                        data_qs.append({"plant": plant,"indicator": q,"month": month_code,"value": value,"category": q.unit_category.name if q.unit_category else "Other"})
+                        data_qs.append({"plant": plant,"indicator": q,"month": month_code,"value": value,"updated_at":updated_at,"category": q.unit_category.name if q.unit_category else "Other"})
 
 
         # --- 4. CALCULATE STATISTICS (Based on Filtered Data) ---

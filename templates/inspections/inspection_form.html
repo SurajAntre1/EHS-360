@@ -62,12 +62,7 @@
     {% for category, questions in questions_by_category.items %}
     <div class="card mb-3">
         <div class="card-header" style="background: linear-gradient(135deg, var(--primary-blue), var(--primary-green)); color: white;">
-            <h5 class="mb-0">
-                {% if category.icon %}
-                <i class="fas fa-{{ category.icon }}"></i>
-                {% else %}
-                <i class="fas fa-list"></i>
-                {% endif %}
+            <h5 class="mb-0" style="color: #1a1a1a; margin-bottom: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 700; font-size: 1.1rem; letter-spacing: 0.5px;">
                 {{ category.category_name }}
                 <span class="badge badge-light ml-2">{{ questions|length }} questions</span>
             </h5>

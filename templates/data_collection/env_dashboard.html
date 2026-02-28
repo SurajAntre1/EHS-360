@@ -160,9 +160,9 @@
                                     <td class="font-weight-bold">{{ entry.plant.name }}</td>
                                     <td><span class="badge badge-light border">{{ entry.indicator.unit_category.name|default:"General" }}</span></td>
                                     <td>{{ entry.indicator.question_text }}</td>
-                                    <td><span class="badge badge-soft-primary">{{ entry.get_month_display }}</span></td>
+                                    <td><span class="badge badge-soft-primary">{{ entry.month }}</span></td>
                                     <td class="text-right font-weight-bold text-dark">{{ entry.value }}</td>
-                                    <td><small>{{ entry.updated_at|date:"d M Y, H:i" }}</small></td>
+                                    <td><small>{% if entry.updated_at %}{{ entry.updated_at|date:"d M Y, H:i" }}{% else %}Auto Generated{% endif %}</small></td>
                                 </tr>
                                 {% empty %}
                                 <tr>

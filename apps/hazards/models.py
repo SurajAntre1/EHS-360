@@ -482,7 +482,9 @@ class HazardActionItem(models.Model):
         on_delete=models.CASCADE, 
         related_name='action_items'
     )
+    
     action_description = models.TextField(
+        blank=True,  # Add this to allow the field to be empty
         help_text="Description of the action to be taken"
     )
     

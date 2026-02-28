@@ -127,13 +127,13 @@
                         </div>
                     </div>
                     
-                    <hr>
+                    {% comment %} <hr>
                     
                     <!-- Configuration -->
                     <h5 class="mb-3"><i class="fas fa-cog"></i> Configuration</h5>
                     
-                    <div class="row">
-                        <div class="col-md-6">
+                    <div class="row"> {% endcomment %}
+                        {% comment %} <div class="col-md-6">
                             <div class="form-group">
                                 <label>
                                     {{ form.requires_approval }}
@@ -141,7 +141,7 @@
                                 </label>
                                 <small class="form-text text-muted">Inspections need approval after submission</small>
                             </div>
-                        </div>
+                        </div> {% endcomment %}
                         
                         <div class="col-md-6">
                             <div class="form-group">
@@ -152,9 +152,9 @@
                                 <small class="form-text text-muted">Only active templates can be scheduled</small>
                             </div>
                         </div>
-                    </div>
+                    {% comment %} </div> {% endcomment %}
                     
-                    <hr>
+                    {% comment %} <hr> {% endcomment %}
                     
                     <!-- Action Buttons -->
                     <div class="d-flex justify-content-between mt-4">

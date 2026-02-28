@@ -77,7 +77,7 @@
                                 <th>Min Score:</th>
                                 <td>{{ template.min_compliance_score }}%</td>
                             </tr>
-                            <tr>
+                            {% comment %} <tr>
                                 <th>Requires Approval:</th>
                                 <td>
                                     {% if template.requires_approval %}
@@ -86,7 +86,7 @@
                                     <span class="badge badge-success">No</span>
                                     {% endif %}
                                 </td>
-                            </tr>
+                            </tr> {% endcomment %}
                             <tr>
                                 <th>Created:</th>
                                 <td>{{ template.created_at|date:"d M Y" }}</td>
