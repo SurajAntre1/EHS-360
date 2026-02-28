@@ -171,7 +171,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class UserListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
+class UserListView(LoginRequiredMixin, AdminRequiredMixin,CanCreateUsersMixin,ListView):
     """List all users - Only accessible by Admin"""
     model = User
     template_name = 'accounts/user_list.html'
@@ -179,9 +179,21 @@ class UserListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        # Exclude superuser accounts - they are NOT employees
+        # Exclude superuser accounts
         queryset = User.objects.filter(is_superuser=False).select_related('role').order_by('-date_joined')
-        
+
+        # ============================================
+        # Non-admin: show only users from their plants
+        # ============================================
+        user = self.request.user
+        if not (user.is_superuser or user.is_admin_user):
+            creator_plant_ids = list(user.assigned_plants.values_list('id', flat=True))
+            if user.plant:
+                creator_plant_ids.append(user.plant.id)
+            queryset = queryset.filter(
+                assigned_plants__id__in=creator_plant_ids
+            ).distinct()
+
         # Search functionality
         search = self.request.GET.get('search')
         if search:
@@ -192,19 +204,17 @@ class UserListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
                 Q(last_name__icontains=search) |
                 Q(employee_id__icontains=search)
             )
-        
-        # Filter by role (now using Role model, not ROLE_CHOICES)
+
         role_id = self.request.GET.get('role')
         if role_id:
             queryset = queryset.filter(role_id=role_id)
-        
-        # Filter by active status
+
         status = self.request.GET.get('status')
         if status == 'active':
             queryset = queryset.filter(is_active=True)
         elif status == 'inactive':
             queryset = queryset.filter(is_active=False)
-        
+
         return queryset
     
     def get_context_data(self, **kwargs):

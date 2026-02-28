@@ -26,6 +26,7 @@ class UserCreationFormCustom(UserCreationForm):
         }
     
     def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
 
         self.fields['department'].queryset = Department.objects.filter(is_active=True)
