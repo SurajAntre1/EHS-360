@@ -55,7 +55,7 @@ class UserCreationFormCustom(UserCreationForm):
 
                 #restrict department to creator's own department 
                 if creator.department:
-                    self.fields['department'].queryset=Department.object.filter(id=creator.department.id)
+                    self.fields['department'].queryset = Department.objects.filter(id=creator.department.id)
                 else:
                     self.fields['department'].queryset=Department.object.none()
 

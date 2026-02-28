@@ -171,7 +171,7 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class UserListView(LoginRequiredMixin, AdminRequiredMixin,CanCreateUsersMixin,ListView):
+class UserListView(LoginRequiredMixin,CanCreateUsersMixin,ListView):
     """List all users - Only accessible by Admin"""
     model = User
     template_name = 'accounts/user_list.html'

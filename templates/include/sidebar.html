@@ -269,35 +269,44 @@
         </li>
         {% endif %}
 
-        <!-- 3. User Management - Admin only -->
-        {% if user.is_superuser or user.is_admin_user %}
+        <!-- 3. User Management -->
+        {% if user.is_superuser or user.is_admin_user or user.can_create_users %}
         <li class="nav-item {% if 'accounts' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-users-cog"></i>
             <p>User Management<i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
+
+            <!-- Role & Permission - Admin only -->
+            {% if user.is_superuser or user.is_admin_user %}
             <li class="nav-item">
               <a href="{% url 'accounts:role-list' %}"
-                 class="nav-link {% if request.resolver_match.url_name == 'role_list' %}active{% endif %}">
+                class="nav-link {% if request.resolver_match.url_name == 'role_list' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
                 <p>Role & Permission</p>
               </a>
             </li>
+            {% endif %}
+
+            <!-- Create User - Admin OR can_create_users -->
             <li class="nav-item">
               <a href="{% url 'accounts:user_create' %}"
-                 class="nav-link {% if request.resolver_match.url_name == 'user_create' %}active{% endif %}">
+                class="nav-link {% if request.resolver_match.url_name == 'user_create' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
                 <p>Create User</p>
               </a>
             </li>
+
+            <!-- All Users - Admin OR can_create_users -->
             <li class="nav-item">
               <a href="{% url 'accounts:user_list' %}"
-                 class="nav-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
+                class="nav-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
-                <p>All Users</p>
+                <p>{% if user.is_superuser or user.is_admin_user %}All Users{% else %}My Plant Users{% endif %}</p>
               </a>
             </li>
+
           </ul>
         </li>
         {% endif %}
