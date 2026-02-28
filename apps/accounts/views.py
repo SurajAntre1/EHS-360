@@ -141,6 +141,17 @@ class AdminRequiredMixin(UserPassesTestMixin):
         messages.error(self.request, 'You do not have permission to access this page.')
         return redirect('dashboards:home')
 
+class CanCreateUsersMixin(UserPassesTestMixin):
+    def test_func(self):
+        user=self.request.user
+        return user.is_authenticated and(
+            user.is_superuser or
+            (user.role and user.role.name=='ADMIN') or
+            user.can_create_users
+        )
+    def handle_no_permission(self):
+        messages.error(self.request,'you do not have permission to create users.')
+        return redirect('dashboards:home')
 
 class ProfileView(LoginRequiredMixin, TemplateView):
     """User Profile View"""
@@ -214,66 +225,132 @@ class UserListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
         return context
 
 
-class UserCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
-    """Create new user"""
+class UserCreateView(LoginRequiredMixin, CanCreateUsersMixin, CreateView):
+    """Create new user — accessible by Admin OR users with can_create_users permission"""
     model = User
     form_class = UserCreationFormCustom
     template_name = 'accounts/user_create.html'
     success_url = reverse_lazy('accounts:user_list')
-    
+
+    def get_form_kwargs(self):
+        """Pass request to form so it can restrict fields based on creator"""
+        kwargs = super().get_form_kwargs()
+        kwargs['request'] = self.request
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        creator = self.request.user
+        is_admin = creator.is_superuser or creator.is_admin_user
+
+        # Admin sees all plants, non-admin sees only their assigned plants
+        if is_admin:
+            context['all_plants'] = Plant.objects.filter(is_active=True).order_by('name')
+        else:
+            context['all_plants'] = creator.assigned_plants.filter(is_active=True).order_by('name')
+
+        return context
+
     def form_valid(self, form):
-        # Save user first
+        creator = self.request.user
+        is_admin = creator.is_superuser or creator.is_admin_user
+
         user = form.save(commit=False)
         user.save()
-        
-        # Handle MULTIPLE PLANT ASSIGNMENTS (from checkboxes)
+
+        # ============================================
+        # PLANT ASSIGNMENT
+        # Admin → any plant | Non-admin → only their plants
+        # ============================================
         assigned_plants = self.request.POST.getlist('assigned_plants')
+
+        if not is_admin:
+            # Security check: filter only plants the creator has access to
+            creator_plant_ids = list(creator.assigned_plants.values_list('id', flat=True))
+            if creator.plant:
+                creator_plant_ids.append(creator.plant.id)
+            
+            # Only allow plants that belong to creator
+            assigned_plants = [
+                p for p in assigned_plants if int(p) in creator_plant_ids
+            ]
+
         if assigned_plants:
             user.assigned_plants.set(assigned_plants)
-            user.plant = Plant.objects.get(id=assigned_plants[0])
-        
-        # Handle MULTIPLE ZONE ASSIGNMENTS (from checkboxes)
+            user.plant = Plant.objects.filter(id__in=assigned_plants).first()
+
+        # ============================================
+        # ZONE ASSIGNMENT
+        # ============================================
         assigned_zones = self.request.POST.getlist('assigned_zones')
+
+        if not is_admin:
+            creator_zone_ids = list(creator.assigned_zones.values_list('id', flat=True))
+            if creator.zone:
+                creator_zone_ids.append(creator.zone.id)
+            assigned_zones = [
+                z for z in assigned_zones if int(z) in creator_zone_ids
+            ]
+
         if assigned_zones:
             user.assigned_zones.set(assigned_zones)
-            user.zone = Zone.objects.get(id=assigned_zones[0])
-        
-        user.save()
-        
-        # Handle MULTIPLE LOCATION ASSIGNMENTS (from checkboxes)
+            user.zone = Zone.objects.filter(id__in=assigned_zones).first()
+
+        # ============================================
+        # LOCATION ASSIGNMENT
+        # ============================================
         assigned_locations = self.request.POST.getlist('assigned_locations')
+
+        if not is_admin:
+            creator_location_ids = list(creator.assigned_locations.values_list('id', flat=True))
+            if creator.location:
+                creator_location_ids.append(creator.location.id)
+            assigned_locations = [
+                l for l in assigned_locations if int(l) in creator_location_ids
+            ]
+
         if assigned_locations:
             user.assigned_locations.set(assigned_locations)
-            user.location = Location.objects.get(id=assigned_locations[0])
-            user.save()
-        
-        # Handle MULTIPLE SUBLOCATION ASSIGNMENTS (from checkboxes)
+            user.location = Location.objects.filter(id__in=assigned_locations).first()
+
+        # ============================================
+        # SUBLOCATION ASSIGNMENT
+        # ============================================
         assigned_sublocations = self.request.POST.getlist('assigned_sublocations')
+
+        if not is_admin:
+            creator_sublocation_ids = list(creator.assigned_sublocations.values_list('id', flat=True))
+            if creator.sublocation:
+                creator_sublocation_ids.append(creator.sublocation.id)
+            assigned_sublocations = [
+                s for s in assigned_sublocations if int(s) in creator_sublocation_ids
+            ]
+
         if assigned_sublocations:
             user.assigned_sublocations.set(assigned_sublocations)
-            user.sublocation = SubLocation.objects.get(id=assigned_sublocations[0])
-            user.save()
-        
-        # ✅ NEW: Auto-sync permissions if role assigned
+            user.sublocation = SubLocation.objects.filter(id__in=assigned_sublocations).first()
+
+        user.save()
+
+        # Auto-sync permissions if role assigned
         if user.role:
             updated = user.sync_permissions_to_flags()
             messages.info(self.request, f'Synced {updated} permissions from {user.role.name} role')
-        
-        # Success message
+
         plant_count = user.assigned_plants.count()
         zone_count = user.assigned_zones.count()
         loc_count = user.assigned_locations.count()
         subloc_count = user.assigned_sublocations.count()
-        
+
         messages.success(
-            self.request, 
+            self.request,
             f'User "{user.get_full_name()}" created successfully! '
             f'Assigned: {plant_count} plant(s), {zone_count} zone(s), '
             f'{loc_count} location(s), {subloc_count} sub-location(s).'
         )
-        
-        return super().form_valid(form)
-    
+
+        return redirect(self.success_url)
+
     def form_invalid(self, form):
         messages.error(self.request, 'Please correct the errors below.')
         return super().form_invalid(form)
