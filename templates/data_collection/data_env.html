@@ -281,6 +281,7 @@
 .data-table tbody td {
     padding: 0.75rem 1rem;
     border-right: 1px solid #f1f5f9;
+    vertical-align: top;
 }
 
 .data-table tbody td:first-child {
@@ -306,7 +307,14 @@
 /* ==================== INPUT CELL CONTAINER ==================== */
 .input-cell-container {
     display: flex;
-    gap: 0.5rem;
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: stretch;
+}
+
+.input-row {
+    display: flex;
+    gap: 0.4rem;
     align-items: center;
 }
 
@@ -333,18 +341,14 @@
 }
 
 @keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.6;
-    }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
 }
 
 /* ==================== DATA INPUT ==================== */
 .data-input {
     flex: 1;
-    min-width: 80px;
+    min-width: 70px;
     padding: 0.5rem 0.75rem;
     border: 2px solid var(--border-color);
     border-radius: var(--radius-sm);
@@ -353,24 +357,16 @@
     text-align: right;
     transition: all 0.2s ease;
     background: white;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.data-input:hover {
-    border-color: #cbd5e1;
-}
-
+.data-input:hover { border-color: #cbd5e1; }
 .data-input:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     background: #fefefe;
 }
-
-.data-input::placeholder {
-    color: #cbd5e1;
-    font-style: italic;
-}
+.data-input::placeholder { color: #cbd5e1; font-style: italic; }
 
 /* ==================== UNIT SELECT ==================== */
 .unit-select {
@@ -384,15 +380,46 @@
     transition: all 0.2s ease;
     min-width: 70px;
 }
-
-.unit-select:hover {
-    border-color: #cbd5e1;
-}
-
 .unit-select:focus {
     outline: none;
     border-color: var(--info-color);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ==================== ATTACHMENT BUTTON ==================== */
+.btn-attach {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.3rem 0.6rem;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    background: white;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    width: 100%;
+}
+
+.btn-attach:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: #eff6ff;
+}
+
+/* When a file is already attached — show green indicator */
+.btn-attach.has-file {
+    border-color: var(--success-color);
+    color: var(--success-color);
+    background: #f0fdf4;
+}
+
+.btn-attach.has-file:hover {
+    background: #dcfce7;
 }
 
 /* ==================== ACTION BUTTONS ==================== */
@@ -424,7 +451,6 @@
     color: var(--text-secondary);
     border: 2px solid var(--border-color);
 }
-
 .btn-reset:hover {
     background: #e2e8f0;
     border-color: #cbd5e1;
@@ -437,112 +463,306 @@
     color: white;
     border: 2px solid transparent;
 }
-
 .btn-save:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
 }
-
-.btn-save:active {
-    transform: translateY(0);
-}
-
-/* ==================== RESPONSIVE DESIGN ==================== */
-@media (max-width: 1024px) {
-    .env-data-container {
-        padding: 1rem;
-    }
-
-    .header-content {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .plant-info {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .data-table {
-        font-size: 0.85rem;
-    }
-
-    .data-table thead th,
-    .data-table tbody td {
-        padding: 0.5rem;
-    }
-
-    .data-table thead th:first-child,
-    .data-table tbody td:first-child {
-        min-width: 200px;
-    }
-}
-
-@media (max-width: 768px) {
-    .header-info h2 {
-        font-size: 1.5rem;
-    }
-
-    .plant-selector-container {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .plant-selector-container select {
-        min-width: 100%;
-    }
-
-    .action-buttons {
-        flex-direction: column;
-    }
-
-    .btn-reset,
-    .btn-save {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .data-table thead th:first-child,
-    .data-table tbody td:first-child {
-        position: static;
-        min-width: auto;
-    }
-
-    .input-cell-container {
-        flex-direction: column;
-    }
-
-    .unit-select {
-        width: 100%;
-    }
-}
-
-/* ==================== LOADING STATE ==================== */
 .btn-save:disabled {
     background: #94a3b8;
     cursor: not-allowed;
     opacity: 0.7;
 }
 
-/* ==================== PRINT STYLES ==================== */
+/* ==================== ATTACHMENT MODAL ==================== */
+.attachment-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.attachment-modal-overlay.active {
+    display: flex;
+}
+
+.attachment-modal {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    width: 100%;
+    max-width: 520px;
+    overflow: hidden;
+    animation: modalSlideIn 0.25s ease;
+}
+
+@keyframes modalSlideIn {
+    from { transform: translateY(-20px); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+}
+
+.attachment-modal-header {
+    background: linear-gradient(135deg, var(--primary-color), #1e40af);
+    color: white;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.attachment-modal-header h5 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-modal-close {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+.btn-modal-close:hover { background: rgba(255,255,255,0.35); }
+
+.attachment-modal-body {
+    padding: 1.5rem;
+}
+
+/* Context info strip */
+.attachment-context {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.85rem;
+    color: #0369a1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Existing attachment display */
+.existing-attachment {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: #f0fdf4;
+    border: 1.5px solid #86efac;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.25rem;
+}
+
+.existing-attachment i.fa-file {
+    font-size: 1.5rem;
+    color: var(--success-color);
+    flex-shrink: 0;
+}
+
+.existing-attachment .file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.existing-attachment .file-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.existing-attachment .file-meta {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.1rem;
+}
+
+.existing-attachment .attachment-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.btn-download-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.8rem;
+    background: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+.btn-download-file:hover { background: var(--primary-hover); color: white; }
+
+.btn-delete-attachment {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.8rem;
+    background: #fee2e2;
+    color: var(--danger-color);
+    border: 1.5px solid #fca5a5;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+.btn-delete-attachment:hover {
+    background: var(--danger-color);
+    color: white;
+    border-color: var(--danger-color);
+}
+
+/* Upload area */
+.upload-section label {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.upload-section .upload-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.file-input-wrapper {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    text-align: center;
+    background: var(--bg-light);
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+}
+
+.file-input-wrapper:hover {
+    border-color: var(--primary-color);
+    background: #eff6ff;
+}
+
+.file-input-wrapper input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+
+.file-input-wrapper i {
+    font-size: 2rem;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.file-input-wrapper span {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.file-input-wrapper .selected-file-name {
+    margin-top: 0.5rem;
+    font-size: 0.825rem;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.attachment-modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    background: var(--bg-light);
+}
+
+.btn-cancel-modal {
+    padding: 0.6rem 1.25rem;
+    border: 2px solid var(--border-color);
+    background: white;
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-cancel-modal:hover {
+    background: var(--bg-light);
+    border-color: #cbd5e1;
+}
+
+.btn-upload-submit {
+    padding: 0.6rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary-color), #1e40af);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.btn-upload-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 1024px) {
+    .env-data-container { padding: 1rem; }
+    .header-content { flex-direction: column; align-items: flex-start; }
+    .plant-info { flex-direction: column; gap: 0.5rem; }
+    .data-table { font-size: 0.85rem; }
+    .data-table thead th, .data-table tbody td { padding: 0.5rem; }
+    .data-table thead th:first-child, .data-table tbody td:first-child { min-width: 200px; }
+}
+
+@media (max-width: 768px) {
+    .header-info h2 { font-size: 1.5rem; }
+    .plant-selector-container { flex-direction: column; align-items: stretch; }
+    .plant-selector-container select { min-width: 100%; }
+    .action-buttons { flex-direction: column; }
+    .btn-reset, .btn-save { width: 100%; justify-content: center; }
+    .data-table thead th:first-child, .data-table tbody td:first-child { position: static; min-width: auto; }
+    .attachment-modal { max-width: 95vw; margin: 1rem; }
+}
+
 @media print {
-    .header-section,
-    .plant-selector-section,
-    .action-buttons,
-    .btn-manage-questions {
-        display: none;
-    }
-
-    .data-table-container {
-        box-shadow: none;
-        border: 1px solid #000;
-    }
-
-    .data-input,
-    .unit-select {
-        border: none;
-        border-bottom: 1px solid #000;
-    }
+    .header-section, .plant-selector-section, .action-buttons,
+    .btn-manage-questions, .btn-attach { display: none; }
+    .data-table-container { box-shadow: none; border: 1px solid #000; }
+    .data-input, .unit-select { border: none; border-bottom: 1px solid #000; }
 }
 </style>
 {% endblock %}
@@ -632,30 +852,55 @@
                                     <i class="fas fa-calculator" title="Auto-calculated from {{ q.source_type }}"></i>
                                 {% endif %}
                             </td>
+
                             {% for m in q.months %}
                             <td>
                                 <div class="input-cell-container">
-                                <input
-                                    type="text"
-                                    name="{{ q.slugified }}_{{ m.code|lower }}"
-                                    value="{{ m.value }}"
-                                    class="data-input"
-                                    placeholder="0"
-                                    pattern="[0-9]*\.?[0-9]*"
-                                    title="Enter numeric value"
-                                    {% if q.is_auto_populated %}readonly style="background: #f0f9ff;"{% endif %}
-                                >
-                                {% if q.available_units|length > 1 and not q.is_auto_populated %}
-                                <select class="unit-select" name="{{ q.slugified }}_{{ m.code|lower }}_unit">
-                                    {% for unit in q.available_units %}
-                                    <option value="{{ unit.id }}" {% if unit.id == m.saved_unit_id %}selected{% endif %}>
-                                        {{ unit.name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                                {% endif %}
-                            </div>
 
+                                    <!-- Value + Unit Row -->
+                                    <div class="input-row">
+                                        <input
+                                            type="text"
+                                            name="{{ q.slugified }}_{{ m.code|lower }}"
+                                            value="{{ m.value }}"
+                                            class="data-input"
+                                            placeholder="0"
+                                            pattern="[0-9]*\.?[0-9]*"
+                                            title="Enter numeric value"
+                                            {% if q.is_auto_populated %}readonly style="background: #f0f9ff;"{% endif %}
+                                        >
+                                        {% if q.available_units|length > 1 and not q.is_auto_populated %}
+                                        <select class="unit-select" name="{{ q.slugified }}_{{ m.code|lower }}_unit">
+                                            {% for unit in q.available_units %}
+                                            <option value="{{ unit.id }}" {% if unit.id == m.saved_unit_id %}selected{% endif %}>
+                                                {{ unit.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Attachment Button Row -->
+                                    {% if not q.is_auto_populated %}
+                                    <button
+                                        type="button"
+                                        class="btn-attach {% if m.attachment %}has-file{% endif %}"
+                                        onclick="openAttachmentModal(
+                                            '{{ selected_plant.id }}',
+                                            '{{ q.question_id }}',
+                                            '{{ m.code }}',
+                                            '{{ q.question|escapejs }}',
+                                            '{{ m.name }}',
+                                            {% if m.attachment %}'{{ m.attachment.id }}','{{ m.attachment.file_name|default:m.attachment.file.name|escapejs }}','{% url "environmental:attachment-download" m.attachment.id %}','{% url "environmental:attachment-delete" m.attachment.id %}'{% else %}null,null,null,null{% endif %}
+                                        )"
+                                        title="{% if m.attachment %}File attached — click to view or replace{% else %}Attach a file{% endif %}"
+                                    >
+                                        <i class="fas {% if m.attachment %}fa-paperclip{% else %}fa-paperclip{% endif %}"></i>
+                                        {% if m.attachment %}Attached{% else %}Attach{% endif %}
+                                    </button>
+                                    {% endif %}
+
+                                </div>
                             </td>
                             {% endfor %}
                         </tr>
@@ -680,7 +925,109 @@
     {% endif %}
 </div>
 
+
+<!-- ==================== ATTACHMENT MODAL ==================== -->
+<div class="attachment-modal-overlay" id="attachmentModalOverlay">
+    <div class="attachment-modal">
+
+        <!-- Header -->
+        <div class="attachment-modal-header">
+            <h5>
+                <i class="fas fa-paperclip"></i>
+                <span id="modalTitle">Attach File</span>
+            </h5>
+            <button type="button" class="btn-modal-close" onclick="closeAttachmentModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="attachment-modal-body">
+
+            <!-- Context info -->
+            <div class="attachment-context">
+                <i class="fas fa-info-circle"></i>
+                <span id="modalContextInfo">—</span>
+            </div>
+
+            <!-- Existing attachment (shown if file already uploaded) -->
+            <div id="existingAttachmentSection" style="display:none;">
+                <div class="existing-attachment">
+                    <i class="fas fa-file"></i>
+                    <div class="file-info">
+                        <div class="file-name" id="existingFileName">—</div>
+                        <div class="file-meta">Currently attached</div>
+                    </div>
+                    <div class="attachment-actions">
+                        <a href="#" id="btnDownloadExisting" class="btn-download-file" target="_blank">
+                            <i class="fas fa-download"></i> View
+                        </a>
+                        <a href="#" id="btnDeleteExisting" class="btn-delete-attachment"
+                           onclick="return confirm('Delete this attachment?')">
+                            <i class="fas fa-trash"></i> Remove
+                        </a>
+                    </div>
+                </div>
+                <p style="font-size:0.8rem; color: var(--text-secondary); margin-bottom:1rem;">
+                    To replace the file, upload a new one below. The old file will be removed automatically.
+                </p>
+            </div>
+
+            <!-- Upload Form -->
+            <div class="upload-section">
+                <label>
+                    {% if m.attachment %}Replace File{% else %}Upload File{% endif %}
+                    <span id="uploadLabelText">Upload File</span>
+                </label>
+                <p class="upload-hint">All file types accepted (PDF, Excel, Image, Word, etc.)</p>
+
+                <!-- This is a SEPARATE mini-form for file upload so it doesn't conflict with the main data form -->
+                <form
+                    method="post"
+                    enctype="multipart/form-data"
+                    id="attachmentUploadForm"
+                    action="{% url 'environmental:attachment-upload' %}"
+                >
+                    {% csrf_token %}
+                    <input type="hidden" name="plant_id"     id="hiddenPlantId">
+                    <input type="hidden" name="indicator_id" id="hiddenIndicatorId">
+                    <input type="hidden" name="month"        id="hiddenMonth">
+
+                    <div class="file-input-wrapper" id="fileInputWrapper">
+                        <input
+                            type="file"
+                            name="attachment_file"
+                            id="attachmentFileInput"
+                            onchange="showSelectedFileName(this)"
+                        >
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>Click or drag a file here</span>
+                        <div class="selected-file-name" id="selectedFileName"></div>
+                    </div>
+
+                </form>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="attachment-modal-footer">
+            <button type="button" class="btn-cancel-modal" onclick="closeAttachmentModal()">
+                Cancel
+            </button>
+            <button type="button" class="btn-upload-submit" onclick="submitAttachmentForm()">
+                <i class="fas fa-upload"></i>
+                Upload & Save
+            </button>
+        </div>
+
+    </div>
+</div>
+<!-- ==================== END ATTACHMENT MODAL ==================== -->
+
+
 <script>
+/* ---- Plant switch ---- */
 function switchPlant(plantId) {
     if (confirm("Switch plant? Any unsaved data will be lost.")) {
         window.location.href = "?plant_id=" + plantId;
@@ -693,11 +1040,70 @@ function resetForm() {
     }
 }
 
-// Form submission handling
-document.getElementById('dataEntryForm')?.addEventListener('submit', function(e) {
+/* ---- Main form submission ---- */
+document.getElementById('dataEntryForm')?.addEventListener('submit', function() {
     const saveBtn = document.getElementById('saveBtn');
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Saving...</span>';
+});
+
+/* ---- Attachment Modal ---- */
+function openAttachmentModal(plantId, indicatorId, monthCode, questionText, monthName, attachmentId, fileName, downloadUrl, deleteUrl) {
+    // Set context info
+    document.getElementById('modalContextInfo').textContent = questionText + ' — ' + monthName;
+    document.getElementById('modalTitle').textContent = 'Attachment — ' + monthName;
+
+    // Set hidden fields
+    document.getElementById('hiddenPlantId').value     = plantId;
+    document.getElementById('hiddenIndicatorId').value = indicatorId;
+    document.getElementById('hiddenMonth').value       = monthCode;
+
+    // Clear previous file selection
+    document.getElementById('attachmentFileInput').value = '';
+    document.getElementById('selectedFileName').textContent = '';
+
+    // Show/hide existing attachment section
+    var existingSection = document.getElementById('existingAttachmentSection');
+    if (attachmentId && fileName) {
+        existingSection.style.display = 'block';
+        document.getElementById('existingFileName').textContent = fileName;
+        document.getElementById('btnDownloadExisting').href = downloadUrl;
+        document.getElementById('btnDeleteExisting').href   = deleteUrl;
+        document.getElementById('uploadLabelText').textContent = 'Replace File';
+    } else {
+        existingSection.style.display = 'none';
+        document.getElementById('uploadLabelText').textContent = 'Upload File';
+    }
+
+    // Show modal
+    document.getElementById('attachmentModalOverlay').classList.add('active');
+}
+
+function closeAttachmentModal() {
+    document.getElementById('attachmentModalOverlay').classList.remove('active');
+}
+
+function showSelectedFileName(input) {
+    var nameEl = document.getElementById('selectedFileName');
+    if (input.files && input.files[0]) {
+        nameEl.textContent = '✓ ' + input.files[0].name;
+    } else {
+        nameEl.textContent = '';
+    }
+}
+
+function submitAttachmentForm() {
+    var fileInput = document.getElementById('attachmentFileInput');
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please select a file to upload.');
+        return;
+    }
+    document.getElementById('attachmentUploadForm').submit();
+}
+
+/* Close modal on overlay click */
+document.getElementById('attachmentModalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeAttachmentModal();
 });
 </script>
 
