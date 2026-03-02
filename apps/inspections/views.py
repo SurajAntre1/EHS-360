@@ -463,13 +463,12 @@ def template_detail(request, pk):
 
 @login_required
 def template_delete(request, pk):
-    """Soft delete template"""
+    """ Permanently delete template"""
     
     template = get_object_or_404(InspectionTemplate, pk=pk)
     
     if request.method == 'POST':
-        template.is_active = False
-        template.save()
+        template.delete()
         messages.success(request, f'Template "{template.template_name}" deleted successfully!')
         return redirect('inspections:template_list')
     

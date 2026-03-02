@@ -120,10 +120,14 @@
                                        class="btn btn-sm btn-warning" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <a href="{% url 'inspections:template_clone' template.pk %}" 
+                                    <a href="{% url 'inspections:template_delete' template.pk %}" 
+                                       class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% comment %} <a href="{% url 'inspections:template_clone' template.pk %}" 
                                        class="btn btn-sm btn-success" title="Clone">
                                         <i class="fas fa-copy"></i>
-                                    </a>
+                                    </a> {% endcomment %}
                                 </td>
                             </tr>
                             {% endfor %}

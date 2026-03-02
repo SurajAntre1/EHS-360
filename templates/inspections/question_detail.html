@@ -51,7 +51,7 @@
                         <tr>
                             <th width="200">Category</th>
                             <td>
-                                <span class="badge" style="background: linear-gradient(135deg, var(--primary-blue), var(--primary-green)); color: white; padding: 0.5em 1em;">
+                                <span class="badge badge-light border text-danger font-weight-bold">
                                     {{ question.category.category_code }}
                                 </span>
                                 {{ question.category.category_name }}
@@ -89,10 +89,10 @@
                             <th>Weightage</th>
                             <td>{{ question.weightage }}</td>
                         </tr>
-                        <tr>
+                        {% comment %} <tr>
                             <th>Display Order</th>
                             <td>{{ question.display_order }}</td>
-                        </tr>
+                        </tr> {% endcomment %}
                         {% if question.reference_standard %}
                         <tr>
                             <th>Reference Standard</th>

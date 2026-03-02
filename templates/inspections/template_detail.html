@@ -23,6 +23,9 @@
             <a href="{% url 'inspections:template_edit' template.pk %}" class="btn btn-warning">
                 <i class="fas fa-edit"></i> Edit Template
             </a>
+            <a href="{% url 'inspections:template_delete' template.pk %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Delete Template
+            </a>
             <a href="{% url 'inspections:template_add_question' template.pk %}" class="btn btn-success">
                 <i class="fas fa-plus"></i> Add Question
             </a>

@@ -15,23 +15,24 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-6">
-        <div class="card border-danger">
+        <div class="card border-danger">           
             <div class="card-header bg-danger">
                 <h3 class="card-title text-white">
                     <i class="fas fa-exclamation-triangle"></i> Confirm Deletion
                 </h3>
             </div>
             <div class="card-body">
-                <p>Are you sure you want to delete the category:</p>
-                <p class="lead text-center">
-                    <strong>{{ category.category_code }} - {{ category.category_name }}</strong>
-                </p>
+                <p>Are you sure you want to delete this category?</p>             
+                <div class="alert alert-light border text-center">
+                    <strong>{{ category.category_code }}</strong><br>
+                    {{ category.category_name }}
+                </div>
                 
                 {% if questions_count > 0 %}
                 <div class="alert alert-warning">
                     <i class="fas fa-exclamation-circle"></i> 
                     This category has <strong>{{ questions_count }}</strong> active question(s).
-                    These questions will not be deleted but will no longer be organized under this category.
+                    Deleting it will not delete those questions, but they will no longer be assigned to this category.
                 </div>
                 {% endif %}
                 
