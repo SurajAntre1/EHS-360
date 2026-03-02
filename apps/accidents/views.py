@@ -123,6 +123,18 @@ class IncidentTypeDeleteView(LoginRequiredMixin, DeleteView):
         context['incident_count'] = self.object.incidents.count()
         return context
     
+class IncidentTypeDeleteView(LoginRequiredMixin, DeleteView):
+    """Delete an incident type"""
+    model = IncidentType
+    template_name = 'accidents/incident_type_confirm_delete.html'
+    success_url = reverse_lazy('accidents:incident_type_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['incident_count'] = self.object.incidents.count()
+        context['incident_type'] = self.object  
+        return context
+    
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
         incident_count = self.object.incidents.count()

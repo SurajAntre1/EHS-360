@@ -60,8 +60,8 @@ class HomeView(LoginRequiredMixin, TemplateView):
         context['total_inspections'] = inspection.count()
         context['total_environmental'] = (MonthlyIndicatorData.objects.values("indicator").distinct().count())
         context['pending_inspections'] = inspection.filter(status__in=['SCHEDULED', 'IN_PROGRESS', 'OVERDUE']).count()
-        context['recent_incidents'] = incidents.order_by()[:5]
-        context['recent_hazards'] = hazards.order_by()[:5]
+        context['recent_incidents'] = incidents.order_by('-incident_date')[:5]
+        context['recent_hazards'] = hazards.order_by('-reported_date')[:5]
 
         return context
 
