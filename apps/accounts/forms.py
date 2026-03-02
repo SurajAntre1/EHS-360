@@ -45,7 +45,7 @@ class UserCreationFormCustom(UserCreationForm):
         self.fields['date_joined_company'].required = False
         if self.request:
             creator=self.request.user
-            is_admin=creator.is_superuser or creator.is_admin_user
+            is_admin=creator.is_superuser or creator.is_admin_user or creator.has_permission('CAN_CREATE_USERS')
 
             if not is_admin:
                 self.fields['role'].querset=Role.objects.none()
@@ -57,7 +57,7 @@ class UserCreationFormCustom(UserCreationForm):
                 if creator.department:
                     self.fields['department'].queryset = Department.objects.filter(id=creator.department.id)
                 else:
-                    self.fields['department'].queryset=Department.object.none()
+                    self.fields['department'].queryset=Department.objects.none()
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
