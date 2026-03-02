@@ -55,11 +55,69 @@
         border: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+    .summary-card {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 18px 35px rgba(0,0,0,0.15);
+    }
+
+    .summary-card .card-body {
+        padding: 25px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .summary-card h6 {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        opacity: 0.85;
+        margin-bottom: 10px;
+    }
+
+    .summary-card h2 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .summary-icon {
+        position: absolute;
+        right: 20px;
+        bottom: 15px;
+        font-size: 3rem;
+        opacity: 0.15;
+    }
+
+    /* Gradient Variants */
+    .bg-primary {
+        background: linear-gradient(135deg, #4e73df, #224abe) !important;
+    }
+
+    .bg-success {
+        background: linear-gradient(135deg, #1cc88a, #13855c) !important;
+    }
+
+    .bg-danger {
+        background: linear-gradient(135deg, #e74a3b, #be2617) !important;
+    }
+
+    .bg-info {
+        background: linear-gradient(135deg, #36b9cc, #258391) !important;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
+<div class="container-fluid">
 
     <div class="row mb-4">
         <div class="col-md-8">
@@ -75,39 +133,50 @@
     </div>
 
     <div class="row mb-4 justify-content-center">
-        <div class="col-md-3">
-            <div class="card summary-card bg-primary text-white">
-                <div class="card-body">
-                    <h6>Total Notifications Sent</h6>
-                    <h2>{{ total_sent }}</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card summary-card bg-success text-white">
-                <div class="card-body">
-                    <h6>Emails Sent</h6>
-                    <h2>{{ email_sent_count }}</h2>
-                </div>
-            </div>
-        </div>
-        {% comment %} <div class="col-md-3">
-            <div class="card summary-card bg-danger text-white">
-                <div class="card-body">
-                    <h6>Failed Notifications</h6>
-                    <h2>{{ failed_count }}</h2>
-                </div>
-            </div>
-        </div> {% endcomment %}
-        <div class="col-md-3">
-            <div class="card summary-card bg-info text-white">
-                <div class="card-body">
-                    <h6>Active Roles</h6>
-                    <h2>{{ tracking_by_role|length }}</h2>
-                </div>
+
+    <div class="col-md-3">
+        <div class="card summary-card bg-primary text-white">
+            <div class="card-body">
+                <h6>Total Notifications Sent</h6>
+                <h2>{{ total_sent }}</h2>
+                <i class="fas fa-paper-plane summary-icon"></i>
             </div>
         </div>
     </div>
+
+    <div class="col-md-3">
+        <div class="card summary-card bg-success text-white">
+            <div class="card-body">
+                <h6>Emails Sent</h6>
+                <h2>{{ email_sent_count }}</h2>
+                <i class="fas fa-envelope summary-icon"></i>
+            </div>
+        </div>
+    </div>
+
+    {% comment %}
+    <div class="col-md-3">
+        <div class="card summary-card bg-danger text-white">
+            <div class="card-body">
+                <h6>Failed Notifications</h6>
+                <h2>{{ failed_count }}</h2>
+                <i class="fas fa-times-circle summary-icon"></i>
+            </div>
+        </div>
+    </div>
+    {% endcomment %}
+
+    <div class="col-md-3">
+        <div class="card summary-card bg-info text-white">
+            <div class="card-body">
+                <h6>Active Roles</h6>
+                <h2>{{ tracking_by_role|length }}</h2>
+                <i class="fas fa-user-shield summary-icon"></i>
+            </div>
+        </div>
+    </div>
+
+</div>
 
     <!-- Role Sections -->
     {% for role, records in tracking_by_role.items %}
