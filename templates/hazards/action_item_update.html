@@ -168,7 +168,7 @@
 
         <div class="row">
         {% for user in plant_users %}
-            <div class="col-md-6 mb-3">
+            <div class="col-md-4 mb-2">
                 <div class="card user-card h-100 
                 {% if user.email in selected_emails %}selected{% endif %}">
 
@@ -187,6 +187,10 @@
                             <div>
                                 <strong>{{ user.get_full_name|default:user.username }}</strong><br>
                                 <small class="text-muted">{{ user.email }}</small>
+                                <small class="text-muted d-block">
+                                    {% if user.job_title %}{{ user.job_title }}{% endif %}
+                                    {% if user.department %} | {{ user.department.name }}{% endif %}
+                                </small>
                             </div>
                         </div>
 
