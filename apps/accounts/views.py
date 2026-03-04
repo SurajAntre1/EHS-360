@@ -219,15 +219,21 @@ class UserListView(LoginRequiredMixin,CanCreateUsersMixin,ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # Count only employees (exclude superuser)
-        context['total_users'] = User.objects.filter(is_superuser=False).count()
-        context['active_users'] = User.objects.filter(is_superuser=False, is_active=True).count()
-        context['inactive_users'] = User.objects.filter(is_superuser=False, is_active=False).count()
-        
-        # ✅ FIX: Use Role model instead of ROLE_CHOICES
+        user = self.request.user
+        base_queryset = User.objects.filter(is_superuser=False)
+
+        if not (user.is_superuser or user.is_admin_user):
+            creator_plant_ids = list(user.assigned_plants.values_list('id', flat=True))
+            if user.plant:
+                creator_plant_ids.append(user.plant.id)
+
+            base_queryset = base_queryset.filter(assigned_plants__id__in=creator_plant_ids).distinct()
+
+        context['total_users'] = base_queryset.count()
+        context['active_users'] = base_queryset.filter(is_active=True).count()
+        context['inactive_users'] = base_queryset.filter(is_active=False).count()
         context['roles'] = Role.objects.all()
-        
+
         context['search_query'] = self.request.GET.get('search', '')
         context['selected_role'] = self.request.GET.get('role', '')
         context['selected_status'] = self.request.GET.get('status', '')
@@ -481,7 +487,7 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_invalid(form)
     
     def get_queryset(self):
-        if self.request.user.is_superuser or self.request.user.is_admin_user:
+        if self.request.user.is_superuser or self.request.user.is_admin_user or self.request.user.can_create_users:
             return User.objects.filter(is_superuser=False)
         
         return User.objects.filter(pk=self.request.user.pk)
@@ -511,7 +517,7 @@ class UserDetailView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user_id = self.kwargs.get('pk')
         # Only show employee details, not superuser
-        if not(self.request.user.is_superuser or self.request.user.is_admin_user):
+        if not(self.request.user.is_superuser or self.request.user.is_admin_user or self.request.user.can_create_users):
             user_obj = get_object_or_404(User, pk=self.request.user.pk)
         else:
             user_obj = get_object_or_404(User.objects.filter(is_superuser=False),pk=user_id)
