@@ -415,83 +415,58 @@
 
 <!-- Summary Statistics Row -->
 <div class="row mb-4">
-    <!-- Total Incidents -->
+
     <div class="col-xl-3 col-md-6">
-        <div class="dashboard-card">
-            <div class="stat-card primary">
-                <div class="position-relative">
+        <a href="{% url 'accidents:incident_list' %}" class="text-decoration-none">
+            <div class="dashboard-card clickable-card">
+                <div class="stat-card primary">
                     <i class="fas fa-exclamation-triangle stat-icon"></i>
                     <p class="stat-number">{{ total_incidents }}</p>
                     <p class="stat-label">Total Injuries</p>
-                    {% if total_incidents_change != 0 %}
-                    <p class="stat-change {% if total_incidents_change > 0 %}up{% else %}down{% endif %}">
-                        <i class="fas fa-arrow-{% if total_incidents_change > 0 %}up{% else %}down{% endif %}"></i>
-                        {{ total_incidents_change_abs }}% from last month
-                    </p>
-                    {% else %}
-                    <p class="stat-change text-muted">
-                        No change from last month
-                    </p>
-                    {% endif %}
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
-    <!-- Open Incidents -->
     <div class="col-xl-3 col-md-6">
-        <div class="dashboard-card">
-            <div class="stat-card danger">
-                <div class="position-relative">
-                    <i class="fas fa-folder-open stat-icon"></i>
-                    <p class="stat-number">{{ open_incidents }}</p>
-                    <p class="stat-label">Open Injuries</p>
-                    <p class="stat-change text-muted">
-                        Require attention
-                    </p>
+        <a href="{% url 'accidents:incident_list' %}?status=CLOSED" class="text-decoration-none">
+            <div class="dashboard-card clickable-card">
+                <div class="stat-card success">
+                    <i class="fas fa-check-circle stat-icon"></i>
+                    <p class="stat-number">{{ closed_incidents }}</p>
+                    <p class="stat-label">Closed Injuries</p>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
-    <!-- This Month / Selected Period -->
     <div class="col-xl-3 col-md-6">
         <div class="dashboard-card">
             <div class="stat-card warning">
-                <div class="position-relative">
-                    <i class="fas fa-calendar-alt stat-icon"></i>
-                    <p class="stat-number">{{ this_month_incidents }}</p>
-                    <p class="stat-label">{% if selected_month_label %}{{ selected_month_label }}{% else %}This Month ({{ current_month_name }} {{ current_year }}){% endif %}</p>
-                    {% if not selected_month %}
-                    <p class="stat-change text-muted">
-                        {{ current_month_name }} {{ current_year }}
-                    </p>
+                <i class="fas fa-calendar-alt stat-icon"></i>
+                <p class="stat-number">{{ this_month_incidents }}</p>
+                <p class="stat-label">
+                    {% if selected_month_label %}
+                        {{ selected_month_label }}
+                    {% else %}
+                        This Month
                     {% endif %}
-                </div>
+                </p>
             </div>
         </div>
     </div>
 
-    <!-- Pending Investigations -->
     <div class="col-xl-3 col-md-6">
         <div class="dashboard-card">
             <div class="stat-card info">
-                <div class="position-relative">
-                    <i class="fas fa-search stat-icon"></i>
-                    <p class="stat-number">{{ investigation_pending }}</p>
-                    <p class="stat-label">Pending Investigations</p>
-                    {% if overdue_investigations.count > 0 %}
-                    <p class="stat-change" style="color: #dc3545;">
-                        <i class="fas fa-exclamation-circle"></i>
-                        {{ overdue_investigations.count }} Overdue
-                    </p>
-                    {% endif %}
-                </div>
+                <i class="fas fa-search stat-icon"></i>
+                <p class="stat-number">{{ investigation_pending }}</p>
+                <p class="stat-label">Pending Investigations</p>
             </div>
         </div>
     </div>
-</div>
 
+</div>
 <!-- Charts Row -->
 <div class="row mb-4">
     <!-- Incidents by Type Chart -->
