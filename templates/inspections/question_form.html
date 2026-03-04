@@ -104,7 +104,7 @@
                         <small class="form-text text-muted">
                             Additional guidance for inspectors on how to answer this question
                         </small>
-                    </div>
+                    </div>  
                     
                     <div class="card mb-3">
                         <div class="card-header bg-light">
@@ -114,68 +114,91 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <div class="icheck-primary">
+                                <!-- Remarks Mandatory -->
+                                <div class="col-md-6 col-lg-3 mb-3">
+                                    <div class="border rounded p-3 h-100">
+                                        <div class="custom-control custom-checkbox">
                                             {{ form.is_remarks_mandatory }}
-                                            <label for="{{ form.is_remarks_mandatory.id_for_label }}">
-                                                <i class="fas fa-comment text-info"></i> Remarks Mandatory
+                                            <label class="font-weight-semibold"
+                                                for="{{ form.is_remarks_mandatory.id_for_label }}">
+                                                <i class="fas fa-comment text-info mr-1"></i>
+                                                Remarks Mandatory
                                             </label>
                                         </div>
-                                        <small class="form-text text-muted">Require remarks for this question</small>
+                                        <small class="text-muted d-block mt-2">
+                                            Require remarks for this question
+                                        </small>
                                     </div>
                                 </div>
-                                
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <div class="icheck-primary">
+
+                                <!-- Photo Required -->
+                                <div class="col-md-6 col-lg-3 mb-3">
+                                    <div class="border rounded p-3 h-100">
+                                        <div class="custom-control custom-checkbox">
                                             {{ form.is_photo_required }}
-                                            <label for="{{ form.is_photo_required.id_for_label }}">
-                                                <i class="fas fa-camera text-warning"></i> Photo Required
+                                            <label class="font-weight-semibold"
+                                                for="{{ form.is_photo_required.id_for_label }}">
+                                                <i class="fas fa-camera text-warning mr-1"></i>
+                                                Photo Required
                                             </label>
                                         </div>
-                                        <small class="form-text text-muted">Require photo evidence</small>
+                                        <small class="text-muted d-block mt-2">
+                                            Require photo evidence
+                                        </small>
                                     </div>
                                 </div>
-                                
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <div class="icheck-primary">
+
+                                <!-- Critical Question -->
+                                <div class="col-md-6 col-lg-3 mb-3">
+                                    <div class="border rounded p-3 h-100">
+                                        <div class="custom-control custom-checkbox">
                                             {{ form.is_critical }}
-                                            <label for="{{ form.is_critical.id_for_label }}">
-                                                <i class="fas fa-exclamation-triangle text-danger"></i> Critical Question
+                                            <label class="font-weight-semibold"
+                                                for="{{ form.is_critical.id_for_label }}">
+                                                <i class="fas fa-exclamation-triangle text-danger mr-1"></i>
+                                                Critical Question
                                             </label>
                                         </div>
-                                        <small class="form-text text-muted">Mark as high-priority</small>
+                                        <small class="text-muted d-block mt-2">
+                                            Mark as high-priority
+                                        </small>
                                     </div>
                                 </div>
-                                
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <div class="icheck-primary">
+
+                                <!-- Auto Generate Finding -->
+                                <div class="col-md-6 col-lg-3 mb-3">
+                                    <div class="border rounded p-3 h-100">
+                                        <div class="custom-control custom-checkbox">
                                             {{ form.auto_generate_finding }}
-                                            <label for="{{ form.auto_generate_finding.id_for_label }}">
-                                                <i class="fas fa-bolt text-primary"></i> Auto-Generate Finding
+                                            <label class=" font-weight-semibold"
+                                                for="{{ form.auto_generate_finding.id_for_label }}">
+                                                <i class="fas fa-bolt text-primary mr-1"></i>
+                                                Auto-Generate Finding
                                             </label>
                                         </div>
-                                        <small class="form-text text-muted">Create finding if "No"</small>
+                                        <small class="text-muted d-block mt-2">
+                                            Create finding if "No"
+                                        </small>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <div class="icheck-primary">
-                            {{ form.is_active }}
-                            <label for="{{ form.is_active.id_for_label }}">
-                                <strong>Active</strong>
-                            </label>
+
+                        <!-- Active Toggle -->
+                        <div class="mt-3">
+                            <div class="border rounded p-3">
+                                <div class="custom-control">
+                                    {{ form.is_active }}
+                                    <label class=" font-weight-bold"
+                                        for="{{ form.is_active.id_for_label }}">
+                                        Active
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    Only active questions can be used in templates
+                                </small>
+                            </div>
                         </div>
-                        <small class="form-text text-muted">
-                            Only active questions can be used in templates
-                        </small>
-                    </div>
                     
                     <hr>
                     
