@@ -71,7 +71,7 @@ class InspectionQuestion(models.Model):
         ('TEXT', 'Text Input'),
         ('NUMBER', 'Numeric Input'),
         ('RATING', 'Rating (1-5)'),
-        ('DROPDOWN', 'Dropdown Selection'),
+        # ('DROPDOWN', 'Dropdown Selection'),
     ]
     
     category = models.ForeignKey(

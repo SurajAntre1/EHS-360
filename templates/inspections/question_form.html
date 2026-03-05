@@ -24,7 +24,7 @@
             <div class="card-body">
                 <form method="post" novalidate>
                     {% csrf_token %}
-                    
+                    <input type="hidden" name="action_type" id="action_type">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -207,10 +207,10 @@
                             <i class="fas fa-times"></i> Cancel
                         </a>
                         <div>
-                            <button type="submit" name="save_and_add" class="btn btn-info">
+                            <button type="submit" onclick="setAction('save_and_add')" class="btn btn-info">
                                 <i class="fas fa-plus"></i> Save & Add Another
                             </button>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" onclick="setAction('save')" class="btn btn-primary">
                                 <i class="fas fa-save"></i> {{ action }} Question
                             </button>
                         </div>
@@ -224,18 +224,25 @@
 
 {% block extra_js %}
 <script>
+
+// Make function global so buttons can access it
+function setAction(action) {
+    document.getElementById('action_type').value = action;
+}
+
 $(document).ready(function() {
+
     // Auto-resize textarea
-    $('textarea').each(function() {
-        this.setAttribute('style', 'height:' + (this.scrollHeight) + 'px;overflow-y:hidden;');
+    $('textarea').each(function () {
+        this.style.height = this.scrollHeight + 'px';
+        this.style.overflowY='hidden';
     }).on('input', function() {
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight) + 'px';
     });
-    
+
     // Show tooltip for flags
     $('[data-toggle="tooltip"]').tooltip();
-    
         let formSubmitting = false;
     $('form').on('submit', function(e) {
 
@@ -246,13 +253,12 @@ $(document).ready(function() {
 
         formSubmitting = true;
 
-        // Disable all submit buttons
-        $(this).find('button[type="submit"]').prop('disabled', true);
-
-        // Optional: Show loading state
-        $(this).find('button[type="submit"]').each(function() {
-            $(this).data('original-text', $(this).html());
-            $(this).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+        let form = $(this);
+        form.find('button[type="submit"]').prop('disabled', true);
+        form.find('button[type="submit"]').each(function() {
+            let btn = $(this);
+            btn.data('original-text', btn.html());
+            btn.html('<i class="fas fa-spinner fa-spin"></i> Processing...');
         });
     });
 });

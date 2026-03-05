@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.urls import reverse
 from django.utils import timezone
+from django.db import transaction
 
 from .models import *
 from .forms import *
@@ -220,7 +221,7 @@ def question_create(request):
             messages.success(request, f'Question "{question.question_code}" created successfully!')
             
             # Redirect based on action
-            if 'save_and_add' in request.POST:
+            if request.POST.get('action_type') == 'save_and_add':
                 return redirect('inspections:question_create')
             return redirect('inspections:question_list')
     else:
@@ -1061,92 +1062,87 @@ def generate_finding_code(submission):
 def inspection_submit(request, schedule_id):
     """HOD submits the completed inspection"""
     
-    schedule = get_object_or_404(InspectionSchedule, pk=schedule_id)
-    
+    schedule = get_object_or_404(InspectionSchedule.objects.select_related('template', 'assigned_to'), pk=schedule_id)
+
     # Check permission
     if schedule.assigned_to != request.user:
         messages.error(request, 'Unauthorized access!')
         return redirect('inspections:my_inspections')
     
-    if request.method == 'POST':
-        # Create submission record
-        submission = InspectionSubmission.objects.create(
-            schedule=schedule,
-            submitted_by=request.user,
-            remarks=request.POST.get('overall_remarks', '')
-        )
-        
-        # Process each question response
-        template_questions = TemplateQuestion.objects.filter(
-            template=schedule.template
-        ).select_related('question')
-        
-        no_answers = []  # Track questions answered "No"
-        
-        for tq in template_questions:
-            question = tq.question
-            field_name = f"question_{question.id}"
-            
-            # Get answer
-            answer = request.POST.get(field_name)
-            remarks = request.POST.get(f"remarks_{question.id}", '')
-            
-            # Handle photo upload if exists
-            photo = request.FILES.get(f"photo_{question.id}")
-            
-            # Save response
-            response = InspectionResponse.objects.create(
-                submission=submission,
-                question=question,
-                answer=answer,
-                remarks=remarks,
-                photo=photo
+
+    if request.method != 'POST':
+        return redirect('inspections:inspection_start', schedule_id=schedule_id)
+    try:
+        with transaction.atomic():
+            # Create submission 
+            submission = InspectionSubmission.objects.create(
+                schedule=schedule,
+                submitted_by=request.user,
+                remarks=request.POST.get('overall_remarks', '').strip()
             )
-            
-            # Track "No" answers
-            if answer == 'No':
-                no_answers.append({
-                    'question': question,
-                    'response': response
-                })
+            template_questions = TemplateQuestion.objects.filter(
+                template=schedule.template
+            ).select_related('question')
+            no_answers = []
+            missing_answers = []
+            for tq in template_questions:
+                question = tq.question
+                field_name = f"question_{question.id}"
+                answer = request.POST.get(field_name)
+                remarks = request.POST.get(f"remarks_{question.id}", "").strip()
+                photo = request.FILES.get(f"photo_{question.id}")
                 
-                # Auto-generate finding if configured
-                if question.auto_generate_finding:
-                    InspectionFinding.objects.create(
-                        submission=submission,
-                        question=question,
-                        finding_code=generate_finding_code(submission),
-                        description=f"Non-compliance found: {question.question_text}",
-                        priority='HIGH' if question.is_critical else 'MEDIUM',
-                        status='OPEN'
-                    )
-        
-        # Calculate compliance score
-        submission.compliance_score = submission.calculate_compliance_score()
-        submission.save()
-        
-        # Update schedule status
-        schedule.status = 'COMPLETED'
-        schedule.completed_at = timezone.now()
-        schedule.save()
-        
-        # Send notification about completion
-        NotificationService.notify(
-            content_object=submission,
-            notification_type='INSPECTION_COMPLETED',
-            module='INSPECTION'
-        )
-        
-        messages.success(
-            request,
-            f'Inspection {schedule.schedule_code} submitted successfully! '
-            f'Compliance Score: {submission.compliance_score}%'
-        )
-        
-        # Redirect to review page showing "No" answers
-        return redirect('inspections:inspection_review', submission_id=submission.id)
-    
-    return redirect('inspections:inspection_start', schedule_id=schedule_id)
+                if tq.is_mandatory and not answer:
+                    missing_answers.append(question.question_text)
+                    continue
+
+                if not answer:
+                    continue
+                # Save response
+                response = InspectionResponse.objects.create(
+                    submission=submission,
+                    question=question,
+                    answer=answer,
+                    remarks=remarks,
+                    photo=photo
+                )
+                # Track
+                if answer == 'No':
+                    no_answers.append({'question': question,'response': response})
+                    # Auto finding 
+                    if question.auto_generate_finding:
+                        InspectionFinding.objects.create(
+                            submission=submission,
+                            question=question,
+                            finding_code=generate_finding_code(submission),
+                            description=f"Non-compliance found: {question.question_text}",
+                            priority='HIGH' if question.is_critical else 'MEDIUM',
+                            status='OPEN'
+                        )
+            if missing_answers:
+                submission.delete()
+                messages.error(request,
+                    f"Please answer all mandatory questions: {', '.join(missing_answers[:3])}")
+                return redirect('inspections:inspection_start', schedule_id=schedule_id)
+            # Calculate compliance 
+            submission.compliance_score = submission.calculate_compliance_score()
+            submission.save()
+            # Update schedule 
+            schedule.status = 'COMPLETED'
+            schedule.completed_at = timezone.now()
+            schedule.save(update_fields=['status', 'completed_at'])
+            # Send notification 
+            NotificationService.notify(
+                content_object=submission,
+                notification_type='INSPECTION_COMPLETED',
+                module='INSPECTION'
+            )
+            messages.success(request,f'Inspection {schedule.schedule_code} submitted successfully! '
+                f'Compliance Score: {submission.compliance_score}%')
+            return redirect('inspections:inspection_review',submission_id=submission.id)
+    except Exception as e:
+        messages.error(request, f'Inspection submission failed: {str(e)}')
+        return redirect('inspections:inspection_start', schedule_id=schedule_id)
 
 
 @login_required

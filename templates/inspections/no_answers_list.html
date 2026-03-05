@@ -564,15 +564,14 @@
 
                                     <!-- PHOTO -->
                                     <td class="text-center">
-                                        {% if response.photo %}
-                                        <a href="{{ response.photo.url }}" target="_blank">
-                                            <img src="{{ response.photo.url }}"
-                                                class="ehs-thumb">
-                                        </a>
-                                        {% else %}
-                                        <span class="text-muted">—</span>
-                                        {% endif %}
-                                    </td>
+                                    {% if response.photo %}
+                                    <a href="{{ response.photo.url }}" target="_blank" class="btn btn-sm btn-outline-primary" title="View Photo">
+                                        <i class="fas fa-image"></i>
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
 
                                     <!-- ASSIGNED -->
                                     <td>
