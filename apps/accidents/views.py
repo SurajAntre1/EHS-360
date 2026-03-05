@@ -968,7 +968,7 @@ class IncidentPDFDownloadView(LoginRequiredMixin, View):
 class IncidentAccidentDashboardView(LoginRequiredMixin, TemplateView):
     """Incident Management Dashboard with Analytics and Filters"""
     template_name = 'accidents/accidents_dashboard.html'
-
+ 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
