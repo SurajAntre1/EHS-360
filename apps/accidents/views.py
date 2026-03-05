@@ -1217,7 +1217,7 @@ class IncidentClosureCheckView(LoginRequiredMixin, UserPassesTestMixin, View):
         return (
             self.request.user.is_superuser or
             # self.request.user.can_close_incidents or # Uncomment if you have this on your user model
-            self.request.user.role.name in ['ADMIN', 'SAFETY MANAGER', 'PLANT HEAD']
+            self.request.user.has_permission("CLOSE_INCIDENT")
         )
     
     def get_context_data(self, **kwargs):
