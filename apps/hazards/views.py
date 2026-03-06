@@ -639,7 +639,7 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
         # print("=" * 80)
 
         assignment_type = request.POST.get('assignment_type')
-        print(f"Assignment Type: {assignment_type}")
+        # print(f"Assignment Type: {assignment_type}")
 
         try:
             action_description = request.POST.get('action_description', '').strip()
@@ -688,14 +688,14 @@ class HazardActionItemCreateView(LoginRequiredMixin, CreateView):
                 # that it is fully completed and update the status to 'COMPLETED'.
                 action_item.save()
 
-                print(f"✅ Self-assigned to: {request.user.email}")
-                print(f"💾 Action item ID: {action_item.id}")
+                # print(f"✅ Self-assigned to: {request.user.email}")
+                # print(f"💾 Action item ID: {action_item.id}")
                 # --- END OF REFACTORED LOGIC ---
 
                 # Close hazard
                 self.hazard.status = 'CLOSED'
                 self.hazard.save(update_fields=['status'])
-                print("🔒 Hazard status updated to: CLOSED")
+                # print("🔒 Hazard status updated to: CLOSED")
 
                 # ... (success message remains the same) ...
 
