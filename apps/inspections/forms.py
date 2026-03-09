@@ -149,12 +149,12 @@ class InspectionTemplateForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'Describe the purpose of this inspection'
             }),
-            'applicable_plants': forms.SelectMultiple(attrs={
-                'class': 'form-control',
+            'applicable_plants': forms.CheckboxSelectMultiple(attrs={
+                'class': 'form-check-input',
                 'size': '5'
             }),
-            'applicable_departments': forms.SelectMultiple(attrs={
-                'class': 'form-control',
+            'applicable_departments': forms.CheckboxSelectMultiple(attrs={
+                'class': 'form-check-input',
                 'size': '5'
             }),
             'min_compliance_score': forms.NumberInput(attrs={
@@ -170,9 +170,7 @@ class InspectionTemplateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['inspection_type'].choices = [('', 'Select Inspection Type')] + list(
-            self.fields['inspection_type'].choices
-        )
+        self.fields['inspection_type'].choices = [('', 'Select Inspection Type')] + [choice for choice in self.fields['inspection_type'].choices if choice[0] != '']
 
 
 class TemplateQuestionForm(forms.ModelForm):

@@ -105,7 +105,14 @@
                                 <label for="{{ form.applicable_plants.id_for_label }}">
                                     Applicable Plants
                                 </label>
-                                {{ form.applicable_plants }}
+                                <div class="border rounded p-2" style="max-height:200px; overflow-y:auto;">
+                                    {% for checkbox in form.applicable_plants %}
+                                    <div class="form-check">
+                                        {{ checkbox.tag }}
+                                        <label class="form-check-label" for={{ checkbox.id_for_label }}>{{ checkbox.choice_label }}</label>
+                                    </div>    
+                                    {% endfor %}
+                                </div>
                                 {% if form.applicable_plants.errors %}
                                 <div class="text-danger small">{{ form.applicable_plants.errors }}</div>
                                 {% endif %}
@@ -118,11 +125,17 @@
                                 <label for="{{ form.applicable_departments.id_for_label }}">
                                     Applicable Departments
                                 </label>
-                                {{ form.applicable_departments }}
+                                <div class="border rounded p-2" style="max-height:200px; overflow-y:auto;">
+                                    {% for checkbox in form.applicable_departments %}
+                                    <div class="form-check">
+                                        {{ checkbox.tag }}
+                                        <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
                                 {% if form.applicable_departments.errors %}
                                 <div class="text-danger small">{{ form.applicable_departments.errors }}</div>
                                 {% endif %}
-                                <small class="form-text text-muted">Hold Ctrl to select multiple</small>
                             </div>
                         </div>
                     </div>
