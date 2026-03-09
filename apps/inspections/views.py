@@ -1840,3 +1840,53 @@ class InspectionDashboardView(LoginRequiredMixin, TemplateView):
         context['page_obj'] = page_obj
 
         return context
+
+
+
+
+@login_required
+def schedule_clone(request, pk):
+    """
+    Directly clones an inspection schedule upon request.
+
+    It creates a new schedule with the same details but generates a new, unique
+    schedule_code before saving. It then redirects to the list view.
+    """
+    # Fetch the original schedule to copy from.
+    original_schedule = get_object_or_404(InspectionSchedule, pk=pk)
+    
+    # Keep track of the original code for the success message.
+    original_code = original_schedule.schedule_code
+
+    # --- CORRECTION IS HERE ---
+    # By setting the primary key and the unique code to None, Django
+    # knows to create a completely new instance with a new identity.
+    original_schedule.pk = None
+    original_schedule.id = None
+    original_schedule.schedule_code = None  # This is the critical fix!
+    
+    # Reset the status to 'SCHEDULED' for the new clone.
+    original_schedule.status = 'SCHEDULED'
+
+    # Set the user who performed the clone action.
+    original_schedule.assigned_by = request.user
+    
+    # Save the new object. The model will now generate a new schedule_code.
+    original_schedule.save()
+    new_schedule = original_schedule
+    
+    # Trigger a notification for the newly created schedule.
+    NotificationService.notify(
+        content_object=new_schedule,
+        notification_type='INSPECTION_SCHEDULE',
+        module='INSPECTION'
+    )
+    
+    # Create a success message for the user.
+    messages.success(
+        request,
+        f'Schedule "{original_code}" was successfully cloned! New Schedule Code: {new_schedule.schedule_code}'
+    )
+    
+    # Redirect the user back to the list of schedules.
+    return redirect('inspections:schedule_list')
