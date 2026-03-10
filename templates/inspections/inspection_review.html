@@ -162,42 +162,44 @@
                                 <thead>
                                     <tr>
                                         <th>Finding Code</th>
+                                        <th>Category</th>
                                         <th>Question</th>
                                         <th>Priority</th>
-                                        <th>Status</th>
-                                        <th>Assigned To</th>
-                                        <th>Due Date</th>
+                                        <th>Inspector Remarks</th>
+                                        <!-- <th>Evidence</th> -->
                                     </tr> 
                                 </thead>
-                                <tbody>
+                                <tbody> 
                                     {% for finding in findings %}
                                         <tr>
                                             <td>{{ finding.finding_code }}</td>
-                                            <td>{{ finding.question.question_code }}</td>
+
+                                            <td>{{ finding.question.category.category_name }}</td>
+
+                                            <td>
+                                                <strong>{{ finding.question.question_code }}</strong><br>
+                                                {{ finding.question.question_text }}
+                                            </td>
+
                                             <td>
                                                 <span class="badge bg-{% if finding.priority == 'HIGH' %}danger{% elif finding.priority == 'MEDIUM' %}warning{% else %}info{% endif %}">
                                                     {{ finding.get_priority_display }}
                                                 </span>
                                             </td>
+
                                             <td>
-                                                <span class="badge bg-secondary">
-                                                    {{ finding.get_status_display }}
-                                                </span>
+                                                {{ finding.question.inspectionresponse_set.first.remarks|default:"-" }}
                                             </td>
-                                            <td>
-                                                {% if finding.assigned_to %}
-                                                    {{ finding.assigned_to.get_full_name }}
-                                                {% else %}
-                                                    <span class="text-muted">Not assigned</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if finding.due_date %}
-                                                    {{ finding.due_date|date:"d M Y" }}
-                                                {% else %}
-                                                    <span class="text-muted">-</span>
-                                                {% endif %}
-                                            </td>
+
+                                            <!-- <td>
+                                                {% with resp=finding.question.inspectionresponse_set.first %}
+                                                    {% if resp.photo %}
+                                                        <img src="{{ resp.photo.url }}" style="height:60px;" class="img-thumbnail">
+                                                    {% else %}
+                                                        <span class="text-muted">No Photo</span>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            </td> -->
                                         </tr>
                                     {% endfor %}
                                 </tbody>
