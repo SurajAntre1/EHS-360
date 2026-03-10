@@ -221,3 +221,6 @@ CRITICALITY_TIMELINES = {
 # Email notification settings
 REMINDER_DAYS_BEFORE_DUE = 1  # Send reminder 1 day before due date
 ESCALATION_INTERVAL_DAYS = 7  # Escalate every 7 days after overdue
+
+#Base site URL
+SITE_URL = "https://ehs360.everestind.com"

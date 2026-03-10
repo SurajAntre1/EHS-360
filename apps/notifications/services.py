@@ -7,6 +7,8 @@ from django.utils import timezone
 from .models import NotificationMaster, Notification
 from apps.accidents.models import IncidentType
 import logging
+from django.urls import reverse
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -352,6 +354,7 @@ class NotificationService:
             incident.incident_type.name
             if incident.incident_type else 'NA'
         )
+        incident_url = f"{settings.SITE_URL}{reverse('accidents:incident_detail', args=[incident.id])}"
         return {
             'title': f"New Injury Reported | {incident.report_number}",
             'subject': f"⚠️ New Injury Reported - {incident.report_number}",
@@ -379,12 +382,15 @@ Regards,
 EHS Management System
 """,
             'incident': incident,
+            'incident_url': incident_url,
         }
     
     
     @staticmethod
     def _build_hazard_context(hazard):
         """Build context for hazard notifications"""
+        hazard_url = f"{settings.SITE_URL}{reverse('hazards:hazard_detail', args=[hazard.id])}"
+
         return {
             'title': f"New Hazard Reported | {hazard.report_number}",
             'subject': f"⚠️ New Hazard Reported - {hazard.report_number}",
@@ -412,6 +418,7 @@ Regards,
 EHS Management System
 """,
             'hazard': hazard,
+            'hazard_url': hazard_url,
         }
     
     @staticmethod
@@ -424,6 +431,8 @@ EHS Management System
             incident.incident_type.name
             if incident.incident_type else 'NA'
         )
+        incident_url = f"{settings.SITE_URL}{reverse('accidents:incident_detail', args=[incident.id])}"
+
         return {
             'title': f"Incident Investigation Completed | {incident.report_number}",
             'subject': f"📝 Investigation Report Submitted - {incident.report_number}",
@@ -472,6 +481,7 @@ EHS Management System
 """,
         'investigation_report': incidentinvestigationreport,
         'incident':incident,
+        'incident_url':incident_url
     }
 
 
@@ -496,6 +506,8 @@ EHS Management System
             if incident.description and len(incident.description) > 300
             else incident.description or "N/A"
         )
+
+        incident_url = f"{settings.SITE_URL}{reverse('accidents:incident_detail', args=[incident.id])}"
 
         return {
             'title': f"Incident Closed | {incident.report_number}",
@@ -522,6 +534,7 @@ Regards,
 EHS Management System
 """,
         'incident': incident,
+        'incident_url': incident_url,
     }
 
     
@@ -532,6 +545,7 @@ EHS Management System
         """
         incident = action_item.incident
         incident_type = incident.incident_type.name if incident.incident_type else 'NA'
+        action_url = f"{settings.SITE_URL}{reverse('accidents:action_item_complete', args=[action_item.id])}"
         
         return {
             'title' : f"Incident Action Assigned | {incident.report_number}",
@@ -570,12 +584,14 @@ EHS Management System
 """,
             'action_item': action_item,
             'incident': incident,
+            'action_url':action_url
         }
     
 
     @staticmethod
     def _build_hazard_action_context(action_item):
         hazard = action_item.hazard
+        action_url = f"{settings.SITE_URL}{reverse('hazards:action_item_complete', args=[action_item.id])}"
 
         return {
             'title': f"Hazard Action Assigned | {hazard.report_number}",
@@ -609,10 +625,12 @@ EHS Management System
 """,
             'hazard': hazard,
             'action_item': action_item,
+            'action_url': action_url,
         }
     
     @staticmethod
     def _build_environment_context(plant):
+        dashboard_url = f"{settings.SITE_URL}{reverse('environmental:plant-data-view')}"
         return{
             'title': f"Enviromental Data Submitted | {plant.name}",
             'subject': f"🌱 Environmental Data Submitted - {plant.name}",
@@ -631,10 +649,13 @@ Regards,
 EHS Management System
 """,
             'plant':plant,
+            'dashboard_url':dashboard_url,
         }
     
     @staticmethod
     def _build_inspection_context(schedule):
+        inspection_url = f"{settings.SITE_URL}{reverse('inspections:schedule_detail', args=[schedule.id])}"
+        
         return{
             'title': f"Inspection {schedule.get_status_display()} | {schedule.schedule_code}",
             'subject': f"📝 Inspection {schedule.get_status_display()} - {schedule.schedule_code}",
@@ -668,10 +689,12 @@ Regards,
 EHS Management System
 """,
         'schedule': schedule,
+        'inspection_url': inspection_url,
     }
 
     @staticmethod
     def _build_notify_inspection_context(schedule):
+        inspection_url = f"{settings.SITE_URL}{reverse('inspections:schedule_detail', args=[schedule.id])}"
         return{
             'title': f"Inspection Reminder | {schedule.schedule_code}",
             'subject': f"⏰ Reminder: Inspection {schedule.get_status_display()} - {schedule.schedule_code}",
@@ -700,11 +723,14 @@ EHS Management System
 """,
         'schedule': schedule,
         'recipient': schedule.assigned_to,
+        'inspection_url': inspection_url,
     }
 
     @staticmethod
     def _build_noncompliance_assigned_context(response):
         schedule = response.submission.schedule
+        no_answer_url = f"{settings.SITE_URL}{reverse('inspections:no_answers_list')}"
+
 
         return {
             'title': f"Non-Compliance Assigned | {schedule.schedule_code}",
@@ -735,6 +761,7 @@ EHS Management System
 """,
         'response': response,
         'recipient': response.assigned_to,
+        'no_answer_url': no_answer_url,
     }
 
     @staticmethod
@@ -747,6 +774,8 @@ EHS Management System
             incident.incident_type.name
             if incident.incident_type else 'NA'
         )
+        incident_url = f"{settings.SITE_URL}{reverse('incidents:incident_detail', args=[incident.id])}"
+
         
         return {
             'title': f"Investigation Overdue | {incident.report_number}",
@@ -779,4 +808,5 @@ EHS Management System
     """,
             'incident': incident,
             'days_overdue': days_overdue,
+            'incident_url':incident_url,
         }
