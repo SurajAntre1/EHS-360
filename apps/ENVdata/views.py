@@ -1154,12 +1154,19 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
             manual_dict.setdefault(d.indicator_id, {})
             manual_dict[d.indicator_id][d.month] = d.value
 
+        # ✅ START: Fetch Attachments efficiently
+        attachments = MonthlyIndicatorAttachment.objects.filter(plant=plant).select_related('indicator')
+        attachments_dict = {}
+        for att in attachments:
+            attachments_dict.setdefault(att.indicator_id, {})
+            attachments_dict[att.indicator_id][att.month] = att
+        # ✅ END: Fetch Attachments efficiently
+
         # Build display structure
         questions_data = []
         for q in questions:
             default_unit_name = q.default_unit.name if q.default_unit else "Count"
             
-            # Create a list of month values in order
             month_values = []
             total = Decimal("0")
             has_values = False
@@ -1167,6 +1174,8 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
             for month_code, month_name in MONTHS:
 
                 value = None
+                # ✅ Get the attachment for this cell
+                attachment = attachments_dict.get(q.id, {}).get(month_code)
 
                 # MANUAL QUESTION
                 if q.source_type == "MANUAL":
@@ -1205,8 +1214,12 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
                             filters[q.filter_field_2] = q.filter_value_2
 
                         value = model.objects.filter(**filters).count()
-
-                month_values.append(value if value not in [None, ""] else "-")
+                
+                # ✅ Store value AND attachment together
+                month_values.append({
+                    "value": value if value not in [None, ""] else "-",
+                    "attachment": attachment
+                })
 
                 if value not in [None, "", "-"]:
                     try:
@@ -1218,7 +1231,7 @@ class PlantDataDisplayView(LoginRequiredMixin, View):
             questions_data.append({
                 "question": q.question_text,
                 "unit": default_unit_name,
-                "month_values": month_values,  # List of values in order
+                "month_values": month_values,
                 "annual": f"{total}" if has_values else '-',
             })
 
@@ -1244,23 +1257,16 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
     template_name = "data_collection/admin_all_plants.html"
 
     def get(self, request):
-        # Permission check
+        # ... (permission check code remains the same) ...
         if not (request.user.is_superuser or request.user.is_staff or getattr(request.user, 'is_admin_user', False)):
             messages.error(request, "You don't have permission to access this page")
             return redirect("environmental:plant-entry")
 
-        # ALL plants
         all_plants = Plant.objects.filter(is_active=True).order_by("name")
 
         if not all_plants.exists():
             return render(request, self.template_name, {"no_plants": True})
 
-        # ✅ PAGINATION — ONE PLANT ONLY
-        # paginator = Paginator(all_plants, 1)
-        # page_number = request.GET.get("page")
-        # page_obj = paginator.get_page(page_number)
-
-        # Questions
         questions = EnvironmentalQuestion.objects.filter(
             is_active=True
         ).select_related(
@@ -1275,6 +1281,15 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
             indicator__isnull=False
         ).select_related("plant", "indicator")
 
+        # ✅ START: Fetch ALL attachments efficiently
+        all_attachments = MonthlyIndicatorAttachment.objects.select_related("plant", "indicator")
+        attachments_dict = {}
+        for att in all_attachments:
+            attachments_dict.setdefault(att.plant_id, {})
+            attachments_dict[att.plant_id].setdefault(att.indicator_id, {})
+            attachments_dict[att.plant_id][att.indicator_id][att.month] = att
+        # ✅ END: Fetch ALL attachments efficiently
+
         # Organize manual data in dictionary for performance
         manual_dict = {}
         for d in all_data:
@@ -1286,7 +1301,6 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
 
         plants_data = []
 
-        # 🔥 THIS IS THE FIX — page_obj, NOT all_plants
         for plant in all_plants:
             plant_questions_data = []
 
@@ -1298,13 +1312,15 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
 
                 for month_code, month_name in MONTHS:
                     value = None
+                    # ✅ Get attachment for this cell
+                    attachment = attachments_dict.get(plant.id, {}).get(q.id, {}).get(month_code)
 
                     # MANUAL QUESTION
                     if q.source_type == "MANUAL":
                         value = manual_dict.get(plant.id, {}).get(q.id, {}).get(month_code)
-
                     # AUTOMATIC QUESTION
                     else:
+                        # ... (automatic question logic remains the same) ...
                         start_date = datetime(datetime.now().year,
                                               datetime.strptime(month_code, "%b").month, 1)
 
@@ -1336,8 +1352,12 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
                                 filters[q.filter_field_2] = q.filter_value_2
 
                             value = model.objects.filter(**filters).count()
-
-                    month_data[month_name] = value if value not in [None, ""] else "-"
+                    
+                    # ✅ Store value and attachment together
+                    month_data[month_name] = {
+                        "value": value if value not in [None, ""] else "-",
+                        "attachment": attachment
+                    }
 
                     if value not in [None, "", "-"]:
                         try:
@@ -1359,9 +1379,8 @@ class AdminAllPlantsDataView(LoginRequiredMixin, View):
             })
 
         context = {
-            "plants_data": plants_data,  # WILL CONTAIN ONLY 1 PLANT
+            "plants_data": plants_data,
             "months": [m[1] for m in MONTHS],
-            # "page_obj": page_obj,
             "total_plants": all_plants.count(),
             "total_questions": questions.count(),
         }

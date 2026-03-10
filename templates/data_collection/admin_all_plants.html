@@ -135,6 +135,15 @@
 .btn-export i{
     margin-right: 8px;
 }
+.attachment-link {
+    margin-left: 8px;
+    color: #64748b;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.attachment-link:hover {
+    color: #2563eb;
+}
 </style>
 {% endblock %}
 
@@ -189,9 +198,24 @@
                     {% for q in plant_data.questions_data %}
                     <tr>
                         <td><strong>{{ q.question }}</strong> ({{ q.unit }})</td>
+                        
+                        {# ✅ MODIFIED LOOP #}
                         {% for month in months %}
-                            <td>{{ q.month_data|get_item:month|default:"-" }}</td>
+                            {% with cell_data=q.month_data|get_item:month %}
+                            <td>
+                                {{ cell_data.value|default:"-" }}
+                                {% if cell_data.attachment %}
+                                <a href="{% url 'environmental:attachment-download' cell_data.attachment.id %}"
+                                   class="attachment-link"
+                                   title="Download: {{ cell_data.attachment.file_name }}"
+                                   target="_blank">
+                                    <i class="fas fa-paperclip"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                            {% endwith %}
                         {% endfor %}
+
                         <td><strong>{{ q.annual }}</strong></td>
                     </tr>
                     {% endfor %}

@@ -177,6 +177,17 @@
     padding: 3rem;
     color: var(--text-secondary);
 }
+/* ✅ START: New CSS for attachment link */
+.attachment-link {
+    margin-left: 8px;
+    color: #64748b;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.attachment-link:hover {
+    color: var(--primary-color);
+}
+/* ✅ END: New CSS for attachment link */
 
 @media (max-width: 1024px) {
     .display-table {
@@ -264,8 +275,20 @@
                         <strong>{{ q.question }}</strong>
                         <span class="unit-badge">{{ q.unit }}</span>
                     </td>
-                    {% for value in q.month_values %}
-                    <td>{{ value }}</td>
+                    
+                    {# ✅ MODIFIED LOOP #}
+                    {% for item in q.month_values %}
+                    <td>
+                        {{ item.value }}
+                        {% if item.attachment %}
+                            <a href="{% url 'environmental:attachment-download' item.attachment.id %}"
+                               class="attachment-link"
+                               title="Download: {{ item.attachment.file_name }}"
+                               target="_blank">
+                                <i class="fas fa-paperclip"></i>
+                            </a>
+                        {% endif %}
+                    </td>
                     {% endfor %}
                     <td><strong>{{ q.annual }}</strong></td>
                 </tr>
