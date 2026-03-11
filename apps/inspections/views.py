@@ -923,7 +923,7 @@ def schedule_send_reminder(request, pk):
     
     schedule = get_object_or_404(InspectionSchedule, pk=pk)
     
-    if schedule.status not in ['SCHEDULED', 'IN_PROGRESS']:
+    if schedule.status not in ['SCHEDULED', 'IN_PROGRESS', 'OVERDUE']:
         messages.error(request, 'Can only send reminders for scheduled or in-progress inspections!')
         return redirect('inspections:schedule_detail', pk=pk)
     
