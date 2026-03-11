@@ -1774,68 +1774,85 @@ def convert_no_answer_to_hazard(request, response_id):
 class InspectionDashboardView(LoginRequiredMixin, TemplateView):
     """
     Advanced dashboard with actionable insights, including overdue alerts,
-    top non-compliances chart, and paginated results.
+    top non-compliances chart, and paginated results. Data is filtered
+    based on user's assigned plants.
     """
-    template_name = 'inspections/pre_inspection_dashboard.html' # Template ka naam update kar dein agar alag hai
+    template_name = 'inspections/pre_inspection_dashboard.html'
 
     def get_context_data(self, **kwargs):
         """
-        Fetches and prepares all the data needed for the advanced dashboard.
+        Fetches and prepares all the data needed for the advanced dashboard,
+        respecting user's plant assignments.
         """
         context = super().get_context_data(**kwargs)
+        user = self.request.user
 
-        # Base queryset for completed inspections
+        # --- 1. USER ACCESS CONTROL (Determine accessible plants) ---
+        # This logic is adapted from your EnvironmentalDashboardView
+        if user.is_superuser or user.is_staff or getattr(user, 'is_admin_user', False):
+            # Admin, staff, or superuser can see data from all active plants
+            accessible_plants = Plant.objects.filter(is_active=True)
+        else:
+            # Standard users see data only from their assigned plants
+            assigned = user.assigned_plants.filter(is_active=True)
+            if not assigned.exists() and getattr(user, 'plant', None):
+                # Fallback to the user's primary plant if no many-to-many assignment
+                accessible_plants = Plant.objects.filter(id=user.plant.id, is_active=True)
+            else:
+                accessible_plants = assigned
+
+        # --- 2. Base Queryset for Completed Inspections (Filtered by accessible plants) ---
         submissions = InspectionSubmission.objects.select_related(
             'schedule', 'schedule__template', 'schedule__plant', 'submitted_by'
-        ).order_by('-submitted_at')
+        ).filter(schedule__plant__in=accessible_plants).order_by('-submitted_at')
 
-        # --- 1. Top Statistics Cards Data ---
+        # --- 3. Top Statistics Cards Data (Filtered) ---
         total_inspections = submissions.count()
         current_month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        # Base queryset for schedules, also filtered by accessible plants
+        schedules_qs = InspectionSchedule.objects.filter(plant__in=accessible_plants)
 
         context['total_inspections'] = total_inspections
-        context['open_schedules'] = InspectionSchedule.objects.filter(status__in=['SCHEDULED', 'IN_PROGRESS', 'OVERDUE']).count()
+        context['open_schedules'] = schedules_qs.filter(status__in=['SCHEDULED', 'IN_PROGRESS', 'OVERDUE']).count()
         context['this_month_inspections'] = submissions.filter(submitted_at__gte=current_month_start).count()
         
-        # New Stat: Average Compliance Score
+        # New Stat: Average Compliance Score (Calculated from filtered submissions)
         if total_inspections > 0:
             average_compliance = submissions.aggregate(avg_score=Avg('compliance_score'))['avg_score']
             context['average_compliance_score'] = round(average_compliance, 2) if average_compliance else 0
         else:
             context['average_compliance_score'] = 0
 
-        # --- 2. Overdue Inspections Alert Data ---
-        context['overdue_inspections'] = InspectionSchedule.objects.filter(
+        # --- 4. Overdue Inspections Alert Data (Filtered) ---
+        context['overdue_inspections'] = schedules_qs.filter(
             status='OVERDUE'
-        ).select_related('assigned_to', 'plant').order_by('-due_date')[:5] # Top 5 dikhayenge
+        ).select_related('assigned_to', 'plant').order_by('-due_date')[:5] # Show top 5
 
-        # --- 3. Top Non-Compliant Questions Chart Data ---
-        top_non_compliant = InspectionResponse.objects.filter(answer='No') \
-            .values('question__question_text') \
-            .annotate(no_count=Count('id')) \
-            .order_by('-no_count')[:5] # Top 5
+        # --- 5. Top Non-Compliant Questions Chart Data (Filtered) ---
+        top_non_compliant = InspectionResponse.objects.filter(
+            submission__schedule__plant__in=accessible_plants, # Filter based on plant
+            answer='No'
+        ).values('question__question_text').annotate(no_count=Count('id')).order_by('-no_count')[:5] # Top 5
 
-        # Chart ke liye labels aur data prepare karein
+        # Prepare labels and data for the chart
         chart_labels = [item['question__question_text'] for item in top_non_compliant]
         chart_data = [item['no_count'] for item in top_non_compliant]
 
-        # Context me JSON format me pass karein for Javascript
+        # Pass to context in JSON format for JavaScript
         context['non_compliant_labels'] = json.dumps(chart_labels)
         context['non_compliant_data'] = json.dumps(chart_data)
 
-        # --- 4. Paginated Inspections Table Data ---
-        paginator = Paginator(submissions, 10)  # Har page par 10 items
+        # --- 6. Paginated Inspections Table Data (Already filtered via `submissions` queryset) ---
+        paginator = Paginator(submissions, 10)  # 10 items per page
         page_number_from_url = self.request.GET.get('page')
 
         try:
-            # get_page invalid inputs (jaise 'abc', '', None) ko handle kar leta hai
+            # get_page handles invalid inputs (like 'abc', '', None)
             page_obj = paginator.get_page(page_number_from_url)
         except EmptyPage:
-            # Agar page number valid hai lekin out of range hai (e.g., page 0),
-            # to pehla page dikhao.
+            # If page number is valid but out of range, show the first page.
             page_obj = paginator.get_page(1)
-
-        # context['page_obj'] = page_obj
 
         context['page_obj'] = page_obj
 
