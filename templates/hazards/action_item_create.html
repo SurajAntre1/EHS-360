@@ -80,9 +80,10 @@
     }
     
     .user-card {
-        border: 2px solid #dee2e6;
+        border: 1.5px solid #dee2e6;
         cursor: pointer;
-        transition: all 0.3s;
+        transition: all 0.25s;
+        min-height: 60px;
     }
     
     .user-card:hover {
@@ -96,8 +97,9 @@
     }
     
     .user-avatar {
-        width: 50px;
-        height: 50px;
+        width: 32px;
+        height: 32px;
+        font-size: 0.8rem;
         border-radius: 50%;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -106,6 +108,13 @@
         justify-content: center;
         font-weight: bold;
         font-size: 1.2rem;
+    }
+    .user-card strong {
+        font-size: 0.9rem;
+    }
+
+    .user-card small {
+        font-size: 0.75rem;
     }
     
     .attachment-optional {
@@ -129,8 +138,8 @@
 
     .user-checkbox {
         position: absolute;
-        top: 16px;
-        left: 16px;
+        top: 12px;
+        left: 12px;
         width: 18px;
         height: 18px;
         z-index: 5;       
@@ -140,7 +149,7 @@
     .user-card-label {
         display: block;
         width: 100%;
-        padding-left: 48px;
+        padding-left: 38px;
         cursor: pointer;
     }
 
@@ -329,14 +338,14 @@
 
                                     <div class="row" id="user-cards-container">
                                         {% for user in plant_users %}
-                                        <div class="col-md-4 mb-2">
+                                        <div class="col-lg-3 col-md-4 col-sm-6 mb-2">
                                             <div class="card user-card h-100" data-user-email="{{ user.email }}">
-                                                <div class="card-body p-3">
+                                                <div class="card-body py-1 px-2">
                                                     <div class="user-checkbox-wrapper">
                                                         <input type="checkbox" name="responsible_emails" value="{{ user.email }}" class="user-checkbox" id="user_{{ user.id }}">
                                                         <label for="user_{{ user.id }}" class="user-card-label">
                                                             <div class="d-flex align-items-center">
-                                                                <div class="user-avatar mr-3">
+                                                                <div class="user-avatar mr-2">
                                                                     {{ user.first_name.0 }}{{ user.last_name.0 }}
                                                                 </div>
                                                                 <div class="flex-grow-1">
