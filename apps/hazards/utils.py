@@ -245,11 +245,12 @@ def generate_hazard_pdf(hazard):
             ('GRID', (0, 0), (-1, -1), 1, border_color), ('BACKGROUND', (0, 0), (-1, 0), header_bg_color), ('VALIGN', (0, 0), (-1, -1), 'TOP'), ('LEFTPADDING', (0,0), (-1,-1), 6), ('TOPPADDING', (0,0), (-1,-1), 4), ('BOTTOMPADDING', (0,0), (-1,-1), 4),
         ]))
         story.append(action_table)
+        story.append(Spacer(1, 6*mm))
 
     # --- Section 6: Attached Photos ---
         photos = hazard.photos.all()
         if photos.exists():
-            story.append(PageBreak())
+            # story.append(PageBreak())
             photo_flowables = [Paragraph("<b>6. ATTACHED PHOTOS</b>", styles['SectionHeader'])]
             
             photo_table_data = []
