@@ -156,54 +156,39 @@
   </ul>
 
   <!-- Right navbar links -->
-<ul class="navbar-nav ml-auto">
-  <!-- Notifications -->
-  {% comment %} <li class="nav-item dropdown">
-    <a class="nav-link" data-toggle="dropdown" href="#">
-      <div class="icon-btn">
-        <i class="fas fa-bell"></i>
-        <span class="badge badge-danger navbar-badge"
-              style="position: absolute; top: 5px; right: 5px;">3</span>
-      </div>
-    </a>
-    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-      <span class="dropdown-item dropdown-header">3 Notifications</span>
-      <div class="dropdown-divider"></div>
-      <a href="#" class="dropdown-item">
-        <i class="fas fa-exclamation-triangle mr-2 text-warning"></i>
-        High Priority Hazard
-        <span class="float-right text-muted text-sm">3 mins</span>
-      </a>
-      <div class="dropdown-divider"></div>
-      <a href="#" class="dropdown-item dropdown-footer">See All Notifications</a>
-    </div>
-  </li> {% endcomment %}
+  <ul class="navbar-nav ml-auto">
 
-  <!-- Profile -->
-  <li class="nav-item dropdown">
-    <a class="nav-link" data-toggle="dropdown" href="#">
-      <div class="icon-btn">
-        <i class="fas fa-user"></i>
-      </div>
-    </a>
-    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-      <div class="dropdown-item dropdown-header">
-        <strong>{{ user.get_full_name|default:user.username }}</strong>
-        <p class="text-sm text-muted mb-0">{{ user.role.name }}</p>
-        {% if user.plant %}
-        <p class="text-sm text-muted mb-0">{{ user.plant.name }}</p>
-        {% endif %}
-      </div>
-      <div class="dropdown-divider"></div>
-      <a href="{% url 'accounts:user_detail' user.pk %}" class="dropdown-item">
-        <i class="fas fa-user mr-2"></i> My Profile
+    <!-- Profile -->
+    <li class="nav-item dropdown">
+      <a class="nav-link" data-toggle="dropdown" href="#">
+        <div class="icon-btn">
+          <i class="fas fa-user"></i>
+        </div>
       </a>
-      <div class="dropdown-divider"></div>
-      <a href="{% url 'accounts:logout' %}" class="dropdown-item">
-        <i class="fas fa-sign-out-alt mr-2"></i> Logout
-      </a>
-    </div>
-  </li>
-</ul>
+      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+        <div class="dropdown-item dropdown-header">
+
+          <!-- ✅ FIXED: use request.user instead of user -->
+          <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+          <p class="text-sm text-muted mb-0">{{ request.user.role.name }}</p>
+          {% if request.user.plant %}
+            <p class="text-sm text-muted mb-0">{{ request.user.plant.name }}</p>
+          {% endif %}
+
+        </div>
+        <div class="dropdown-divider"></div>
+
+        <!-- ✅ FIXED: link to request.user's profile, not the edited user -->
+        <a href="{% url 'accounts:user_detail' request.user.pk %}" class="dropdown-item">
+          <i class="fas fa-user mr-2"></i> My Profile
+        </a>
+        <div class="dropdown-divider"></div>
+        <a href="{% url 'accounts:logout' %}" class="dropdown-item">
+          <i class="fas fa-sign-out-alt mr-2"></i> Logout
+        </a>
+      </div>
+    </li>
+
+  </ul>
 </nav>
 <!-- /.navbar -->
