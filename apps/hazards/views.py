@@ -802,12 +802,37 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         context["hazard"] = self.hazard
         user = self.request.user
+
+        # ===================================================================
+        # START OF THE FIX
+        # ===================================================================
+        
+        # Initialize defaults
+        context['plant_users'] = []
+        context['plant_name'] = 'the relevant location'
+
+        # Fetch users based on hazard's plant and zone (copied from CreateView)
         if self.hazard.plant:
-            plant_users = User.objects.filter(
-                Q(plant=self.hazard.plant) | Q(assigned_plants=self.hazard.plant),
+            from django.db.models import Q
+
+            # Step 1: Start by filtering users based on the hazard's plant
+            plant_filter = Q(plant=self.hazard.plant) | Q(assigned_plants=self.hazard.plant)
+            responsible_users_query = User.objects.filter(plant_filter)
+
+            # Step 2: If the hazard also has a zone, add a zone filter to the query
+            if self.hazard.zone:
+                zone_filter = Q(zone=self.hazard.zone) | Q(assigned_zones=self.hazard.zone)
+                responsible_users_query = responsible_users_query.filter(zone_filter)
+                # Update the display name to include the zone
+                context['plant_name'] = f"{self.hazard.plant.name} - {self.hazard.zone.name}"
+            else:
+                # If no zone, just use the plant name
+                context['plant_name'] = self.hazard.plant.name
+
+            # Step 3: Apply final filters (active status, exclude self, etc.)
+            final_users = responsible_users_query.filter(
                 is_active=True,
                 is_active_employee=True
             ).exclude(
@@ -815,10 +840,14 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
             ).distinct().select_related(
                 'department', 'role'
             ).order_by('first_name', 'last_name')
-
-            context['plant_users'] = plant_users
-            context['plant_name'] = self.hazard.plant.name
+            
+            context['plant_users'] = final_users
         
+        # ===================================================================
+        # END OF THE FIX
+        # ===================================================================
+        
+        # Keep the rest of the original context data logic
         selected_emails = self.object.get_emails_list()
         selected_users = User.objects.filter(
             email__in=selected_emails
@@ -834,8 +863,8 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
         )
 
         context["auto_target_date"] = (
-            self.hazard.action_deadline.strftime("%Y-%m-%d")
-            if self.hazard.action_deadline
+            self.object.target_date.strftime("%Y-%m-%d")
+            if self.object.target_date
             else ""
         )
 
@@ -847,7 +876,7 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
         context["is_self_assignment"] = self.object.is_self_assigned
 
         return context
-
+    
     def get_success_url(self):
         return reverse_lazy(
             "hazards:hazard_detail",
