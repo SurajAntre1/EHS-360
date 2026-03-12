@@ -163,12 +163,13 @@ class IncidentDashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         
         # Get incidents based on user role
-        if self.request.user.is_superuser or self.request.user.role.name == 'ADMIN':
+        user = self.request.user
+        if user.is_superuser or (user.role and user.role.name == 'ADMIN'):
             incidents = Incident.objects.all()
-        elif self.request.user.plant:
-            incidents = Incident.objects.filter(plant=self.request.user.plant)
+        elif user.get_all_plants():
+            incidents = Incident.objects.filter(plant__in=user.get_all_plants()).distinct()
         else:
-            incidents = Incident.objects.filter(reported_by=self.request.user)
+            incidents = Incident.objects.filter(reported_by=user)
         
         # Statistics
         context['total_incidents'] = incidents.count()
@@ -245,8 +246,8 @@ class IncidentListView(LoginRequiredMixin, ListView):
             # Filter the queryset to show only records reported by the current user
             queryset = queryset.filter(reported_by=user)
         # Check if the user is associated with a specific plant (for roles like PLANT HEAD, etc.)
-        elif user.plant:
-            queryset = queryset.filter(plant=user.plant)
+        elif user.get_all_plants():
+            queryset = queryset.filter(plant__in=user.get_all_plants()).distinct()
         else:
             # As a fallback, if no specific role logic applies, show only self-reported records
             queryset = queryset.filter(reported_by=user)

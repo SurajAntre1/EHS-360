@@ -42,14 +42,14 @@ class HazardDashboardView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+        user = self.request.user
         # Get hazards based on user role (This part is already correct)
-        if self.request.user.is_superuser or self.request.user.role.name == 'ADMIN': 
+        if user.is_superuser or (user.role and user.role.name == 'ADMIN'):
             hazards = Hazard.objects.all()
-        elif self.request.user.plant: 
-            hazards = Hazard.objects.filter(plant=self.request.user.plant)
+        elif user.get_all_plants():
+            hazards = Hazard.objects.filter(plant__in=user.get_all_plants()).distinct()
         else:
-            hazards = Hazard.objects.filter(reported_by=self.request.user)
+            hazards = Hazard.objects.filter(reported_by=user)
         
         # Statistics (This part is already correct)
         context['total_hazards'] = hazards.count()
@@ -96,8 +96,8 @@ class HazardListView(LoginRequiredMixin, ListView):
             pass
         elif hasattr(user, 'role') and user.role and user.role.name == 'EMPLOYEE':
             queryset = queryset.filter(reported_by=user)
-        elif user.plant:
-            queryset = queryset.filter(plant=user.plant)
+        elif user.get_all_plants():
+            queryset = queryset.filter(plant__in=user.get_all_plants()).distinct()
         else:
             queryset = queryset.filter(reported_by=user)
 
