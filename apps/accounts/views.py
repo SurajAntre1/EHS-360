@@ -376,6 +376,8 @@ class UserCreateView(LoginRequiredMixin, CanCreateUsersMixin, CreateView):
         return super().form_invalid(form)
 
     
+from django.contrib.auth import update_session_auth_hash
+
 class UserUpdateView(LoginRequiredMixin, UpdateView):
     """Update user - Only accessible by Admin"""
     model = User
@@ -384,110 +386,82 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse_lazy('accounts:user_detail', kwargs={'pk': self.object.pk})
-    
-    # --- NEW METHOD STARTS HERE ---
+
     def get_form_kwargs(self):
-        """
-        Pass the request object to the form's constructor.
-        This allows the form to know about the current user.
-        """
         kwargs = super().get_form_kwargs()
         kwargs.update({'request': self.request})
         return kwargs
-    # --- NEW METHOD ENDS HERE ---
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.object
         
-        # Load all active plants for the admin interface
         context['all_plants'] = Plant.objects.filter(is_active=True).order_by('name')
         
-        # Get user's existing assignments as lists of IDs for the JavaScript.
         context['user_assigned_plants'] = list(user.assigned_plants.values_list('id', flat=True))
         context['user_assigned_zones'] = list(user.assigned_zones.values_list('id', flat=True))
         context['user_assigned_locations'] = list(user.assigned_locations.values_list('id', flat=True))
         context['user_assigned_sublocations'] = list(user.assigned_sublocations.values_list('id', flat=True))
         
-        # --- NEW CODE STARTS HERE ---
-        # If the user is not an admin, provide the full objects for the read-only display.
         if not (self.request.user.is_superuser or self.request.user.is_admin_user):
             context['user_assigned_plants_details'] = user.assigned_plants.all().order_by('name')
             context['user_assigned_zones_details'] = user.assigned_zones.all().order_by('name')
             context['user_assigned_locations_details'] = user.assigned_locations.all().order_by('name')
             context['user_assigned_sublocations_details'] = user.assigned_sublocations.all().order_by('name')
-        # --- NEW CODE ENDS HERE ---
 
         context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
         return context
     
     def form_valid(self, form):
-        # Store the user's state before any changes are made.
         old_user = User.objects.get(pk=self.object.pk)
         old_role = old_user.role
         
-        # --- START OF FIX ---
-        # Get the user instance from the form without saving it to the database yet.
         user = form.save(commit=False)
         
-        # If the logged-in user is a non-admin, they are not allowed to change
-        # organization or active status. We must restore the original values for
-        # these fields because disabled form inputs are not sent in the request.
         if not (self.request.user.is_superuser or self.request.user.is_admin_user):
             user.role = old_user.role
             user.department = old_user.department
             user.is_active = old_user.is_active
         
-        # Now, save the user instance with the corrected data.
         user.save()
-        # --- END OF FIX ---
 
-        # The rest of the logic remains the same, but it now operates on the correctly saved user.
-        # Ensure only superusers or admins can modify location assignments.
+        # ✅ FIX: Immediately after first save, re-bind session to logged-in admin
+        # This prevents Django from switching the session to the updated user
+        update_session_auth_hash(self.request, self.request.user)
+
         if self.request.user.is_superuser or self.request.user.is_admin_user:
-            # Handle MULTIPLE PLANT ASSIGNMENTS (from checkboxes)
             assigned_plants = self.request.POST.getlist('assigned_plants')
             user.assigned_plants.set(assigned_plants)
             user.plant = Plant.objects.filter(id__in=assigned_plants).first()
             
-            # Handle MULTIPLE ZONE ASSIGNMENTS (from checkboxes)
             assigned_zones = self.request.POST.getlist('assigned_zones')
             user.assigned_zones.set(assigned_zones)
             user.zone = Zone.objects.filter(id__in=assigned_zones).first()
             
-            # Handle MULTIPLE LOCATION ASSIGNMENTS (from checkboxes)
             assigned_locations = self.request.POST.getlist('assigned_locations')
             user.assigned_locations.set(assigned_locations)
             user.location = Location.objects.filter(id__in=assigned_locations).first()
             
-            # Handle MULTIPLE SUBLOCATION ASSIGNMENTS (from checkboxes)
             assigned_sublocations = self.request.POST.getlist('assigned_sublocations')
             user.assigned_sublocations.set(assigned_sublocations)
             user.sublocation = SubLocation.objects.filter(id__in=assigned_sublocations).first()
             
-            # Save all location-related changes.
             user.save()
 
-        # If the user's role was changed (which can now only happen by an admin), sync permissions.
         if old_role != user.role:
             if user.role:
                 updated = user.sync_permissions_to_flags()
                 messages.info(self.request, f'Role changed! Synced {updated} permissions from {user.role.name}')
             else:
-                user.sync_permissions_to_flags()  # This will reset all permissions
+                user.sync_permissions_to_flags()
                 messages.info(self.request, 'Role removed. All permissions reset.')
         
-        messages.success(
-            self.request, 
-            f'User {user.username} updated successfully!'
-        )
+        messages.success(self.request, f'User {user.username} updated successfully!')
         
-        # Use return redirect() as form.save() was already called
         return redirect(self.get_success_url())
     
     def form_invalid(self, form):
         messages.error(self.request, 'Please correct the errors below.')
-        # print("Form errors:", form.errors)
         return super().form_invalid(form)
     
     def get_queryset(self):
