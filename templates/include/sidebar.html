@@ -260,13 +260,17 @@
         {% endif %}
 
         <!-- 3. User Management -->
+        <!-- 3. User Management -->
         {% if request.user.is_superuser or request.user.is_admin_user or request.user.can_create_users %}
         <li class="nav-item {% if 'accounts' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-users-cog"></i>
             <p>User Management<i class="right fas fa-angle-left"></i></p>
           </a>
+
           <ul class="nav nav-treeview">
+
+            <!-- Role & Permission (Admin only) -->
             {% if request.user.is_superuser or request.user.is_admin_user %}
             <li class="nav-item">
               <a href="{% url 'accounts:role-list' %}"
@@ -276,6 +280,8 @@
               </a>
             </li>
             {% endif %}
+
+            <!-- Create User -->
             <li class="nav-item">
               <a href="{% url 'accounts:user_create' %}"
                 class="nav-link {% if request.resolver_match.url_name == 'user_create' %}active{% endif %}">
@@ -283,17 +289,25 @@
                 <p>Create User</p>
               </a>
             </li>
+
+            <!-- User List -->
             <li class="nav-item">
               <a href="{% url 'accounts:user_list' %}"
                 class="nav-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
-                <p>{% if request.user.is_superuser or request.user.is_admin_user %}All Users{% else %}My Plant Users{% endif %}</p>
+                <p>
+                  {% if request.user.is_superuser or request.user.is_admin_user %}
+                    All Users
+                  {% else %}
+                    My Plant Users
+                  {% endif %}
+                </p>
               </a>
             </li>
+
           </ul>
         </li>
         {% endif %}
-
         <!-- 4. Injury Type Configuration -->
         {% if request.user.is_superuser or request.user.is_admin_user %}
         <li class="nav-item">
