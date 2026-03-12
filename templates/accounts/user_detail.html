@@ -70,7 +70,7 @@
               </tr>
               <tr>
                 <th class="bg-light">Role:</th>
-                <td><span class="badge badge-info">{{ user.role.name }}</span></td>
+                  <td><span class="badge badge-info">{{ user_detail.role.name|default:"No Role Assigned" }}</span></td>
               </tr>
               <tr>
                 <th class="bg-light">Status:</th>
