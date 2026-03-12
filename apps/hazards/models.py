@@ -681,13 +681,18 @@ class HazardActionItem(models.Model):
             if self.pk:
                 if self.is_fully_completed:
                     self.status = 'COMPLETED'
-                    # Set completion date only when it becomes fully completed.
+                    # Set completion date only when it becomes fully completed for the first time.
                     if not self.completion_date:
                         self.completion_date = timezone.now().date()
-                # If some but not all have completed, it's in progress.
+                # If some (but not all) have completed, it's in progress.
                 elif self.completed_by_users.exists() and not self.is_fully_completed:
                     self.status = 'IN_PROGRESS'
-            
+                    self.completion_date = None # In-progress means it's not fully complete yet
+                # If NO ONE has completed it, it must be pending.
+                else:
+                    self.status = 'PENDING'
+                    self.completion_date = None # Clear completion date if it reverts to pending
+
             # Continue with the original save operation for both new and existing objects
             super().save(*args, **kwargs)
 

@@ -860,7 +860,7 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
         try:
             assignment_type = request.POST.get("assignment_type")
             action_description = request.POST.get("action_description", "").strip()
-            
+
             if assignment_type == 'self' and not action_description:
                 messages.error(request, 'The "Action Taken" description is required for self-assignment.')
                 return redirect('hazards:action_item_update', pk=self.object.pk)
@@ -873,29 +873,29 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
                     target_date, "%Y-%m-%d"
                 ).date()
 
+            if "attachment" in request.FILES:
+                self.object.attachment = request.FILES["attachment"]
+
             if assignment_type == "self":
-                # Attachment REQUIRED
+                # Attachment is required for self-completion
                 if "attachment" not in request.FILES and not self.object.attachment:
                     messages.error(
                         request,
-                        "Attachment is required for self-assignment.",
+                        "An attachment is required for self-assignment and completion.",
                     )
                     return redirect(
                         "hazards:action_item_update",
                         pk=self.object.pk,
                     )
 
-            # If new file uploaded
-            if "attachment" in request.FILES:
-                self.object.attachment = request.FILES["attachment"]
-
-            if assignment_type == "self":
-                # Assign to current user
+                # Update assignment details
                 self.object.responsible_emails = request.user.email
                 self.object.is_self_assigned = True
-                self.object.status = "COMPLETED"
-                self.object.completed_by = request.user
-                self.object.completion_date = timezone.now().date()
+                self.object.save()  # Save before changing M2M
+
+                # CRITICAL FIX: Reset completion and then mark as complete by current user
+                self.object.completed_by_users.clear()
+                self.object.completed_by_users.add(request.user)
 
             elif assignment_type == "forward":
                 selected_emails = request.POST.getlist("responsible_emails")
@@ -910,12 +910,15 @@ class HazardActionItemUpdateView(LoginRequiredMixin, UpdateView):
                         pk=self.object.pk,
                     )
 
+                # Update assignment details
                 self.object.responsible_emails = ",".join(selected_emails)
                 self.object.is_self_assigned = False
-                self.object.status = "PENDING"
-                self.object.completed_by = None
-                self.object.completion_date = None
+                self.object.save() # Save before changing M2M
 
+                # CRITICAL FIX: Clear all previous completions as assignees have changed
+                self.object.completed_by_users.clear()
+
+            # Final save will trigger the model's logic to set the correct status
             self.object.save()
 
             # Update parent hazard status
