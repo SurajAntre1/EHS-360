@@ -231,10 +231,12 @@ class UnitManagerView(LoginRequiredMixin, View):
     def get(self, request):
         categories = UnitCategory.objects.filter(is_active=True).prefetch_related('units')
         units = Unit.objects.filter(is_active=True).select_related("category")
+        cancel_url = (request.GET.get('next')or request.META.get('HTTP_REFERER')or '/')
 
         return render(request, self.template_name, {
             "categories": categories,
             "units": units,
+            "cancel_url": cancel_url
         })
 
     def post(self, request):

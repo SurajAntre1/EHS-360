@@ -249,7 +249,7 @@
           </ul>
         </li>
 
-        <!-- 2. Organization Setup -->
+        <!-- 2. Organization Setup - Admin only -->
         {% if request.user.can_access_organization %}
         <li class="nav-item">
           <a href="{% url 'organizations:dashboard' %}" class="nav-link">
@@ -260,17 +260,16 @@
         {% endif %}
 
         <!-- 3. User Management -->
-        {% if user.is_superuser or user.is_admin_user or user.can_create_users %}
+        {% if request.user.is_superuser or request.user.is_admin_user or request.user.can_create_users %}
         <li class="nav-item {% if 'accounts' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-users-cog"></i>
             <p>User Management<i class="right fas fa-angle-left"></i></p>
           </a>
-
           <ul class="nav nav-treeview">
 
             <!-- Role & Permission - Admin only -->
-            {% if user.is_superuser or user.is_admin_user %}
+            {% if request.user.is_superuser or request.user.is_admin_user %}
             <li class="nav-item">
               <a href="{% url 'accounts:role-list' %}"
                 class="nav-link {% if request.resolver_match.url_name == 'role_list' %}active{% endif %}">
@@ -294,7 +293,13 @@
               <a href="{% url 'accounts:user_list' %}"
                 class="nav-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i>
-                <p>{% if user.is_superuser or user.is_admin_user %}All Users{% else %}My Plant Users{% endif %}</p>
+                <p>
+                  {% if request.user.is_superuser or request.user.is_admin_user %}
+                    All Users
+                  {% else %}
+                    My Plant Users
+                  {% endif %}
+                </p>
               </a>
             </li>
 
@@ -303,7 +308,7 @@
         {% endif %}
 
         <!-- 4. Injury Type Configuration - Admin only -->
-        {% if user.is_superuser or user.is_admin_user %}
+        {% if request.user.is_superuser or request.user.is_admin_user %}
         <li class="nav-item">
           <a href="#" class="nav-link {% if 'accounts' in request.path %}active{% endif %}">
             <i class="nav-icon fas fa-exclamation-triangle"></i>
@@ -358,7 +363,7 @@
         </li>
         {% endif %}
 
-        <!-- 6. Notification Configuration -->
+        <!-- 6. Notification Configuration - Admin only -->
         {% if request.user.is_superuser or request.user.is_admin_user %}
         <li class="nav-item {% if 'notifications' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'notifications' in request.path %}active{% endif %}">
@@ -391,7 +396,7 @@
         </li>
         {% endif %}
 
-        <!-- 7. Inspection Management -->
+        <!-- 7. INSPECTION MANAGEMENT (without configuration inside) -->
         {% if request.user.can_access_inspection_module %}
         <li class="nav-item {% if 'inspections' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'inspections' in request.path %}active{% endif %}">
@@ -553,7 +558,7 @@
         </li>
         {% endif %}
 
-        <!-- 11. Monthly Environmental Data -->
+        <!-- 11. MONTHLY ENVIRONMENTAL DATA -->
         {% if request.user.can_access_env_data_module %}
         <li class="nav-item {% if 'env-data' in request.path or 'data_collection' in request.path %}menu-open{% endif %}">
           <a href="#" class="nav-link {% if 'env-data' in request.path or 'data_collection' in request.path %}active{% endif %}">

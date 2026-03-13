@@ -611,8 +611,12 @@ class IncidentUpdateView(LoginRequiredMixin, UpdateView):
         # Handle affected body parts JSON
         affected_body_parts_json = self.request.POST.get('affected_body_parts_json', '[]')
         try:
-            form.instance.affected_body_parts = json.loads(affected_body_parts_json)
-        except:
+            parts = json.loads(affected_body_parts_json)
+            form.instance.affected_body_parts = [
+                p.strip() for p in parts
+                if p and p.strip() not in ['[', ']']
+            ]
+        except Exception:
             form.instance.affected_body_parts = []
         
         # Handle unsafe acts JSON
