@@ -750,8 +750,8 @@
       </div>
 
       <div class="card-footer bg-light">
-        <a href="{% url 'environmental:plant-entry' %}" class="btn btn-secondary">
-          <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        <a href="{{ cancel_url }}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left mr-2"></i>Back
         </a>
         <a href="{% url 'environmental:questions-manager' %}" class="btn btn-info float-right">
           <i class="fas fa-question-circle mr-2"></i>Manage Questions
