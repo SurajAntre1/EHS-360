@@ -2,7 +2,7 @@ from urllib import request
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, TemplateView
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from django.db.models import Q
@@ -1602,13 +1602,18 @@ class ActionItemCompleteView(LoginRequiredMixin, UpdateView):
     fields = []
     
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect(f"{reverse('accounts:login')}?next={request.path}")
         self.object = self.get_object()
         
         user_email = request.user.email
         if user_email not in self.object.responsible_emails:
             messages.error(request, 'You are not assigned to this action item.')
             return redirect('hazards:my_action_items')
-        
+
+        if self.object.status == 'COMPLETED':
+            messages.info(request, 'This action item is already completed.')
+            return redirect('hazards:my_action_items')
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):

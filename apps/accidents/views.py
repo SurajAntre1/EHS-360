@@ -1704,6 +1704,26 @@ class IncidentActionItemCompleteView(LoginRequiredMixin, FormView): # Cambiado d
         """Obtiene el objeto de elemento de acción antes."""
         super().setup(request, *args, **kwargs)
         self.action_item = get_object_or_404(IncidentActionItem, pk=self.kwargs['pk'])
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect(f"{reverse('accounts:login')}?next={request.path}")
+
+        self.action_item = get_object_or_404(IncidentActionItem, pk=self.kwargs['pk'])
+
+        if not self.action_item.responsible_person.filter(id=request.user.id).exists():
+            messages.error(request, 'You are not assigned to this action item.')
+            return redirect('accidents:my_action_items')
+
+        if ActionItemCompletion.objects.filter(action_item=self.action_item,completed_by=request.user).exists():
+            messages.info(request, 'You have already completed this action item.')
+            return redirect('accidents:my_action_items')
+
+        if self.action_item.status == 'COMPLETED':
+            messages.info(request, 'This action item is already completed.')
+            return redirect('accidents:my_action_items')
+
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
