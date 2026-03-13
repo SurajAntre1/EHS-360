@@ -22,17 +22,17 @@ class Command(BaseCommand):
         permissions_data = [
             # Dashboard Permissions
             ('ACCESS_DASHBOARD', 'Access Dashboard', 'Can access system dashboards'),
-            ('INCIDENT_DASHBOARD', 'Access Incident Dashboard', 'Can view incident dashboard'),
+            ('INJURY_DASHBOARD', 'Access Injury Dashboard', 'Can view injury dashboard'),
             ('HAZARD_DASHBOARD', 'Access Hazard Dashboard', 'Can view hazard dashboard'),
             ('INSPECTION_DASHBOARD', 'Access Inspection Dashboard', 'Can view inspection dashboard'),
 
-            # Incident Permissions
-            ('CREATE_INCIDENT', 'Create Incident', 'Can create/report new incidents'),
-            ('EDIT_INCIDENT', 'Edit Incident', 'Can edit incident reports'),
-            # ('DELETE_INCIDENT', 'Delete Incident', 'Can delete incidents'),
-            ('VIEW_INCIDENT', 'View Incident', 'Can view incident details'),
-            ('APPROVE_INCIDENT', 'Approve Incident', 'Can approve/reject incident reports'),
-            ('CLOSE_INCIDENT', 'Close Incident', 'Can close completed incidents'),
+            # Injury Permissions
+            ('CREATE_INJURY', 'Create Injury', 'Can create/report new injuries'),
+            ('EDIT_INJURY', 'Edit Injury', 'Can edit injury reports'),
+            # ('DELETE_INJURY', 'Delete Injury', 'Can delete injuries'),
+            ('VIEW_INJURY', 'View Injury', 'Can view injury details'),
+            ('APPROVE_INJURY', 'Approve Injury', 'Can approve/reject injury reports'),
+            ('CLOSE_INJURY', 'Close Injury', 'Can close completed injuries'),
             
             # Hazard Permissions
             ('CREATE_HAZARD', 'Create Hazard', 'Can create/report new hazards'),
@@ -51,7 +51,7 @@ class Command(BaseCommand):
             ('MANAGE_INSPECTION_CONFIGURATION', 'Manage Inspection Configuration', ''),
             
             # Module Access Permissions
-            ('ACCESS_INCIDENT_MODULE', 'Access Incident Module', 'Can access incident management module'),
+            ('ACCESS_INJURY_MODULE', 'Access Injury Module', 'Can access injury management module'),
             ('ACCESS_HAZARD_MODULE', 'Access Hazard Module', 'Can access hazard management module'),
             ('ACCESS_INSPECTION_MODULE', 'Access Inspection Module', 'Can access inspection module'),
             # ('ACCESS_AUDIT_MODULE', 'Access Audit Module', 'Can access audit module'),
@@ -118,9 +118,9 @@ class Command(BaseCommand):
         
         if created or True:
             perm_codes = [
-                # Full incident access
-                'CREATE_INCIDENT', 'EDIT_INCIDENT', 'VIEW_INCIDENT', 
-                'APPROVE_INCIDENT', 'CLOSE_INCIDENT',
+                # Full injury access
+                'CREATE_INJURY', 'EDIT_INJURY', 'VIEW_INJURY', 
+                'APPROVE_INJURY', 'CLOSE_INJURY',
                 
                 # Full hazard access
                 'CREATE_HAZARD', 'EDIT_HAZARD', 'VIEW_HAZARD',
@@ -131,7 +131,7 @@ class Command(BaseCommand):
                 # 'APPROVE_INSPECTION',
                 
                 # Module access
-                'ACCESS_INCIDENT_MODULE', 'ACCESS_HAZARD_MODULE',
+                'ACCESS_INJURY_MODULE', 'ACCESS_HAZARD_MODULE',
                 'ACCESS_INSPECTION_MODULE', 
                 # 'ACCESS_AUDIT_MODULE','ACCESS_REPORTS_MODULE',
             ]
@@ -149,7 +149,7 @@ class Command(BaseCommand):
         if created or True:
             perm_codes = [
                 # Can create and view
-                'CREATE_INCIDENT', 'VIEW_INCIDENT', 'EDIT_INCIDENT',
+                'CREATE_INJURY', 'VIEW_INJURY', 'EDIT_INJURY',
                 'CREATE_HAZARD', 'VIEW_HAZARD', 'EDIT_HAZARD',
                 # 'APPROVE_HAZARD',  # HODs can approve hazards
                 
@@ -157,7 +157,7 @@ class Command(BaseCommand):
                 'VIEW_INSPECTION', #'APPROVE_INSPECTION',
                 
                 # Module access
-                'ACCESS_INCIDENT_MODULE', 'ACCESS_HAZARD_MODULE',
+                'ACCESS_INJURY_MODULE', 'ACCESS_HAZARD_MODULE',
                 'ACCESS_INSPECTION_MODULE', #'ACCESS_REPORTS_MODULE',
             ]
             perms = Permissions.objects.filter(code__in=perm_codes)
@@ -173,9 +173,9 @@ class Command(BaseCommand):
         
         if created or True:
             perm_codes = [
-                # Incident access
-                'CREATE_INCIDENT', 'VIEW_INCIDENT', 'EDIT_INCIDENT',
-                'APPROVE_INCIDENT',
+                # Injury access
+                'CREATE_INJURY', 'VIEW_INJURY', 'EDIT_INJURY',
+                'APPROVE_INJURY',
                 
                 # Hazard access
                 'CREATE_HAZARD', 'VIEW_HAZARD', 'EDIT_HAZARD',
@@ -185,7 +185,7 @@ class Command(BaseCommand):
                 'VIEW_INSPECTION', 'APPROVE_PERMIT',
                 
                 # Module access
-                'ACCESS_INCIDENT_MODULE', 'ACCESS_HAZARD_MODULE',
+                'ACCESS_INJURY_MODULE', 'ACCESS_HAZARD_MODULE',
                 'ACCESS_INSPECTION_MODULE', 
                 #'ACCESS_PERMIT_MODULE','ACCESS_REPORTS_MODULE',
             ]
@@ -203,11 +203,11 @@ class Command(BaseCommand):
         if created or True:
             perm_codes = [
                 # Basic reporting
-                'CREATE_INCIDENT', 'VIEW_INCIDENT',
+                'CREATE_INJURY', 'VIEW_INJURY',
                 'CREATE_HAZARD', 'VIEW_HAZARD', #'APPROVE_HAZARD',
                 
                 # Module access
-                'ACCESS_INCIDENT_MODULE', 'ACCESS_HAZARD_MODULE',
+                'ACCESS_INJURY_MODULE', 'ACCESS_HAZARD_MODULE',
                 #'ACCESS_OBSERVATION_MODULE',
             ]
             perms = Permissions.objects.filter(code__in=perm_codes)
@@ -224,11 +224,11 @@ class Command(BaseCommand):
         if created or True:
             perm_codes = [
                 # Can only create and view own reports
-                'CREATE_INCIDENT', 'VIEW_INCIDENT',
+                'CREATE_INJURY', 'VIEW_INJURY',
                 'CREATE_HAZARD', 'VIEW_HAZARD',
                 
                 # Module access
-                'ACCESS_INCIDENT_MODULE', 'ACCESS_HAZARD_MODULE',
+                'ACCESS_INJURY_MODULE', 'ACCESS_HAZARD_MODULE',
                 # 'ACCESS_OBSERVATION_MODULE', 'ACCESS_TRAINING_MODULE',
             ]
             perms = Permissions.objects.filter(code__in=perm_codes)

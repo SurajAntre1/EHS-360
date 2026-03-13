@@ -1417,14 +1417,11 @@ def no_answers_list(request):
     # ---------------------------------------------------------------
     available_users = User.objects.none()
     if is_admin:
+        response_plants = no_responses.values_list('submission__schedule__plant',flat=True).distinct()
         if plant_id:
-            available_users = User.objects.filter(is_active=True,is_superuser=False,plant_id=plant_id).select_related('department','role','plant').order_by('first_name', 'last_name')
-        else:
-            user_plants = request.user.get_all_plants()
+            response_plants = [plant_id]
 
-            if user_plants:
-                available_users = User.objects.filter(is_active=True,is_superuser=False,plant__in=user_plants
-                ).select_related('department','role','plant').order_by('first_name', 'last_name')
+        available_users = User.objects.filter(is_active=True,is_superuser=False,plant__in=response_plants).select_related('department','role','plant').order_by('first_name', 'last_name')
 
     # For filters
     from apps.organizations.models import Plant

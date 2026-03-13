@@ -960,7 +960,7 @@ class IncidentPDFDownloadView(LoginRequiredMixin, View):
         # Check permissions
         if not (request.user.is_superuser or 
                 request.user == incident.reported_by or
-                request.user.has_permission('EXPORT_INCIDENT_PDF')):
+                request.user.has_permission('EXPORT_INJURY_PDF')):
             messages.error(request, "You don't have permission to view this report")
             return redirect('accidents:incident_list')
         
@@ -1226,7 +1226,7 @@ class IncidentClosureCheckView(LoginRequiredMixin, UserPassesTestMixin, View):
         return (
             self.request.user.is_superuser or
             # self.request.user.can_close_incidents or # Uncomment if you have this on your user model
-            self.request.user.has_permission("CLOSE_INCIDENT")
+            self.request.user.has_permission("CLOSE_INJURY")
         )
     
     def get_context_data(self, **kwargs):
@@ -1296,7 +1296,7 @@ class IncidentClosureView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return (
             self.request.user.is_superuser or
             getattr(self.request.user, 'can_close_incidents', False) or
-            self.request.user.has_permission("CLOSE_INCIDENT")
+            self.request.user.has_permission("CLOSE_INJURY")
         )
     
     def get_context_data(self, **kwargs):
@@ -1361,7 +1361,7 @@ class IncidentReopenView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
         return (
             self.request.user.is_superuser or
-            self.request.user.has_permission("CLOSE_INCIDENT")
+            self.request.user.has_permission("CLOSE_INJURY")
         )
     
     def post(self, request, pk):

@@ -114,10 +114,10 @@ class User(AbstractUser):
     # ============================================
     # MODULE ACCESS PERMISSIONS (Only 5 modules)
     # ============================================
-    can_access_incident_module = models.BooleanField(
+    can_access_injury_module = models.BooleanField(
         default=False,
-        verbose_name="Can Access Incident Module",
-        help_text="User can report and view incidents"
+        verbose_name="Can Access Injury Module",
+        help_text="User can report and view injuries"
     )
     can_access_hazard_module = models.BooleanField(
         default=False,
@@ -143,10 +143,10 @@ class User(AbstractUser):
     # ============================================
     # APPROVAL PERMISSIONS (Only 3 modules)
     # ============================================
-    can_approve_incidents = models.BooleanField(
+    can_approve_injuries = models.BooleanField(
         default=False,
-        verbose_name="Can Approve Incidents",
-        help_text="User can approve/reject incident reports"
+        verbose_name="Can Approve Injuries",
+        help_text="User can approve/reject injury reports"
     )
     can_approve_hazards = models.BooleanField(
         default=False,
@@ -162,10 +162,10 @@ class User(AbstractUser):
     # ============================================
     # CLOSURE PERMISSIONS (Only 2 modules)
     # ============================================
-    can_close_incidents = models.BooleanField(
+    can_close_injuries = models.BooleanField(
         default=False,
-        verbose_name="Can Close Incidents",
-        help_text="User can close completed incidents"
+        verbose_name="Can Close Injuries",
+        help_text="User can close completed injuries"
     )
     can_close_hazards = models.BooleanField(
         default=False,
@@ -243,19 +243,19 @@ class User(AbstractUser):
         # Map permission codes to boolean fields
         permission_mapping = {
             # Module Access (5 modules)
-            'ACCESS_INCIDENT_MODULE': 'can_access_incident_module',
+            'ACCESS_INJURY_MODULE': 'can_access_injury_module',
             'ACCESS_HAZARD_MODULE': 'can_access_hazard_module',
             'ACCESS_INSPECTION_MODULE': 'can_access_inspection_module',
             'ACCESS_REPORTS_MODULE': 'can_access_reports_module',
             'ACCESS_ENV_DATA_MODULE': 'can_access_env_data_module',
             
             # Approvals (3 modules)
-            'APPROVE_INCIDENT': 'can_approve_incidents',
+            'APPROVE_INJURY': 'can_approve_injuries',
             'APPROVE_HAZARD': 'can_approve_hazards',
             'APPROVE_INSPECTION': 'can_approve_inspections',
             
             # Closures (2 modules)
-            'CLOSE_INCIDENT': 'can_close_incidents',
+            'CLOSE_INJURY': 'can_close_injuries',
             'CLOSE_HAZARD': 'can_close_hazards',
             'CAN_CREATE_USERS':'can_create_users',
             'CAN_ACCESS_ORGANIZATION':'can_access_organization',
@@ -275,15 +275,15 @@ class User(AbstractUser):
 
     def _reset_all_permissions(self):
         """Helper: Reset all permission flags to False"""
-        self.can_access_incident_module = False
+        self.can_access_injury_module = False
         self.can_access_hazard_module = False
         self.can_access_inspection_module = False
         self.can_access_reports_module = False
         self.can_access_env_data_module = False
-        self.can_approve_incidents = False
+        self.can_approve_injuries = False
         self.can_approve_hazards = False
         self.can_approve_inspections = False
-        self.can_close_incidents = False
+        self.can_close_injuries = False
         self.can_close_hazards = False
         self.can_create_users=False
         self.can_access_organization=False
@@ -306,7 +306,7 @@ class User(AbstractUser):
         """Check if user can approve anything"""
         return (
             self.is_superuser or 
-            self.can_approve_incidents or 
+            self.can_approve_injuries or 
             self.can_approve_hazards or
             self.can_approve_inspections
         )
@@ -384,7 +384,7 @@ class Permissions(models.Model):
     module = models.CharField(
         max_length=50,
         choices=[
-            ('INCIDENT', 'Incident Module'),
+            ('INJURY', 'Injury Module'),
             ('HAZARD', 'Hazard Module'),
             ('INSPECTION', 'Inspection Module'),
             ('REPORTS', 'Reports Module'),

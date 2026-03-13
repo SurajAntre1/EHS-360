@@ -379,7 +379,7 @@
                         <!-- Right actions -->
                         <div class="right-actions">
                             {% if incident.status == 'CLOSED' %}
-                                {% if user|has_perm:'CLOSE_INCIDENT' %}
+                                {% if user|has_perm:'CLOSE_INJURY' %}
                                     <form method="POST"
                                           action="{% url 'accidents:incident_reopen' incident.pk %}">
                                         {% csrf_token %}
@@ -391,7 +391,7 @@
                                     </form>
                                 {% endif %}
                             {% else %}
-                                {% if user|has_perm:'CLOSE_INCIDENT' %}
+                                {% if user|has_perm:'CLOSE_INJURY' %}
                                     <a href="{% url 'accidents:incident_closure_check' incident.pk %}"
                                        class="btn btn-success">
                                         <i class="fas fa-check-circle mr-1"></i> Close Injury

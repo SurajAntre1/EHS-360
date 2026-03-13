@@ -159,17 +159,17 @@
         
         <!-- Action Buttons -->
         <div class="row mt-3">
-          {% if user.can_access_incident_module %}
-            {% if user|has_perm:'EDIT_INCIDENT' %}
+          {% comment %} {% if user.can_access_incident_module %} {% endcomment %}
+            {% if user|has_perm:'EDIT_INJURY' %}
             <div class="col-auto">
               <a href="{% url 'accidents:incident_update' incident.pk %}" class="btn btn-primary">
                 <i class="fas fa-edit mr-1"></i> Edit Injury
               </a>
             </div>
             {% endif %}
-          {% endif %}
+          {% comment %} {% endif %} {% endcomment %}
           <!-- Download PDF - Available to anyone with module access -->
-          {% if user.can_access_incident_module %}
+          {% if user|has_perm:'EXPORT_INJURY_PDF' %}
           <div class="col-auto">
             <a href="{% url 'accidents:incident_pdf' incident.pk %}" class="btn btn-danger" target="_blank">
               <i class="fas fa-file-pdf mr-1"></i> Download PDF
@@ -179,7 +179,7 @@
           
           <!-- Closure/Reopen Buttons -->
           {% if incident.status == 'CLOSED' %}
-            {% if user|has_perm:'CLOSE_INCIDENT' %}
+            {% if user|has_perm:'CLOSE_INJURY' %}
             <div class="col-auto">
               <form method="POST" action="{% url 'accidents:incident_reopen' incident.pk %}" style="display: inline;">
                 {% csrf_token %}
@@ -190,7 +190,7 @@
             </div>
             {% endif %}
           {% else %}
-            {% if user|has_perm:'CLOSE_INCIDENT' %}
+            {% if user|has_perm:'CLOSE_INJURY' %}
             <div class="col-auto">
               <a href="{% url 'accidents:incident_closure_check' incident.pk %}" class="btn btn-success">
                 <i class="fas fa-check-circle mr-1"></i> Close Injury
@@ -200,8 +200,8 @@
           {% endif %}
           
           {% if not investigation_report and incident.investigation_required %}
-            {% if user.can_access_incident_module %}
-              {% if user|has_perm:'INVESTIGATE_INCIDENT' %}
+            {% comment %} {% if user.can_access_incident_module %} {% endcomment %}
+              {% if user|has_perm:'INVESTIGATE_INJURY' %}
               <div class="col-auto">
                 <a href="{% url 'accidents:investigation_create' incident.pk %}" class="btn btn-warning">
                   <i class="fas fa-search mr-1"></i> Create Investigation Report
@@ -209,7 +209,7 @@
               </div>
               {% endif %}
             {% endif %}
-          {% endif %}
+          {% comment %} {% endif %} {% endcomment %}
           <!-- <div class="col-auto">
             <a href="{% url 'accidents:action_item_create' incident.pk %}" class="btn btn-success">
               <i class="fas fa-tasks mr-1"></i> Add Action Item
@@ -849,7 +849,7 @@
 
     <!-- Investigation Status -->
     <!-- Investigation Status -->
-{% if user|has_perm:'INVESTIGATE_INCIDENT' %}
+{% if user|has_perm:'INVESTIGATE_INJURY' %}
 <div class="card mt-3">
     <div class="card-header bg-primary">
         <h5 class="card-title text-white mb-0">
@@ -912,7 +912,7 @@
                   <h6 class="alert-heading"><i class="fas fa-clock mr-2"></i>Pending Approval</h6>
                   <p class="mb-0">The investigation report is awaiting approval.</p>
                   <!-- Optional: Link for approvers to go to the approval page -->
-                   {% if user|has_perm:'APPROVE_INCIDENT' %}
+                   {% if user|has_perm:'APPROVE_INJURY' %}
                   <hr>
                   <a href="{% url 'accidents:incident_approve' incident.pk %}" class="btn btn-sm btn-warning">Review & Approve</a>
                   {% endif %}

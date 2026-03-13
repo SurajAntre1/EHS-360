@@ -223,7 +223,7 @@
                 <i class="nav-icon far fa-circle"></i><p>EHS-360 Dashboard</p>
               </a>
             </li>
-            {% if request.user|has_perm:'INCIDENT_DASHBOARD' %}
+            {% if request.user|has_perm:'INJURY_DASHBOARD' %}
             <li class="nav-item">
               <a href="{% url 'accidents:IncidentAccidentDashboardView' %}" class="nav-link {% if url == 'IncidentAccidentDashboardView' %}active{% endif %}">
                 <i class="nav-icon far fa-circle"></i><p>Injury Dashboard</p>
@@ -504,7 +504,7 @@
             <p>Injury Management <i class="right fas fa-angle-left"></i></p>
           </a>
           <ul class="nav nav-treeview">
-            {% if request.user|has_perm:'INCIDENT_DASHBOARD' %}
+            {% if request.user|has_perm:'INJURY_DASHBOARD' %}
             <li class="nav-item">
               <a href="{% url 'accidents:dashboard' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'dashboard' and 'accidents' in request.path %}active{% endif %}">
@@ -513,7 +513,7 @@
               </a>
             </li>
             {% endif %}
-            {% if request.user|has_perm:'CREATE_INCIDENT' %}
+            {% if request.user|has_perm:'CREATE_INJURY' %}
             <li class="nav-item">
               <a href="{% url 'accidents:incident_create' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'incident_create' %}active{% endif %}">
@@ -522,7 +522,7 @@
               </a>
             </li>
             {% endif %}
-            {% if request.user|has_perm:'VIEW_INCIDENT' %}
+            {% if request.user|has_perm:'VIEW_INJURY' %}
             <li class="nav-item">
               <a href="{% url 'accidents:incident_list' %}"
                  class="nav-link {% if request.resolver_match.url_name == 'incident_list' %}active{% endif %}">
@@ -542,7 +542,7 @@
         </li>
 
         <!-- 10. Approvals -->
-        {% if request.user|has_perm:'APPROVE_PERMIT' or request.user|has_perm:'APPROVE_HAZARD' or request.user|has_perm:'APPROVE_INCIDENT' or request.user|has_perm:'APPROVE_INSPECTION' %}
+        {% if request.user|has_perm:'APPROVE_PERMIT' or request.user|has_perm:'APPROVE_HAZARD' or request.user|has_perm:'APPROVE_INJURY' or request.user|has_perm:'APPROVE_INSPECTION' %}
         <li class="nav-item">
           <a href="{% url 'dashboards:approvals' %}" class="nav-link {% if request.resolver_match.url_name == 'approvals' %}active{% endif %}">
             <i class="nav-icon fas fa-clipboard-check text-warning"></i>
