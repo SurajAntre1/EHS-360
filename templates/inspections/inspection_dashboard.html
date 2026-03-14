@@ -286,7 +286,7 @@
 </div>
 
 <!-- My Assigned Inspections -->
-{% if user.role.name == 'HOD' or user.role.name == 'SAFETY MANAGER' %}
+{% if user|has_perm:'CREATE_INSPECTION' %}
 <div class="row">
     <div class="col-12">
         <div class="card ehs-card">

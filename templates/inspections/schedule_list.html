@@ -1,6 +1,7 @@
 <!-- templates/inspections/schedule_list.html -->
 
 {% extends 'base/base.html' %}
+{% load permission_tags %}
 
 {% block title %}Inspection Schedules{% endblock %}
 {% block page_title %}Inspection Schedules{% endblock %}
@@ -78,7 +79,7 @@
     <div class="col-md-12">
         <!-- Header with Create Button -->
         <div class="mb-3">
-            {% if user.is_safety_manager or user.is_admin_user or user.is_superuser %}
+            {% if user.is_admin_user or user.is_superuser or user|has_perm:'CREATE_INSPECTION' %}
             <a href="{% url 'inspections:schedule_create' %}" class="btn btn-primary">
                 <i class="fas fa-calendar-plus"></i> Schedule Inspection
             </a>
@@ -190,16 +191,19 @@
                                 <td class="table-actions">
                                     <!-- Add this wrapper div -->
                                     <div class="action-buttons-container">
+                                        {% if user|has_perm:'VIEW_INSPECTION' %}
                                         <a href="{% url 'inspections:schedule_detail' schedule.pk %}" 
                                         class="btn btn-sm btn-info" title="View Details">
                                             <i class="fas fa-eye"></i>
                                         </a>
-
+                                        {% endif %}
+                                        {% if user|has_perm:'EDIT_INSPECTION' %}
                                         {% if schedule.status != 'COMPLETED' and schedule.status != 'CANCELLED' %}
                                         <a href="{% url 'inspections:schedule_edit' schedule.pk %}" 
                                         class="btn btn-sm btn-warning" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        {% endif %}
                                         {% endif %}
 
                                         <a href="{% url 'inspections:schedule_clone' schedule.pk %}" class="btn btn-sm btn-secondary" title="Clone">
@@ -246,7 +250,7 @@
                 <div class="text-center py-5">
                     <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
                     <p class="text-muted">No schedules found.</p>
-                    {% if user.is_safety_manager or user.is_admin_user or user.is_superuser %}
+                    {% if user.is_admin_user or user.is_superuser or user|has_perm:'CREATE_INSPECTION' %}
                     <a href="{% url 'inspections:schedule_create' %}" class="btn btn-primary">
                         <i class="fas fa-calendar-plus"></i> Schedule First Inspection
                     </a>

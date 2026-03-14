@@ -21,7 +21,7 @@
         </h3>
       </div>
 
-      {% if user.role.name != 'EMPLOYEE' %}
+      {% if user|has_perm:'CREATE_HAZARD' %}
       <div class="col-auto">
         <a href="{% url 'hazards:hazard_create' %}" class="btn btn-warning">
           <i class="fas fa-plus mr-1"></i> Report New Hazard
