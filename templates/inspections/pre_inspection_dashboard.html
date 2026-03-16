@@ -137,12 +137,14 @@
                                 <span class="badge badge-danger">
                                     Due {{ schedule.due_date|date:"d M Y" }}
                                 </span>
+                                {% if user|has_perm:'VIEW_INSPECTION' %}
                                 <div class="mt-2">
                                     <a href="{% url 'inspections:schedule_detail' schedule.pk %}" 
                                     class="btn btn-sm btn-outline-primary">
                                     View Details
                                     </a>
                                 </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -165,6 +167,7 @@
 
 <!-- Action Cards -->
 <div class="row mb-4">
+    {% if user|has_perm:'CREATE_INSPECTION' %}
     <div class="col-md-6 mb-3">
         <div class="card h-100 border-0 shadow-sm text-center">
             <div class="card-body d-flex flex-column justify-content-center"><div class="mb-3">
@@ -175,7 +178,9 @@
             </div>
         </div>
     </div> 
+    {% endif %}
     <div class="col-md-6 mb-3">
+        {% if user|has_perm:'VIEW_INSPECTION' %}
         <div class="card h-100 border-0 shadow-sm text-center">
             <div class="card-body d-flex flex-column justify-content-center"><div class="mb-3">
                 <a href="{% url 'inspections:schedule_list' %}" class="btn btn-success btn-lg rounded-circle" style="width: 70px; height: 70px; line-height: 50px;"><i class="fas fa-list fa-2x"></i></a></div>
@@ -184,6 +189,7 @@
                 <div class="d-flex justify-content-center"><a href="{% url 'inspections:schedule_list' %}" class="btn btn-success btn-md"><i class="fas fa-folder-open mr-2"></i> View All</a></div>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 
@@ -198,7 +204,10 @@
                         <thead>
                             <tr>
                                 <th>Schedule Code</th><th>Template</th><th>Plant</th>
-                                <th>Submitted By</th><th>Completed At</th><th>Score</th><th>Actions</th>
+                                <th>Submitted By</th><th>Completed At</th><th>Score</th>
+                                {% if user|has_perm:'VIEW_INSPECTION' %}
+                                <th>Actions</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -212,7 +221,9 @@
                                 <td>
                                     <span class="badge badge-{% if submission.compliance_score >= 80 %}success{% elif submission.compliance_score >= 60 %}warning{% else %}danger{% endif %}">{{ submission.compliance_score }}%</span>
                                 </td>
+                                {% if user|has_perm:'VIEW_INSPECTION' %}
                                 <td><a href="{% url 'inspections:inspection_review' submission.id %}" class="btn btn-sm btn-info" title="View Details"><i class="fas fa-eye"></i></a></td>
+                                {% endif %}
                             </tr>
                             {% empty %}
                             <tr><td colspan="7" class="text-center"><div class="alert alert-info mb-0"><i class="fas fa-info-circle mr-2"></i>No completed inspections found.</div></td></tr>
