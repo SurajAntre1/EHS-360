@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load permission_tags %}
 
 {% block title %}Hazard Management Dashboard{% endblock %}
 {% block page_title %}Hazard Management Dashboard{% endblock %}
@@ -127,6 +128,7 @@
 <!-- Quick Actions -->
 <div class="row mb-4">
   <!-- Report New Hazard -->
+  {% if user|has_perm:'CREATE_HAZARD' %}
   <div class="col-md-6 mb-3">
     <div class="card h-100 shadow-sm border-0">
       <div class="card-body d-flex flex-column text-center">
@@ -150,8 +152,10 @@
       </div>
     </div>
   </div>
+  {% endif %}
 
   <!-- View All Hazards -->
+   {% if user|has_perm:'VIEW_HAZARD' %}
   <div class="col-md-6 mb-3">
     <div class="card h-100 shadow-sm border-0">
       <div class="card-body d-flex flex-column text-center">
@@ -175,6 +179,7 @@
       </div>
     </div>
   </div>
+  {% endif %}
 </div>
 
 <!-- Overdue Actions Alert -->
@@ -214,9 +219,11 @@
             </h3>
           </div>
           <div class="col-auto">
+            {% if user|has_perm:'VIEW_HAZARD' %}
             <a href="{% url 'hazards:hazard_list' %}" class="btn btn-primary btn-sm">
               View All <i class="fas fa-arrow-right ml-1"></i>
             </a>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -232,7 +239,9 @@
                 <th>Plant</th>
                 <th>Risk Level</th>
                 <th>Status</th>
+                {% if user|has_perm:'VIEW_HAZARD' %}
                 <th>Actions</th>
+                {% endif %} 
               </tr>
             </thead>
             <tbody>
@@ -271,12 +280,14 @@
                     {{ hazard.get_status_display }}
                   </span>
                 </td>
+                {% if user|has_perm:'VIEW_HAZARD' %}
                 <td>
                   <a href="{% url 'hazards:hazard_detail' hazard.pk %}" 
                      class="btn btn-sm btn-info" title="View Details">
                     <i class="fas fa-eye"></i>
                   </a>
                 </td>
+                {% endif %}
               </tr>
               {% empty %}
               <tr>
