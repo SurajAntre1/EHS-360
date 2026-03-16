@@ -568,11 +568,14 @@ class IncidentActionItemForm(forms.ModelForm):
 
         # Populate responsible_person queryset based on the incident's plant.
         if incident and incident.plant:
-            self.fields['responsible_person'].queryset = User.objects.filter(
+            queryset = User.objects.filter(
                 assigned_plants=incident.plant,
                 is_active=True,
                 is_active_employee=True
-            ).distinct().order_by('first_name', 'last_name')
+            )
+            if incident.zone:
+                queryset = queryset.filter(assigned_zones=incident.zone)
+            self.fields['responsible_person'].queryset = queryset.distinct().order_by('first_name', 'last_name')
         else:
             self.fields['responsible_person'].queryset = User.objects.none()
 
