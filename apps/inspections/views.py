@@ -469,6 +469,7 @@ def template_detail(request, pk):
         'questions_by_category': questions_by_category,
         'categories': categories,
         'total_questions': total_questions,
+        'auto_configs': TemplateAutoScheduleConfig.objects.filter(template=template).prefetch_related('plants', 'assigned_users'),
     }
     return render(request, 'inspections/template_detail.html', context)
 
@@ -724,7 +725,6 @@ def schedule_list(request):
         'template',
         'assigned_to',
         'assigned_by',
-        'plant',
         'department'
     )
     
@@ -733,7 +733,7 @@ def schedule_list(request):
         pass
     elif request.user.has_permission('CONDUCT_INSPECTION') or request.user.can_access_inspection_module:
         user_plants = request.user.get_all_plants()
-        schedules = schedules.filter(plant__in=user_plants)
+        schedules = schedules.filter(plants__in=user_plants)
     else:
         schedules = schedules.none()
     
@@ -747,33 +747,30 @@ def schedule_list(request):
         schedules = schedules.filter(status=status)
     
     if plant_id:
-        schedules = schedules.filter(plant_id=plant_id)
+        schedules = schedules.filter(plants__id=plant_id)
     
     if assigned_to_id:
-        schedules = schedules.filter(assigned_to_id=assigned_to_id)
+        schedules = schedules.filter(assigned_users__id=assigned_to_id)
     
     if search:
         schedules = schedules.filter(
             Q(schedule_code__icontains=search) |
             Q(template__template_name__icontains=search) |
-            Q(assigned_to__first_name__icontains=search) |
-            Q(assigned_to__last_name__icontains=search)
+            Q(assigned_users__first_name__icontains=search) |
+            Q(assigned_users__last_name__icontains=search)
         )
     
-    schedules = schedules.order_by('-scheduled_date', '-created_at')
+    schedules = schedules.distinct().order_by('-scheduled_date', '-created_at')
     
-    # Pagination
     paginator = Paginator(schedules, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    # For filters
     from apps.organizations.models import Plant
     plants = Plant.objects.filter(is_active=True)
     
-    # Get HODs for filter
     hods = User.objects.filter(
-        role__name__in=['HOD','SAFETY MANAGER'],
+        role__name__in=['HOD', 'SAFETY MANAGER'],
         is_active_employee=True
     ).order_by('first_name', 'last_name')
     
@@ -789,47 +786,126 @@ def schedule_list(request):
     }
     return render(request, 'inspections/schedule_list.html', context)
 
-
 @login_required
 def schedule_create(request):
-    """Create new inspection schedule"""
-    
+    """
+    Create inspection schedule.
+    Plants/zones/locations/sublocations/assigned_users
+    come from checkboxes in the template (not form fields).
+    On submit:
+    - Creates one InspectionSchedule per assigned user
+    - If enable_auto_schedule → also saves TemplateAutoScheduleConfig
+    """
     if request.method == 'POST':
         form = InspectionScheduleForm(request.POST, user=request.user)
+
+        # Get checkbox data from POST
+        selected_plant_ids = request.POST.getlist('selected_plants')
+        selected_zone_ids = request.POST.getlist('selected_zones')
+        selected_location_ids = request.POST.getlist('selected_locations')
+        selected_sublocation_ids = request.POST.getlist('selected_sublocations')
+        selected_user_ids = request.POST.getlist('selected_users')
+
+        # Validate selections
+        if not selected_plant_ids:
+            messages.error(request, 'Please select at least one plant.')
+            return render(request, 'inspections/schedule_form.html', {
+                'form': form, 'action': 'Create', 'title': 'Schedule New Inspection'
+            })
+
+        if not selected_user_ids:
+            messages.error(request, 'Please select at least one HOD or Safety Manager.')
+            return render(request, 'inspections/schedule_form.html', {
+                'form': form, 'action': 'Create', 'title': 'Schedule New Inspection'
+            })
+
         if form.is_valid():
-            schedule = form.save(commit=False)
-            schedule.assigned_by = request.user
-            schedule.save()
-            
-            # Send notification email
-            # send_inspection_assignment_email(schedule)
-            NotificationService.notify(
-                content_object=schedule,
-                notification_type='INSPECTION_SCHEDULE',
-                module='INSPECTION'
-            )
-            
-            messages.success(
-                request,
-                f'Inspection scheduled successfully! Schedule Code: {schedule.schedule_code}'
-            )
-            return redirect('inspections:schedule_list')
+            enable_auto = form.cleaned_data.get('enable_auto_schedule')
+
+            try:
+                with transaction.atomic():
+                    # Fetch selected objects
+                    from apps.organizations.models import Plant, Zone, Location, SubLocation
+                    plants = Plant.objects.filter(id__in=selected_plant_ids)
+                    zones = Zone.objects.filter(id__in=selected_zone_ids)
+                    locations = Location.objects.filter(id__in=selected_location_ids)
+                    sublocations = SubLocation.objects.filter(id__in=selected_sublocation_ids)
+                    assigned_users = User.objects.filter(
+                        id__in=selected_user_ids,
+                        role__name__in=['HOD', 'SAFETY MANAGER'],
+                        is_active_employee=True
+                    )
+
+                    created_schedules = []
+
+                    # Create one schedule per assigned user
+                    for user in assigned_users:
+                        schedule = InspectionSchedule(
+                            template=form.cleaned_data['template'],
+                            assigned_to=user,
+                            assigned_by=request.user,
+                            department=form.cleaned_data.get('department'),
+                            scheduled_date=form.cleaned_data.get('scheduled_date'),
+                            due_date=form.cleaned_data.get('due_date'),
+                            assignment_notes=form.cleaned_data.get('assignment_notes', ''),
+                            status='SCHEDULED'
+                        )
+                        schedule.save()
+
+                        # Set M2M
+                        schedule.plants.set(plants)
+                        schedule.zones.set(zones)
+                        schedule.locations.set(locations)
+                        schedule.sublocations.set(sublocations)
+                        schedule.assigned_users.set(assigned_users)
+
+                        created_schedules.append(schedule)
+
+                        # Notify each user
+                        try:
+                            NotificationService.notify(
+                                content_object=schedule,
+                                notification_type='INSPECTION_SCHEDULE',
+                                module='INSPECTION'
+                            )
+                        except Exception as e:
+                            print(f"Notification error: {e}")
+
+                    # If auto-schedule enabled → save config
+                    if enable_auto:
+                        due_offset = form.cleaned_data.get('due_date_offset_days') or 7
+                        config = TemplateAutoScheduleConfig.objects.create(
+                            template=form.cleaned_data['template'],
+                            due_date_offset_days=due_offset,
+                            is_active=True,
+                            is_paused=False,
+                            created_by=request.user
+                        )
+                        config.plants.set(plants)
+                        config.zones.set(zones)
+                        config.locations.set(locations)
+                        config.sublocations.set(sublocations)
+                        config.assigned_users.set(assigned_users)
+
+                    messages.success(
+                        request,
+                        f'{len(created_schedules)} inspection schedule(s) created successfully!'
+                        + (' Auto-monthly schedule enabled.' if enable_auto else '')
+                    )
+                    return redirect('inspections:schedule_list')
+
+            except Exception as e:
+                messages.error(request, f'Error creating schedule: {str(e)}')
+
     else:
         form = InspectionScheduleForm(user=request.user)
-        
-        # Pre-fill plant if user has only one
-        if not request.user.is_superuser and not request.user.is_admin_user:
-            user_plants = request.user.get_all_plants()
-            if len(user_plants) == 1:
-                form.initial['plant'] = user_plants[0]
-    
+
     context = {
         'form': form,
         'action': 'Create',
         'title': 'Schedule New Inspection'
     }
     return render(request, 'inspections/schedule_form.html', context)
-
 
 @login_required
 def schedule_edit(request, pk):
@@ -870,11 +946,9 @@ def schedule_detail(request, pk):
             'template',
             'assigned_to',
             'assigned_by',
-            'plant',
-            'zone',
-            'location',
-            'sublocation',
             'department'
+        ).prefetch_related(
+            'plants', 'zones', 'locations', 'sublocations', 'assigned_users'
         ),
         pk=pk
     )
@@ -892,8 +966,68 @@ def schedule_detail(request, pk):
         'can_cancel': schedule.status not in ['COMPLETED', 'CANCELLED']
     }
     return render(request, 'inspections/schedule_detail.html', context)
+@login_required
+def get_users_by_plants(request):
+    """
+    AJAX: Get HODs and Safety Managers for selected plants.
+    Used in schedule create form checkbox section.
+    """
+    plant_ids = request.GET.get('plant_ids', '')
+
+    if not plant_ids:
+        return JsonResponse({'users': []})
+
+    ids = [pid.strip() for pid in plant_ids.split(',') if pid.strip()]
+
+    users = User.objects.filter(
+        plant__id__in=ids,
+        role__name__in=['HOD', 'SAFETY MANAGER'],
+        is_active_employee=True,
+        is_active=True
+    ).select_related('plant', 'role', 'department').order_by('plant__name', 'first_name')
+
+    users_data = []
+    for u in users:
+        users_data.append({
+            'id': u.id,
+            'full_name': u.get_full_name(),
+            'role': u.role.name if u.role else '',
+            'department': u.department.name if u.department else '',
+            'plant_name': u.plant.name if u.plant else '',
+            'plant_id': u.plant.id if u.plant else None,
+        })
+
+    return JsonResponse({'users': users_data})
 
 
+@login_required
+def autoschedule_toggle(request, config_id):
+    """
+    Stop / Pause / Resume auto-schedule config.
+    Called from template detail page buttons.
+    """
+    config = get_object_or_404(TemplateAutoScheduleConfig, pk=config_id)
+
+    action = request.POST.get('action')
+
+    if action == 'stop':
+        config.is_active = False
+        config.is_paused = False
+        config.save()
+        messages.success(request, 'Auto-schedule stopped. Existing schedules are kept.')
+
+    elif action == 'pause':
+        config.is_paused = True
+        config.save()
+        messages.success(request, 'Auto-schedule paused.')
+
+    elif action == 'resume':
+        config.is_active = True
+        config.is_paused = False
+        config.save()
+        messages.success(request, 'Auto-schedule resumed.')
+
+    return redirect('inspections:template_detail', pk=config.template.pk)
 @login_required
 def schedule_cancel(request, pk):
     """Cancel inspection schedule"""
