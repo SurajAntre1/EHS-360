@@ -215,7 +215,11 @@
                             <tr>
                                 <td><strong>{{ submission.schedule.schedule_code }}</strong></td>
                                 <td>{{ submission.schedule.template.template_name|truncatewords:5 }}</td>
-                                <td>{{ submission.schedule.plant.name }}</td>
+                                <td>
+                                    {% for plant in submission.schedule.plants.all %}
+                                        {{ plant.name }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </td>
                                 <td>{{ submission.submitted_by.get_full_name }}</td>
                                 <td>{{ submission.submitted_at|date:"d M Y" }}</td>
                                 <td>

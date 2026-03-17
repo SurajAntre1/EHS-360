@@ -38,22 +38,22 @@ class HomeView(LoginRequiredMixin, TemplateView):
             hazards = hazards.filter(reported_by=user)
             incidents = incidents.filter(reported_by=user)
 
-        inspection = InspectionSchedule.objects.select_related('plant', 'assigned_to', 'template')
-        if user.is_superuser or getattr(user.role, 'name', None) == 'ADMIN':
-            pass
-        elif getattr(user.role, 'name', None) == 'EMPLOYEE':
-            inspections = inspection.filter(assigned_to=user)
-        # --- CORRECTED: Check if user_plants queryset exists ---
-        elif user_plants.exists():
-            inspections = inspection.filter(plant__in=user_plants)
-        else:
-            inspections = inspection.filter(assigned_to=user)
+        # inspection = InspectionSchedule.objects.select_related('plant', 'assigned_to', 'template')
+        # if user.is_superuser or getattr(user.role, 'name', None) == 'ADMIN':
+        #     pass
+        # elif getattr(user.role, 'name', None) == 'EMPLOYEE':
+        #     inspections = inspection.filter(assigned_to=user)
+        # # --- CORRECTED: Check if user_plants queryset exists ---
+        # elif user_plants.exists():
+        #     inspections = inspection.filter(plant__in=user_plants)
+        # else:
+        #     inspections = inspection.filter(assigned_to=user)
 
         context['total_hazards'] = hazards.count()
         context['total_incidents'] = incidents.count()
-        context['total_inspections'] = inspection.count()
+        # context['total_inspections'] = inspection.count()
         context['total_environmental'] = (MonthlyIndicatorData.objects.values("indicator").distinct().count())
-        context['pending_inspections'] = inspection.filter(status__in=['SCHEDULED', 'IN_PROGRESS', 'OVERDUE']).count()
+        # context['pending_inspections'] = inspection.filter(status__in=['SCHEDULED', 'IN_PROGRESS', 'OVERDUE']).count()
         context['recent_incidents'] = incidents.order_by('-incident_date')[:5]
         context['recent_hazards'] = hazards.order_by('-reported_date')[:5]
 
