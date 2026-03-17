@@ -11,7 +11,8 @@ from .models import (
     InspectionSchedule,
     InspectionSubmission,
     InspectionResponse,
-    InspectionFinding
+    InspectionFinding,
+    TemplateAutoScheduleConfig
 )
 
 
@@ -20,23 +21,18 @@ class InspectionCategoryAdmin(admin.ModelAdmin):
     list_display = [
         'category_code', 
         'category_name', 
-        # 'display_order', 
         'questions_count',
         'is_active',
         'created_at'
     ]
     list_filter = ['is_active', 'created_at']
     search_fields = ['category_name', 'category_code', 'description']
-    # ordering = ['display_order', 'category_name']
     readonly_fields = ['created_at', 'updated_at']
     
     fieldsets = (
         ('Basic Information', {
             'fields': ('category_name', 'category_code', 'description')
         }),
-        # ('Display Settings', {
-        #     'fields': ('is_active') #removed 'display_order',
-        # }),
         ('Audit Information', {
             'fields': ('created_by', 'created_at', 'updated_at'),
             'classes': ('collapse',)
@@ -52,7 +48,7 @@ class InspectionCategoryAdmin(admin.ModelAdmin):
     questions_count.short_description = 'Active Questions'
     
     def save_model(self, request, obj, form, change):
-        if not change:  # If creating new object
+        if not change:
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
 
@@ -60,9 +56,8 @@ class InspectionCategoryAdmin(admin.ModelAdmin):
 class TemplateQuestionInline(admin.TabularInline):
     model = TemplateQuestion
     extra = 1
-    fields = ['question', 'is_mandatory', 'section_name'] #removed 'display_order',
+    fields = ['question', 'is_mandatory', 'section_name']
     autocomplete_fields = ['question']
-    # ordering = ['display_order']
 
 
 @admin.register(InspectionQuestion)
@@ -93,7 +88,7 @@ class InspectionQuestionAdmin(admin.ModelAdmin):
         'reference_standard',
         'guidance_notes'
     ]
-    ordering = ['category', 'question_code'] #removed 'display_order',
+    ordering = ['category', 'question_code']
     readonly_fields = ['question_code', 'created_at', 'updated_at', 'created_by', 'updated_by']
     
     fieldsets = (
@@ -112,7 +107,6 @@ class InspectionQuestionAdmin(admin.ModelAdmin):
                 'is_critical',
                 'auto_generate_finding',
                 'weightage',
-                # 'display_order'
             )
         }),
         ('Reference & Guidance', {
@@ -170,40 +164,36 @@ class InspectionTemplateAdmin(admin.ModelAdmin):
         'template_name',
         'inspection_type',
         'questions_count',
-        # 'requires_approval',
         'is_active',
         'created_at'
     ]
     list_filter = [
         'inspection_type',
-        # 'requires_approval',
         'is_active',
         'created_at',
         'applicable_plants'
     ]
     search_fields = ['template_name', 'template_code', 'description']
     filter_horizontal = ['applicable_plants', 'applicable_departments']
-    readonly_fields = ['template_code','created_at', 'updated_at']
+    readonly_fields = ['template_code', 'created_at', 'updated_at']
     inlines = [TemplateQuestionInline]
     
     fieldsets = (
         ('Basic Information', {
             'fields': (
                 'template_name',
-                # 'template_code',
                 'inspection_type',
                 'description'
             )
         }),
         ('Template Code', {
-        'fields': ('template_code',),
+            'fields': ('template_code',),
         }),
         ('Applicability', {
             'fields': ('applicable_plants', 'applicable_departments')
         }),
         ('Configuration', {
             'fields': (
-                # 'requires_approval',
                 'min_compliance_score',
                 'is_active'
             )
@@ -234,7 +224,7 @@ class InspectionScheduleAdmin(admin.ModelAdmin):
         'schedule_code',
         'template',
         'assigned_to',
-        'plant',
+        'get_plants',
         'scheduled_date',
         'due_date',
         'status_badge',
@@ -242,7 +232,7 @@ class InspectionScheduleAdmin(admin.ModelAdmin):
     ]
     list_filter = [
         'status',
-        'plant',
+        'plants',
         'scheduled_date',
         'due_date',
         'created_at'
@@ -262,6 +252,7 @@ class InspectionScheduleAdmin(admin.ModelAdmin):
         'updated_at'
     ]
     autocomplete_fields = ['assigned_to', 'assigned_by']
+    filter_horizontal = ['plants', 'zones', 'locations', 'sublocations', 'assigned_users']
     
     fieldsets = (
         ('Schedule Information', {
@@ -275,15 +266,16 @@ class InspectionScheduleAdmin(admin.ModelAdmin):
             'fields': (
                 'assigned_to',
                 'assigned_by',
+                'assigned_users',
                 'assignment_notes'
             )
         }),
         ('Location Details', {
             'fields': (
-                'plant',
-                'zone',
-                'location',
-                'sublocation',
+                'plants',
+                'zones',
+                'locations',
+                'sublocations',
                 'department'
             )
         }),
@@ -308,6 +300,13 @@ class InspectionScheduleAdmin(admin.ModelAdmin):
         }),
     )
     
+    def get_plants(self, obj):
+        plants = obj.plants.all()
+        if plants:
+            return ', '.join([p.name for p in plants])
+        return '-'
+    get_plants.short_description = 'Plants'
+
     def status_badge(self, obj):
         colors = {
             'SCHEDULED': '#007bff',
@@ -317,7 +316,8 @@ class InspectionScheduleAdmin(admin.ModelAdmin):
             'CANCELLED': '#6c757d'
         }
         return format_html(
-            '<span style="background: {}; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold;">{}</span>',
+            '<span style="background: {}; color: white; padding: 4px 10px; '
+            'border-radius: 4px; font-weight: bold;">{}</span>',
             colors.get(obj.status, '#6c757d'),
             obj.get_status_display()
         )
@@ -336,7 +336,6 @@ class InspectionScheduleAdmin(admin.ModelAdmin):
     actions = ['send_reminders', 'mark_as_completed', 'cancel_schedules']
     
     def send_reminders(self, request, queryset):
-        # Implement reminder sending logic
         count = queryset.filter(status='SCHEDULED').count()
         self.message_user(request, f'Reminders sent for {count} scheduled inspections.')
     send_reminders.short_description = "Send reminder notifications"
@@ -360,7 +359,6 @@ class InspectionScheduleAdmin(admin.ModelAdmin):
 # ====================================
 
 class InspectionResponseInline(admin.TabularInline):
-    """Inline for viewing responses within a submission"""
     model = InspectionResponse
     extra = 0
     fields = [
@@ -388,7 +386,8 @@ class InspectionResponseInline(admin.TabularInline):
             'N/A': '#6c757d'
         }
         return format_html(
-            '<span style="background: {}; color: white; padding: 3px 8px; border-radius: 3px; font-weight: bold;">{}</span>',
+            '<span style="background: {}; color: white; padding: 3px 8px; '
+            'border-radius: 3px; font-weight: bold;">{}</span>',
             colors.get(obj.answer, '#6c757d'),
             obj.answer
         )
@@ -438,7 +437,6 @@ class InspectionSubmissionAdmin(admin.ModelAdmin):
     ]
     list_filter = [
         'submitted_at',
-        'schedule__plant',
         'schedule__template'
     ]
     search_fields = [
@@ -473,19 +471,18 @@ class InspectionSubmissionAdmin(admin.ModelAdmin):
     )
     
     def compliance_score_badge(self, obj):
-        score = float(obj.compliance_score or 0)   # ← convert to float first
+        score = float(obj.compliance_score or 0)
         if score >= 90:
             color = '#28a745'
         elif score >= 75:
             color = '#ffc107'
         else:
             color = '#dc3545'
-        
         return format_html(
             '<span style="background: {}; color: white; padding: 4px 10px; '
             'border-radius: 4px; font-weight: bold;">{}%</span>',
             color,
-            round(score, 1)        # ← pass as plain value, not :.1f format spec
+            round(score, 1)
         )
     compliance_score_badge.short_description = 'Compliance Score'
     
@@ -501,7 +498,8 @@ class InspectionSubmissionAdmin(admin.ModelAdmin):
         count = obj.responses.filter(answer='No').count()
         if count > 0:
             return format_html(
-                '<span style="background: #dc3545; color: white; padding: 3px 8px; border-radius: 3px; font-weight: bold;">{}</span>',
+                '<span style="background: #dc3545; color: white; padding: 3px 8px; '
+                'border-radius: 3px; font-weight: bold;">{}</span>',
                 count
             )
         return format_html('<span style="color: #28a745;">0</span>')
@@ -546,7 +544,6 @@ class InspectionResponseAdmin(admin.ModelAdmin):
         'assignment_remarks',
         'converted_to_hazard'
     ]
-    autocomplete_fields = ['assigned_to', 'assigned_by', 'converted_to_hazard']
     
     fieldsets = (
         ('Response Information', {
@@ -595,7 +592,8 @@ class InspectionResponseAdmin(admin.ModelAdmin):
             'N/A': '#6c757d'
         }
         return format_html(
-            '<span style="background: {}; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold;">{}</span>',
+            '<span style="background: {}; color: white; padding: 4px 10px; '
+            'border-radius: 4px; font-weight: bold;">{}</span>',
             colors.get(obj.answer, '#6c757d'),
             obj.answer
         )
@@ -612,7 +610,8 @@ class InspectionResponseAdmin(admin.ModelAdmin):
     def assignment_badge(self, obj):
         if obj.assigned_to:
             return format_html(
-                '<span style="background: #0066cc; color: white; padding: 3px 8px; border-radius: 3px;">👤 {}</span>',
+                '<span style="background: #0066cc; color: white; padding: 3px 8px; '
+                'border-radius: 3px;">👤 {}</span>',
                 obj.assigned_to.get_full_name()
             )
         return format_html('<span style="color: #999;">Not Assigned</span>')
@@ -621,7 +620,8 @@ class InspectionResponseAdmin(admin.ModelAdmin):
     def hazard_link(self, obj):
         if obj.converted_to_hazard:
             return format_html(
-                '<a href="/admin/hazards/hazard/{}/change/" style="color: #28a745; font-weight: bold;">✓ {}</a>',
+                '<a href="/admin/hazards/hazard/{}/change/" '
+                'style="color: #28a745; font-weight: bold;">✓ {}</a>',
                 obj.converted_to_hazard.id,
                 obj.converted_to_hazard.report_number
             )
@@ -631,30 +631,28 @@ class InspectionResponseAdmin(admin.ModelAdmin):
     actions = ['bulk_assign', 'clear_assignments']
     
     def bulk_assign(self, request, queryset):
-        """Bulk assign selected responses"""
-        # Filter only 'No' answers that are not already assigned
         valid_responses = queryset.filter(
             answer='No',
             assigned_to__isnull=True,
             converted_to_hazard__isnull=True
         )
         count = valid_responses.count()
-        
         if count > 0:
             self.message_user(
-                request, 
-                f'{count} responses are ready for assignment. Use the front-end bulk assignment feature.'
+                request,
+                f'{count} responses are ready for assignment. '
+                'Use the front-end bulk assignment feature.'
             )
         else:
             self.message_user(
-                request, 
-                'No valid responses selected (must be "No" answers, unassigned, and not converted)',
+                request,
+                'No valid responses selected (must be "No" answers, '
+                'unassigned, and not converted)',
                 level='warning'
             )
     bulk_assign.short_description = "Prepare for bulk assignment"
     
     def clear_assignments(self, request, queryset):
-        """Clear assignments from responses (only if not converted to hazard)"""
         valid_responses = queryset.filter(
             assigned_to__isnull=False,
             converted_to_hazard__isnull=True
@@ -690,7 +688,7 @@ class InspectionFindingAdmin(admin.ModelAdmin):
         'description',
         'question__question_code'
     ]
-    readonly_fields = ['finding_code', 'created_at']  # ✅ REMOVED 'updated_at'
+    readonly_fields = ['finding_code', 'created_at']
     
     fieldsets = (
         ('Finding Information', {
@@ -709,7 +707,7 @@ class InspectionFindingAdmin(admin.ModelAdmin):
             )
         }),
         ('Audit', {
-            'fields': ('created_at',),  # ✅ REMOVED 'updated_at'
+            'fields': ('created_at',),
             'classes': ('collapse',)
         }),
     )
@@ -722,7 +720,8 @@ class InspectionFindingAdmin(admin.ModelAdmin):
             'CRITICAL': '#dc3545'
         }
         return format_html(
-            '<span style="background: {}; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold;">{}</span>',
+            '<span style="background: {}; color: white; padding: 4px 10px; '
+            'border-radius: 4px; font-weight: bold;">{}</span>',
             colors.get(obj.priority, '#6c757d'),
             obj.get_priority_display()
         )
@@ -736,7 +735,8 @@ class InspectionFindingAdmin(admin.ModelAdmin):
             'CLOSED': '#6c757d'
         }
         return format_html(
-            '<span style="background: {}; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold;">{}</span>',
+            '<span style="background: {}; color: white; padding: 4px 10px; '
+            'border-radius: 4px; font-weight: bold;">{}</span>',
             colors.get(obj.status, '#6c757d'),
             obj.get_status_display()
         )
@@ -753,3 +753,86 @@ class InspectionFindingAdmin(admin.ModelAdmin):
         updated = queryset.update(status='CLOSED')
         self.message_user(request, f'{updated} findings marked as closed.')
     mark_as_closed.short_description = "Mark as closed"
+
+
+@admin.register(TemplateAutoScheduleConfig)
+class TemplateAutoScheduleConfigAdmin(admin.ModelAdmin):
+    list_display = [
+        'template',
+        'status_badge',
+        'due_date_offset_days',
+        'get_plants',
+        'get_users',
+        'created_at'
+    ]
+    list_filter = [
+        'is_active',
+        'is_paused',
+        'plants',
+        'created_at'
+    ]
+    search_fields = [
+        'template__template_name',
+        'template__template_code'
+    ]
+    readonly_fields = ['created_at', 'updated_at']
+    filter_horizontal = ['plants', 'zones', 'locations', 'sublocations', 'assigned_users']
+
+    fieldsets = (
+        ('Template', {
+            'fields': ('template',)
+        }),
+        ('Location Selection', {
+            'fields': ('plants', 'zones', 'locations', 'sublocations')
+        }),
+        ('Assigned Users', {
+            'fields': ('assigned_users',)
+        }),
+        ('Schedule Settings', {
+            'fields': ('due_date_offset_days', 'is_active', 'is_paused')
+        }),
+        ('Audit', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def status_badge(self, obj):
+        colors = {
+            'ACTIVE': '#28a745',
+            'PAUSED': '#ffc107',
+            'STOPPED': '#dc3545'
+        }
+        text_colors = {
+            'ACTIVE': 'white',
+            'PAUSED': '#212529',
+            'STOPPED': 'white'
+        }
+        status = obj.status
+        return format_html(
+            '<span style="background: {}; color: {}; padding: 4px 10px; '
+            'border-radius: 4px; font-weight: bold;">{}</span>',
+            colors.get(status, '#6c757d'),
+            text_colors.get(status, 'white'),
+            status
+        )
+    status_badge.short_description = 'Status'
+
+    def get_plants(self, obj):
+        plants = obj.plants.all()
+        if plants:
+            return ', '.join([p.name for p in plants])
+        return '-'
+    get_plants.short_description = 'Plants'
+
+    def get_users(self, obj):
+        users = obj.assigned_users.all()
+        if users:
+            return ', '.join([u.get_full_name() for u in users])
+        return '-'
+    get_users.short_description = 'Assigned Users'
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)

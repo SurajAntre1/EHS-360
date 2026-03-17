@@ -424,32 +424,31 @@ class InspectionSchedule(models.Model):
     )
     
     # Location details
-    plant = models.ForeignKey(
+    plants = models.ManyToManyField(
         Plant,
-        on_delete=models.CASCADE,
-        related_name='inspection_schedules',
-        verbose_name="Plant"
+        blank=True,
+        related_name='plant_many',
     )
-    zone = models.ForeignKey(
+    zones = models.ManyToManyField(
         Zone,
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
-        related_name='inspection_schedules'
+        related_name='Zone_many',
     )
-    location = models.ForeignKey(
+    locations = models.ManyToManyField(
         Location,
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
-        related_name='inspection_schedules'
+        related_name='locations_many',
     )
-    sublocation = models.ForeignKey(
+    sublocations = models.ManyToManyField(
         SubLocation,
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
-        related_name='inspection_schedules'
+        related_name='sublocation_many',
+    )
+    assigned_users = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name='assigned_users_many',
+        help_text="Multiple HODs/Safety Managers assigned"
     )
     department = models.ForeignKey(
         Department,
@@ -513,7 +512,6 @@ class InspectionSchedule(models.Model):
         verbose_name = "Inspection Schedule"
         verbose_name_plural = "Inspection Schedules"
         indexes = [
-            models.Index(fields=['plant', 'status']),
             models.Index(fields=['assigned_to', 'status']),
             models.Index(fields=['due_date']),
         ]
@@ -563,8 +561,87 @@ class InspectionSchedule(models.Model):
             self.status not in ['COMPLETED', 'CANCELLED'] and
             timezone.now().date() > self.due_date
         )
-    
-# apps/inspections/models.py (Add these NEW models)
+class TemplateAutoScheduleConfig(models.Model):
+    """
+    Auto-schedule configuration for a template.
+    Celery runs on 1st of every month and creates
+    one InspectionSchedule per plant per assigned user.
+    """
+
+    STATUS_ACTIVE = 'ACTIVE'
+    STATUS_PAUSED = 'PAUSED'
+    STATUS_STOPPED = 'STOPPED'
+
+    template = models.ForeignKey(
+        InspectionTemplate,
+        on_delete=models.CASCADE,
+        related_name='auto_schedule_configs'
+    )
+    # Selected plants (checkboxes)
+    plants = models.ManyToManyField(
+        Plant,
+        related_name='auto_schedule_configs'
+    )
+    # Selected zones per plant
+    zones = models.ManyToManyField(
+        Zone,
+        blank=True,
+        related_name='auto_schedule_configs'
+    )
+    # Selected locations per zone
+    locations = models.ManyToManyField(
+        Location,
+        blank=True,
+        related_name='auto_schedule_configs'
+    )
+    # Selected sublocations
+    sublocations = models.ManyToManyField(
+        SubLocation,
+        blank=True,
+        related_name='auto_schedule_configs'
+    )
+    # HODs + Safety Managers from selected plants
+    assigned_users = models.ManyToManyField(
+        User,
+        related_name='auto_schedule_configs',
+        help_text="HODs and Safety Managers to assign monthly"
+    )
+    due_date_offset_days = models.IntegerField(
+        default=7,
+        help_text="Due date = 1st of month + this many days"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Stop/Start auto-scheduling"
+    )
+    is_paused = models.BooleanField(
+        default=False,
+        help_text="Temporarily pause without deleting"
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_auto_schedule_configs'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'template_auto_schedule_configs'
+        verbose_name = "Auto Schedule Config"
+        verbose_name_plural = "Auto Schedule Configs"
+
+    def __str__(self):
+        return f"Auto Config: {self.template.template_name} ({self.status})"
+
+    @property
+    def status(self):
+        if not self.is_active:
+            return self.STATUS_STOPPED
+        if self.is_paused:
+            return self.STATUS_PAUSED
+        return self.STATUS_ACTIVE    
 
 class InspectionSubmission(models.Model):
     """Stores the completed inspection submission"""

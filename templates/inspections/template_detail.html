@@ -12,6 +12,72 @@
 <li class="breadcrumb-item active">{{ template.template_code }}</li>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+  .config-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 12px;
+    background: #fff;
+  }
+  .config-card.active-config {
+    border-left: 4px solid #28a745;
+  }
+  .config-card.paused-config {
+    border-left: 4px solid #ffc107;
+  }
+  .config-card.stopped-config {
+    border-left: 4px solid #dc3545;
+    opacity: 0.8;
+  }
+  .status-badge-active {
+    background: #28a745;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .status-badge-paused {
+    background: #ffc107;
+    color: #212529;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .status-badge-stopped {
+    background: #dc3545;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .config-meta {
+    font-size: 0.82rem;
+    color: #6c757d;
+  }
+  .config-meta span {
+    margin-right: 15px;
+  }
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+  .tag-pill {
+    background: #e9ecef;
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.75rem;
+    color: #495057;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-md-12">
@@ -31,6 +97,11 @@
             </a>
             <a href="{% url 'inspections:template_bulk_add_questions' template.pk %}" class="btn btn-info">
                 <i class="fas fa-plus-square"></i> Bulk Add Questions
+            </a>
+            <!-- Schedule Inspection Button -->
+            <a href="{% url 'inspections:schedule_create' %}?template={{ template.pk }}" 
+               class="btn btn-primary">
+                <i class="fas fa-calendar-plus"></i> Schedule Inspection
             </a>
         </div>
 
@@ -80,16 +151,6 @@
                                 <th>Min Score:</th>
                                 <td>{{ template.min_compliance_score }}%</td>
                             </tr>
-                            {% comment %} <tr>
-                                <th>Requires Approval:</th>
-                                <td>
-                                    {% if template.requires_approval %}
-                                    <span class="badge badge-warning">Yes</span>
-                                    {% else %}
-                                    <span class="badge badge-success">No</span>
-                                    {% endif %}
-                                </td>
-                            </tr> {% endcomment %}
                             <tr>
                                 <th>Created:</th>
                                 <td>{{ template.created_at|date:"d M Y" }}</td>
@@ -141,8 +202,170 @@
                     </div>
                 </div>
                 {% endif %}
+
+                <!-- ============================================ -->
+                <!-- AUTO-SCHEDULE CONFIGS SECTION                -->
+                <!-- ============================================ -->
+                <div class="ehs-card mt-3">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-sync-alt"></i> Auto-Schedule Configs
+                        </h3>
+                        <div class="card-tools">
+                            <span class="badge badge-primary">
+                                {{ auto_configs.count }} config{{ auto_configs.count|pluralize }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+
+                        {% if auto_configs %}
+                            {% for config in auto_configs %}
+                            <div class="config-card 
+                                {% if config.status == 'ACTIVE' %}active-config
+                                {% elif config.status == 'PAUSED' %}paused-config
+                                {% else %}stopped-config{% endif %}">
+
+                                <!-- Status + Created -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="
+                                        {% if config.status == 'ACTIVE' %}status-badge-active
+                                        {% elif config.status == 'PAUSED' %}status-badge-paused
+                                        {% else %}status-badge-stopped{% endif %}">
+                                        <i class="fas 
+                                            {% if config.status == 'ACTIVE' %}fa-play
+                                            {% elif config.status == 'PAUSED' %}fa-pause
+                                            {% else %}fa-stop{% endif %} mr-1"></i>
+                                        {{ config.status }}
+                                    </span>
+                                    <small class="text-muted">
+                                        {{ config.created_at|date:"d M Y" }}
+                                    </small>
+                                </div>
+
+                                <!-- Meta info -->
+                                <div class="config-meta mb-2">
+                                    <span>
+                                        <i class="fas fa-calendar-day mr-1"></i>
+                                        Due offset: <strong>{{ config.due_date_offset_days }} days</strong>
+                                    </span>
+                                    <span>
+                                        <i class="fas fa-industry mr-1"></i>
+                                        {{ config.plants.count }} plant{{ config.plants.count|pluralize }}
+                                    </span>
+                                    <span>
+                                        <i class="fas fa-users mr-1"></i>
+                                        {{ config.assigned_users.count }} user{{ config.assigned_users.count|pluralize }}
+                                    </span>
+                                </div>
+
+                                <!-- Plants tags -->
+                                {% if config.plants.count > 0 %}
+                                <div class="tag-list mb-2">
+                                    {% for plant in config.plants.all %}
+                                    <span class="tag-pill">
+                                        <i class="fas fa-industry mr-1"></i>{{ plant.name }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+
+                                <!-- Assigned users tags -->
+                                {% if config.assigned_users.count > 0 %}
+                                <div class="tag-list mb-3">
+                                    {% for user in config.assigned_users.all %}
+                                    <span class="tag-pill">
+                                        <i class="fas fa-user mr-1"></i>{{ user.get_full_name }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+
+                                <!-- Action buttons -->
+                                <div class="d-flex gap-2" style="gap: 6px;">
+
+                                    {% if config.status == 'ACTIVE' %}
+                                    <!-- Pause -->
+                                    <form method="POST" 
+                                          action="{% url 'inspections:autoschedule_toggle' config.pk %}"
+                                          style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="pause">
+                                        <button type="submit" class="btn btn-sm btn-warning"
+                                                onclick="return confirm('Pause this auto-schedule?')">
+                                            <i class="fas fa-pause"></i> Pause
+                                        </button>
+                                    </form>
+                                    <!-- Stop -->
+                                    <form method="POST"
+                                          action="{% url 'inspections:autoschedule_toggle' config.pk %}"
+                                          style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="stop">
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                                onclick="return confirm('Stop this auto-schedule? Existing schedules will be kept.')">
+                                            <i class="fas fa-stop"></i> Stop
+                                        </button>
+                                    </form>
+
+                                    {% elif config.status == 'PAUSED' %}
+                                    <!-- Resume -->
+                                    <form method="POST"
+                                          action="{% url 'inspections:autoschedule_toggle' config.pk %}"
+                                          style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="resume">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="fas fa-play"></i> Resume
+                                        </button>
+                                    </form>
+                                    <!-- Stop -->
+                                    <form method="POST"
+                                          action="{% url 'inspections:autoschedule_toggle' config.pk %}"
+                                          style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="stop">
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                                onclick="return confirm('Stop this auto-schedule?')">
+                                            <i class="fas fa-stop"></i> Stop
+                                        </button>
+                                    </form>
+
+                                    {% elif config.status == 'STOPPED' %}
+                                    <!-- Restart -->
+                                    <form method="POST"
+                                          action="{% url 'inspections:autoschedule_toggle' config.pk %}"
+                                          style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="resume">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="fas fa-redo"></i> Restart
+                                        </button>
+                                    </form>
+                                    {% endif %}
+
+                                </div>
+                            </div>
+                            {% endfor %}
+
+                        {% else %}
+                            <div class="text-center py-3">
+                                <i class="fas fa-sync-alt fa-2x text-muted mb-2"></i>
+                                <p class="text-muted small mb-0">
+                                    No auto-schedule configs yet.<br>
+                                    Schedule an inspection and enable
+                                    <strong>"Auto Monthly Schedule"</strong>
+                                    to set one up.
+                                </p>
+                            </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+                <!-- END AUTO-SCHEDULE CONFIGS -->
+
             </div>
-            
+
             <!-- Questions List -->
             <div class="col-md-8">
                 <div class="ehs-card">
@@ -162,7 +385,7 @@
                                     {{ category.category_name }}
                                     <small class="text-muted">({{ questions|length }} questions)</small>
                                 </h5>
-                                
+
                                 <div class="list-group mb-3">
                                     {% for tq in questions %}
                                     <div class="list-group-item">
@@ -172,33 +395,33 @@
                                                     <strong class="text-info">{{ tq.question.question_code }}</strong>
                                                     <span class="ml-2">{{ tq.question.question_text }}</span>
                                                 </div>
-                                                
+
                                                 <div>
                                                     <small class="text-muted">
                                                         <i class="fas fa-tag"></i> {{ tq.question.get_question_type_display }}
                                                     </small>
-                                                    
+
                                                     {% if tq.question.is_critical %}
                                                     <span class="badge badge-danger ml-2">Critical</span>
                                                     {% endif %}
-                                                    
+
                                                     {% if tq.question.is_remarks_mandatory %}
                                                     <span class="badge badge-info ml-2">
                                                         <i class="fas fa-comment"></i> Remarks Required
                                                     </span>
                                                     {% endif %}
-                                                    
+
                                                     {% if tq.question.is_photo_required %}
                                                     <span class="badge badge-warning ml-2">
                                                         <i class="fas fa-camera"></i> Photo Required
                                                     </span>
                                                     {% endif %}
-                                                    
+
                                                     {% if tq.is_mandatory %}
                                                     <span class="badge badge-secondary ml-2">Mandatory</span>
                                                     {% endif %}
                                                 </div>
-                                                
+
                                                 {% if tq.section_name %}
                                                 <div class="mt-1">
                                                     <small class="text-muted">
@@ -207,10 +430,10 @@
                                                 </div>
                                                 {% endif %}
                                             </div>
-                                            
+
                                             <div class="ml-3">
-                                                <a href="{% url 'inspections:template_remove_question' template.pk tq.question.pk %}" 
-                                                   class="btn btn-sm btn-danger" 
+                                                <a href="{% url 'inspections:template_remove_question' template.pk tq.question.pk %}"
+                                                   class="btn btn-sm btn-danger"
                                                    title="Remove Question"
                                                    onclick="return confirm('Remove this question from template?')">
                                                     <i class="fas fa-times"></i>

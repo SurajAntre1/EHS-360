@@ -62,8 +62,13 @@ urlpatterns = [
     
     # ✅ Convert to Hazard - ADD THIS
     path('response/<int:response_id>/convert-to-hazard/', views.convert_no_answer_to_hazard, name='convert_no_answer_to_hazard'),
-    
+    # Auto-schedule toggle (stop/pause/resume)
+    path('autoschedule/<int:config_id>/toggle/', views.autoschedule_toggle, name='autoschedule_toggle'),
+
+    # AJAX: Get users by selected plants
+    path('ajax/get-users-by-plants/', views.get_users_by_plants, name='get_users_by_plants'),
     # AJAX Endpoints
+
     path('ajax/get-zones/', views.get_zones_by_plant, name='get_zones_by_plant'),
     path('ajax/get-locations/', views.get_locations_by_zone, name='get_locations_by_zone'),
     path('ajax/get-sublocations/', views.get_sublocations_by_location, name='get_sublocations_by_location'),

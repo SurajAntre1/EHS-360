@@ -1,6 +1,5 @@
-<!-- templates/inspections/schedule_form.html -->
-
 {% extends 'base/base.html' %}
+{% load static %}
 
 {% block title %}{{ title }}{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
@@ -12,260 +11,745 @@
 <li class="breadcrumb-item active">{{ action }}</li>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+    max-height: 350px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    padding: 15px;
+    border-radius: 5px;
+    background: #f8f9fa;
+  }
+
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .checkbox-item:hover {
+    background: #e7f3ff;
+    border-color: #b8d4f0;
+  }
+
+  .checkbox-item input[type="checkbox"] {
+    margin-right: 10px;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+
+  .checkbox-item label {
+    margin: 0;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+
+  .select-all-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background: #e9ecef;
+    border-radius: 5px;
+  }
+
+  .group-header {
+    grid-column: 1 / -1;
+    background: #d1ecf1;
+    padding: 7px 12px;
+    font-weight: 600;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: #0c5460;
+    border-left: 3px solid #17a2b8;
+  }
+
+  .section-label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .badge-count {
+    background: #007bff;
+    color: white;
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .loading-text {
+    color: #6c757d;
+    font-style: italic;
+    padding: 10px;
+    grid-column: 1 / -1;
+  }
+
+  .auto-schedule-section {
+    background: #f0f7ff;
+    border: 1px solid #b8d4f0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 10px;
+  }
+
+  .offset-section {
+    display: none;
+    margin-top: 15px;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
-    <div class="col-md-10 mx-auto">
-        <div class="ehs-card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-calendar-plus"></i> {{ title }}
-                </h3>
+  <div class="col-md-11 mx-auto">
+    <div class="ehs-card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-calendar-plus"></i> {{ title }}
+        </h3>
+      </div>
+      <div class="card-body">
+        <form method="POST" id="scheduleForm">
+          {% csrf_token %}
+
+          <!-- Template Selection -->
+          <div class="form-group">
+            <label for="{{ form.template.id_for_label }}">
+              Inspection Template <span class="text-danger">*</span>
+            </label>
+            {{ form.template }}
+            {% if form.template.errors %}
+              <div class="text-danger small">{{ form.template.errors }}</div>
+            {% endif %}
+            <small class="form-text text-muted">Select the inspection template to be used</small>
+          </div>
+
+          <hr>
+
+          <!-- PLANTS -->
+          <h5 class="mb-3"><i class="fas fa-industry"></i> Location Assignment</h5>
+
+          <div class="mb-4">
+            <div class="section-label">
+              <span>Plants <span class="text-danger">*</span></span>
+              <span class="badge-count" id="plantCount">0</span>
             </div>
-            <div class="card-body">
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    
-                    <!-- Template Selection -->
-                    <div class="form-group">
-                        <label for="{{ form.template.id_for_label }}">
-                            Inspection Template <span class="text-danger">*</span>
-                        </label>
-                        {{ form.template }}
-                        {% if form.template.errors %}
-                        <div class="text-danger small">{{ form.template.errors }}</div>
-                        {% endif %}
-                        <small class="form-text text-muted">
-                            Select the inspection template to be used
-                        </small>
-                    </div>
-                    
-                    <!-- HOD Assignment -->
-                    <div class="form-group">
-                        <label for="{{ form.assigned_to.id_for_label }}">
-                            Assign to (HOD/Safety Manager) <span class="text-danger">*</span>
-                        </label>
-                        {{ form.assigned_to }}
-                        {% if form.assigned_to.errors %}
-                        <div class="text-danger small">{{ form.assigned_to.errors }}</div>
-                        {% endif %}
-                        <small class="form-text text-muted">
-                            Select the HOD or Safety Manager who will conduct this inspection
-                        </small>
-                    </div>
-                    
-                    <hr>
-                    
-                    <!-- Location Details -->
-                    <h5 class="mb-3"><i class="fas fa-map-marker-alt"></i> Location Details</h5>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="{{ form.plant.id_for_label }}">
-                                    Plant <span class="text-danger">*</span>
-                                </label>
-                                {{ form.plant }}
-                                {% if form.plant.errors %}
-                                <div class="text-danger small">{{ form.plant.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="{{ form.zone.id_for_label }}">Zone</label>
-                                {{ form.zone }}
-                                {% if form.zone.errors %}
-                                <div class="text-danger small">{{ form.zone.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="{{ form.location.id_for_label }}">Location</label>
-                                {{ form.location }}
-                                {% if form.location.errors %}
-                                <div class="text-danger small">{{ form.location.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="{{ form.sublocation.id_for_label }}">Sub-Location</label>
-                                {{ form.sublocation }}
-                                {% if form.sublocation.errors %}
-                                <div class="text-danger small">{{ form.sublocation.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="{{ form.department.id_for_label }}">Department</label>
-                        {{ form.department }}
-                        {% if form.department.errors %}
-                        <div class="text-danger small">{{ form.department.errors }}</div>
-                        {% endif %}
-                    </div>
-                    
-                    <hr>
-                    
-                    <!-- Schedule Timing -->
-                    <h5 class="mb-3"><i class="fas fa-clock"></i> Schedule Timing</h5>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="{{ form.scheduled_date.id_for_label }}">
-                                    Scheduled Date <span class="text-danger">*</span>
-                                </label>
-                                {{ form.scheduled_date }}
-                                {% if form.scheduled_date.errors %}
-                                <div class="text-danger small">{{ form.scheduled_date.errors }}</div>
-                                {% endif %}
-                                <small class="form-text text-muted">When should the inspection start?</small>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="{{ form.due_date.id_for_label }}">
-                                    Due Date <span class="text-danger">*</span>
-                                </label>
-                                {{ form.due_date }}
-                                {% if form.due_date.errors %}
-                                <div class="text-danger small">{{ form.due_date.errors }}</div>
-                                {% endif %}
-                                <small class="form-text text-muted">Deadline for completion</small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Assignment Notes -->
-                    <div class="form-group">
-                        <label for="{{ form.assignment_notes.id_for_label }}">
-                            Assignment Notes
-                        </label>
-                        {{ form.assignment_notes }}
-                        {% if form.assignment_notes.errors %}
-                        <div class="text-danger small">{{ form.assignment_notes.errors }}</div>
-                        {% endif %}
-                        <small class="form-text text-muted">
-                            Any special instructions for the inspector
-                        </small>
-                    </div>
-                    
-                    <hr>
-                    
-                    <!-- Action Buttons -->
-                    <div class="d-flex justify-content-between mt-4">
-                        <a href="{% url 'inspections:schedule_list' %}" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> Cancel
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-calendar-check"></i> {{ action }} Schedule
-                        </button>
-                    </div>
-                </form>
+            <small class="form-text text-muted mb-2 d-block">Select one or more plants</small>
+
+            <div class="select-all-bar">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAll('plant-checkbox', updatePlantCount)">
+                <i class="fas fa-check-square mr-1"></i> Select All
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll('plant-checkbox', updatePlantCount)">
+                <i class="fas fa-square mr-1"></i> Deselect All
+              </button>
             </div>
-        </div>
+
+            <div class="checkbox-grid" id="plantsGrid">
+              <div class="loading-text">Loading plants...</div>
+            </div>
+          </div>
+
+          <!-- ZONES -->
+          <div class="mb-4">
+            <div class="section-label">
+              <span>Zones</span>
+              <span class="badge-count" id="zoneCount">0</span>
+            </div>
+            <small class="form-text text-muted mb-2 d-block">Select plants first, then select zones</small>
+
+            <div class="select-all-bar" id="zoneSelectBar" style="display:none;">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAll('zone-checkbox', updateZoneCount)">
+                <i class="fas fa-check-square mr-1"></i> Select All
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll('zone-checkbox', updateZoneCount)">
+                <i class="fas fa-square mr-1"></i> Deselect All
+              </button>
+            </div>
+
+            <div class="checkbox-grid" id="zonesGrid">
+              <div class="loading-text">Please select plants first</div>
+            </div>
+          </div>
+
+          <!-- LOCATIONS -->
+          <div class="mb-4">
+            <div class="section-label">
+              <span>Locations</span>
+              <span class="badge-count" id="locationCount">0</span>
+            </div>
+            <small class="form-text text-muted mb-2 d-block">Select zones first, then select locations</small>
+
+            <div class="select-all-bar" id="locationSelectBar" style="display:none;">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAll('location-checkbox', updateLocationCount)">
+                <i class="fas fa-check-square mr-1"></i> Select All
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll('location-checkbox', updateLocationCount)">
+                <i class="fas fa-square mr-1"></i> Deselect All
+              </button>
+            </div>
+
+            <div class="checkbox-grid" id="locationsGrid">
+              <div class="loading-text">Please select zones first</div>
+            </div>
+          </div>
+
+          <!-- SUBLOCATIONS -->
+          <div class="mb-4">
+            <div class="section-label">
+              <span>Sub-Locations</span>
+              <span class="badge-count" id="sublocationCount">0</span>
+            </div>
+            <small class="form-text text-muted mb-2 d-block">Select locations first, then select sub-locations</small>
+
+            <div class="select-all-bar" id="sublocationSelectBar" style="display:none;">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAll('sublocation-checkbox', updateSublocationCount)">
+                <i class="fas fa-check-square mr-1"></i> Select All
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll('sublocation-checkbox', updateSublocationCount)">
+                <i class="fas fa-square mr-1"></i> Deselect All
+              </button>
+            </div>
+
+            <div class="checkbox-grid" id="sublocationsGrid">
+              <div class="loading-text">Please select locations first</div>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- ASSIGNED USERS -->
+          <h5 class="mb-3"><i class="fas fa-users"></i> Assign To</h5>
+
+          <div class="mb-4">
+            <div class="section-label">
+              <span>HOD / Safety Manager <span class="text-danger">*</span></span>
+              <span class="badge-count" id="userCount">0</span>
+            </div>
+            <small class="form-text text-muted mb-2 d-block">
+              Select plants first — shows HODs and Safety Managers from selected plants
+            </small>
+
+            <div class="select-all-bar" id="userSelectBar" style="display:none;">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAll('user-checkbox', updateUserCount)">
+                <i class="fas fa-check-square mr-1"></i> Select All
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAll('user-checkbox', updateUserCount)">
+                <i class="fas fa-square mr-1"></i> Deselect All
+              </button>
+            </div>
+
+            <div class="checkbox-grid" id="usersGrid">
+              <div class="loading-text">Please select plants first</div>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- SCHEDULE TIMING -->
+          <h5 class="mb-3"><i class="fas fa-clock"></i> Schedule Timing</h5>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.scheduled_date.id_for_label }}">
+                  Scheduled Date <span class="text-danger" id="scheduledDateRequired">*</span>
+                </label>
+                {{ form.scheduled_date }}
+                {% if form.scheduled_date.errors %}
+                  <div class="text-danger small">{{ form.scheduled_date.errors }}</div>
+                {% endif %}
+                <small class="form-text text-muted">When should the inspection start?</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.due_date.id_for_label }}">
+                  Due Date <span class="text-danger" id="dueDateRequired">*</span>
+                </label>
+                {{ form.due_date }}
+                {% if form.due_date.errors %}
+                  <div class="text-danger small">{{ form.due_date.errors }}</div>
+                {% endif %}
+                <small class="form-text text-muted">Deadline for completion</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- DEPARTMENT -->
+          <div class="form-group">
+            <label for="{{ form.department.id_for_label }}">Department</label>
+            {{ form.department }}
+            {% if form.department.errors %}
+              <div class="text-danger small">{{ form.department.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- ASSIGNMENT NOTES -->
+          <div class="form-group">
+            <label for="{{ form.assignment_notes.id_for_label }}">Assignment Notes</label>
+            {{ form.assignment_notes }}
+            {% if form.assignment_notes.errors %}
+              <div class="text-danger small">{{ form.assignment_notes.errors }}</div>
+            {% endif %}
+            <small class="form-text text-muted">Any special instructions for the inspector</small>
+          </div>
+
+          <hr>
+
+          <!-- AUTO MONTHLY SCHEDULE -->
+          <div class="auto-schedule-section">
+            <div class="form-check mb-2">
+              {{ form.enable_auto_schedule }}
+              <label class="form-check-label font-weight-bold" for="{{ form.enable_auto_schedule.id_for_label }}">
+                <i class="fas fa-sync-alt mr-1 text-primary"></i>
+                Enable Auto Monthly Schedule
+              </label>
+            </div>
+            <small class="text-muted d-block mb-2">
+              When enabled — Celery will automatically create this inspection
+              on the <strong>1st of every month</strong> for all selected plants and users.
+              Scheduled date and due date fields are not required.
+            </small>
+
+            <div class="offset-section" id="offsetSection">
+              <div class="col-md-4 pl-0">
+                <label for="{{ form.due_date_offset_days.id_for_label }}">
+                  Due Date Offset (days)
+                </label>
+                {{ form.due_date_offset_days }}
+                {% if form.due_date_offset_days.errors %}
+                  <div class="text-danger small">{{ form.due_date_offset_days.errors }}</div>
+                {% endif %}
+                <small class="form-text text-muted">
+                  Due date = 1st of month + this many days
+                </small>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- ACTIONS -->
+          <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'inspections:schedule_list' %}" class="btn btn-secondary">
+              <i class="fas fa-times"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+              <i class="fas fa-calendar-check"></i> {{ action }} Schedule
+            </button>
+          </div>
+
+        </form>
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-$(document).ready(function() {
-    // Cascading dropdowns for Plant -> Zone -> Location -> SubLocation
-    
-    $('#id_plant').change(function() {
-        var plantId = $(this).val();
-        
-        // Clear dependent dropdowns
-        $('#id_zone').html('<option value="">---------</option>');
-        $('#id_location').html('<option value="">---------</option>');
-        $('#id_sublocation').html('<option value="">---------</option>');
-        
-        if (plantId) {
-            $.ajax({
-                url: '{% url "inspections:get_zones_by_plant" %}',
-                data: { 'plant_id': plantId },
-                success: function(data) {
-                    $.each(data.zones, function(index, zone) {
-                        $('#id_zone').append(
-                            $('<option></option>').val(zone.id).text(zone.name)
-                        );
-                    });
-                }
-            });
-        }
-    });
-    
-    $('#id_zone').change(function() {
-        var zoneId = $(this).val();
-        
-        // Clear dependent dropdowns
-        $('#id_location').html('<option value="">---------</option>');
-        $('#id_sublocation').html('<option value="">---------</option>');
-        
-        if (zoneId) {
-            $.ajax({
-                url: '{% url "inspections:get_locations_by_zone" %}',
-                data: { 'zone_id': zoneId },
-                success: function(data) {
-                    $.each(data.locations, function(index, location) {
-                        $('#id_location').append(
-                            $('<option></option>').val(location.id).text(location.name)
-                        );
-                    });
-                }
-            });
-        }
-    });
-    
-    $('#id_location').change(function() {
-        var locationId = $(this).val();
-        
-        // Clear dependent dropdown
-        $('#id_sublocation').html('<option value="">---------</option>');
-        
-        if (locationId) {
-            $.ajax({
-                url: '{% url "inspections:get_sublocations_by_location" %}',
-                data: { 'location_id': locationId },
-                success: function(data) {
-                    $.each(data.sublocations, function(index, sublocation) {
-                        $('#id_sublocation').append(
-                            $('<option></option>').val(sublocation.id).text(sublocation.name)
-                        );
-                    });
-                }
-            });
-        }
-    });
-    
-    // Set min date for scheduled_date to today
-    var today = new Date().toISOString().split('T')[0];
-    $('#id_scheduled_date').attr('min', today);
-    
-    // Update due_date min when scheduled_date changes
-    $('#id_scheduled_date').change(function() {
-        var scheduledDate = $(this).val();
-        $('#id_due_date').attr('min', scheduledDate);
-    });
-        // Prevent multiple form submission
-    $('form').on('submit', function() {
-        var $submitBtn = $(this).find('button[type="submit"]');
-        if ($submitBtn.prop('disabled')) {
-            return false;
-        }
-        $submitBtn.prop('disabled', true);
-        $submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Processing...');
-    });
+document.addEventListener('DOMContentLoaded', function () {
+
+  // ─── Date constraints ───────────────────────────────────────
+  var today = new Date().toISOString().split('T')[0];
+  document.getElementById('id_scheduled_date').setAttribute('min', today);
+
+  document.getElementById('id_scheduled_date').addEventListener('change', function () {
+    document.getElementById('id_due_date').setAttribute('min', this.value);
+  });
+
+  // ─── Auto-schedule toggle ───────────────────────────────────
+  var autoCheckbox = document.getElementById('id_enable_auto_schedule');
+  var offsetSection = document.getElementById('offsetSection');
+  var scheduledDateField = document.getElementById('id_scheduled_date');
+  var dueDateField = document.getElementById('id_due_date');
+  var scheduledRequired = document.getElementById('scheduledDateRequired');
+  var dueDateRequired = document.getElementById('dueDateRequired');
+
+  autoCheckbox.addEventListener('change', function () {
+    if (this.checked) {
+      offsetSection.style.display = 'block';
+      scheduledDateField.removeAttribute('required');
+      dueDateField.removeAttribute('required');
+      scheduledRequired.style.display = 'none';
+      dueDateRequired.style.display = 'none';
+      scheduledDateField.closest('.form-group').style.opacity = '0.5';
+      dueDateField.closest('.form-group').style.opacity = '0.5';
+    } else {
+      offsetSection.style.display = 'none';
+      scheduledRequired.style.display = 'inline';
+      dueDateRequired.style.display = 'inline';
+      scheduledDateField.closest('.form-group').style.opacity = '1';
+      dueDateField.closest('.form-group').style.opacity = '1';
+    }
+  });
+
+  // ─── Load plants on page load ───────────────────────────────
+  loadPlants();
+
+  // ─── Submit guard ───────────────────────────────────────────
+  var isSubmitting = false;
+  document.getElementById('scheduleForm').addEventListener('submit', function (e) {
+    if (isSubmitting) { e.preventDefault(); return; }
+    isSubmitting = true;
+    var btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Creating...';
+  });
+
 });
+
+// ─── Generic helpers ──────────────────────────────────────────
+function selectAll(cls, countFn) {
+  document.querySelectorAll('.' + cls).forEach(function (cb) { cb.checked = true; });
+  if (countFn) countFn();
+}
+
+function deselectAll(cls, countFn) {
+  document.querySelectorAll('.' + cls).forEach(function (cb) { cb.checked = false; });
+  if (countFn) countFn();
+}
+
+function updatePlantCount() {
+  document.getElementById('plantCount').textContent =
+    document.querySelectorAll('.plant-checkbox:checked').length;
+}
+
+function updateZoneCount() {
+  document.getElementById('zoneCount').textContent =
+    document.querySelectorAll('.zone-checkbox:checked').length;
+}
+
+function updateLocationCount() {
+  document.getElementById('locationCount').textContent =
+    document.querySelectorAll('.location-checkbox:checked').length;
+}
+
+function updateSublocationCount() {
+  document.getElementById('sublocationCount').textContent =
+    document.querySelectorAll('.sublocation-checkbox:checked').length;
+}
+
+function updateUserCount() {
+  document.getElementById('userCount').textContent =
+    document.querySelectorAll('.user-checkbox:checked').length;
+}
+
+function buildCheckboxItem(name, value, id, labelHtml, cssClass, onChangeFn) {
+  var div = document.createElement('div');
+  div.className = 'checkbox-item';
+  div.innerHTML =
+    '<input type="checkbox" name="' + name + '" value="' + value + '" ' +
+    'id="' + id + '" class="' + cssClass + '">' +
+    '<label for="' + id + '">' + labelHtml + '</label>';
+  div.querySelector('input').addEventListener('change', onChangeFn);
+  return div;
+}
+
+function buildGroupHeader(text, icon) {
+  var div = document.createElement('div');
+  div.className = 'group-header';
+  div.innerHTML = '<i class="fas fa-' + icon + ' mr-2"></i>' + text;
+  return div;
+}
+
+// ─── Load Plants ──────────────────────────────────────────────
+function loadPlants() {
+  var grid = document.getElementById('plantsGrid');
+  grid.innerHTML = '<div class="loading-text">Loading plants...</div>';
+
+  fetch('/organizations/ajax/get-all-plants/')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      grid.innerHTML = '';
+      if (!data.length) {
+        grid.innerHTML = '<div class="loading-text">No plants available</div>';
+        return;
+      }
+      data.forEach(function (plant) {
+        var item = buildCheckboxItem(
+          'selected_plants', plant.id, 'plant_' + plant.id,
+          '<strong>' + plant.name + '</strong>' +
+          (plant.code ? ' <small class="text-muted">(' + plant.code + ')</small>' : ''),
+          'plant-checkbox',
+          function () {
+            updatePlantCount();
+            loadZonesForPlants();
+            loadUsersForPlants();
+          }
+        );
+        grid.appendChild(item);
+      });
+      updatePlantCount();
+    })
+    .catch(function () {
+      grid.innerHTML = '<div class="loading-text text-danger">Error loading plants</div>';
+    });
+}
+
+// ─── Load Zones ───────────────────────────────────────────────
+function loadZonesForPlants() {
+  var plantIds = getCheckedValues('.plant-checkbox');
+  var grid = document.getElementById('zonesGrid');
+  var bar = document.getElementById('zoneSelectBar');
+
+  // Reset downstream
+  resetGrid('locationsGrid', 'Please select zones first');
+  resetGrid('sublocationsGrid', 'Please select locations first');
+  document.getElementById('locationSelectBar').style.display = 'none';
+  document.getElementById('sublocationSelectBar').style.display = 'none';
+  updateLocationCount();
+  updateSublocationCount();
+
+  if (!plantIds.length) {
+    resetGrid('zonesGrid', 'Please select plants first');
+    bar.style.display = 'none';
+    updateZoneCount();
+    return;
+  }
+
+  grid.innerHTML = '<div class="loading-text">Loading zones...</div>';
+
+  fetch('/organizations/ajax/get-zones-by-plants/?plant_ids=' + plantIds.join(','))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      grid.innerHTML = '';
+      if (!data.length) {
+        grid.innerHTML = '<div class="loading-text">No zones in selected plants</div>';
+        bar.style.display = 'none';
+        return;
+      }
+
+      // Group by plant
+      var grouped = {};
+      data.forEach(function (z) {
+        if (!grouped[z.plant_name]) grouped[z.plant_name] = [];
+        grouped[z.plant_name].push(z);
+      });
+
+      Object.keys(grouped).forEach(function (plantName) {
+        grid.appendChild(buildGroupHeader(plantName, 'industry'));
+        grouped[plantName].forEach(function (zone) {
+          var item = buildCheckboxItem(
+            'selected_zones', zone.id, 'zone_' + zone.id,
+            '<strong>' + zone.name + '</strong>' +
+            (zone.code ? ' <small class="text-muted">(' + zone.code + ')</small>' : ''),
+            'zone-checkbox',
+            function () {
+              updateZoneCount();
+              loadLocationsForZones();
+            }
+          );
+          grid.appendChild(item);
+        });
+      });
+
+      bar.style.display = 'flex';
+      updateZoneCount();
+    })
+    .catch(function () {
+      grid.innerHTML = '<div class="loading-text text-danger">Error loading zones</div>';
+    });
+}
+
+// ─── Load Locations ───────────────────────────────────────────
+function loadLocationsForZones() {
+  var zoneIds = getCheckedValues('.zone-checkbox');
+  var grid = document.getElementById('locationsGrid');
+  var bar = document.getElementById('locationSelectBar');
+
+  // Reset downstream
+  resetGrid('sublocationsGrid', 'Please select locations first');
+  document.getElementById('sublocationSelectBar').style.display = 'none';
+  updateSublocationCount();
+
+  if (!zoneIds.length) {
+    resetGrid('locationsGrid', 'Please select zones first');
+    bar.style.display = 'none';
+    updateLocationCount();
+    return;
+  }
+
+  grid.innerHTML = '<div class="loading-text">Loading locations...</div>';
+
+  fetch('/organizations/ajax/get-locations-by-zones/?zone_ids=' + zoneIds.join(','))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      grid.innerHTML = '';
+      if (!data.length) {
+        grid.innerHTML = '<div class="loading-text">No locations in selected zones</div>';
+        bar.style.display = 'none';
+        return;
+      }
+
+      // Group by zone
+      var grouped = {};
+      data.forEach(function (l) {
+        if (!grouped[l.zone_name]) grouped[l.zone_name] = [];
+        grouped[l.zone_name].push(l);
+      });
+
+      Object.keys(grouped).forEach(function (zoneName) {
+        grid.appendChild(buildGroupHeader(zoneName, 'map-pin'));
+        grouped[zoneName].forEach(function (loc) {
+          var item = buildCheckboxItem(
+            'selected_locations', loc.id, 'loc_' + loc.id,
+            '<strong>' + loc.name + '</strong>' +
+            (loc.code ? ' <small class="text-muted">(' + loc.code + ')</small>' : ''),
+            'location-checkbox',
+            function () {
+              updateLocationCount();
+              loadSublocationsForLocations();
+            }
+          );
+          grid.appendChild(item);
+        });
+      });
+
+      bar.style.display = 'flex';
+      updateLocationCount();
+    })
+    .catch(function () {
+      grid.innerHTML = '<div class="loading-text text-danger">Error loading locations</div>';
+    });
+}
+
+// ─── Load Sublocations ────────────────────────────────────────
+function loadSublocationsForLocations() {
+  var locationIds = getCheckedValues('.location-checkbox');
+  var grid = document.getElementById('sublocationsGrid');
+  var bar = document.getElementById('sublocationSelectBar');
+
+  if (!locationIds.length) {
+    resetGrid('sublocationsGrid', 'Please select locations first');
+    bar.style.display = 'none';
+    updateSublocationCount();
+    return;
+  }
+
+  grid.innerHTML = '<div class="loading-text">Loading sub-locations...</div>';
+
+  fetch('/organizations/ajax/get-sublocations-by-locations/?location_ids=' + locationIds.join(','))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      grid.innerHTML = '';
+      if (!data.length) {
+        grid.innerHTML = '<div class="loading-text">No sub-locations in selected locations</div>';
+        bar.style.display = 'none';
+        return;
+      }
+
+      // Group by location
+      var grouped = {};
+      data.forEach(function (s) {
+        if (!grouped[s.location_name]) grouped[s.location_name] = [];
+        grouped[s.location_name].push(s);
+      });
+
+      Object.keys(grouped).forEach(function (locName) {
+        grid.appendChild(buildGroupHeader(locName, 'map-marker-alt'));
+        grouped[locName].forEach(function (sub) {
+          var item = buildCheckboxItem(
+            'selected_sublocations', sub.id, 'sub_' + sub.id,
+            sub.name + (sub.code ? ' <small class="text-muted">(' + sub.code + ')</small>' : ''),
+            'sublocation-checkbox',
+            function () { updateSublocationCount(); }
+          );
+          grid.appendChild(item);
+        });
+      });
+
+      bar.style.display = 'flex';
+      updateSublocationCount();
+    })
+    .catch(function () {
+      grid.innerHTML = '<div class="loading-text text-danger">Error loading sub-locations</div>';
+    });
+}
+
+// ─── Load Users by Plants ─────────────────────────────────────
+function loadUsersForPlants() {
+  var plantIds = getCheckedValues('.plant-checkbox');
+  var grid = document.getElementById('usersGrid');
+  var bar = document.getElementById('userSelectBar');
+
+  if (!plantIds.length) {
+    resetGrid('usersGrid', 'Please select plants first');
+    bar.style.display = 'none';
+    updateUserCount();
+    return;
+  }
+
+  grid.innerHTML = '<div class="loading-text">Loading users...</div>';
+
+  fetch('/inspections/ajax/get-users-by-plants/?plant_ids=' + plantIds.join(','))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      grid.innerHTML = '';
+      if (!data.users || !data.users.length) {
+        grid.innerHTML = '<div class="loading-text">No HODs or Safety Managers in selected plants</div>';
+        bar.style.display = 'none';
+        return;
+      }
+
+      // Group by plant
+      var grouped = {};
+      data.users.forEach(function (u) {
+        if (!grouped[u.plant_name]) grouped[u.plant_name] = [];
+        grouped[u.plant_name].push(u);
+      });
+
+      Object.keys(grouped).forEach(function (plantName) {
+        grid.appendChild(buildGroupHeader(plantName, 'building'));
+        grouped[plantName].forEach(function (user) {
+          var item = buildCheckboxItem(
+            'selected_users', user.id, 'user_' + user.id,
+            '<strong>' + user.full_name + '</strong>' +
+            ' <small class="text-muted">— ' + user.role +
+            (user.department ? ' | ' + user.department : '') + '</small>',
+            'user-checkbox',
+            function () { updateUserCount(); }
+          );
+          grid.appendChild(item);
+        });
+      });
+
+      bar.style.display = 'flex';
+      updateUserCount();
+    })
+    .catch(function () {
+      grid.innerHTML = '<div class="loading-text text-danger">Error loading users</div>';
+    });
+}
+
+// ─── Utilities ────────────────────────────────────────────────
+function getCheckedValues(selector) {
+  var values = [];
+  document.querySelectorAll(selector + ':checked').forEach(function (cb) {
+    values.push(cb.value);
+  });
+  return values;
+}
+
+function resetGrid(gridId, message) {
+  document.getElementById(gridId).innerHTML =
+    '<div class="loading-text">' + message + '</div>';
+}
 </script>
 {% endblock %}
