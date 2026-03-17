@@ -1939,42 +1939,32 @@ class InspectionDashboardView(LoginRequiredMixin, TemplateView):
                 accessible_plants = assigned
 
         # --- 2. Base Queryset for Completed Inspections (Filtered by accessible plants) ---
-        submissions = InspectionSubmission.objects.select_related(
-            'schedule', 'schedule__template', 'schedule__plant', 'submitted_by'
-        ).filter(schedule__plant__in=accessible_plants).order_by('-submitted_at')
+        submissions = (InspectionSubmission.objects.select_related('schedule', 'schedule__template', 'submitted_by')
+        .prefetch_related('schedule__plants').filter(schedule__plants__in=accessible_plants).order_by('-submitted_at').distinct())
 
         # --- 3. Top Statistics Cards Data (Filtered) ---
         total_inspections = submissions.count()
         current_month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        
-        # Base queryset for schedules, also filtered by accessible plants
-        schedules_qs = InspectionSchedule.objects.filter(plant__in=accessible_plants)
+        schedules_qs = (InspectionSchedule.objects.filter(plants__in=accessible_plants).distinct())
 
         context['total_inspections'] = total_inspections
         context['open_schedules'] = schedules_qs.filter(status__in=['SCHEDULED', 'IN_PROGRESS', 'OVERDUE']).count()
         context['this_month_inspections'] = submissions.filter(submitted_at__gte=current_month_start).count()
-        
+
         # New Stat: Average Compliance Score (Calculated from filtered submissions)
         if total_inspections > 0:
-            average_compliance = submissions.aggregate(avg_score=Avg('compliance_score'))['avg_score']
-            context['average_compliance_score'] = round(average_compliance, 2) if average_compliance else 0
+            avg = submissions.aggregate(avg_score=Avg('compliance_score'))['avg_score']
+            context['average_compliance_score'] = round(avg, 2) if avg else 0
         else:
             context['average_compliance_score'] = 0
-
-        # --- 4. Overdue Inspections Alert Data (Filtered) ---
-        context['overdue_inspections'] = schedules_qs.filter(
-            status='OVERDUE'
-        ).select_related('assigned_to', 'plant').order_by('-due_date')[:5] # Show top 5
+        context['overdue_inspections'] = (schedules_qs.filter(status='OVERDUE').select_related('assigned_to')
+        .prefetch_related('plants').order_by('-due_date')[:5])
 
         # --- 5. Top Non-Compliant Questions Chart Data (Filtered) ---
-        top_non_compliant = InspectionResponse.objects.filter(
-            submission__schedule__plant__in=accessible_plants, # Filter based on plant
-            answer='No'
-        ).values('question__question_text').annotate(no_count=Count('id')).order_by('-no_count')[:5] # Top 5
-
-        # Prepare labels and data for the chart
-        chart_labels = [item['question__question_text'] for item in top_non_compliant]
-        chart_data = [item['no_count'] for item in top_non_compliant]
+        top_non_compliant = (InspectionResponse.objects.filter(submission__schedule__plants__in=accessible_plants,answer='No')
+        .values('question__question_text').annotate(no_count=Count('id')).order_by('-no_count')[:5])
+        chart_labels = [i['question__question_text'] for i in top_non_compliant]
+        chart_data = [i['no_count'] for i in top_non_compliant]
 
         # Pass to context in JSON format for JavaScript
         context['non_compliant_labels'] = json.dumps(chart_labels)
