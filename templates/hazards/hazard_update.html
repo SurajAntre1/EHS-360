@@ -514,6 +514,73 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
+    const plantSelect = document.getElementById('id_plant');
+    const zoneSelect = document.getElementById('id_zone');
+    const locationSelect = document.getElementById('id_location');
+    const sublocationSelect = document.getElementById('id_sublocation');
+
+    function resetSelect(selectEl, text) {
+        if (selectEl) {
+            selectEl.innerHTML = `<option value="">-- ${text} --</option>`;
+        }
+    }
+
+    async function fetchAndPopulate(url, selectEl, defaultText) {
+        resetSelect(selectEl, defaultText);
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            data.forEach(item => {
+                const optionText = item.code ? `${item.name} (${item.code})` : item.name;
+                selectEl.add(new Option(optionText, item.id));
+            });
+        } catch (error) {
+            console.error('AJAX Error:', error);
+        }
+    }
+
+    if (plantSelect) {
+        plantSelect.addEventListener('change', function() {
+            const plantId = this.value;
+            resetSelect(locationSelect, 'Select Zone First');
+            resetSelect(sublocationSelect, 'Select Location First');
+
+            if (plantId) {
+                const url = `/hazards/api/get-zones/${plantId}/`;
+                fetchAndPopulate(url, zoneSelect, 'Select Zone');
+            } else {
+                resetSelect(zoneSelect, 'Select Plant First');
+            }
+        });
+    }
+
+    if (zoneSelect) {
+        zoneSelect.addEventListener('change', function() {
+            const zoneId = this.value;
+            resetSelect(sublocationSelect, 'Select Location First');
+
+            if (zoneId) {
+                const url = `/hazards/api/get-locations/${zoneId}/`;
+                fetchAndPopulate(url, locationSelect, 'Select Location');
+            } else {
+                resetSelect(locationSelect, 'Select Zone First');
+            }
+        });
+    }
+
+    if (locationSelect) {
+        locationSelect.addEventListener('change', function() {
+            const locationId = this.value;
+
+            if (locationId) {
+                const url = `/hazards/api/get-sublocations/${locationId}/`;
+                fetchAndPopulate(url, sublocationSelect, 'Select Sub-Location');
+            } else {
+                resetSelect(sublocationSelect, 'Select Location First');
+            }
+        });
+    }
+
     // Toggle Behalf Fields
     $('#behalf_checkbox').change(function() {
         if ($(this).is(':checked')) {

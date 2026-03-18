@@ -161,17 +161,6 @@ class HazardCreateView(LoginRequiredMixin, CreateView):
 
         context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
         context['user_assigned_plants'] = user.assigned_plants.filter(is_active=True)
-        if context['user_assigned_plants'].count() == 1:
-            plant = context['user_assigned_plants'].first()
-            context['user_assigned_zones'] = user.assigned_zones.filter(is_active=True, plant=plant)
-            if context['user_assigned_zones'].count() == 1:
-                zone = context['user_assigned_zones'].first()
-                context['user_assigned_locations'] = user.assigned_locations.filter(is_active=True, zone=zone)
-                if context['user_assigned_locations'].count() == 1:
-                    location = context['user_assigned_locations'].first()
-                    context['user_assigned_sublocations'] = user.assigned_sublocations.filter(
-                        is_active=True, location=location
-                    )
 
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
         return context
@@ -469,19 +458,6 @@ class HazardUpdateView(LoginRequiredMixin, UpdateView):
         
         # Get departments for behalf dropdown
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
-        
-        # If user has only one assigned plant, show it as readonly
-        if context['user_assigned_plants'].count() == 1:
-            plant = context['user_assigned_plants'].first()
-            context['user_assigned_zones'] = user.assigned_zones.filter(is_active=True, plant=plant)
-            if context['user_assigned_zones'].count() == 1:
-                zone = context['user_assigned_zones'].first()
-                context['user_assigned_locations'] = user.assigned_locations.filter(is_active=True, zone=zone)
-                if context['user_assigned_locations'].count() == 1:
-                    location = context['user_assigned_locations'].first()
-                    context['user_assigned_sublocations'] = user.assigned_sublocations.filter(
-                        is_active=True, location=location
-                    )
         
         return context
 
@@ -1476,6 +1452,13 @@ def get_zones_by_plant(request, plant_id):
     URL: /hazards/api/get-zones/<plant_id>/
     """
     try:
+        user = request.user
+        if not user.is_authenticated:
+            return JsonResponse({'error': 'Authentication required'}, status=401)
+        
+        if not user.assigned_plants.filter(id=plant_id, is_active=True).exists():
+            return JsonResponse({'error': 'Access denied'}, status=403)
+        
         zones = Zone.objects.filter(
             plant_id=plant_id, 
             is_active=True
@@ -1492,6 +1475,17 @@ def get_locations_by_zone(request, zone_id):
     URL: /hazards/api/get-locations/<zone_id>/
     """
     try:
+        user = request.user
+        if not user.is_authenticated:
+            return JsonResponse({'error': 'Authentication required'}, status=401)
+        
+        # Check if user has access to the plant that contains this zone
+        if not user.assigned_plants.filter(
+            zones__id=zone_id, 
+            is_active=True
+        ).exists():
+            return JsonResponse({'error': 'Access denied'}, status=403)
+        
         locations = Location.objects.filter(
             zone_id=zone_id, 
             is_active=True
@@ -1508,6 +1502,17 @@ def get_sublocations_by_location(request, location_id):
     URL: /hazards/api/get-sublocations/<location_id>/
     """
     try:
+        user = request.user
+        if not user.is_authenticated:
+            return JsonResponse({'error': 'Authentication required'}, status=401)
+        
+        # Check if user has access to the plant that contains this location's zone
+        if not user.assigned_plants.filter(
+            zones__locations__id=location_id,
+            is_active=True
+        ).exists():
+            return JsonResponse({'error': 'Access denied'}, status=403)
+        
         sublocations = SubLocation.objects.filter(
             location_id=location_id,
             is_active=True

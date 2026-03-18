@@ -322,28 +322,6 @@ class IncidentCreateView(LoginRequiredMixin, CreateView):
         
         # Pass QuerySets of assigned locations to the template
         context['user_assigned_plants'] = user.assigned_plants.filter(is_active=True)
-        
-        # Pass other assignments for the template logic to use
-        # The template can now check the count of each of these
-        if context['user_assigned_plants'].count() == 1:
-            plant = context['user_assigned_plants'].first()
-            context['user_assigned_zones'] = user.assigned_zones.filter(is_active=True, plant=plant)
-            if context['user_assigned_zones'].count() == 1:
-                zone = context['user_assigned_zones'].first()
-                context['user_assigned_locations'] = user.assigned_locations.filter(is_active=True, zone=zone)
-                if context['user_assigned_locations'].count() == 1:
-                    location = context['user_assigned_locations'].first()
-                    context['user_assigned_sublocations'] = user.assigned_sublocations.filter(is_active=True, location=location)
-                else:
-                    context['user_assigned_sublocations'] = user.assigned_sublocations.none() # Or all if needed
-            else:
-                context['user_assigned_locations'] = user.assigned_locations.none()
-                context['user_assigned_sublocations'] = user.assigned_sublocations.none()
-        else:
-            context['user_assigned_zones'] = user.assigned_zones.none()
-            context['user_assigned_locations'] = user.assigned_locations.none()
-            context['user_assigned_sublocations'] = user.assigned_sublocations.none()
-
         context['active_incident_types'] = IncidentType.objects.filter(is_active=True)
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
         context['cancel_url'] = (self.request.GET.get('next') or self.request.META.get('HTTP_REFERER') or '/')
@@ -465,6 +443,13 @@ def get_zones_by_plant(request, plant_id):
     """
     if not request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse({'error': 'Invalid request'}, status=400)
+    
+    user = request.user
+    if not user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    
+    if not user.assigned_plants.filter(id=plant_id, is_active=True).exists():
+        return JsonResponse({'error': 'Access denied'}, status=403)
         
     try:
         zones = Zone.objects.filter(plant_id=plant_id, is_active=True).values('id', 'name', 'code')
@@ -480,6 +465,13 @@ def get_locations_by_zone(request, zone_id):
     if not request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse({'error': 'Invalid request'}, status=400)
 
+    user = request.user
+    if not user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    
+    if not user.assigned_plants.filter(zones__id=zone_id, is_active=True).exists():
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
     try:
         locations = Location.objects.filter(zone_id=zone_id, is_active=True).values('id', 'name', 'code')
         return JsonResponse({'locations': list(locations)})
@@ -493,6 +485,13 @@ def get_sublocations_by_location(request, location_id):
     """
     if not request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse({'error': 'Invalid request'}, status=400)
+    
+    user = request.user
+    if not user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    
+    if not user.assigned_plants.filter(zones__locations__id=location_id,is_active=True).exists():
+        return JsonResponse({'error': 'Access denied'}, status=403)
         
     try:
         sublocations = SubLocation.objects.filter(location_id=location_id, is_active=True).values('id', 'name', 'code')
@@ -527,27 +526,6 @@ class IncidentUpdateView(LoginRequiredMixin, UpdateView):
         
         # Pass QuerySets of assigned locations to the template
         context['user_assigned_plants'] = user.assigned_plants.filter(is_active=True)
-
-        # This logic helps the template decide if there's only one option to show
-        if context['user_assigned_plants'].count() == 1:
-            plant = context['user_assigned_plants'].first()
-            context['user_assigned_zones'] = user.assigned_zones.filter(is_active=True, plant=plant)
-            if context['user_assigned_zones'].count() == 1:
-                zone = context['user_assigned_zones'].first()
-                context['user_assigned_locations'] = user.assigned_locations.filter(is_active=True, zone=zone)
-                if context['user_assigned_locations'].count() == 1:
-                    location = context['user_assigned_locations'].first()
-                    context['user_assigned_sublocations'] = user.assigned_sublocations.filter(is_active=True, location=location)
-                else:
-                    context['user_assigned_sublocations'] = user.assigned_sublocations.none()
-            else:
-                context['user_assigned_locations'] = user.assigned_locations.none()
-                context['user_assigned_sublocations'] = user.assigned_sublocations.none()
-        else:
-            context['user_assigned_zones'] = user.assigned_zones.none()
-            context['user_assigned_locations'] = user.assigned_locations.none()
-            context['user_assigned_sublocations'] = user.assigned_sublocations.none()
-        
         # Add departments for the affected person dropdown
         context['departments'] = Department.objects.filter(is_active=True).order_by('name')
         

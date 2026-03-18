@@ -37,7 +37,7 @@
                         </div>
                     {% endif %}
 
-                    <form method="POST">
+                    <form method="POST" id="closureForm">
                         {% csrf_token %}
                         
                         <h5 class="mt-4"><i class="fas fa-file-alt mr-2"></i>Closure Information</h5>
@@ -109,4 +109,21 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        let isSubmitting = false; 
+        $('#closureForm').on('submit', function(e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+            isSubmitting = true;
+            const $submitButton = $(this).find('button[type="submit"]');
+            $submitButton.prop('disabled', true);
+            $submitButton.html('<i class="fas fa-spinner fa-spin mr-2"></i>Closing...');
+        });
+    });
+</script>
 {% endblock %}

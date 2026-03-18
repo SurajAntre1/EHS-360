@@ -222,17 +222,7 @@
     <!-- Zone Field -->
     <div class="col-md-3 mb-3">
         <label for="id_zone">Zone</label>
-        
-        {% if user_assigned_zones.count == 1 %}
-            <input type="text" class="form-control" 
-                   value="{{ user_assigned_zones.first.name }} ({{ user_assigned_zones.first.code }})" 
-                   readonly style="background-color: #e9ecef;">
-            <input type="hidden" name="zone" id="id_zone" value="{{ user_assigned_zones.first.id }}">
-        {% else %}
-            <!-- This dropdown will be populated by AJAX -->
-            {{ form.zone }}
-        {% endif %}
-
+        {{ form.zone }}
         {% if form.zone.errors %}
           <div class="text-danger">{{ form.zone.errors }}</div>
         {% endif %}
@@ -241,17 +231,7 @@
     <!-- Location Field -->
     <div class="col-md-3 mb-3">
         <label for="id_location">Location <span class="text-danger">*</span></label>
-        
-        {% if user_assigned_locations.count == 1 %}
-            <input type="text" class="form-control" 
-                   value="{{ user_assigned_locations.first.name }} ({{ user_assigned_locations.first.code }})" 
-                   readonly style="background-color: #e9ecef;">
-            <input type="hidden" name="location" id="id_location" value="{{ user_assigned_locations.first.id }}">
-        {% else %}
-            <!-- This dropdown will be populated by AJAX -->
-            {{ form.location }}
-        {% endif %}
-
+        {{ form.location }}
         {% if form.location.errors %}
           <div class="text-danger">{{ form.location.errors }}</div>
         {% endif %}
@@ -260,17 +240,7 @@
     <!-- Sub-Location Field -->
     <div class="col-md-3 mb-3">
         <label for="id_sublocation">Sub-Location</label>
-        
-        {% if user_assigned_sublocations.count == 1 %}
-            <input type="text" class="form-control" 
-                   value="{{ user_assigned_sublocations.first.name }}{% if user_assigned_sublocations.first.code %} ({{ user_assigned_sublocations.first.code }}){% endif %}" 
-                   readonly style="background-color: #e9ecef;">
-            <input type="hidden" name="sublocation" id="id_sublocation" value="{{ user_assigned_sublocations.first.id }}">
-        {% else %}
-            <!-- This dropdown will be populated by AJAX -->
-            {{ form.sublocation }}
-        {% endif %}
-
+        {{ form.sublocation }}
         {% if form.sublocation.errors %}
           <div class="text-danger">{{ form.sublocation.errors }}</div>
         {% endif %}

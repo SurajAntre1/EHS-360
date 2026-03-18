@@ -92,12 +92,34 @@ class HazardForm(forms.ModelForm):
         if self.user:
             # Plant filtering
             self._set_filtered_queryset('plant', 'assigned_plants', 'plant', Plant)
+            user_plants = self.user.assigned_plants.filter(is_active=True)
+            
             # Zone filtering
-            self._set_filtered_queryset('zone', 'assigned_zones', 'zone', Zone)
-            # Location filtering
-            self._set_filtered_queryset('location', 'assigned_locations', 'location', Location)
-            # Sublocation filtering
-            self._set_filtered_queryset('sublocation', 'assigned_sublocations', 'sublocation', SubLocation)
+            if user_plants.exists():
+                self.fields['zone'].queryset = Zone.objects.filter(
+                    plant__in=user_plants, 
+                    is_active=True
+                ).distinct()
+            else:
+                self.fields['zone'].queryset = Zone.objects.none()
+            
+            # Location filtering 
+            if user_plants.exists():
+                self.fields['location'].queryset = Location.objects.filter(
+                    zone__plant__in=user_plants,
+                    is_active=True
+                ).distinct()
+            else:
+                self.fields['location'].queryset = Location.objects.none()
+            
+            # Sublocation filtering 
+            if user_plants.exists():
+                self.fields['sublocation'].queryset = SubLocation.objects.filter(
+                    location__zone__plant__in=user_plants,
+                    is_active=True
+                ).distinct()
+            else:
+                self.fields['sublocation'].queryset = SubLocation.objects.none()
         
         # Make zone and sublocation optional
         self.fields['zone'].required = False
