@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.conf import settings
+import re
 # apps/organizations/models.py
 
 class Plant(models.Model):
@@ -73,9 +74,10 @@ class Zone(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    sequence = models.PositiveIntegerField(default=0)
     
     class Meta:
-        ordering = ['plant', 'name']
+        ordering = ['plant','sequence', 'name']
         unique_together = ['plant', 'code']
         verbose_name = 'Zone'
         verbose_name_plural = 'Zones'
@@ -88,6 +90,15 @@ class Zone(models.Model):
         if self.code:
             self.code = self.code.upper()
     
+    def save(self, *args, **kwargs):
+        if self.name:
+            match = re.search(r'\d+', self.name)
+            if match:
+                self.sequence = int(match.group())
+            else:
+                self.sequence = 0
+        super().save(*args, **kwargs)
+
     @property
     def location_count(self):
         return self.locations.count()
