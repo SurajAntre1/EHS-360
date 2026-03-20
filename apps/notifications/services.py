@@ -219,7 +219,7 @@ class NotificationService:
             zone = hazard.zone
         elif hasattr(content_object, 'submission'):
             schedule = content_object.submission.schedule
-            plant = schedule.plant
+            plant = schedule.plant.first() if schedule.plants.exists() else None
             location = schedule.location
             zone = schedule.zone
         else:
@@ -675,8 +675,7 @@ INSPECTION DETAILS
 Schedule Code      : {schedule.schedule_code}
 Template           : {schedule.template.template_name}
 Inspection Type    : {schedule.template.get_inspection_type_display()}
-Plant              : {schedule.plant.name}
-Department         : {schedule.department.name if schedule.department else 'N/A'}
+Plant              : {", ".join([p.name for p in schedule.plants.all()]) if schedule.plants.exists() else "N/A"}Department         : {schedule.department.name if schedule.department else 'N/A'}
 
 ASSIGNED DETAILS
 --------------------------------------------------
@@ -715,8 +714,7 @@ INSPECTION DETAILS
 Schedule Code      : {schedule.schedule_code}
 Template           : {schedule.template.template_name}
 Inspection Type    : {schedule.template.get_inspection_type_display()}
-Plant              : {schedule.plant.name}
-Department         : {schedule.department.name if schedule.department else 'N/A'}
+Plant              : {", ".join([p.name for p in schedule.plants.all()]) if schedule.plants.exists() else "N/A"}Department         : {schedule.department.name if schedule.department else 'N/A'}
 Assigned By        : {schedule.assigned_by.get_full_name()}
 Scheduled Date     : {schedule.scheduled_date}
 Due Date           : {schedule.due_date}

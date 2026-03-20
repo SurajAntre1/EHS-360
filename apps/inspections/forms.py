@@ -232,7 +232,7 @@ class InspectionScheduleForm(forms.ModelForm):
         required=False,
         initial=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'id_enable_auto_schedule'}),
-        label="Enable Auto Monthly Schedule",
+        label="Enable Auto Schedule",
         help_text="Automatically create this schedule on 1st of every month"
     )
 
@@ -309,6 +309,34 @@ class InspectionScheduleForm(forms.ModelForm):
                 self.add_error('due_date', 'Due date cannot be before scheduled date.')
 
         return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        enable_auto = self.cleaned_data.get('enable_auto_schedule')
+        offset_days = self.cleaned_data.get('due_date_offset_days')
+
+        if commit:
+            instance.save()
+
+        # ✅ HANDLE AUTO SCHEDULE CONFIG CREATION
+        if enable_auto:
+            from apps.inspections.models import TemplateAutoScheduleConfig
+
+            config, created = TemplateAutoScheduleConfig.objects.get_or_create(
+                template=instance.template,
+                created_by=self.user,
+                defaults={
+                    'due_date_offset_days': offset_days or 7,
+                    'is_active': True
+                }
+            )
+
+            # You will assign plants/zones/users in view
+            instance.auto_schedule_config = config
+            instance.save()
+
+        return instance
 
 
 class QuestionFilterForm(forms.Form):

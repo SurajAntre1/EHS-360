@@ -22,6 +22,10 @@ app.conf.beat_schedule = {
     'task': 'apps.notifications.tasks.send_investigation_overdue_notifications',
     'schedule': crontab(hour=11, minute=0),  # Daily at 11 AM IST
     },
+    'auto-create-inspection-schedules': {
+        'task': 'apps.inspections.tasks.auto_create_inspection_schedules',
+        'schedule': crontab(hour=0, minute=0),  
+    },
 }
 
 @app.task(bind=True)

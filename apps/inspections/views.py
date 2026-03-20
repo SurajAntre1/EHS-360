@@ -875,18 +875,36 @@ def schedule_create(request):
                     # If auto-schedule enabled → save config
                     if enable_auto:
                         due_offset = form.cleaned_data.get('due_date_offset_days') or 7
-                        config = TemplateAutoScheduleConfig.objects.create(
+
+                        # ✅ Prevent duplicate configs for same template
+                        config, created = TemplateAutoScheduleConfig.objects.get_or_create(
                             template=form.cleaned_data['template'],
-                            due_date_offset_days=due_offset,
-                            is_active=True,
-                            is_paused=False,
-                            created_by=request.user
+                            defaults={
+                                'due_date_offset_days': due_offset,
+                                'is_active': True,
+                                'is_paused': False,
+                                'created_by': request.user
+                            }
                         )
+
+                        # ✅ If already exists → update it
+                        if not created:
+                            config.due_date_offset_days = due_offset
+                            config.is_active = True
+                            config.is_paused = False
+                            config.save()
+
+                        # ✅ Set relations
                         config.plants.set(plants)
                         config.zones.set(zones)
                         config.locations.set(locations)
                         config.sublocations.set(sublocations)
                         config.assigned_users.set(assigned_users)
+
+                        # ✅ LINK schedules to config
+                        for schedule in created_schedules:
+                            schedule.auto_schedule_config = config
+                            schedule.save()
 
                     messages.success(
                         request,

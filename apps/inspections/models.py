@@ -501,6 +501,14 @@ class InspectionSchedule(models.Model):
         null=True,
         blank=True
     )
+    auto_schedule_config = models.ForeignKey(
+        'TemplateAutoScheduleConfig',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='generated_schedules',
+        help_text="If created via auto schedule"
+    )
     
     # Audit
     created_at = models.DateTimeField(auto_now_add=True)

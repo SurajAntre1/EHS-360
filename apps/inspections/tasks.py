@@ -8,8 +8,71 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# Decide if schedule should run today
+def should_run_today(inspection_type, now):
+
+    if inspection_type == 'DAILY':
+        return True
+
+    elif inspection_type == 'WEEKLY':
+        return now.weekday() == 0  
+
+    elif inspection_type == 'MONTHLY':
+        return now.day == 1
+
+    elif inspection_type == 'QUARTERLY':
+        return now.day == 1 and now.month in [1, 4, 7, 10]
+
+    return False
+
+# Get schedule period & dates
+def get_schedule_dates(inspection_type, now, config):
+
+    if inspection_type == 'DAILY':
+        start = now
+        end = now + timezone.timedelta(days=1)
+        scheduled_date = now.date()
+
+    elif inspection_type == 'WEEKLY':
+        start = now - timezone.timedelta(days=now.weekday())
+        end = start + timezone.timedelta(days=7)
+        scheduled_date = start.date()
+
+    elif inspection_type == 'MONTHLY':
+        start = now.replace(day=1)
+
+        if start.month == 12:
+            end = start.replace(year=start.year + 1, month=1)
+        else:
+            end = start.replace(month=start.month + 1)
+
+        scheduled_date = start.date()
+
+    elif inspection_type == 'QUARTERLY':
+        quarter = (now.month - 1) // 3 + 1
+        start_month = 3 * (quarter - 1) + 1
+
+        start = now.replace(month=start_month, day=1)
+
+        if start_month + 3 > 12:
+            end = start.replace(year=start.year + 1, month=1)
+        else:
+            end = start.replace(month=start_month + 3)
+
+        scheduled_date = start.date()
+
+    else:
+        return None, None, None, None
+
+    due_date = scheduled_date + timezone.timedelta(
+        days=config.due_date_offset_days
+    )
+
+    return scheduled_date, start.date(), end.date(), due_date
+
+# MAIN TASK
 @shared_task(bind=True, max_retries=3)
-def auto_create_monthly_inspection_schedules(self):
+def auto_create_inspection_schedules(self):
     """
     Runs on 1st of every month.
     For each active, non-paused TemplateAutoScheduleConfig:
@@ -24,34 +87,10 @@ def auto_create_monthly_inspection_schedules(self):
     from apps.notifications.services import NotificationService
 
     now = timezone.now()
-    current_month_start = now.replace(
-        day=1, hour=0, minute=0, second=0, microsecond=0
-    )
-    current_month_end = (
-        current_month_start.replace(month=current_month_start.month % 12 + 1)
-        if current_month_start.month < 12
-        else current_month_start.replace(
-            year=current_month_start.year + 1, month=1
-        )
-    )
-
-    logger.info(
-        f"[AutoSchedule] Running for {current_month_start.strftime('%B %Y')}"
-    )
+    logger.info(f"[AutoSchedule] Running at {now}")
 
     # Get all active, non-paused configs
-    configs = TemplateAutoScheduleConfig.objects.filter(
-        is_active=True,
-        is_paused=False
-    ).prefetch_related(
-        'plants',
-        'zones',
-        'locations',
-        'sublocations',
-        'assigned_users',
-        'assigned_users__role',
-        'template'
-    )
+    configs = TemplateAutoScheduleConfig.objects.filter(is_active=True,is_paused=False).prefetch_related('plants','zones','locations','sublocations','assigned_users','template')
 
     total_created = 0
     total_skipped = 0
@@ -59,83 +98,73 @@ def auto_create_monthly_inspection_schedules(self):
 
     for config in configs:
         try:
-            # Skip if template is inactive
-            if not config.template.is_active:
-                logger.warning(
-                    f"[AutoSchedule] Skipping config {config.id} — "
-                    f"template {config.template.template_code} is inactive"
-                )
+            template = config.template
+            logger.info(f"[AutoSchedule] Config {config.id} | Type: {template.inspection_type}")
+
+            # Skip inactive template
+            if not template.is_active:
                 continue
 
-            assigned_users = config.assigned_users.filter(
-                is_active=True,
-                is_active_employee=True
+            inspection_type = template.inspection_type
+
+            # Run only on correct day
+            if not should_run_today(inspection_type, now):
+                continue
+
+            # Get dates
+            scheduled_date, period_start, period_end, due_date = get_schedule_dates(
+                inspection_type,
+                now,
+                config
             )
+
+            if not scheduled_date:
+                continue
+
+            # Users
+            assigned_users = config.assigned_users.filter(is_active=True,is_active_employee=True)
 
             if not assigned_users.exists():
-                logger.warning(
-                    f"[AutoSchedule] Config {config.id} has no active users. Skipping."
-                )
+                logger.warning(f"[AutoSchedule] No users in config {config.id}")
                 continue
 
+            # Plants
             plants = config.plants.filter(is_active=True)
             if not plants.exists():
-                logger.warning(
-                    f"[AutoSchedule] Config {config.id} has no active plants. Skipping."
-                )
+                logger.warning(f"[AutoSchedule] No plants in config {config.id}")
                 continue
 
-            # Scheduled date = 1st of current month
-            scheduled_date = current_month_start.date()
-
-            # Due date = scheduled date + offset days
-            due_date = scheduled_date + timezone.timedelta(
-                days=config.due_date_offset_days
-            )
-
+            # Create schedules per user
             for user in assigned_users:
                 try:
                     with transaction.atomic():
                         # Check if schedule already exists for this
                         # month + template + user to avoid duplicates
                         already_exists = InspectionSchedule.objects.filter(
-                            template=config.template,
+                            template=template,
                             assigned_to=user,
-                            scheduled_date__gte=current_month_start.date(),
-                            scheduled_date__lt=current_month_end.date(),
+                            scheduled_date=scheduled_date  
                         ).exists()
 
                         if already_exists:
-                            logger.info(
-                                f"[AutoSchedule] Schedule already exists for "
-                                f"user {user.get_full_name()} | "
-                                f"template {config.template.template_code} | "
-                                f"month {current_month_start.strftime('%B %Y')}. Skipping."
-                            )
                             total_skipped += 1
                             continue
 
                         # Create schedule
-                        schedule = InspectionSchedule(
-                            template=config.template,
+                        schedule = InspectionSchedule.objects.create(
+                            template=template,
                             assigned_to=user,
                             assigned_by=None,  # system-created
                             scheduled_date=scheduled_date,
                             due_date=due_date,
                             status='SCHEDULED',
-                            assignment_notes=(
-                                f"Auto-created by system for "
-                                f"{current_month_start.strftime('%B %Y')}"
-                            )
-                        )
-                        schedule.save()
+                            assignment_notes=(f"Auto-created for {inspection_type} "f"({scheduled_date})"))
 
                         # Set M2M
                         schedule.plants.set(plants)
                         schedule.zones.set(config.zones.all())
                         schedule.locations.set(config.locations.all())
                         schedule.sublocations.set(config.sublocations.all())
-                        schedule.assigned_users.set(assigned_users)
 
                         total_created += 1
                         logger.info(
@@ -151,36 +180,15 @@ def auto_create_monthly_inspection_schedules(self):
                                 module='INSPECTION'
                             )
                         except Exception as notif_error:
-                            logger.error(
-                                f"[AutoSchedule] Notification error for "
-                                f"{schedule.schedule_code}: {notif_error}"
-                            )
+                            logger.error(f"[AutoSchedule] Notification error: {notif_error}")
 
                 except Exception as user_error:
                     total_errors += 1
-                    logger.error(
-                        f"[AutoSchedule] Error creating schedule for user "
-                        f"{user.get_full_name()} | config {config.id}: {user_error}"
-                    )
-                    continue
+                    logger.error(f"[AutoSchedule] Error for user {user.id}: {user_error}")
 
         except Exception as config_error:
             total_errors += 1
-            logger.error(
-                f"[AutoSchedule] Error processing config {config.id}: {config_error}"
-            )
-            continue
+            logger.error(f"[AutoSchedule] Config error {config.id}: {config_error}")
+    logger.info(f"[AutoSchedule] Done | Created: {total_created} | "f"Skipped: {total_skipped} | Errors: {total_errors}")
 
-    logger.info(
-        f"[AutoSchedule] Done. "
-        f"Created: {total_created} | "
-        f"Skipped: {total_skipped} | "
-        f"Errors: {total_errors}"
-    )
-
-    return {
-        'created': total_created,
-        'skipped': total_skipped,
-        'errors': total_errors,
-        'month': current_month_start.strftime('%B %Y')
-    }
+    return {'created': total_created,'skipped': total_skipped,'errors': total_errors}
